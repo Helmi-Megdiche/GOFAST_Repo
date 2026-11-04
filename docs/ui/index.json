@@ -1,0 +1,1066 @@
+[
+ {
+  "file": "Main.html",
+  "title": "Accueil",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "Main.jpg"
+ },
+ {
+  "file": "Main-Sombre.html",
+  "title": "Accueil (sombre)",
+  "chrome": "web",
+  "group": "dkw",
+  "screenshot": "Main-Sombre.jpg"
+ },
+ {
+  "file": "W02-Services.html",
+  "title": "Services et tarifs",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W02-Services.jpg"
+ },
+ {
+  "file": "W03-Commercants.html",
+  "title": "Offre commerçants",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W03-Commercants.jpg"
+ },
+ {
+  "file": "W04-Suivi.html",
+  "title": "Suivre un colis",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W04-Suivi.jpg"
+ },
+ {
+  "file": "W05-Zones.html",
+  "title": "Zones desservies",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W05-Zones.jpg"
+ },
+ {
+  "file": "W06-Aide.html",
+  "title": "Aide",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W06-Aide.jpg"
+ },
+ {
+  "file": "W07-Contact.html",
+  "title": "Contact",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W07-Contact.jpg"
+ },
+ {
+  "file": "W08-Livreur.html",
+  "title": "Devenir livreur",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W08-Livreur.jpg"
+ },
+ {
+  "file": "W09-Legal.html",
+  "title": "Mentions et conditions",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W09-Legal.jpg"
+ },
+ {
+  "file": "W10-Introuvable.html",
+  "title": "Page introuvable",
+  "chrome": "web",
+  "group": "site",
+  "screenshot": "W10-Introuvable.jpg"
+ },
+ {
+  "file": "W11-Cmd1.html",
+  "title": "Commander : expéditeur",
+  "chrome": "cmd",
+  "group": "cmd",
+  "screenshot": "W11-Cmd1.jpg"
+ },
+ {
+  "file": "W12-Cmd2.html",
+  "title": "Commander : destinataire",
+  "chrome": "cmd",
+  "group": "cmd",
+  "screenshot": "W12-Cmd2.jpg"
+ },
+ {
+  "file": "W13-Cmd3.html",
+  "title": "Commander : colis",
+  "chrome": "cmd",
+  "group": "cmd",
+  "screenshot": "W13-Cmd3.jpg"
+ },
+ {
+  "file": "W14-Cmd4.html",
+  "title": "Commander : service",
+  "chrome": "cmd",
+  "group": "cmd",
+  "screenshot": "W14-Cmd4.jpg"
+ },
+ {
+  "file": "W15-Cmd5.html",
+  "title": "Commander : vérification",
+  "chrome": "cmd",
+  "group": "cmd",
+  "screenshot": "W15-Cmd5.jpg"
+ },
+ {
+  "file": "W15-Cmd5-Sombre.html",
+  "title": "Commander : vérification (sombre)",
+  "chrome": "cmd",
+  "group": "dkw",
+  "screenshot": "W15-Cmd5-Sombre.jpg"
+ },
+ {
+  "file": "W16-Confirmation.html",
+  "title": "Commande confirmée",
+  "chrome": "cmd",
+  "group": "cmd",
+  "screenshot": "W16-Confirmation.jpg"
+ },
+ {
+  "file": "W17-HorsZone.html",
+  "title": "Adresse hors zone",
+  "chrome": "cmd",
+  "group": "cmd",
+  "screenshot": "W17-HorsZone.jpg"
+ },
+ {
+  "file": "W18-Connexion.html",
+  "title": "Connexion",
+  "chrome": "web",
+  "group": "auth",
+  "screenshot": "W18-Connexion.jpg"
+ },
+ {
+  "file": "W18-Connexion-Sombre.html",
+  "title": "Connexion (sombre)",
+  "chrome": "web",
+  "group": "dkw",
+  "screenshot": "W18-Connexion-Sombre.jpg"
+ },
+ {
+  "file": "W19-Inscription.html",
+  "title": "Créer un compte",
+  "chrome": "web",
+  "group": "auth",
+  "screenshot": "W19-Inscription.jpg"
+ },
+ {
+  "file": "W20-Code.html",
+  "title": "Code de vérification",
+  "chrome": "web",
+  "group": "auth",
+  "screenshot": "W20-Code.jpg"
+ },
+ {
+  "file": "W21-MotDePasse.html",
+  "title": "Mot de passe oublié",
+  "chrome": "web",
+  "group": "auth",
+  "screenshot": "W21-MotDePasse.jpg"
+ },
+ {
+  "file": "D1-Suivi.html",
+  "title": "Destinataire : votre colis",
+  "chrome": "mweb",
+  "group": "dest",
+  "screenshot": "D1-Suivi.jpg"
+ },
+ {
+  "file": "D1-Suivi-Sombre.html",
+  "title": "Destinataire : votre colis (sombre)",
+  "chrome": "mweb",
+  "group": "dkm",
+  "screenshot": "D1-Suivi-Sombre.jpg"
+ },
+ {
+  "file": "D1AR-Suivi.html",
+  "title": "المستلم : طردك",
+  "chrome": "mweb",
+  "group": "dest",
+  "screenshot": "D1AR-Suivi.jpg"
+ },
+ {
+  "file": "D2-Position.html",
+  "title": "Destinataire : position",
+  "chrome": "mweb",
+  "group": "dest",
+  "screenshot": "D2-Position.jpg"
+ },
+ {
+  "file": "D3-Creneau.html",
+  "title": "Destinataire : nouveau créneau",
+  "chrome": "mweb",
+  "group": "dest",
+  "screenshot": "D3-Creneau.jpg"
+ },
+ {
+  "file": "D4-Echec.html",
+  "title": "Destinataire : livraison manquée",
+  "chrome": "mweb",
+  "group": "dest",
+  "screenshot": "D4-Echec.jpg"
+ },
+ {
+  "file": "D5-Livre.html",
+  "title": "Destinataire : colis livré",
+  "chrome": "mweb",
+  "group": "dest",
+  "screenshot": "D5-Livre.jpg"
+ },
+ {
+  "file": "W22-GooglePhone.html",
+  "title": "Dernière étape après Google",
+  "chrome": "web",
+  "group": "auth",
+  "screenshot": "W22-GooglePhone.jpg"
+ },
+ {
+  "file": "C01-Accueil.html",
+  "title": "Mon compte",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C01-Accueil.jpg"
+ },
+ {
+  "file": "C01-Accueil-Sombre.html",
+  "title": "Mon compte (sombre)",
+  "chrome": "client",
+  "group": "dkw",
+  "screenshot": "C01-Accueil-Sombre.jpg"
+ },
+ {
+  "file": "C02-Commandes.html",
+  "title": "Mes commandes",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C02-Commandes.jpg"
+ },
+ {
+  "file": "C03-Detail.html",
+  "title": "Détail de la commande",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C03-Detail.jpg"
+ },
+ {
+  "file": "C04-Factures.html",
+  "title": "Mes factures",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C04-Factures.jpg"
+ },
+ {
+  "file": "C05-Facture.html",
+  "title": "Facture",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C05-Facture.jpg"
+ },
+ {
+  "file": "C06-Reclamations.html",
+  "title": "Mes réclamations",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C06-Reclamations.jpg"
+ },
+ {
+  "file": "C07-Ticket.html",
+  "title": "Réclamation",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C07-Ticket.jpg"
+ },
+ {
+  "file": "C08-Adresses.html",
+  "title": "Mes adresses",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C08-Adresses.jpg"
+ },
+ {
+  "file": "C09-Profil.html",
+  "title": "Mon profil",
+  "chrome": "client",
+  "group": "clt",
+  "screenshot": "C09-Profil.jpg"
+ },
+ {
+  "file": "P01-Accueil.html",
+  "title": "Tableau de bord commerçant",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P01-Accueil.jpg"
+ },
+ {
+  "file": "P02-Import.html",
+  "title": "Importer des commandes",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P02-Import.jpg"
+ },
+ {
+  "file": "P03-Rapport.html",
+  "title": "Vérifier l'import",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P03-Rapport.jpg"
+ },
+ {
+  "file": "P04-COD.html",
+  "title": "Contre-remboursement",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P04-COD.jpg"
+ },
+ {
+  "file": "P04-COD-Sombre.html",
+  "title": "Contre-remboursement (sombre)",
+  "chrome": "pro",
+  "group": "dkw",
+  "screenshot": "P04-COD-Sombre.jpg"
+ },
+ {
+  "file": "P05-Releve.html",
+  "title": "Relevé de reversement",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P05-Releve.jpg"
+ },
+ {
+  "file": "P06-Points.html",
+  "title": "Points d'enlèvement",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P06-Points.jpg"
+ },
+ {
+  "file": "P07-Equipe.html",
+  "title": "Équipe",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P07-Equipe.jpg"
+ },
+ {
+  "file": "P08-API.html",
+  "title": "API et webhooks",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P08-API.jpg"
+ },
+ {
+  "file": "P09-Etiquettes.html",
+  "title": "Étiquettes",
+  "chrome": "pro",
+  "group": "pro",
+  "screenshot": "P09-Etiquettes.jpg"
+ },
+ {
+  "file": "A00-Connexion.html",
+  "title": "Back-office : connexion",
+  "chrome": "none",
+  "group": "ad0",
+  "screenshot": "A00-Connexion.jpg"
+ },
+ {
+  "file": "A01-Bord.html",
+  "title": "Tableau de bord",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A01-Bord.jpg"
+ },
+ {
+  "file": "A01-Bord-Sombre.html",
+  "title": "Tableau de bord (sombre)",
+  "chrome": "admin",
+  "group": "dkw",
+  "screenshot": "A01-Bord-Sombre.jpg"
+ },
+ {
+  "file": "A02-Commandes.html",
+  "title": "Commandes",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A02-Commandes.jpg"
+ },
+ {
+  "file": "A03-Commande.html",
+  "title": "Fiche commande",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A03-Commande.jpg"
+ },
+ {
+  "file": "A04-NouvelleCmd.html",
+  "title": "Commande par téléphone",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A04-NouvelleCmd.jpg"
+ },
+ {
+  "file": "A05-Confirmer.html",
+  "title": "À confirmer",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A05-Confirmer.jpg"
+ },
+ {
+  "file": "A06-Dispatch.html",
+  "title": "Dispatch",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A06-Dispatch.jpg"
+ },
+ {
+  "file": "A06-Dispatch-Sombre.html",
+  "title": "Dispatch (sombre)",
+  "chrome": "admin",
+  "group": "dkw",
+  "screenshot": "A06-Dispatch-Sombre.jpg"
+ },
+ {
+  "file": "A07-Tournees.html",
+  "title": "Tournées",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A07-Tournees.jpg"
+ },
+ {
+  "file": "A08-Colis.html",
+  "title": "Colis et retours",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A08-Colis.jpg"
+ },
+ {
+  "file": "A09-Incidents.html",
+  "title": "Incidents",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A09-Incidents.jpg"
+ },
+ {
+  "file": "A10-Clients.html",
+  "title": "Clients",
+  "chrome": "admin",
+  "group": "ad1",
+  "screenshot": "A10-Clients.jpg"
+ },
+ {
+  "file": "A11-Client.html",
+  "title": "Fiche client",
+  "chrome": "admin",
+  "group": "ad1",
+  "screenshot": "A11-Client.jpg"
+ },
+ {
+  "file": "A12-Livreurs.html",
+  "title": "Livreurs",
+  "chrome": "admin",
+  "group": "ad1",
+  "screenshot": "A12-Livreurs.jpg"
+ },
+ {
+  "file": "A13-Livreur.html",
+  "title": "Fiche livreur",
+  "chrome": "admin",
+  "group": "ad1",
+  "screenshot": "A13-Livreur.jpg"
+ },
+ {
+  "file": "A14-Candidatures.html",
+  "title": "Candidatures",
+  "chrome": "admin",
+  "group": "ad1",
+  "screenshot": "A14-Candidatures.jpg"
+ },
+ {
+  "file": "A15-Reclamations.html",
+  "title": "Réclamations",
+  "chrome": "admin",
+  "group": "ad1",
+  "screenshot": "A15-Reclamations.jpg"
+ },
+ {
+  "file": "A16-Ticket.html",
+  "title": "Ticket de réclamation",
+  "chrome": "admin",
+  "group": "ad1",
+  "screenshot": "A16-Ticket.jpg"
+ },
+ {
+  "file": "A22-Caisses.html",
+  "title": "Caisses",
+  "chrome": "admin",
+  "group": "ad2",
+  "screenshot": "A22-Caisses.jpg"
+ },
+ {
+  "file": "A22-Caisses-Sombre.html",
+  "title": "Caisses (sombre)",
+  "chrome": "admin",
+  "group": "dkw",
+  "screenshot": "A22-Caisses-Sombre.jpg"
+ },
+ {
+  "file": "A19-Factures.html",
+  "title": "Factures",
+  "chrome": "admin",
+  "group": "ad2",
+  "screenshot": "A19-Factures.jpg"
+ },
+ {
+  "file": "A20-Facture.html",
+  "title": "Fiche facture",
+  "chrome": "admin",
+  "group": "ad2",
+  "screenshot": "A20-Facture.jpg"
+ },
+ {
+  "file": "A21-Reglements.html",
+  "title": "Règlements",
+  "chrome": "admin",
+  "group": "ad2",
+  "screenshot": "A21-Reglements.jpg"
+ },
+ {
+  "file": "A23-COD.html",
+  "title": "Reversements COD",
+  "chrome": "admin",
+  "group": "ad2",
+  "screenshot": "A23-COD.jpg"
+ },
+ {
+  "file": "A24-Compta.html",
+  "title": "Comptabilité",
+  "chrome": "admin",
+  "group": "ad2",
+  "screenshot": "A24-Compta.jpg"
+ },
+ {
+  "file": "A25-Contrats.html",
+  "title": "Contrats et tarifs",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A25-Contrats.jpg"
+ },
+ {
+  "file": "A17-Zones.html",
+  "title": "Zones",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A17-Zones.jpg"
+ },
+ {
+  "file": "A26-RH.html",
+  "title": "RH et gains",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A26-RH.jpg"
+ },
+ {
+  "file": "A27-Flotte.html",
+  "title": "Flotte",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A27-Flotte.jpg"
+ },
+ {
+  "file": "A28-Documents.html",
+  "title": "Documents",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A28-Documents.jpg"
+ },
+ {
+  "file": "A29-Rapports.html",
+  "title": "Rapports",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A29-Rapports.jpg"
+ },
+ {
+  "file": "A30-Direction.html",
+  "title": "Direction",
+  "chrome": "admin",
+  "group": "ad0",
+  "screenshot": "A30-Direction.jpg"
+ },
+ {
+  "file": "A31-Utilisateurs.html",
+  "title": "Utilisateurs et rôles",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A31-Utilisateurs.jpg"
+ },
+ {
+  "file": "A32-Audit.html",
+  "title": "Journal d'audit",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A32-Audit.jpg"
+ },
+ {
+  "file": "A33-Parametres.html",
+  "title": "Paramètres",
+  "chrome": "admin",
+  "group": "ad3",
+  "screenshot": "A33-Parametres.jpg"
+ },
+ {
+  "file": "AC01-Demarrage.html",
+  "title": "Démarrage",
+  "chrome": "mc",
+  "group": "ac0",
+  "screenshot": "AC01-Demarrage.jpg"
+ },
+ {
+  "file": "AC02-Bienvenue.html",
+  "title": "Bienvenue",
+  "chrome": "mc",
+  "group": "ac0",
+  "screenshot": "AC02-Bienvenue.jpg"
+ },
+ {
+  "file": "AC03-Telephone.html",
+  "title": "Numéro de téléphone",
+  "chrome": "mc",
+  "group": "ac0",
+  "screenshot": "AC03-Telephone.jpg"
+ },
+ {
+  "file": "AC04-Code.html",
+  "title": "Code SMS",
+  "chrome": "mc",
+  "group": "ac0",
+  "screenshot": "AC04-Code.jpg"
+ },
+ {
+  "file": "AC05-Accueil.html",
+  "title": "Accueil",
+  "chrome": "mc",
+  "group": "ac0",
+  "screenshot": "AC05-Accueil.jpg"
+ },
+ {
+  "file": "AC05-Accueil-Sombre.html",
+  "title": "Accueil (sombre)",
+  "chrome": "mc",
+  "group": "dkm",
+  "screenshot": "AC05-Accueil-Sombre.jpg"
+ },
+ {
+  "file": "AC06-Collecte.html",
+  "title": "Adresse de collecte",
+  "chrome": "mc",
+  "group": "ac1",
+  "screenshot": "AC06-Collecte.jpg"
+ },
+ {
+  "file": "AC07-Destinataire.html",
+  "title": "Destinataire",
+  "chrome": "mc",
+  "group": "ac1",
+  "screenshot": "AC07-Destinataire.jpg"
+ },
+ {
+  "file": "AC08-Colis.html",
+  "title": "Colis",
+  "chrome": "mc",
+  "group": "ac1",
+  "screenshot": "AC08-Colis.jpg"
+ },
+ {
+  "file": "AC09-Service.html",
+  "title": "Service",
+  "chrome": "mc",
+  "group": "ac1",
+  "screenshot": "AC09-Service.jpg"
+ },
+ {
+  "file": "AC10-Recap.html",
+  "title": "Vérification",
+  "chrome": "mc",
+  "group": "ac1",
+  "screenshot": "AC10-Recap.jpg"
+ },
+ {
+  "file": "AC10-Recap-Sombre.html",
+  "title": "Vérification (sombre)",
+  "chrome": "mc",
+  "group": "dkm",
+  "screenshot": "AC10-Recap-Sombre.jpg"
+ },
+ {
+  "file": "AC11-Confirme.html",
+  "title": "Commande validée",
+  "chrome": "mc",
+  "group": "ac1",
+  "screenshot": "AC11-Confirme.jpg"
+ },
+ {
+  "file": "AC12-Commandes.html",
+  "title": "Mes commandes",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC12-Commandes.jpg"
+ },
+ {
+  "file": "AC13-Suivi.html",
+  "title": "Suivi",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC13-Suivi.jpg"
+ },
+ {
+  "file": "AC13-Suivi-Sombre.html",
+  "title": "Suivi (sombre)",
+  "chrome": "mc",
+  "group": "dkm",
+  "screenshot": "AC13-Suivi-Sombre.jpg"
+ },
+ {
+  "file": "AC14-Preuve.html",
+  "title": "Preuve de livraison",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC14-Preuve.jpg"
+ },
+ {
+  "file": "AC15-Noter.html",
+  "title": "Noter",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC15-Noter.jpg"
+ },
+ {
+  "file": "AC16-Notifs.html",
+  "title": "Notifications",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC16-Notifs.jpg"
+ },
+ {
+  "file": "AC17-Factures.html",
+  "title": "Factures",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC17-Factures.jpg"
+ },
+ {
+  "file": "AC18-Aide.html",
+  "title": "Aide",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC18-Aide.jpg"
+ },
+ {
+  "file": "AC19-Compte.html",
+  "title": "Mon compte",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC19-Compte.jpg"
+ },
+ {
+  "file": "AC20-Adresses.html",
+  "title": "Adresses",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC20-Adresses.jpg"
+ },
+ {
+  "file": "AC21-GoogleTel.html",
+  "title": "Téléphone après Google",
+  "chrome": "mc",
+  "group": "ac0",
+  "screenshot": "AC21-GoogleTel.jpg"
+ },
+ {
+  "file": "AC22-Apparence.html",
+  "title": "Apparence",
+  "chrome": "mc",
+  "group": "ac2",
+  "screenshot": "AC22-Apparence.jpg"
+ },
+ {
+  "file": "IP01-Installer.html",
+  "title": "Client sur iPhone : installer FastGo",
+  "chrome": "mc",
+  "group": "ip",
+  "screenshot": "IP01-Installer.jpg"
+ },
+ {
+  "file": "IP02-Notifications.html",
+  "title": "Client sur iPhone : notifications",
+  "chrome": "mc",
+  "group": "ip",
+  "screenshot": "IP02-Notifications.jpg"
+ },
+ {
+  "file": "AC23-Langue.html",
+  "title": "Client : choisir la langue",
+  "chrome": "mc",
+  "group": "lgm",
+  "screenshot": "AC23-Langue.jpg"
+ },
+ {
+  "file": "AL01-Connexion.html",
+  "title": "Connexion livreur",
+  "chrome": "ml",
+  "group": "al0",
+  "screenshot": "AL01-Connexion.jpg"
+ },
+ {
+  "file": "AL02-Autorisations.html",
+  "title": "Autorisations (Android)",
+  "chrome": "ml",
+  "group": "al0",
+  "screenshot": "AL02-Autorisations.jpg"
+ },
+ {
+  "file": "AL03-HorsService.html",
+  "title": "Hors service",
+  "chrome": "ml",
+  "group": "al0",
+  "screenshot": "AL03-HorsService.jpg"
+ },
+ {
+  "file": "AL04-Missions.html",
+  "title": "Mes missions",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL04-Missions.jpg"
+ },
+ {
+  "file": "AL04-Missions-Sombre.html",
+  "title": "Mes missions (sombre)",
+  "chrome": "ml",
+  "group": "dkm",
+  "screenshot": "AL04-Missions-Sombre.jpg"
+ },
+ {
+  "file": "AL05-Alerte.html",
+  "title": "Nouvelle mission",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL05-Alerte.jpg"
+ },
+ {
+  "file": "AL05-Alerte-Sombre.html",
+  "title": "Nouvelle mission (sombre)",
+  "chrome": "ml",
+  "group": "dkm",
+  "screenshot": "AL05-Alerte-Sombre.jpg"
+ },
+ {
+  "file": "AL06-Collecte.html",
+  "title": "Collecte",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL06-Collecte.jpg"
+ },
+ {
+  "file": "AL07-Scan.html",
+  "title": "Scanner",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL07-Scan.jpg"
+ },
+ {
+  "file": "AL08-CollecteKO.html",
+  "title": "Collecte impossible",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL08-CollecteKO.jpg"
+ },
+ {
+  "file": "AL09-Route.html",
+  "title": "Livraison",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL09-Route.jpg"
+ },
+ {
+  "file": "AL09-Route-Sombre.html",
+  "title": "Livraison (sombre)",
+  "chrome": "ml",
+  "group": "dkm",
+  "screenshot": "AL09-Route-Sombre.jpg"
+ },
+ {
+  "file": "AL10-Code.html",
+  "title": "Code de remise",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL10-Code.jpg"
+ },
+ {
+  "file": "AL11-Signature.html",
+  "title": "Signature et photo",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL11-Signature.jpg"
+ },
+ {
+  "file": "AL12-Especes.html",
+  "title": "Espèces reçues",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL12-Especes.jpg"
+ },
+ {
+  "file": "AL13-Succes.html",
+  "title": "Livraison terminée",
+  "chrome": "ml",
+  "group": "al1",
+  "screenshot": "AL13-Succes.jpg"
+ },
+ {
+  "file": "AL14-Echec.html",
+  "title": "Livraison impossible",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL14-Echec.jpg"
+ },
+ {
+  "file": "AL15-HorsLigne.html",
+  "title": "Mode hors ligne",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL15-HorsLigne.jpg"
+ },
+ {
+  "file": "AL16-Caisse.html",
+  "title": "Caisse du jour",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL16-Caisse.jpg"
+ },
+ {
+  "file": "AL16-Caisse-Sombre.html",
+  "title": "Caisse du jour (sombre)",
+  "chrome": "ml",
+  "group": "dkm",
+  "screenshot": "AL16-Caisse-Sombre.jpg"
+ },
+ {
+  "file": "AL17-Remise.html",
+  "title": "Remise de caisse",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL17-Remise.jpg"
+ },
+ {
+  "file": "AL18-Gains.html",
+  "title": "Mes gains",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL18-Gains.jpg"
+ },
+ {
+  "file": "AL19-Planning.html",
+  "title": "Mon planning",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL19-Planning.jpg"
+ },
+ {
+  "file": "AL20-Profil.html",
+  "title": "Mon profil",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL20-Profil.jpg"
+ },
+ {
+  "file": "AL21-Apparence.html",
+  "title": "Apparence",
+  "chrome": "ml",
+  "group": "al2",
+  "screenshot": "AL21-Apparence.jpg"
+ },
+ {
+  "file": "IP03-LivreurAutorisations.html",
+  "title": "Livreur sur iPhone : autorisations",
+  "chrome": "ml",
+  "group": "ip",
+  "screenshot": "IP03-LivreurAutorisations.jpg"
+ },
+ {
+  "file": "IP04-LivreurService.html",
+  "title": "Livreur sur iPhone : en service",
+  "chrome": "ml",
+  "group": "ip",
+  "screenshot": "IP04-LivreurService.jpg"
+ },
+ {
+  "file": "IP05-LivreurInterrompu.html",
+  "title": "Livreur sur iPhone : position interrompue",
+  "chrome": "ml",
+  "group": "ip",
+  "screenshot": "IP05-LivreurInterrompu.jpg"
+ },
+ {
+  "file": "IP06-LivreurPreuve.html",
+  "title": "Livreur sur iPhone : preuve à envoyer",
+  "chrome": "ml",
+  "group": "ip",
+  "screenshot": "IP06-LivreurPreuve.jpg"
+ },
+ {
+  "file": "AL22-Langue.html",
+  "title": "Livreur : choisir la langue",
+  "chrome": "ml",
+  "group": "lgm",
+  "screenshot": "AL22-Langue.jpg"
+ },
+ {
+  "file": "Main-EN.html",
+  "title": "Accueil en anglais",
+  "chrome": "web",
+  "group": "lgw",
+  "screenshot": "Main-EN.jpg"
+ },
+ {
+  "file": "Main-AR.html",
+  "title": "Accueil en arabe",
+  "chrome": "web",
+  "group": "lgw",
+  "screenshot": "Main-AR.jpg"
+ },
+ {
+  "file": "A01-EN.html",
+  "title": "Back-office en anglais",
+  "chrome": "admin",
+  "group": "lgw",
+  "screenshot": "A01-EN.jpg"
+ },
+ {
+  "file": "D1EN-Suivi.html",
+  "title": "Destinataire en anglais",
+  "chrome": "mweb",
+  "group": "lgm",
+  "screenshot": "D1EN-Suivi.jpg"
+ },
+ {
+  "file": "AL05-EN.html",
+  "title": "Livreur : mission en anglais",
+  "chrome": "ml",
+  "group": "lgm",
+  "screenshot": "AL05-EN.jpg"
+ },
+ {
+  "file": "AL05-AR.html",
+  "title": "Livreur : mission en arabe",
+  "chrome": "ml",
+  "group": "lgm",
+  "screenshot": "AL05-AR.jpg"
+ }
+]
