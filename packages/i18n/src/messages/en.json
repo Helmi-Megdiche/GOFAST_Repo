@@ -1,20 +1,78 @@
 {
   "meta": {
     "title": "FastGo",
-    "description": "Express delivery of documents and parcels."
+    "description": "Express delivery of documents and parcels.",
+    "pages": {
+      "home": {
+        "title": "FastGo: express delivery of documents and parcels",
+        "description": "Order a delivery across the city, see the price before you confirm and follow your parcel until delivery with proof."
+      },
+      "services": {
+        "title": "Services and prices | FastGo",
+        "description": "Express, Standard or Scheduled: compare FastGo services, shipment types and options."
+      },
+      "merchants": {
+        "title": "Merchant offer | FastGo",
+        "description": "Import your orders and track every parcel and every cash-on-delivery payout with FastGo."
+      },
+      "tracking": {
+        "title": "Track a parcel | FastGo",
+        "description": "Enter your FastGo tracking number to see the status and the estimated arrival time."
+      },
+      "zones": {
+        "title": "Areas served | FastGo",
+        "description": "Check in seconds whether FastGo serves your address."
+      },
+      "help": {
+        "title": "Help | FastGo",
+        "description": "Answers to common questions about ordering, tracking, payment and claims."
+      },
+      "contact": {
+        "title": "Contact | FastGo",
+        "description": "A question, a quote or a claim: write to FastGo, with or without a tracking number."
+      },
+      "driver": {
+        "title": "Become a driver | FastGo",
+        "description": "See what you need to deliver with FastGo and send your application."
+      },
+      "cgv": {
+        "title": "Terms of sale | FastGo",
+        "description": "FastGo terms of sale."
+      },
+      "privacy": {
+        "title": "Privacy | FastGo",
+        "description": "FastGo privacy policy."
+      },
+      "notice": {
+        "title": "Legal notice | FastGo",
+        "description": "FastGo legal notice."
+      },
+      "cookies": {
+        "title": "Cookies | FastGo",
+        "description": "Information about cookies on the FastGo site."
+      },
+      "order": {
+        "title": "Order | FastGo",
+        "description": "Online ordering is coming soon."
+      },
+      "signIn": {
+        "title": "Sign in | FastGo",
+        "description": "Signing in to your account is coming soon."
+      },
+      "signUp": {
+        "title": "Create an account | FastGo",
+        "description": "Account creation is coming soon."
+      }
+    }
   },
   "common": {
     "skipToContent": "Skip to content",
-    "home": "Home"
+    "home": "Home",
+    "loading": "Loading…",
+    "from": "From"
   },
   "languageSwitcher": {
     "label": "Language"
-  },
-  "home": {
-    "tagline": "Express delivery of documents and parcels."
-  },
-  "notFound": {
-    "title": "Page not found"
   },
   "devUi": {
     "title": "Component library",
@@ -34,7 +92,14 @@
       "avatars": "Avatars",
       "icons": "Icons",
       "logo": "Logo",
-      "formats": "Formats"
+      "formats": "Formats",
+      "layout": "Page bands",
+      "timeline": "Timeline",
+      "keyValue": "Label and value",
+      "accordion": "Accordion",
+      "chips": "Chips",
+      "checkbox": "Checkbox",
+      "fileAttach": "Attachment"
     },
     "typography": {
       "d1": "Your parcel leaves today. You know where it is.",
@@ -127,6 +192,458 @@
     "formats": {
       "money": "Amounts",
       "date": "Date and time (Africa/Tunis)"
+    },
+    "more": {
+      "bandDefault": "Light band",
+      "bandTint": "Grey band",
+      "bandDark": "Dark band",
+      "bandDeep": "Deep band",
+      "timelineDone": "Parcel picked up",
+      "timelineCurrent": "Out for delivery",
+      "timelineTodo": "Delivery with proof",
+      "accordionQuestion": "How is the price calculated?",
+      "accordionAnswer": "It depends on the service, the area, the distance and the weight.",
+      "chipsLabel": "Example chips",
+      "chipOn": "Ordering",
+      "chipOff": "Tracking and delivery",
+      "checkboxLabel": "I accept the terms of sale.",
+      "attachLabel": "Add an attachment (5 MB)",
+      "attachRemove": "Remove the attachment",
+      "attachError": "The file is larger than 5 MB."
     }
+  },
+  "placeholders": {
+    "price": "[PRICE]",
+    "priceTnd": "[PRICE] TND",
+    "city": "[CITY]",
+    "cityFrom": "[DEPARTURE CITY]",
+    "cityTo": "[ARRIVAL CITY]",
+    "phone": "[PHONE]",
+    "email": "[EMAIL]",
+    "address": "[ADDRESS]",
+    "supportHours": "[CUSTOMER SERVICE HOURS]",
+    "time": "[TIME]",
+    "limit": "[LIMIT]",
+    "fee": "[FEE]",
+    "list": "[LIST TO BE VALIDATED BY FASTGO]",
+    "text": "[TEXT]",
+    "answer": "[ANSWER]"
+  },
+  "nav": {
+    "label": "Main navigation",
+    "home": "Home",
+    "services": "Services and prices",
+    "merchants": "Merchants",
+    "tracking": "Track a parcel",
+    "help": "Help",
+    "signIn": "Sign in",
+    "order": "Order",
+    "openMenu": "Open the menu",
+    "closeMenu": "Close the menu"
+  },
+  "footer": {
+    "tagline": "Express delivery of documents and parcels.",
+    "servicesTitle": "Services",
+    "offers": "Services and prices",
+    "zones": "Areas served",
+    "merchants": "Merchants",
+    "helpTitle": "Help",
+    "faq": "Frequently asked questions",
+    "contact": "Contact",
+    "driver": "Become a driver",
+    "legalTitle": "Legal",
+    "terms": "Terms of sale",
+    "privacy": "Privacy",
+    "notice": "Legal notice"
+  },
+  "offers": {
+    "express": {
+      "name": "Express",
+      "delay": "Under 1 hour",
+      "delayCell": "Under 1 hour",
+      "tagline": "For what can't wait."
+    },
+    "standard": {
+      "name": "Standard",
+      "delay": "Same day",
+      "delayCell": "Same day",
+      "tagline": "Picked up and delivered before the cut-off time."
+    },
+    "scheduled": {
+      "name": "Scheduled",
+      "delay": "At a chosen time",
+      "delayCell": "Chosen time slot",
+      "tagline": "The recipient knows the time in advance."
+    }
+  },
+  "services": {
+    "eyebrow": "Services and prices",
+    "title": "A clear price, before you order.",
+    "tableLabel": "Service comparison",
+    "rows": {
+      "delay": "Time",
+      "cutoff": "Cut-off time",
+      "price": "Starting price",
+      "proof": "Proof of delivery",
+      "cod": "Cash on delivery"
+    },
+    "included": "Included",
+    "merchantsOnly": "Merchants",
+    "parcelTypes": {
+      "title": "Shipment types",
+      "document": "Envelope, document",
+      "small": "Small parcel",
+      "medium": "Medium parcel",
+      "large": "Large parcel"
+    },
+    "extras": {
+      "title": "Options and fees",
+      "fragile": "Fragile parcel",
+      "declaredValue": "Declared value",
+      "retry": "New attempt",
+      "return": "Return to sender"
+    },
+    "forbiddenLabel": "Prohibited items:",
+    "forbiddenNote": "The customer confirms this when ordering."
+  },
+  "merchants": {
+    "eyebrow": "Merchants",
+    "title": "Sell with peace of mind. Every parcel and every dinar is tracked.",
+    "quote": "Request a quote",
+    "signUp": "Create an account",
+    "statement": {
+      "title": "This week's statement",
+      "delivered": "Delivered",
+      "deliveredValue": "{count, plural, one {# parcel} other {# parcels}}",
+      "returned": "Returns",
+      "collected": "COD collected",
+      "fees": "Fees deducted",
+      "receivable": "To receive",
+      "sample": "Example"
+    },
+    "benefits": {
+      "title": "What changes for your shop",
+      "import": {
+        "title": "Import in one go",
+        "text": "CSV or Excel. Rows to fix are flagged and can be fixed on the spot."
+      },
+      "cod": {
+        "title": "Track cash on delivery",
+        "text": "Amounts collected, fees and payouts, parcel by parcel."
+      },
+      "returns": {
+        "title": "Reduce returns",
+        "text": "The recipient confirms their location and changes the time slot from their link."
+      },
+      "pickups": {
+        "title": "Several pickup points",
+        "text": "Shops and warehouses, with several users."
+      },
+      "invoice": {
+        "title": "One invoice a month",
+        "text": "Negotiated rates, a detailed statement and an electronic invoice."
+      },
+      "connect": {
+        "title": "Connect your website",
+        "text": "API, Shopify and WooCommerce. Coming soon."
+      }
+    },
+    "talk": {
+      "title": "Let's talk about your volumes",
+      "text": "Our team comes back to you with a tailored proposal.",
+      "cta": "Get my proposal"
+    }
+  },
+  "tracking": {
+    "title": "Track a parcel",
+    "label": "Tracking number",
+    "submit": "Track",
+    "searching": "Searching…",
+    "empty": {
+      "title": "Where is your parcel?",
+      "text": "Enter the number you received by SMS or email."
+    },
+    "arrival": "Estimated arrival",
+    "route": "From {from} to {to}",
+    "historyLabel": "Parcel history",
+    "steps": {
+      "created": "Order created",
+      "confirmed": "Order confirmed",
+      "picked_up": "Parcel picked up",
+      "out_for_delivery": "Out for delivery",
+      "delivered": "Delivered"
+    },
+    "notFound": {
+      "title": "Number not found",
+      "text": "No parcel matches this number. Check it or contact FastGo."
+    },
+    "yourParcel": {
+      "title": "Is this your parcel?",
+      "text": "The link you received by SMS shows the amount to pay and the delivery code, and lets you change the time slot."
+    },
+    "problem": {
+      "title": "A problem?",
+      "cta": "Contact FastGo"
+    }
+  },
+  "zones": {
+    "title": "Areas served",
+    "launch": "Launching in {city}.",
+    "addressLabel": "Your address",
+    "addressPlaceholder": "Rue Ibn Khaldoun",
+    "submit": "Check",
+    "checking": "Checking…",
+    "inZone": {
+      "title": "This address is served.",
+      "text": "Available services: {services}.",
+      "order": "Order"
+    },
+    "outOfZone": {
+      "title": "We don't deliver there yet.",
+      "text": "Choose another address or ask us to open this area.",
+      "request": "Request this area"
+    },
+    "unknown": {
+      "title": "Address not recognised.",
+      "text": "Add the street and the city, or a landmark. You can also contact us.",
+      "contact": "Contact us"
+    }
+  },
+  "help": {
+    "title": "How can we help?",
+    "searchLabel": "Search the help",
+    "topicsLabel": "Topics",
+    "topics": {
+      "order": "Ordering",
+      "tracking": "Tracking and delivery",
+      "payment": "Payment and invoices",
+      "claims": "Returns and claims",
+      "merchants": "Merchants"
+    },
+    "questions": {
+      "price": {
+        "q": "How is the price calculated?",
+        "a": "It depends on the service, the area, the distance and the weight. The breakdown is shown before you confirm and the price is guaranteed for 15 minutes."
+      },
+      "cancel": {
+        "q": "Can I cancel my order?"
+      },
+      "absent": {
+        "q": "What happens if the recipient is away?"
+      },
+      "deliveryCode": {
+        "q": "What is the delivery code for?"
+      },
+      "damaged": {
+        "q": "When should I report a damaged parcel?"
+      },
+      "invoice": {
+        "q": "How do I get my invoice?"
+      }
+    },
+    "noResult": "No question matches your search.",
+    "notFound": {
+      "title": "Didn't find it?",
+      "cta": "Contact us"
+    }
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "A question, a quote, a problem?",
+    "lead": "With a tracking number, your request is attached directly to the parcel.",
+    "form": {
+      "type": "Your request",
+      "types": {
+        "question": "Question",
+        "quote": "Quote",
+        "claim": "Claim"
+      },
+      "name": "Name",
+      "phone": "Phone",
+      "email": "Email",
+      "tracking": "Tracking number (optional)",
+      "message": "Message",
+      "attach": "Add an attachment (5 MB)",
+      "removeAttachment": "Remove the attachment",
+      "captcha": "I am not a robot",
+      "captchaChecking": "Checking…",
+      "submit": "Send my request",
+      "sending": "Sending…"
+    },
+    "success": {
+      "title": "Your request is registered.",
+      "ticket": "Ticket",
+      "text": "An acknowledgement is sent to you automatically.",
+      "again": "Send another request"
+    }
+  },
+  "driver": {
+    "eyebrow": "Join FastGo",
+    "title": "Deliver with FastGo.",
+    "needs": {
+      "title": "What you need",
+      "licence": "A valid licence, if your vehicle requires one",
+      "vehicle": "An insured vehicle with an up-to-date technical inspection",
+      "phone": "An Android 10 phone or newer, or an iPhone on iOS 16.4 or newer"
+    },
+    "process": {
+      "title": "How it works",
+      "apply": "You send your application",
+      "check": "We check your documents",
+      "train": "You are trained in the field",
+      "activate": "You activate the app and receive your missions"
+    },
+    "form": {
+      "title": "Application",
+      "fullName": "Full name",
+      "phone": "Phone",
+      "vehicle": "Vehicle",
+      "vehicles": {
+        "moto": "Motorbike",
+        "car": "Car",
+        "van": "Van"
+      },
+      "zone": "Preferred area",
+      "attach": "Licence and insurance (5 MB)",
+      "removeAttachment": "Remove the document",
+      "submit": "Send my application",
+      "sending": "Sending…"
+    },
+    "success": {
+      "title": "Application sent.",
+      "reference": "Reference",
+      "text": "We will check your documents."
+    }
+  },
+  "legal": {
+    "nav": "Documents",
+    "docs": {
+      "cgv": "Terms of sale",
+      "privacy": "Privacy",
+      "notice": "Legal notice",
+      "cookies": "Cookies"
+    },
+    "titles": {
+      "cgv": "Terms of sale",
+      "privacy": "Privacy policy",
+      "notice": "Legal notice",
+      "cookies": "Cookies"
+    },
+    "note": "Text to be provided and validated by FastGo's legal adviser.",
+    "cgvSections": {
+      "purpose": "Purpose",
+      "cancellation": "Cancellation and fees",
+      "liability": "Loss, damage and compensation",
+      "data": "Personal data"
+    }
+  },
+  "comingSoon": {
+    "title": "Coming soon",
+    "text": "This page is coming soon.",
+    "home": "Back to home",
+    "pages": {
+      "order": "Order",
+      "signIn": "Sign in",
+      "signUp": "Create an account"
+    }
+  },
+  "forms": {
+    "errors": {
+      "required": "This field is required.",
+      "phoneInvalid": "Invalid number. Example: +216 20 000 000.",
+      "emailInvalid": "Invalid email address.",
+      "trackingInvalid": "A tracking number looks like FG-7K4M-2QXP.",
+      "addressTooShort": "Enter at least 3 characters.",
+      "attachmentTooLarge": "The file is larger than 5 MB.",
+      "captchaRequired": "Confirm that you are not a robot."
+    },
+    "serverErrors": {
+      "attachmentTooLarge": "The file is larger than 5 MB.",
+      "captchaFailed": "The anti-robot check failed. Try again.",
+      "invalidTrackingCode": "A tracking number looks like FG-7K4M-2QXP."
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "Your parcel leaves today. You know where it is.",
+      "subtitle": "FastGo picks up and delivers your documents and parcels across the city. You see the price before you order.",
+      "departure": "From",
+      "arrival": "To",
+      "addressPlaceholder": "Street, area or city",
+      "cta": "See the price",
+      "note": "You confirm only after you see the price.",
+      "trackingLabel": "Already have a tracking number?",
+      "trackingButton": "Track"
+    },
+    "example": {
+      "label": "Tracking example",
+      "badge": "Example",
+      "arrivesAround": "Your parcel arrives around",
+      "pickedUp": "Parcel picked up",
+      "enRoute": "On the way with {driver}",
+      "distance": "{distance} km away",
+      "proof": "Delivery with proof",
+      "proofDetail": "Code, signature or photo",
+      "driver": "Sami",
+      "merchant": "Boutique Yasmine"
+    },
+    "promise": {
+      "price": "Full price before you confirm",
+      "proof": "Proof for every delivery",
+      "cash": "Cash at pickup or on delivery",
+      "merchants": "Are you a merchant?"
+    },
+    "offers": {
+      "title": "Choose by urgency",
+      "compare": "Compare services"
+    },
+    "steps": {
+      "title": "From order to delivery, nobody is left without an answer",
+      "order": {
+        "title": "You order in under 2 minutes",
+        "text": "Addresses, parcel, time: the price updates as you type."
+      },
+      "pickup": {
+        "title": "A driver picks up the parcel",
+        "text": "You get a tracking number and the recipient gets a personal link."
+      },
+      "recipient": {
+        "title": "The recipient knows when and how much",
+        "text": "They see the arrival time and the amount to pay, and can choose another time."
+      },
+      "proof": {
+        "title": "Delivery is proven",
+        "text": "Code, signature or photo, available at any time."
+      },
+      "payment": "You pay cash at pickup or on delivery. Merchants under contract receive a monthly invoice."
+    },
+    "recipient": {
+      "title": "What your recipient gets",
+      "status": "{driver}, your driver, is on the way. Sent by {merchant}.",
+      "cashToPay": "Cash to pay",
+      "code": "Code to give",
+      "share": "Share my location",
+      "note": "Example. The link opens without an app, in French, Arabic or English."
+    },
+    "merchants": {
+      "title": "You sell, we deliver. And you know where your money is.",
+      "text": "Import your orders, track every parcel and get a clear statement for each cash-on-delivery payout.",
+      "cta": "See the merchant offer",
+      "receivable": "To receive on Friday",
+      "collected": "Collected this week",
+      "fees": "Fees deducted",
+      "sample": "Sample statement"
+    },
+    "coverage": {
+      "title": "Is your area covered?",
+      "text": "Launching in {city}. Check an address in seconds.",
+      "cta": "Check my address"
+    }
+  },
+  "notFound": {
+    "title": "This parcel got lost, not yours.",
+    "text": "This page does not exist or has moved.",
+    "home": "Back to home",
+    "track": "Track a parcel"
   }
 }

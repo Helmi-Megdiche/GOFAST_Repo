@@ -1,23 +1,28 @@
 import { useTranslations } from "next-intl";
-import { Button } from "@fastgo/ui";
-import { SiteHeader } from "@/components/site-header";
+import { Button, Container, Ltr, Section } from "@fastgo/ui";
 import { Link } from "@/i18n/navigation";
 
-// The full 404 page (W10-Introuvable) is built with the public site.
+/** Page not found (W10-Introuvable). Inside the layout, so the header and footer stay. */
 export default function NotFound() {
-  const t = useTranslations();
+  const t = useTranslations("notFound");
   return (
-    <>
-      <SiteHeader />
-      <main
-        id="main"
-        className="mx-auto flex max-w-[1200px] flex-col items-start gap-6 px-4 py-16 md:px-6"
-      >
-        <h1 className="text-d2">{t("notFound.title")}</h1>
-        <Button as={Link} href="/">
-          {t("common.home")}
-        </Button>
-      </main>
-    </>
+    <Section>
+      <Container className="flex flex-col items-center gap-4 text-center">
+        {/* orange-dark, not orange: plain orange on white is below 3:1 even for large text */}
+        <p className="font-display text-[96px] leading-none font-bold text-orange-dark">
+          <Ltr>404</Ltr>
+        </p>
+        <h1 className="text-d2">{t("title")}</h1>
+        <p className="text-lead">{t("text")}</p>
+        <div className="flex flex-wrap justify-center gap-3">
+          <Button as={Link} href="/">
+            {t("home")}
+          </Button>
+          <Button as={Link} href="/suivi" variant="secondary">
+            {t("track")}
+          </Button>
+        </div>
+      </Container>
+    </Section>
   );
 }

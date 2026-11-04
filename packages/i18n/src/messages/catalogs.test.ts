@@ -31,6 +31,30 @@ describe("message catalogs", () => {
   });
 });
 
+describe("business placeholders", () => {
+  it("stay visible in square brackets in fr, en and ar", () => {
+    const keys = Object.keys(flat.fr).filter((key) => key.startsWith("placeholders."));
+    expect(keys.length).toBeGreaterThan(10);
+    for (const [locale, entries] of Object.entries(flat)) {
+      for (const key of keys) {
+        expect(entries[key], `${locale}:${key}`).toMatch(/\[[^\]]+\]/);
+      }
+    }
+  });
+
+  it("never promise a 10-minute price guarantee (CMD-04 says 15)", () => {
+    for (const [locale, entries] of Object.entries(flat)) {
+      for (const [key, value] of Object.entries(entries)) {
+        expect(value, `${locale}:${key}`).not.toMatch(/\b10\s*(min|minutes)\b/i);
+        expect(value, `${locale}:${key}`).not.toMatch(/10\s*(دقائق|دقيقة)/);
+      }
+    }
+    expect(flat.fr["help.questions.price.a"]).toContain("15 minutes");
+    expect(flat.en["help.questions.price.a"]).toContain("15 minutes");
+    expect(flat.ar["help.questions.price.a"]).toContain("15 دقيقة");
+  });
+});
+
 describe("AR-REVIEW.md", () => {
   it("lists every Arabic key (run `pnpm --filter @fastgo/i18n ar-review` after adding keys)", () => {
     const file = readFileSync(new URL("../../AR-REVIEW.md", import.meta.url), "utf8");

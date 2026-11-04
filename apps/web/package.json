@@ -8,15 +8,19 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run",
     "test:e2e": "playwright test"
   },
   "dependencies": {
     "@fastgo/i18n": "workspace:*",
     "@fastgo/ui": "workspace:*",
+    "@hookform/resolvers": "^7.0.2",
     "next": "16.4.5",
     "next-intl": "4.14.9",
     "react": "19.3.1",
-    "react-dom": "19.3.1"
+    "react-dom": "19.3.1",
+    "react-hook-form": "^7.91.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
@@ -29,6 +33,7 @@
     "eslint": "^10.14.0",
     "eslint-config-next": "16.4.5",
     "tailwindcss": "4.3.4",
-    "typescript": "5.9.3"
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
   }
 }

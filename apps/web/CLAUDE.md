@@ -25,14 +25,29 @@ apps/web/
    ├─ app/
    │  ├─ fonts.ts           next/font: Poppins, Inter, JetBrains Mono, Noto Sans Arabic
    │  ├─ globals.css        Tailwind + @fastgo/ui theme, scans packages/ui for classes
-   │  └─ [locale]/          the only layout. Sets <html lang dir>. dir="rtl" for ar.
-   │     ├─ layout.tsx, page.tsx, not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
+   │  └─ [locale]/          the only layout (header, <main id="main">, footer). Sets <html lang dir>.
+   │     ├─ layout.tsx, page.tsx (home), not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
+   │     ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
+   │     ├─ commander, connexion, inscription   "coming soon" placeholders, noindex (real pages: Prompt 3)
    │     └─ dev/ui/page.tsx  component showcase (see below)
-   ├─ components/           app-level components (site-header, locale-switcher, money)
+   ├─ components/           app-level components (site-header/footer, mobile-menu, money, page-hero...)
+   │  ├─ home/, tracking/, zones/, help/, contact/, driver/   one folder per page that has client forms
    │  └─ dev/ui-showcase.tsx
-   └─ lib/data/             mock data layer. Pages read from here; swapped for the API client later.
-      └─ fixtures/          example data (names, amounts, tracking codes). Never in components.
+   └─ lib/
+      ├─ data/              mock data layer. Pages read from here; swapped for the API client later.
+      │  └─ fixtures/       example data (names, amounts, tracking codes). Never in components.
+      ├─ forms/             zod schemas (error codes, not text) and useErrorMessage
+      ├─ seo.ts, page.ts    title/description/canonical/hreflang helper, locale + metadata helpers
+      └─ tracking-code.ts, limits.ts   shared validator (FG-XXXX-XXXX) and the 5 MB attachment limit
 ```
+
+## Mock data rules
+
+- Functions in `lib/data` return codes, keys, ISO UTC dates and millimes. **Never display text.** Words come from the catalogs.
+- Values FastGo has not given yet (prices, hours, limits, fees, cities) are `null`: the page prints the
+  placeholder in the active language (`placeholders.*`: `[PRIX]`, `[HEURE]`, `[LIMITE]`, `[TARIF]`, `[VILLE]`...).
+- `NEXT_PUBLIC_SITE_URL` (see `.env.example`) feeds the canonical and hreflang links.
+- `pnpm --filter @fastgo/web test` runs the unit tests of the data layer and the form schemas.
 
 ## Languages
 

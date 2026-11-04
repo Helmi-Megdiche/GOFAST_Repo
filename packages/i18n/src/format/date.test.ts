@@ -5,9 +5,18 @@ describe("formatDate", () => {
   // Tunisia is UTC+1 all year (no daylight saving time).
   it("shows time in Africa/Tunis, not UTC", () => {
     const utc = "2026-11-04T23:30:00Z";
-    expect(formatDate(utc, "fr", "time")).toBe("00:30");
+    expect(formatDate(utc, "fr", "time")).toBe("00\u00a0h\u00a030");
     expect(formatDate(utc, "en", "time")).toBe("00:30");
     expect(formatDate(utc, "ar", "time")).toBe("00:30");
+  });
+
+  it("writes the French time as 14 h 20 and keeps 14:20 in en and ar", () => {
+    const utc = "2026-11-04T13:20:00Z"; // 14:20 in Tunis
+    expect(formatDate(utc, "fr", "time")).toBe("14\u00a0h\u00a020");
+    expect(formatDate(utc, "fr", "dateTime").endsWith("14\u00a0h\u00a020")).toBe(true);
+    expect(formatDate(utc, "en", "time")).toBe("14:20");
+    expect(formatDate(utc, "ar", "time")).toBe("14:20");
+    expect(formatDate(utc, "fr", "date")).not.toContain("\u00a0h\u00a0");
   });
 
   it("rolls the date over with the time zone", () => {
@@ -24,8 +33,8 @@ describe("formatDate", () => {
 
   it("accepts Date and epoch milliseconds", () => {
     const ms = Date.UTC(2026, 10, 4, 10, 0, 0);
-    expect(formatDate(new Date(ms), "fr", "time")).toBe("11:00");
-    expect(formatDate(ms, "fr", "time")).toBe("11:00");
+    expect(formatDate(new Date(ms), "fr", "time")).toBe("11\u00a0h\u00a000");
+    expect(formatDate(ms, "fr", "time")).toBe("11\u00a0h\u00a000");
   });
 
   it("rejects invalid dates", () => {

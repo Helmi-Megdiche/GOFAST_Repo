@@ -31,7 +31,8 @@
   --fg-row-line: #e9ecef; /* table row separator */
 
   /* ── Themed: orange family ────────────────────── */
-  --fg-orange-hover: #d9630f; /* --oh */
+  /* --oh is #d9630f in the mockup: navy text on it is 4.46:1, just under AA. #db6510 gives 4.6:1. */
+  --fg-orange-hover: #db6510;
   --fg-orange-dark: #a84e0a; /* --od  links and text on light (AA) */
   --fg-orange-light: #fdefe3; /* --ol  */
   --fg-orange-border: #f6d5b9;
