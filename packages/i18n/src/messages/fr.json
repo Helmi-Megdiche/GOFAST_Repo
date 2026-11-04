@@ -227,7 +227,8 @@
     "fee": "[TARIF]",
     "list": "[LISTE À VALIDER PAR FASTGO]",
     "text": "[TEXTE]",
-    "answer": "[RÉPONSE]"
+    "answer": "[RÉPONSE]",
+    "vehicle": "[VÉHICULE]"
   },
   "nav": {
     "label": "Navigation principale",
@@ -499,9 +500,7 @@
       "phone": "Téléphone",
       "vehicle": "Véhicule",
       "vehicles": {
-        "moto": "Moto",
-        "car": "Voiture",
-        "van": "Utilitaire"
+        "moto": "Moto"
       },
       "zone": "Zone souhaitée",
       "attach": "Permis et assurance (5 Mo)",

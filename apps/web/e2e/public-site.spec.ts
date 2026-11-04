@@ -131,20 +131,64 @@ test("the nav marks the current page and nothing on zones, contact, livreur or l
   }
 });
 
-test("all five nav links are visible at 1080 px", async ({ page }) => {
-  await page.setViewportSize({ width: 1080, height: 900 });
-  await page.goto("/fr");
-  const nav = page.getByRole("navigation", { name: "Navigation principale" });
-  for (const name of ["Accueil", "Services et tarifs", "Commerçants", "Suivre un colis", "Aide"]) {
-    const box = await nav.getByRole("link", { name }).boundingBox();
-    expect(box, name).not.toBeNull();
-    expect(box!.x + box!.width, name).toBeLessThanOrEqual(1080);
+// The header collapses into the burger menu below 1100 px (the French nav does not fit in 900-1099 px,
+// even compact). From 1200 px it has the mockup sizes: logo 42 px, buttons 44 px high.
+const NAV_LABEL = {
+  fr: "Navigation principale",
+  en: "Main navigation",
+  ar: "التنقل الرئيسي",
+} as const;
+for (const code of ["fr", "ar", "en"] as const) {
+  for (const width of [900, 1000, 1100, 1200, 1440]) {
+    test(`header: one row, no overlap, no overflow at ${width}px (${code})`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(`/${code}`);
+      expect(await noOverflow(page), "horizontal overflow in px").toBeLessThanOrEqual(0);
+
+      const info = await page.evaluate(() => {
+        const header = document.querySelector("header")!;
+        const items = [...header.querySelectorAll("a, button, [role=group]")]
+          .filter((el) => !el.parentElement!.closest("[role=group]"))
+          .map((el) => {
+            const box = el.getBoundingClientRect();
+            return { left: box.left, right: box.right, top: box.top, height: box.height };
+          })
+          .filter((box) => box.right - box.left > 0);
+        const logo = header.querySelector("img")!.getBoundingClientRect().height;
+        const buttons = [...header.querySelectorAll('a[href$="/connexion"], a[href$="/commander"]')]
+          .map((el) => el.getBoundingClientRect().height)
+          .filter((height) => height > 0);
+        return { height: header.getBoundingClientRect().height, items, logo, buttons };
+      });
+
+      expect(info.height, "a second row would make the header taller than 100 px").toBeLessThan(
+        100,
+      );
+      const sorted = [...info.items].sort((x, y) => x.left - y.left);
+      for (const [index, box] of sorted.entries()) {
+        expect(box.left, "inside the window").toBeGreaterThanOrEqual(0);
+        expect(box.right, "inside the window").toBeLessThanOrEqual(width);
+        if (index > 0) {
+          expect(box.left, "no overlap").toBeGreaterThanOrEqual(sorted[index - 1]!.right - 0.5);
+        }
+      }
+      const centres = info.items.map((box) => box.top + box.height / 2);
+      expect(Math.max(...centres) - Math.min(...centres), "one row").toBeLessThan(6);
+
+      const nav = page.getByRole("navigation", { name: NAV_LABEL[code] });
+      if (width < 1100) {
+        await expect(page.locator("header").getByRole("button")).toBeVisible();
+        await expect(nav).toBeHidden();
+      } else {
+        await expect(page.locator("header").getByRole("button")).toBeHidden();
+        await expect(nav.getByRole("link")).toHaveCount(5);
+        expect(info.buttons).toHaveLength(2);
+        expect(Math.round(info.logo)).toBe(width >= 1200 ? 42 : 32);
+        for (const height of info.buttons) expect(Math.round(height)).toBe(width >= 1200 ? 44 : 36);
+      }
+    });
   }
-  // the last link ends before the language switcher starts: nothing overlaps
-  const last = await nav.getByRole("link", { name: "Aide" }).boundingBox();
-  const switcher = await page.locator("header").getByRole("group").boundingBox();
-  expect(last!.x + last!.width).toBeLessThanOrEqual(switcher!.x);
-});
+}
 
 test("the footer has three link columns and no Cookies link", async ({ page }) => {
   await page.goto("/fr");
@@ -240,10 +284,14 @@ test("home: the tracking field opens /suivi?n= and refuses a bad number", async 
   await expect(page.getByText("Arrivée estimée")).toBeVisible();
 });
 
-test("home: Voir le prix goes to /commander", async ({ page }) => {
+test("home: Voir le prix opens /commander with nothing in the URL", async ({ page }) => {
   await page.goto("/fr");
+  await page.getByLabel("Départ").fill("Avenue Habib Bourguiba");
+  await page.getByLabel("Arrivée").fill("Rue Ibn Khaldoun");
   await page.getByRole("button", { name: "Voir le prix" }).click();
-  await expect(page).toHaveURL(/\/fr\/commander/);
+  await expect(page).toHaveURL(/\/fr\/commander$/);
+  expect(page.url()).not.toContain("?");
+  expect(decodeURIComponent(page.url())).not.toMatch(/Bourguiba|Khaldoun/);
 });
 
 // ── Zone check (W05, FE-04) ───────────────────────────────────────────────────────────────────
@@ -411,10 +459,24 @@ test("driver: heading, validation, 5 MB rule and confirmation", async ({ page })
   await expect(page.getByText("Le fichier dépasse 5 Mo.")).toBeVisible();
   await page.getByRole("button", { name: "Retirer le document" }).click();
 
+  await expect(page.getByLabel("Véhicule").locator("option")).toHaveText(["Moto", "[VÉHICULE]"]);
   await page.getByRole("textbox", { name: "Nom complet" }).fill("Test Livreur");
   await page.getByRole("textbox", { name: "Téléphone", exact: true }).fill("20 000 000");
   await page.getByRole("button", { name: "Envoyer ma candidature" }).click();
   await expect(page.getByText("Candidature envoyée.")).toBeVisible();
+  const confirmation = page.locator('div[tabindex="-1"]', { hasText: "Candidature envoyée." });
+  await expect(confirmation).toBeFocused();
+  await expect(confirmation).toHaveCSS("outline-style", "solid");
+});
+
+test("driver: the vehicle placeholder is localized", async ({ page }) => {
+  for (const [code, label, moto, placeholder] of [
+    ["en", "Vehicle", "Motorbike", "[VEHICLE]"],
+    ["ar", "المركبة", "دراجة نارية", "[المركبة]"],
+  ] as const) {
+    await page.goto(`/${code}/livreur`);
+    await expect(page.getByLabel(label).locator("option")).toHaveText([moto, placeholder]);
+  }
 });
 
 // ── Help, legal, services ─────────────────────────────────────────────────────────────────────
@@ -540,4 +602,129 @@ test("no sitemap, no structured data, no analytics, no cookie banner", async ({
   await expect(page.locator('script[type="application/ld+json"]')).toHaveCount(0);
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page.getByText(/cookies?/i)).toHaveCount(0);
+});
+
+// ── Fixes after the review of PR #4 ───────────────────────────────────────────────────────────
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+
+  test("/fr/suivi has its h1 and its form", async ({ page }) => {
+    await page.goto("/fr/suivi");
+    await expect(page.getByRole("heading", { level: 1, name: "Suivre un colis" })).toBeVisible();
+    await expect(page.getByLabel("Numéro de suivi")).toBeVisible();
+    await expect(page.getByRole("button", { name: "Suivre" })).toBeVisible();
+  });
+
+  test("/fr/contact has its form", async ({ page }) => {
+    await page.goto("/fr/contact");
+    await expect(page.getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Message", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Envoyer ma demande" })).toBeVisible();
+  });
+
+  test("forms that take personal data post, so nothing reaches the URL", async ({ page }) => {
+    for (const url of ["/fr/contact", "/fr/livreur", "/fr/zones"]) {
+      await page.goto(url);
+      const methods = await page
+        .locator("main form")
+        .evaluateAll((forms) => forms.map((form) => (form as HTMLFormElement).method));
+      expect(methods.length, url).toBeGreaterThan(0);
+      for (const method of methods) expect(method, url).toBe("post");
+    }
+    await page.goto("/fr");
+    const quote = page.locator("main form").first();
+    expect(await quote.evaluate((form) => (form as HTMLFormElement).method)).toBe("post");
+    expect(await quote.locator("input[name]").count()).toBe(0);
+  });
+});
+
+test("tracking: a search puts the code in the URL and the field follows it", async ({ page }) => {
+  await page.goto("/fr/suivi");
+  await page.getByLabel("Numéro de suivi").fill(" fg-7k4m-2qxp ");
+  await page.getByRole("button", { name: "Suivre" }).click();
+  await expect(page).toHaveURL(/\/fr\/suivi\?n=FG-7K4M-2QXP$/);
+  await expect(page.getByText("Arrivée estimée")).toBeVisible();
+  await expect(page.getByLabel("Numéro de suivi")).toHaveValue("FG-7K4M-2QXP");
+});
+
+test("tracking: the Suivre button keeps the focus while searching", async ({ page }) => {
+  await page.goto("/fr/suivi");
+  await page.getByLabel("Numéro de suivi").fill("FG-7K4M-2QXP");
+  const button = page.getByRole("button", { name: /Suivre|Recherche/ });
+  await button.focus();
+  await page.keyboard.press("Enter");
+  await expect(button).toBeFocused();
+  await expect(page.getByText("Arrivée estimée")).toBeVisible();
+  await expect(button).toBeFocused();
+});
+
+test("tracking: a badly formed number does not change the URL", async ({ page }) => {
+  await page.goto("/fr/suivi?n=FG-7K4M-2QXP");
+  await expect(page.getByText("Arrivée estimée")).toBeVisible();
+  await page.getByLabel("Numéro de suivi").fill("abc");
+  await page.getByRole("button", { name: "Suivre" }).click();
+  await expect(page.locator("main [role=alert]")).toContainText("ressemble à FG-7K4M-2QXP");
+  await expect(page).toHaveURL(/\/fr\/suivi\?n=FG-7K4M-2QXP$/);
+  await expect(page.getByText("Arrivée estimée")).toHaveCount(0);
+});
+
+test("tracking: /suivi?n=fg-7k4m-2qxp shows the uppercase code", async ({ page }) => {
+  await page.goto("/fr/suivi?n=fg-7k4m-2qxp");
+  await expect(page.getByLabel("Numéro de suivi")).toHaveValue("FG-7K4M-2QXP");
+  await expect(page.getByText("Arrivée estimée")).toBeVisible();
+});
+
+test("tracking: the nav link Suivre un colis clears the result and the field", async ({ page }) => {
+  await page.goto("/fr/suivi?n=FG-7K4M-2QXP");
+  await expect(page.getByText("Arrivée estimée")).toBeVisible();
+  await page
+    .getByRole("navigation", { name: "Navigation principale" })
+    .getByRole("link", { name: "Suivre un colis" })
+    .click();
+  await expect(page).toHaveURL(/\/fr\/suivi$/);
+  await expect(page.getByText("Arrivée estimée")).toHaveCount(0);
+  await expect(page.getByLabel("Numéro de suivi")).toHaveValue("");
+  await expect(page.getByText("Où est votre colis ?")).toBeVisible();
+});
+
+test("contact: the captcha keeps the keyboard focus while it checks", async ({ page }) => {
+  await page.goto("/fr/contact");
+  const box = page.getByLabel("Je ne suis pas un robot");
+  await box.focus();
+  await page.keyboard.press("Space");
+  // right after the key press, while the mock token is requested: still focused, never disabled
+  await expect(box).toBeFocused();
+  await expect(box).toBeEnabled();
+  await expect(box).toBeChecked();
+  await expect(box).toBeFocused();
+  await expect(box).toBeEnabled();
+  // the keyboard still works: Space again unticks it
+  await page.keyboard.press("Space");
+  await expect(box).not.toBeChecked();
+  await expect(box).toBeFocused();
+});
+
+test("contact: after sending, the focus is on the confirmation", async ({ page }) => {
+  await page.goto("/fr/contact");
+  await fillContact(page);
+  await tickCaptcha(page);
+  await page.getByRole("button", { name: "Envoyer ma demande" }).click();
+  const confirmation = page.locator('div[tabindex="-1"]', {
+    hasText: "Votre demande est enregistrée.",
+  });
+  await expect(confirmation).toBeVisible();
+  await expect(confirmation).toBeFocused();
+  await expect(confirmation).toHaveCSS("outline-style", "solid");
+  await expect(confirmation).toHaveCSS("outline-width", "2px");
+});
+
+test("contact: ?type= with an unknown value or an Object.prototype name means Question", async ({
+  page,
+}) => {
+  for (const value of ["constructor", "__proto__", "toString", "nope"]) {
+    await page.goto(`/fr/contact?type=${value}`);
+    await expect(page.getByLabel("Votre demande")).toHaveValue("question");
+  }
+  await page.goto("/fr/contact?type=RECLAMATION");
+  await expect(page.getByLabel("Votre demande")).toHaveValue("claim");
 });

@@ -20,7 +20,7 @@ export function HeaderNav({
 
   return (
     <nav aria-label={t("label")} className={className}>
-      <ul className="flex flex-col gap-0.5 md:flex-row md:items-center">
+      <ul className="flex flex-col gap-0.5 min-[1100px]:flex-row min-[1100px]:items-center">
         {NAV_ITEMS.map((item) => (
           <li key={item.key}>
             <Link

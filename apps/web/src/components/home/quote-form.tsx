@@ -4,23 +4,20 @@ import { useTranslations } from "next-intl";
 import { Button, Field, Input } from "@fastgo/ui";
 import { useRouter } from "@/i18n/navigation";
 
-/** Departure and arrival, then "Voir le prix". The order flow is Prompt 3: for now it opens /commander. */
+/** Departure and arrival, then "Voir le prix". The order flow is Prompt 3: for now it opens /commander, with nothing in the URL. */
 export function QuoteForm() {
   const t = useTranslations("home.hero");
   const router = useRouter();
 
   return (
     <form
+      method="post"
       className="flex flex-col gap-2.5"
       onSubmit={(event) => {
         event.preventDefault();
-        const data = new FormData(event.currentTarget);
-        const query = new URLSearchParams();
-        for (const name of ["from", "to"] as const) {
-          const value = String(data.get(name) ?? "").trim();
-          if (value) query.set(name, value);
-        }
-        router.push(query.size > 0 ? `/commander?${query}` : "/commander");
+        // Addresses are personal data: they never go into the URL (and so never reach server
+        // logs). The order flow will carry them through its draft (CMD-07, Prompt 3).
+        router.push("/commander");
       }}
     >
       <div className="relative flex flex-col gap-2.5 ps-[26px]">
@@ -39,14 +36,13 @@ export function QuoteForm() {
         />
         <Field label={t("departure")}>
           <Input
-            name="from"
             placeholder={t("addressPlaceholder")}
             autoComplete="street-address"
             className="h-12 text-md"
           />
         </Field>
         <Field label={t("arrival")}>
-          <Input name="to" placeholder={t("addressPlaceholder")} className="h-12 text-md" />
+          <Input placeholder={t("addressPlaceholder")} className="h-12 text-md" />
         </Field>
       </div>
       <Button type="submit" size="lg" fullWidth>

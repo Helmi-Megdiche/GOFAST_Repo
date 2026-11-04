@@ -1,24 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Card, Field, FileAttach, Input, Ltr, Select, Textarea } from "@fastgo/ui";
-import { submitContact, type ContactRequestType } from "@/lib/data/contact";
+import { Confirmation } from "@/components/confirmation";
+import { contactTypeFromQuery } from "@/lib/contact-type";
+import { submitContact } from "@/lib/data/contact";
 import { contactFormSchema, type ContactFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { CaptchaMock } from "./captcha-mock";
-
-// ?type=devis (from the merchants page) preselects the quote request.
-const TYPE_FROM_QUERY: Record<string, ContactRequestType> = {
-  question: "question",
-  devis: "quote",
-  quote: "quote",
-  reclamation: "claim",
-  claim: "claim",
-};
 
 const SERVER_ERROR_KEY = {
   "attachment-too-large": "attachmentTooLarge",
@@ -26,12 +18,14 @@ const SERVER_ERROR_KEY = {
   "invalid-tracking-code": "invalidTrackingCode",
 } as const;
 
-/** Contact form (FE-06): 5 MB attachment, captcha, then the "ticket opened" confirmation. */
-export function ContactForm() {
+/**
+ * Contact form (FE-06): 5 MB attachment, captcha, then the "ticket opened" confirmation.
+ * `requestedType` is the raw ?type= value (read by ContactFormFromUrl); "" means none.
+ */
+export function ContactForm({ requestedType }: { requestedType: string }) {
   const t = useTranslations("contact");
   const serverErrors = useTranslations("forms.serverErrors");
   const message = useErrorMessage();
-  const requested = useSearchParams().get("type")?.toLowerCase() ?? "";
   const [ticketId, setTicketId] = useState<string | null>(null);
   const [serverError, setServerError] = useState<string | null>(null);
 
@@ -46,7 +40,7 @@ export function ContactForm() {
   } = useForm<ContactFormValues>({
     resolver: zodResolver(contactFormSchema),
     defaultValues: {
-      type: TYPE_FROM_QUERY[requested] ?? "question",
+      type: contactTypeFromQuery(requestedType),
       name: "",
       phone: "",
       email: "",
@@ -76,29 +70,41 @@ export function ContactForm() {
 
   if (ticketId) {
     return (
-      <Card className="flex flex-col items-start gap-4 md:basis-[460px]">
-        <Alert tone="success" className="w-full">
-          <b>{t("success.title")}</b>
-          <br />
-          {t("success.ticket")} <Ltr mono>{ticketId}</Ltr>
-          <br />
-          {t("success.text")}
-        </Alert>
-        <Button
-          variant="ghost"
-          onClick={() => {
-            reset();
-            setTicketId(null);
-          }}
-        >
-          {t("success.again")}
-        </Button>
-      </Card>
+      <Confirmation className="md:basis-[460px]">
+        <Card className="flex flex-col items-start gap-4">
+          <Alert tone="success" className="w-full">
+            <b>{t("success.title")}</b>
+            <br />
+            {t("success.ticket")} <Ltr mono>{ticketId}</Ltr>
+            <br />
+            {t("success.text")}
+          </Alert>
+          <Button
+            variant="ghost"
+            onClick={() => {
+              reset();
+              setTicketId(null);
+            }}
+          >
+            {t("success.again")}
+          </Button>
+        </Card>
+      </Confirmation>
     );
   }
 
   return (
-    <Card as="form" noValidate onSubmit={onSubmit} className="flex flex-col gap-4 md:basis-[460px]">
+    <Card
+      as="form"
+      method="post"
+      noValidate
+      onSubmit={(event: FormEvent<HTMLFormElement>) => {
+        // aria-disabled keeps the focus on the button while sending: ignore a second submit.
+        if (isSubmitting) event.preventDefault();
+        else void onSubmit(event);
+      }}
+      className="flex flex-col gap-4 md:basis-[460px]"
+    >
       <Field label={t("form.type")}>
         <Select {...register("type")}>
           <option value="question">{t("form.types.question")}</option>
@@ -166,7 +172,7 @@ export function ContactForm() {
         )}
       />
       {serverError ? <Alert tone="error">{serverError}</Alert> : null}
-      <Button type="submit" fullWidth disabled={isSubmitting}>
+      <Button type="submit" fullWidth aria-disabled={isSubmitting || undefined}>
         {isSubmitting ? t("form.sending") : t("form.submit")}
       </Button>
     </Card>

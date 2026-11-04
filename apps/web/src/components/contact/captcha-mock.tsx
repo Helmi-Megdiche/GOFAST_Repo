@@ -9,6 +9,9 @@ import { requestCaptchaToken } from "@/lib/data/captcha";
  * Captcha stand-in (FE-06): ticking the box asks the mock for a token, which the form sends
  * with the request. The real provider is not chosen: only `requestCaptchaToken` and
  * `verifyCaptcha` in src/lib/data/captcha.ts change when it is.
+ *
+ * While the token is requested the box is not disabled (a disabled control loses the keyboard
+ * focus): it is marked aria-busy and changes are ignored.
  */
 export function CaptchaMock({
   token,
@@ -28,9 +31,10 @@ export function CaptchaMock({
         id="captcha"
         label={busy ? t("captchaChecking") : t("captcha")}
         checked={token !== ""}
-        disabled={busy}
+        aria-busy={busy}
         error={error}
         onChange={async (event) => {
+          if (busy) return;
           if (!event.target.checked) {
             onToken("");
             return;

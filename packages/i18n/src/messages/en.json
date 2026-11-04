@@ -227,7 +227,8 @@
     "fee": "[FEE]",
     "list": "[LIST TO BE VALIDATED BY FASTGO]",
     "text": "[TEXT]",
-    "answer": "[ANSWER]"
+    "answer": "[ANSWER]",
+    "vehicle": "[VEHICLE]"
   },
   "nav": {
     "label": "Main navigation",
@@ -499,9 +500,7 @@
       "phone": "Phone",
       "vehicle": "Vehicle",
       "vehicles": {
-        "moto": "Motorbike",
-        "car": "Car",
-        "van": "Van"
+        "moto": "Motorbike"
       },
       "zone": "Preferred area",
       "attach": "Licence and insurance (5 MB)",

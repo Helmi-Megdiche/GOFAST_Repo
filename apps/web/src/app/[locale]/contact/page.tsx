@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { getTranslations } from "next-intl/server";
 import { Container, Icon, Section, type IconName } from "@fastgo/ui";
 import { ContactForm } from "@/components/contact/contact-form";
+import { ContactFormFromUrl } from "@/components/contact/contact-form-from-url";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
 export const generateMetadata = ({ params }: PageParams) =>
@@ -36,8 +37,9 @@ export default async function ContactPage({ params }: PageParams) {
             ))}
           </ul>
         </div>
-        <Suspense>
-          <ContactForm />
+        {/* The fallback is the form itself, so the server HTML has it (and works before JS loads). */}
+        <Suspense fallback={<ContactForm requestedType="" />}>
+          <ContactFormFromUrl />
         </Suspense>
       </Container>
     </Section>

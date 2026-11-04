@@ -81,3 +81,15 @@ apps/web/
 `pnpm test:e2e` checks, for fr and ar at 1440 and 360 px: `lang` and `dir`, the font stack,
 no horizontal scroll, axe-core (WCAG 2 A/AA), and saves a screenshot. Compare it with
 `docs/ui/screenshots/<screen>.jpg` by eye, then list what still differs in the PR.
+The references are the 1440 px pages scaled to 1080 px, so compare the 1440 px shots.
+
+`e2e/public-site.spec.ts` covers the public site:
+- every page in fr and ar at 1440 and 360 px, the home page in en, metadata and hreflang;
+- the tracking, zone check, contact (captcha, 5 MB exactly and 5 MB + 1 byte) and driver flows;
+- `/suivi`: the URL is the source of truth (search, `?n=` in lower case, bad number, nav link, Back);
+- `/fr/suivi` and `/fr/contact` with JavaScript off (the h1 and the form are in the server HTML), and
+  forms that take personal data use `method="post"`;
+- focus: the captcha and the Suivre button keep it while busy, the confirmation takes it after sending;
+- `?type=` on `/contact` (`constructor`, `__proto__` fall back to Question);
+- the header at 900, 1000, 1100, 1200 and 1440 px in fr, ar and en: one row, no overlap, no overflow,
+  logo 42 px and 44 px buttons from 1200 px, burger menu below 1100 px.

@@ -31,7 +31,7 @@ export function MobileMenu() {
   const close = () => setOpen(false);
 
   return (
-    <div className="ms-auto md:hidden">
+    <div className="ms-auto min-[1100px]:hidden">
       <button
         ref={button}
         type="button"

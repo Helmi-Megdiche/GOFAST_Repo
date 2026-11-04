@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, type FormEvent } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Card, Field, FileAttach, Input, Ltr, Select } from "@fastgo/ui";
+import { Confirmation } from "@/components/confirmation";
 import { submitDriverApplication } from "@/lib/data/driver";
 import { driverFormSchema, type DriverFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
@@ -46,20 +47,32 @@ export function DriverForm() {
 
   if (reference) {
     return (
-      <Card className="flex flex-col gap-3 md:basis-[440px]">
-        <Alert tone="success">
-          <b>{t("success.title")}</b>
-          <br />
-          {t("success.reference")} <Ltr mono>{reference}</Ltr>
-          <br />
-          {t("success.text")}
-        </Alert>
-      </Card>
+      <Confirmation className="md:basis-[440px]">
+        <Card className="flex flex-col gap-3">
+          <Alert tone="success">
+            <b>{t("success.title")}</b>
+            <br />
+            {t("success.reference")} <Ltr mono>{reference}</Ltr>
+            <br />
+            {t("success.text")}
+          </Alert>
+        </Card>
+      </Confirmation>
     );
   }
 
   return (
-    <Card as="form" noValidate onSubmit={onSubmit} className="flex flex-col gap-4 md:basis-[440px]">
+    <Card
+      as="form"
+      method="post"
+      noValidate
+      onSubmit={(event: FormEvent<HTMLFormElement>) => {
+        // aria-disabled keeps the focus on the button while sending: ignore a second submit.
+        if (isSubmitting) event.preventDefault();
+        else void onSubmit(event);
+      }}
+      className="flex flex-col gap-4 md:basis-[440px]"
+    >
       <h2 className="text-d3">{t("form.title")}</h2>
       <Field label={t("form.fullName")} error={message(errors.fullName?.message)} required>
         <Input autoComplete="name" {...register("fullName")} />
@@ -76,8 +89,7 @@ export function DriverForm() {
       <Field label={t("form.vehicle")}>
         <Select {...register("vehicle")}>
           <option value="moto">{t("form.vehicles.moto")}</option>
-          <option value="car">{t("form.vehicles.car")}</option>
-          <option value="van">{t("form.vehicles.van")}</option>
+          <option value="other">{p("vehicle")}</option>
         </Select>
       </Field>
       <Field label={t("form.zone")}>
@@ -102,7 +114,7 @@ export function DriverForm() {
         )}
       />
       {serverError ? <Alert tone="error">{serverError}</Alert> : null}
-      <Button type="submit" fullWidth disabled={isSubmitting}>
+      <Button type="submit" fullWidth aria-disabled={isSubmitting || undefined}>
         {isSubmitting ? t("form.sending") : t("form.submit")}
       </Button>
     </Card>

@@ -155,9 +155,7 @@ native-speaker review before release (CLAUDE.md).
 | `driver.form.submit` | إرسال ترشحي | Envoyer ma candidature | [ ] |
 | `driver.form.title` | الترشح | Candidature | [ ] |
 | `driver.form.vehicle` | المركبة | Véhicule | [ ] |
-| `driver.form.vehicles.car` | سيارة | Voiture | [ ] |
 | `driver.form.vehicles.moto` | دراجة نارية | Moto | [ ] |
-| `driver.form.vehicles.van` | سيارة نفعية | Utilitaire | [ ] |
 | `driver.form.zone` | المنطقة المفضلة | Zone souhaitée | [ ] |
 | `driver.needs.licence` | رخصة سياقة سارية، إذا كانت مركبتك تتطلبها | Un permis valide, si votre véhicule en demande un | [ ] |
 | `driver.needs.phone` | هاتف أندرويد 10 أو أحدث، أو آيفون بنظام iOS 16.4 أو أحدث | Un téléphone Android 10 ou plus, ou un iPhone sous iOS 16.4 ou plus | [ ] |
@@ -380,6 +378,7 @@ native-speaker review before release (CLAUDE.md).
 | `placeholders.supportHours` | [ساعات عمل خدمة العملاء] | [HORAIRES DU SERVICE CLIENT] | [ ] |
 | `placeholders.text` | [النص] | [TEXTE] | [ ] |
 | `placeholders.time` | [الساعة] | [HEURE] | [ ] |
+| `placeholders.vehicle` | [المركبة] | [VÉHICULE] | [ ] |
 | `services.extras.declaredValue` | القيمة المصرّح بها | Valeur déclarée | [ ] |
 | `services.extras.fragile` | طرد هش | Colis fragile | [ ] |
 | `services.extras.retry` | محاولة جديدة | Nouvelle tentative | [ ] |

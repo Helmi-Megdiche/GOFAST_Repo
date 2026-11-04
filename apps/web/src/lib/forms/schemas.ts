@@ -75,7 +75,7 @@ export type ContactFormValues = z.infer<typeof contactFormSchema>;
 export const driverFormSchema = z.object({
   fullName: requiredText,
   phone: phoneField,
-  vehicle: z.enum(["moto", "car", "van"]),
+  vehicle: z.enum(["moto", "other"]),
   zone: z.enum(["city"]),
   document: attachmentField,
 });

@@ -29,6 +29,7 @@ export function ZoneCheckForm() {
   });
 
   const onSubmit = handleSubmit(async ({ address }) => {
+    if (state.kind === "loading") return;
     setState({ kind: "loading" });
     setState({ kind: "done", result: await checkZone(address) });
   });
@@ -37,7 +38,7 @@ export function ZoneCheckForm() {
 
   return (
     <Card className="flex max-w-[720px] flex-col gap-4">
-      <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
+      <form method="post" noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
         <Field label={t("addressLabel")} error={message(errors.address?.message)}>
           <Input
             placeholder={t("addressPlaceholder")}
@@ -45,7 +46,7 @@ export function ZoneCheckForm() {
             {...register("address")}
           />
         </Field>
-        <Button type="submit" fullWidth disabled={state.kind === "loading"}>
+        <Button type="submit" fullWidth aria-disabled={state.kind === "loading" || undefined}>
           {state.kind === "loading" ? t("checking") : t("submit")}
         </Button>
       </form>
