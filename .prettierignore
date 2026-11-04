@@ -1,0 +1,18 @@
+node_modules
+.next
+.turbo
+dist
+coverage
+test-results
+playwright-report
+pnpm-lock.yaml
+next-env.d.ts
+
+# Mockup reference: never reformat
+docs/ui
+
+# Not code: generated or hand-written docs
+docs
+**/CLAUDE.md
+README.md
+packages/i18n/AR-REVIEW.md

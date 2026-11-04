@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "title": "FastGo",
+    "description": "Livraison express de plis et de colis."
+  },
+  "common": {
+    "skipToContent": "Aller au contenu",
+    "home": "Accueil"
+  },
+  "languageSwitcher": {
+    "label": "Langue"
+  },
+  "home": {
+    "tagline": "Livraison express de plis et de colis."
+  },
+  "notFound": {
+    "title": "Page introuvable"
+  },
+  "devUi": {
+    "title": "Bibliothèque de composants",
+    "intro": "Page de développement. Vérifiez chaque composant de gauche à droite et de droite à gauche.",
+    "sections": {
+      "colors": "Couleurs",
+      "typography": "Typographie",
+      "buttons": "Boutons",
+      "forms": "Formulaires",
+      "cards": "Cartes",
+      "badges": "Badges",
+      "alerts": "Alertes",
+      "table": "Tableau",
+      "kpi": "Indicateurs",
+      "stepper": "Étapes",
+      "tabs": "Onglets",
+      "avatars": "Avatars",
+      "icons": "Icônes",
+      "logo": "Logo",
+      "formats": "Formats"
+    },
+    "typography": {
+      "d1": "Votre colis part aujourd'hui. Vous savez où il est.",
+      "d2": "Prix détaillé avant de valider",
+      "d3": "Envoyer un colis",
+      "h4": "Numéro de suivi",
+      "eyebrow": "Suivre",
+      "lead": "Livraison express de plis et de colis.",
+      "body": "FastGo récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander."
+    },
+    "buttons": {
+      "primary": "Commander",
+      "secondary": "Suivre",
+      "ghost": "Contact",
+      "danger": "Supprimer",
+      "inverse": "Aide",
+      "disabled": "Indisponible",
+      "small": "Petit",
+      "medium": "Moyen",
+      "large": "Grand"
+    },
+    "forms": {
+      "departure": "Départ",
+      "arrival": "Arrivée",
+      "addressPlaceholder": "Rue, quartier ou ville",
+      "addressHint": "Indiquez la rue ou un point de repère.",
+      "tracking": "Numéro de suivi",
+      "trackingError": "Code obligatoire",
+      "service": "Service",
+      "serviceExpress": "Express",
+      "serviceStandard": "Standard",
+      "note": "Note"
+    },
+    "cards": {
+      "title": "Colis"
+    },
+    "badges": {
+      "delivered": "Livré",
+      "inProgress": "En cours",
+      "pending": "En attente",
+      "failed": "Échec",
+      "draft": "Brouillon"
+    },
+    "alerts": {
+      "info": "Ceci est un message d'information.",
+      "success": "Ceci est un message de confirmation.",
+      "warning": "Ceci est un message d'avertissement.",
+      "error": "Ceci est un message d'erreur."
+    },
+    "table": {
+      "label": "Exemple de tableau",
+      "number": "Numéro",
+      "status": "Statut",
+      "amount": "Montant"
+    },
+    "kpi": {
+      "collected": "Collecté cette semaine",
+      "fees": "Frais déduits",
+      "receive": "À recevoir vendredi",
+      "driverStopped": "Livreur immobile"
+    },
+    "stepper": {
+      "label": "Étapes de la commande",
+      "sender": "Expéditeur",
+      "recipient": "Destinataire",
+      "parcel": "Colis",
+      "service": "Service",
+      "review": "Récapitulatif",
+      "done": "Terminée",
+      "current": "En cours",
+      "todo": "À venir"
+    },
+    "tabs": {
+      "label": "Exemple d'onglets",
+      "orders": "Commandes",
+      "invoices": "Factures",
+      "team": "Équipe",
+      "panel": "Contenu de l'onglet « {name} »"
+    },
+    "avatars": {
+      "name": "Sami Ben Salah"
+    },
+    "icons": {
+      "directionalNote": "Les icônes fléchées se retournent en arabe."
+    },
+    "logo": {
+      "onDark": "Sur fond sombre",
+      "onLight": "Sur fond clair"
+    },
+    "formats": {
+      "money": "Montants",
+      "date": "Date et heure (Africa/Tunis)"
+    }
+  }
+}

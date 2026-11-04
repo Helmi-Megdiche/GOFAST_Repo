@@ -1,0 +1,34 @@
+{
+  "name": "@fastgo/web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "@fastgo/i18n": "workspace:*",
+    "@fastgo/ui": "workspace:*",
+    "next": "16.4.5",
+    "next-intl": "4.14.9",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@fastgo/config": "workspace:*",
+    "@playwright/test": "1.64.1",
+    "@tailwindcss/postcss": "4.3.4",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "eslint": "^10.14.0",
+    "eslint-config-next": "16.4.5",
+    "tailwindcss": "4.3.4",
+    "typescript": "5.9.3"
+  }
+}
