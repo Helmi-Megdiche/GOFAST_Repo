@@ -1,0 +1,111 @@
+/*
+ * FastGo design tokens.
+ * Source of truth: docs/ui/fg.css (:root for light, .th-d for dark).
+ * This is the ONLY place hex values live. App code uses the Tailwind utilities
+ * generated from theme.css (bg-orange, text-ink, border-line ...).
+ *
+ * Two layers:
+ *  - static brand colors: identical in light and dark.
+ *  - themed colors: switch under [data-theme="dark"]. Dark mode is L2: the block
+ *    below is ready, but no toggle ships in L1.
+ */
+:root {
+  /* ── Static brand ─────────────────────────────── */
+  --fg-white: #ffffff;
+  --fg-navy: #2a303c; /* --n   */
+  --fg-navy-deep: #1b202a; /* --nd  */
+  --fg-navy-3: #3b4352; /* --n3  */
+  --fg-orange: #f0721e; /* --o   primary action */
+
+  /* ── Themed: text, surfaces, lines ────────────── */
+  --fg-ink: #2a303c; /* --n   main text */
+  --fg-muted: #5a6372; /* --t2  secondary text */
+  --fg-line: #d9dde3; /* --ln  */
+  --fg-page: #f4f5f7; /* --bg  page background */
+  --fg-surface: #ffffff; /* --w   cards, inputs */
+  --fg-field-border: #bfc5ce; /* input / chip border */
+  --fg-placeholder: #6a7280;
+  --fg-fill: #e6e9ed; /* progress track, disabled button, avatar */
+  --fg-fill-subtle: #f8f9fa; /* table head */
+  --fg-neutral-light: #ebeef2; /* neutral badge */
+  --fg-row-line: #e9ecef; /* table row separator */
+
+  /* ── Themed: orange family ────────────────────── */
+  --fg-orange-hover: #d9630f; /* --oh */
+  --fg-orange-dark: #a84e0a; /* --od  links and text on light (AA) */
+  --fg-orange-light: #fdefe3; /* --ol  */
+  --fg-orange-border: #f6d5b9;
+  --fg-orange-tint: #fff9f4; /* selected option */
+
+  /* ── Themed: status ───────────────────────────── */
+  --fg-info: #1c8cc4; /* --b  */
+  --fg-info-dark: #0b6596; /* --bd */
+  --fg-info-light: #e3f2fa; /* --bl */
+  --fg-success: #187a36; /* --g  */
+  --fg-success-light: #e4f2e8; /* --gl */
+  --fg-warning: #8f5500; /* --a  */
+  --fg-warning-light: #fbf0df; /* --al */
+  --fg-danger: #b80500; /* --r  */
+  --fg-danger-light: #fdecec; /* --rl */
+  --fg-danger-border: #f0b4b2;
+  --fg-danger-tint: #fffafa;
+
+  /* Alert text (darker than the badge text, on the light fills) */
+  --fg-alert-warning: #6e4100;
+  --fg-alert-error: #8e0400;
+  --fg-alert-info: #084d73;
+  --fg-alert-success: #115a28;
+
+  /* ── Themed: inverse surfaces (navy header, footer, dark cards) ──
+     Stay dark in dark mode, unlike --fg-ink which turns light. */
+  --fg-inverse: #2a303c;
+  --fg-inverse-deep: #1b202a;
+  --fg-inverse-line: #3b4352;
+  --fg-on-inverse: #ffffff;
+  --fg-on-inverse-muted: #c9cfd9;
+  --fg-accent-on-inverse: #ff9a57; /* orange text on navy */
+
+  color-scheme: light;
+}
+
+[data-theme="dark"] {
+  --fg-ink: #eef1f5;
+  --fg-muted: #aeb7c4;
+  --fg-line: #343c4a;
+  --fg-page: #12161d;
+  --fg-surface: #1c222c;
+  --fg-field-border: #566072;
+  --fg-placeholder: #aeb7c4;
+  --fg-fill: #343c4a;
+  --fg-fill-subtle: #232a35;
+  --fg-neutral-light: #343c4a;
+  --fg-row-line: #343c4a;
+
+  --fg-orange-hover: #ff8a3d;
+  --fg-orange-dark: #ffa366;
+  --fg-orange-light: #3a2a1c;
+  --fg-orange-border: #6b4a2c;
+  --fg-orange-tint: #2b2118;
+
+  --fg-info-dark: #86cff2;
+  --fg-info-light: #16323f;
+  --fg-success: #79d695;
+  --fg-success-light: #16321f;
+  --fg-warning: #e9be70;
+  --fg-warning-light: #3a2e16;
+  --fg-danger: #ff9c96;
+  --fg-danger-light: #3d1c1c;
+  --fg-danger-border: #6e3a3a;
+  --fg-danger-tint: #2b1d1f;
+
+  --fg-alert-warning: #f2cf8e;
+  --fg-alert-error: #ffc3bf;
+  --fg-alert-info: #bde4f8;
+  --fg-alert-success: #b4ebc6;
+
+  --fg-inverse: #141921;
+  --fg-inverse-deep: #0d1016;
+  --fg-inverse-line: #343c4a;
+
+  color-scheme: dark;
+}

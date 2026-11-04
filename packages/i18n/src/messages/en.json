@@ -1,0 +1,132 @@
+{
+  "meta": {
+    "title": "FastGo",
+    "description": "Express delivery of documents and parcels."
+  },
+  "common": {
+    "skipToContent": "Skip to content",
+    "home": "Home"
+  },
+  "languageSwitcher": {
+    "label": "Language"
+  },
+  "home": {
+    "tagline": "Express delivery of documents and parcels."
+  },
+  "notFound": {
+    "title": "Page not found"
+  },
+  "devUi": {
+    "title": "Component library",
+    "intro": "Development page. Check every component left to right and right to left.",
+    "sections": {
+      "colors": "Colors",
+      "typography": "Typography",
+      "buttons": "Buttons",
+      "forms": "Forms",
+      "cards": "Cards",
+      "badges": "Badges",
+      "alerts": "Alerts",
+      "table": "Table",
+      "kpi": "KPI tiles",
+      "stepper": "Stepper",
+      "tabs": "Tabs",
+      "avatars": "Avatars",
+      "icons": "Icons",
+      "logo": "Logo",
+      "formats": "Formats"
+    },
+    "typography": {
+      "d1": "Your parcel leaves today. You know where it is.",
+      "d2": "Full price before you confirm",
+      "d3": "Send a parcel",
+      "h4": "Tracking number",
+      "eyebrow": "Track",
+      "lead": "Express delivery of documents and parcels.",
+      "body": "FastGo picks up and delivers your documents and parcels across the city. The price is shown before you order."
+    },
+    "buttons": {
+      "primary": "Order",
+      "secondary": "Track",
+      "ghost": "Contact",
+      "danger": "Delete",
+      "inverse": "Help",
+      "disabled": "Unavailable",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "forms": {
+      "departure": "From",
+      "arrival": "To",
+      "addressPlaceholder": "Street, area or city",
+      "addressHint": "Enter the street or a landmark.",
+      "tracking": "Tracking number",
+      "trackingError": "Code required",
+      "service": "Service",
+      "serviceExpress": "Express",
+      "serviceStandard": "Standard",
+      "note": "Note"
+    },
+    "cards": {
+      "title": "Parcel"
+    },
+    "badges": {
+      "delivered": "Delivered",
+      "inProgress": "In progress",
+      "pending": "Pending",
+      "failed": "Failed",
+      "draft": "Draft"
+    },
+    "alerts": {
+      "info": "This is an information message.",
+      "success": "This is a confirmation message.",
+      "warning": "This is a warning message.",
+      "error": "This is an error message."
+    },
+    "table": {
+      "label": "Sample table",
+      "number": "Number",
+      "status": "Status",
+      "amount": "Amount"
+    },
+    "kpi": {
+      "collected": "Collected this week",
+      "fees": "Fees deducted",
+      "receive": "To receive on Friday",
+      "driverStopped": "Driver not moving"
+    },
+    "stepper": {
+      "label": "Order steps",
+      "sender": "Sender",
+      "recipient": "Recipient",
+      "parcel": "Parcel",
+      "service": "Service",
+      "review": "Review",
+      "done": "Done",
+      "current": "Current",
+      "todo": "Upcoming"
+    },
+    "tabs": {
+      "label": "Sample tabs",
+      "orders": "Orders",
+      "invoices": "Invoices",
+      "team": "Team",
+      "panel": "Content of the \"{name}\" tab"
+    },
+    "avatars": {
+      "name": "Sami Ben Salah"
+    },
+    "icons": {
+      "directionalNote": "Arrow icons flip in Arabic."
+    },
+    "logo": {
+      "onDark": "On a dark background",
+      "onLight": "On a light background"
+    },
+    "formats": {
+      "money": "Amounts",
+      "date": "Date and time (Africa/Tunis)"
+    }
+  }
+}

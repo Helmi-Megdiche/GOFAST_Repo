@@ -17,7 +17,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - `apps/backoffice`: Next.js. Separate app because it is deployed behind a VPN with 2FA.
 - `apps/driver`: React in Capacitor (Android) + PWA (iPhone).
 - `apps/api`: NestJS modular monolith, REST + WebSocket, OpenAPI, routes under `/v1`. Three processes from one codebase: api, ws, worker.
-- `packages/ui`: design tokens, Tailwind preset, shared components, icons.
+- `packages/ui`: design tokens (CSS variables plus a Tailwind v4 theme file; v4 has no JS presets), shared components, icons.
 - `packages/i18n`: message catalogs fr / ar / en and helpers.
 - `packages/config`: shared eslint, tsconfig, prettier.
 - Data: PostgreSQL + PostGIS, row-level security, separate DB users, PgBouncer, Redis (sessions, queues), S3-compatible storage.
@@ -50,4 +50,22 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 
 ## Commands
 
-Filled in once the repo is scaffolded.
+Node 24 LTS (`.node-version`), pnpm 12 through corepack (`corepack enable`). Run everything from the repo root.
+
+If `pnpm` fails with `Cannot find matching keyid`, the corepack bundled with your Node is too old: `npm install -g corepack@latest`, then `corepack enable` again.
+
+| Command | What it does |
+|---|---|
+| `pnpm install` | Install all workspaces |
+| `pnpm dev` | Dev servers. Web: http://localhost:3000 (redirects to `/fr`) |
+| `pnpm build` | Production build of every app |
+| `pnpm lint` | ESLint. Also fails on physical CSS classes (`ml-*`, `text-left`...) and on hex colors outside `packages/ui` |
+| `pnpm typecheck` | `tsc` in strict mode, every workspace |
+| `pnpm test` | Unit tests (vitest): money and date formatting, catalog parity, `AR-REVIEW.md` in sync |
+| `pnpm test:e2e` | Playwright: builds `apps/web`, then routing tests and `/dev/ui` at 1440 and 360 px in fr and ar with axe-core. Screenshots go to `apps/web/test-results/shots` (git-ignored) |
+| `pnpm format` | Prettier (never touches `docs/ui`) |
+| `pnpm --filter @fastgo/i18n ar-review` | Regenerate `packages/i18n/AR-REVIEW.md` after adding Arabic keys |
+
+First time only: `pnpm --filter @fastgo/web exec playwright install chromium`.
+
+Before a PR: `pnpm lint && pnpm typecheck && pnpm test`, then `pnpm test:e2e` for the pages you touched, and compare the screenshots with `docs/ui/screenshots`.

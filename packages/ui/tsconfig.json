@@ -1,0 +1,4 @@
+{
+  "extends": "@fastgo/config/tsconfig/library.json",
+  "include": ["src"]
+}

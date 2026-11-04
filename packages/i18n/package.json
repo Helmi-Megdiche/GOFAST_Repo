@@ -1,0 +1,25 @@
+{
+  "name": "@fastgo/i18n",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./messages/fr.json": "./src/messages/fr.json",
+    "./messages/en.json": "./src/messages/en.json",
+    "./messages/ar.json": "./src/messages/ar.json"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "ar-review": "node scripts/gen-ar-review.ts"
+  },
+  "devDependencies": {
+    "@fastgo/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.14.0",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

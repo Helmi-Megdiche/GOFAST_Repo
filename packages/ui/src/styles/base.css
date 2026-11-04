@@ -1,0 +1,97 @@
+/*
+ * Base layer.
+ * The apps provide --font-poppins, --font-inter, --font-jetbrains-mono and --font-arabic
+ * (next/font, see apps/web/src/app/fonts.ts). Everything here only references them.
+ */
+:root {
+  /* Inter and Poppins have no Arabic glyphs: Noto Sans Arabic sits second in every
+     stack, so Arabic words inside an LTR page (the "عربي" switcher label) still use it. */
+  --fg-font-ui: var(--font-inter), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --fg-font-display:
+    var(--font-poppins), var(--font-inter), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --fg-font-mono: var(--font-jetbrains-mono), ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+
+/* dir="rtl": Noto Sans Arabic leads, automatically, for every locale that sets rtl. */
+[dir="rtl"] {
+  --fg-font-ui: var(--font-arabic), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --fg-font-display: var(--font-arabic), var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--fg-page);
+    color: var(--fg-ink);
+    font-family: var(--fg-font-ui);
+    font-size: 15px;
+    line-height: 1.5;
+    font-feature-settings:
+      "tnum" 1,
+      "cv11" 1;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visible focus everywhere (CLAUDE.md accessibility rule). */
+  :focus-visible {
+    outline: 2px solid var(--fg-info-dark);
+    outline-offset: 2px;
+  }
+
+  /* On navy surfaces the blue ring would not meet contrast: use the orange accent. */
+  [data-inverse] :focus-visible,
+  [data-inverse]:focus-visible {
+    outline-color: var(--fg-accent-on-inverse);
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  ul,
+  ol,
+  dl,
+  dd,
+  figure {
+    margin: 0;
+  }
+
+  ul,
+  ol {
+    padding: 0;
+    list-style: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
+
+  img,
+  svg {
+    display: block;
+  }
+
+  ::placeholder {
+    color: var(--fg-placeholder);
+    opacity: 1;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
+}
