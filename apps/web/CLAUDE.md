@@ -25,11 +25,13 @@ apps/web/
    ├─ app/
    │  ├─ fonts.ts           next/font: Poppins, Inter, JetBrains Mono, Noto Sans Arabic
    │  ├─ globals.css        Tailwind + @fastgo/ui theme, scans packages/ui for classes
-   │  └─ [locale]/          the only layout (header, <main id="main">, footer). Sets <html lang dir>.
-   │     ├─ layout.tsx, page.tsx (home), not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
-   │     ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
-   │     ├─ commander, connexion, inscription   "coming soon" placeholders, noindex (real pages: Prompt 3)
-   │     └─ dev/ui/page.tsx  component showcase (see below)
+   │  └─ [locale]/
+   │     ├─ layout.tsx      <html lang dir> (the only place), fonts, intl provider, skip link. No chrome.
+   │     └─ (site)/         route group (not in the URL): layout.tsx = header, <main id="main">, footer
+   │        ├─ page.tsx (home), not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
+   │        ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
+   │        ├─ commander, connexion, inscription   "coming soon" placeholders, noindex (real pages: Prompt 3)
+   │        └─ dev/ui/page.tsx  component showcase (see below)
    ├─ components/           app-level components (site-header/footer, mobile-menu, money, page-hero...)
    │  ├─ home/, tracking/, zones/, help/, contact/, driver/   one folder per page that has client forms
    │  └─ dev/ui-showcase.tsx
@@ -59,7 +61,8 @@ apps/web/
   (the unit test fails if `AR-REVIEW.md` is out of date).
 - Mockup translations are a reference only (`docs/ui/i18n/mockup-*.json`, keyed by the French text).
   Import strings page by page, with semantic keys.
-- Server pages call `setRequestLocale(locale)` first, to stay statically renderable.
+- Server pages and route-group layouts call `resolveLocale(params)` (`lib/page.ts`) first, to stay
+  statically renderable. A layout that skips it makes every page below it render on demand.
 - Amounts and dates: `<Money millimes={...} />` and `<DateTime value={...} />` from `components/money.tsx`.
   They format with the shared helpers and wrap the result in `dir="ltr"`. Phone numbers and
   tracking codes: wrap in `<Ltr>` from `@fastgo/ui`.
