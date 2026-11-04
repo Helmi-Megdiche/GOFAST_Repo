@@ -1,21 +1,29 @@
-import { notFound } from "next/navigation";
-import { hasLocale } from "next-intl";
-import { getTranslations, setRequestLocale } from "next-intl/server";
-import { SiteHeader } from "@/components/site-header";
-import { routing } from "@/i18n/routing";
+import { HomeHero } from "@/components/home/home-hero";
+import {
+  CoverageBand,
+  MerchantsBand,
+  OffersSection,
+  PromiseStrip,
+  StepsSection,
+} from "@/components/home/home-sections";
+import { getServiceOffers } from "@/lib/data/services";
+import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
-export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
-  if (!hasLocale(routing.locales, locale)) notFound();
-  setRequestLocale(locale);
-  const t = await getTranslations("home");
+export const generateMetadata = ({ params }: PageParams) => localizedMetadata(params, "", "home");
+
+/** Home (FE-01). References: Main, Main-AR, Main-EN. */
+export default async function HomePage({ params }: PageParams) {
+  await resolveLocale(params);
+  const { offers } = await getServiceOffers();
 
   return (
     <>
-      <SiteHeader />
-      <main id="main" className="mx-auto max-w-[1200px] px-4 py-16 md:px-6">
-        <p className="text-d2">{t("tagline")}</p>
-      </main>
+      <HomeHero />
+      <PromiseStrip />
+      <OffersSection offers={offers} />
+      <StepsSection />
+      <MerchantsBand />
+      <CoverageBand />
     </>
   );
 }

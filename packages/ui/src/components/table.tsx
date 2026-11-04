@@ -16,8 +16,10 @@ export function Table({
 }) {
   return (
     // The region is focusable on purpose: a wide table scrolls horizontally on phones.
+    // `relative` makes the region the containing block of the sr-only spans in cells: without it
+    // they sit outside the scroll area and widen the whole page on phones.
     // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
-    <div role="region" aria-label={label} tabIndex={0} className="overflow-x-auto">
+    <div role="region" aria-label={label} tabIndex={0} className="relative overflow-x-auto">
       <table className={cn("w-full border-collapse text-sm", className)}>
         {caption ? <caption className="sr-only">{caption}</caption> : null}
         {children}

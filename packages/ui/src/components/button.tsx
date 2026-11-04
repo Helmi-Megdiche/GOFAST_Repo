@@ -16,12 +16,13 @@ export type ButtonProps<T extends ElementType = "button"> = ButtonOwnProps & {
 } & Omit<ComponentPropsWithoutRef<T>, keyof ButtonOwnProps | "as">;
 
 const BASE =
-  "inline-flex items-center justify-center gap-2 border-[1.5px] border-transparent font-semibold whitespace-nowrap no-underline cursor-pointer select-none transition-colors " +
+  "inline-flex items-center justify-center gap-2 border-[1.5px] font-semibold whitespace-nowrap no-underline cursor-pointer select-none transition-colors " +
   "disabled:cursor-not-allowed disabled:border-transparent disabled:bg-fill disabled:text-muted " +
   "aria-disabled:cursor-not-allowed aria-disabled:border-transparent aria-disabled:bg-fill aria-disabled:text-muted";
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: "bg-orange text-navy-deep not-disabled:not-aria-disabled:hover:bg-orange-hover",
+  primary:
+    "border-transparent bg-orange text-navy-deep not-disabled:not-aria-disabled:hover:bg-orange-hover",
   secondary: "bg-surface border-ink text-ink",
   ghost: "bg-surface border-line text-ink",
   danger: "bg-surface border-danger text-danger",

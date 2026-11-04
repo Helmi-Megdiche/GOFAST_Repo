@@ -61,8 +61,8 @@ If `pnpm` fails with `Cannot find matching keyid`, the corepack bundled with you
 | `pnpm build` | Production build of every app |
 | `pnpm lint` | ESLint. Also fails on physical CSS classes (`ml-*`, `text-left`...) and on hex colors outside `packages/ui` |
 | `pnpm typecheck` | `tsc` in strict mode, every workspace |
-| `pnpm test` | Unit tests (vitest): money and date formatting, catalog parity, `AR-REVIEW.md` in sync |
-| `pnpm test:e2e` | Playwright: builds `apps/web`, then routing tests and `/dev/ui` at 1440 and 360 px in fr and ar with axe-core. Screenshots go to `apps/web/test-results/shots` (git-ignored) |
+| `pnpm test` | Unit tests (vitest): money and date formatting (French `14 h 20`), catalog parity, placeholders and the 15-minute guarantee in the catalogs, `AR-REVIEW.md` in sync, and in `apps/web` the mock data layer, form schemas, tracking-code validator and `?type=` parsing |
+| `pnpm test:e2e` | Playwright: builds `apps/web`, then routing tests, `/dev/ui`, and every public page at 1440 and 360 px in fr and ar with axe-core and no horizontal scroll. Also: tracking, zone check and contact flows, 5 MB attachment edge, URL as the source of truth on `/suivi`, pages with JavaScript off, focus after submit, header at 900 to 1440 px in fr, ar and en, metadata and hreflang. Screenshots go to `apps/web/test-results/shots` (git-ignored) |
 | `pnpm format` | Prettier (never touches `docs/ui`) |
 | `pnpm --filter @fastgo/i18n ar-review` | Regenerate `packages/i18n/AR-REVIEW.md` after adding Arabic keys |
 

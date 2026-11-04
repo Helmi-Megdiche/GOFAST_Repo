@@ -10,6 +10,9 @@ const INTL_LOCALE: Record<Locale, string> = {
   ar: "ar-TN-u-ca-gregory-nu-latn",
 };
 
+/** Non-breaking space: "14 h 20" never wraps inside the time. */
+const NBSP = "\u00a0";
+
 export type DateStyle = "date" | "time" | "dateTime";
 
 const OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
@@ -35,8 +38,10 @@ export function formatDate(
   if (Number.isNaN(date.getTime())) {
     throw new RangeError(`Invalid date: ${String(value)}`);
   }
-  return new Intl.DateTimeFormat(INTL_LOCALE[locale], {
+  const text = new Intl.DateTimeFormat(INTL_LOCALE[locale], {
     ...OPTIONS[style],
     timeZone: DISPLAY_TIME_ZONE,
   }).format(date);
+  // French writes the time "14 h 20" (mockup). en and ar keep "14:20".
+  return locale === "fr" ? text.replace(/(\d{2}):(\d{2})/, `$1${NBSP}h${NBSP}$2`) : text;
 }

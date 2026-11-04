@@ -10,8 +10,38 @@ native-speaker review before release (CLAUDE.md).
 
 | Key | Arabic | French (source) | Reviewed |
 | --- | --- | --- | --- |
+| `comingSoon.home` | العودة إلى الرئيسية | Retour à l'accueil | [ ] |
+| `comingSoon.pages.order` | اطلب الآن | Commander | [ ] |
+| `comingSoon.pages.signIn` | تسجيل الدخول | Connexion | [ ] |
+| `comingSoon.pages.signUp` | إنشاء حساب | Créer un compte | [ ] |
+| `comingSoon.text` | هذه الصفحة قريبًا. | Cette page arrive bientôt. | [ ] |
+| `comingSoon.title` | قريبًا | Bientôt disponible | [ ] |
+| `common.from` | ابتداءً من | À partir de | [ ] |
 | `common.home` | الرئيسية | Accueil | [ ] |
+| `common.loading` | جارٍ التحميل… | Chargement… | [ ] |
 | `common.skipToContent` | انتقل إلى المحتوى | Aller au contenu | [ ] |
+| `contact.eyebrow` | اتصل بنا | Contact | [ ] |
+| `contact.form.attach` | إضافة مرفق (5 ميغابايت) | Ajouter une pièce jointe (5 Mo) | [ ] |
+| `contact.form.captcha` | أنا لست روبوتًا | Je ne suis pas un robot | [ ] |
+| `contact.form.captchaChecking` | جارٍ التحقق… | Vérification… | [ ] |
+| `contact.form.email` | البريد الإلكتروني | E-mail | [ ] |
+| `contact.form.message` | الرسالة | Message | [ ] |
+| `contact.form.name` | الاسم | Nom | [ ] |
+| `contact.form.phone` | الهاتف | Téléphone | [ ] |
+| `contact.form.removeAttachment` | إزالة المرفق | Retirer la pièce jointe | [ ] |
+| `contact.form.sending` | جارٍ الإرسال… | Envoi… | [ ] |
+| `contact.form.submit` | إرسال طلبي | Envoyer ma demande | [ ] |
+| `contact.form.tracking` | رقم التتبع (اختياري) | Numéro de suivi (facultatif) | [ ] |
+| `contact.form.type` | طلبك | Votre demande | [ ] |
+| `contact.form.types.claim` | شكوى | Réclamation | [ ] |
+| `contact.form.types.question` | سؤال | Question | [ ] |
+| `contact.form.types.quote` | عرض سعر | Devis | [ ] |
+| `contact.lead` | برقم التتبع، يُربط طلبك مباشرة بالطرد. | Avec un numéro de suivi, votre demande est rattachée directement au colis. | [ ] |
+| `contact.success.again` | إرسال طلب آخر | Envoyer une autre demande | [ ] |
+| `contact.success.text` | يصلك إشعار بالاستلام تلقائيًا. | Un accusé de réception vous est envoyé automatiquement. | [ ] |
+| `contact.success.ticket` | التذكرة | Ticket | [ ] |
+| `contact.success.title` | تم تسجيل طلبك. | Votre demande est enregistrée. | [ ] |
+| `contact.title` | سؤال أو عرض سعر أو مشكلة؟ | Une question, un devis, un problème ? | [ ] |
 | `devUi.alerts.error` | هذه رسالة خطأ. | Ceci est un message d'erreur. | [ ] |
 | `devUi.alerts.info` | هذه رسالة معلومات. | Ceci est un message d'information. | [ ] |
 | `devUi.alerts.success` | هذه رسالة تأكيد. | Ceci est un message de confirmation. | [ ] |
@@ -52,20 +82,43 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.kpi.receive` | تستلمها يوم الجمعة | À recevoir vendredi | [ ] |
 | `devUi.logo.onDark` | على خلفية داكنة | Sur fond sombre | [ ] |
 | `devUi.logo.onLight` | على خلفية فاتحة | Sur fond clair | [ ] |
+| `devUi.more.accordionAnswer` | حسب العرض والمنطقة والمسافة والوزن. | Selon l'offre, la zone, la distance et le poids. | [ ] |
+| `devUi.more.accordionQuestion` | كيف يُحسب السعر؟ | Comment le prix est-il calculé ? | [ ] |
+| `devUi.more.attachError` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
+| `devUi.more.attachLabel` | إضافة مرفق (5 ميغابايت) | Ajouter une pièce jointe (5 Mo) | [ ] |
+| `devUi.more.attachRemove` | إزالة المرفق | Retirer la pièce jointe | [ ] |
+| `devUi.more.bandDark` | شريط داكن | Bandeau sombre | [ ] |
+| `devUi.more.bandDeep` | شريط داكن جدًا | Bandeau très sombre | [ ] |
+| `devUi.more.bandDefault` | شريط فاتح | Bandeau clair | [ ] |
+| `devUi.more.bandTint` | شريط رمادي | Bandeau gris | [ ] |
+| `devUi.more.checkboxLabel` | أقبل شروط البيع. | J'accepte les CGV. | [ ] |
+| `devUi.more.chipOff` | التتبع والتوصيل | Suivi et livraison | [ ] |
+| `devUi.more.chipOn` | الطلب | Commander | [ ] |
+| `devUi.more.chipsLabel` | مثال على الشرائح | Exemple de puces | [ ] |
+| `devUi.more.timelineCurrent` | قيد التوصيل | En cours de livraison | [ ] |
+| `devUi.more.timelineDone` | تم استلام الطرد | Colis récupéré | [ ] |
+| `devUi.more.timelineTodo` | تسليم مع إثبات | Remise avec preuve | [ ] |
+| `devUi.sections.accordion` | سؤال قابل للطي | Question déroulante | [ ] |
 | `devUi.sections.alerts` | التنبيهات | Alertes | [ ] |
 | `devUi.sections.avatars` | الصور الرمزية | Avatars | [ ] |
 | `devUi.sections.badges` | الشارات | Badges | [ ] |
 | `devUi.sections.buttons` | الأزرار | Boutons | [ ] |
 | `devUi.sections.cards` | البطاقات | Cartes | [ ] |
+| `devUi.sections.checkbox` | مربع الاختيار | Case à cocher | [ ] |
+| `devUi.sections.chips` | الشرائح | Puces | [ ] |
 | `devUi.sections.colors` | الألوان | Couleurs | [ ] |
+| `devUi.sections.fileAttach` | المرفق | Pièce jointe | [ ] |
 | `devUi.sections.formats` | الصيغ | Formats | [ ] |
 | `devUi.sections.forms` | النماذج | Formulaires | [ ] |
 | `devUi.sections.icons` | الأيقونات | Icônes | [ ] |
+| `devUi.sections.keyValue` | عنوان وقيمة | Libellé et valeur | [ ] |
 | `devUi.sections.kpi` | المؤشرات | Indicateurs | [ ] |
+| `devUi.sections.layout` | أشرطة الصفحة | Bandeaux | [ ] |
 | `devUi.sections.logo` | الشعار | Logo | [ ] |
 | `devUi.sections.stepper` | الخطوات | Étapes | [ ] |
 | `devUi.sections.table` | الجدول | Tableau | [ ] |
 | `devUi.sections.tabs` | التبويبات | Onglets | [ ] |
+| `devUi.sections.timeline` | الخط الزمني | Chronologie | [ ] |
 | `devUi.sections.typography` | الخطوط | Typographie | [ ] |
 | `devUi.stepper.current` | الحالية | En cours | [ ] |
 | `devUi.stepper.done` | مكتملة | Terminée | [ ] |
@@ -93,8 +146,293 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.typography.eyebrow` | تتبع | Suivre | [ ] |
 | `devUi.typography.h4` | رقم التتبع | Numéro de suivi | [ ] |
 | `devUi.typography.lead` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
-| `home.tagline` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
+| `driver.eyebrow` | انضم إلى FastGo | Rejoindre FastGo | [ ] |
+| `driver.form.attach` | الرخصة والتأمين (5 ميغابايت) | Permis et assurance (5 Mo) | [ ] |
+| `driver.form.fullName` | الاسم الكامل | Nom complet | [ ] |
+| `driver.form.phone` | الهاتف | Téléphone | [ ] |
+| `driver.form.removeAttachment` | إزالة الوثيقة | Retirer le document | [ ] |
+| `driver.form.sending` | جارٍ الإرسال… | Envoi… | [ ] |
+| `driver.form.submit` | إرسال ترشحي | Envoyer ma candidature | [ ] |
+| `driver.form.title` | الترشح | Candidature | [ ] |
+| `driver.form.vehicle` | المركبة | Véhicule | [ ] |
+| `driver.form.vehicles.moto` | دراجة نارية | Moto | [ ] |
+| `driver.form.zone` | المنطقة المفضلة | Zone souhaitée | [ ] |
+| `driver.needs.licence` | رخصة سياقة سارية، إذا كانت مركبتك تتطلبها | Un permis valide, si votre véhicule en demande un | [ ] |
+| `driver.needs.phone` | هاتف أندرويد 10 أو أحدث، أو آيفون بنظام iOS 16.4 أو أحدث | Un téléphone Android 10 ou plus, ou un iPhone sous iOS 16.4 ou plus | [ ] |
+| `driver.needs.title` | ما تحتاج إليه | Ce qu'il vous faut | [ ] |
+| `driver.needs.vehicle` | مركبة مؤمَّنة وزيارتها الفنية سارية | Un véhicule assuré et à jour de sa visite technique | [ ] |
+| `driver.process.activate` | تفعّل التطبيق وتتلقى مهامك | Vous activez l'application et recevez vos missions | [ ] |
+| `driver.process.apply` | ترسل ترشحك | Vous envoyez votre candidature | [ ] |
+| `driver.process.check` | نتحقق من وثائقك | Nous vérifions vos documents | [ ] |
+| `driver.process.title` | كيف تتم العملية | Comment ça se passe | [ ] |
+| `driver.process.train` | تتدرب ميدانيًا | Vous êtes formé sur le terrain | [ ] |
+| `driver.success.reference` | المرجع | Référence | [ ] |
+| `driver.success.text` | سنتحقق من وثائقك. | Nous vérifions vos documents. | [ ] |
+| `driver.success.title` | تم إرسال الترشح. | Candidature envoyée. | [ ] |
+| `driver.title` | وصّل مع FastGo. | Livrez avec FastGo. | [ ] |
+| `footer.contact` | اتصل بنا | Contact | [ ] |
+| `footer.driver` | كن عامل توصيل | Devenir livreur | [ ] |
+| `footer.faq` | الأسئلة الشائعة | Questions fréquentes | [ ] |
+| `footer.helpTitle` | المساعدة | Aide | [ ] |
+| `footer.legalTitle` | قانوني | Légal | [ ] |
+| `footer.merchants` | التجار | Commerçants | [ ] |
+| `footer.notice` | البيانات القانونية | Mentions légales | [ ] |
+| `footer.offers` | الخدمات والأسعار | Offres et tarifs | [ ] |
+| `footer.privacy` | الخصوصية | Confidentialité | [ ] |
+| `footer.servicesTitle` | الخدمات | Services | [ ] |
+| `footer.tagline` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
+| `footer.terms` | شروط البيع | CGV | [ ] |
+| `footer.zones` | المناطق المشمولة | Zones desservies | [ ] |
+| `forms.errors.addressTooShort` | أدخل 3 أحرف على الأقل. | Saisissez au moins 3 caractères. | [ ] |
+| `forms.errors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
+| `forms.errors.captchaRequired` | أكّد أنك لست روبوتًا. | Confirmez que vous n'êtes pas un robot. | [ ] |
+| `forms.errors.emailInvalid` | عنوان البريد الإلكتروني غير صالح. | Adresse e-mail invalide. | [ ] |
+| `forms.errors.phoneInvalid` | رقم غير صالح. مثال: 000 000 20 216+. | Numéro invalide. Exemple : +216 20 000 000. | [ ] |
+| `forms.errors.required` | هذا الحقل إلزامي. | Ce champ est obligatoire. | [ ] |
+| `forms.errors.trackingInvalid` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
+| `forms.serverErrors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
+| `forms.serverErrors.captchaFailed` | فشل التحقق من أنك لست روبوتًا. حاول مرة أخرى. | La vérification anti-robot a échoué. Réessayez. | [ ] |
+| `forms.serverErrors.invalidTrackingCode` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
+| `help.noResult` | لا يوجد سؤال يطابق بحثك. | Aucune question ne correspond à votre recherche. | [ ] |
+| `help.notFound.cta` | اتصل بنا | Nous contacter | [ ] |
+| `help.notFound.title` | لم تجد ما تبحث عنه؟ | Vous n'avez pas trouvé ? | [ ] |
+| `help.questions.absent.q` | ماذا يحدث إذا كان المستلم غائبًا؟ | Que se passe-t-il si le destinataire est absent ? | [ ] |
+| `help.questions.cancel.q` | هل يمكنني إلغاء طلبي؟ | Puis-je annuler ma commande ? | [ ] |
+| `help.questions.damaged.q` | متى يجب أن أبلغ عن طرد تالف؟ | Quand dois-je signaler un colis endommagé ? | [ ] |
+| `help.questions.deliveryCode.q` | ما فائدة رمز التسليم؟ | À quoi sert le code de remise ? | [ ] |
+| `help.questions.invoice.q` | كيف أحصل على فاتورتي؟ | Comment obtenir ma facture ? | [ ] |
+| `help.questions.price.a` | حسب العرض والمنطقة والمسافة والوزن. تظهر التفاصيل قبل التأكيد، والسعر مضمون لمدة 15 دقيقة. | Selon l'offre, la zone, la distance et le poids. Le détail s'affiche avant la validation et le prix est garanti 15 minutes. | [ ] |
+| `help.questions.price.q` | كيف يُحسب السعر؟ | Comment le prix est-il calculé ? | [ ] |
+| `help.searchLabel` | ابحث في المساعدة | Rechercher dans l'aide | [ ] |
+| `help.title` | كيف يمكننا مساعدتك؟ | Comment pouvons-nous aider ? | [ ] |
+| `help.topics.claims` | المرتجعات والشكاوى | Retours et réclamations | [ ] |
+| `help.topics.merchants` | التجار | Commerçants | [ ] |
+| `help.topics.order` | الطلب | Commander | [ ] |
+| `help.topics.payment` | الدفع والفواتير | Paiement et factures | [ ] |
+| `help.topics.tracking` | التتبع والتوصيل | Suivi et livraison | [ ] |
+| `help.topicsLabel` | المواضيع | Thèmes | [ ] |
+| `home.coverage.cta` | تحقق من عنواني | Vérifier mon adresse | [ ] |
+| `home.coverage.text` | الانطلاق في {city}. تحقق من عنوان في ثوانٍ. | Lancement à {city}. Vérifiez une adresse en quelques secondes. | [ ] |
+| `home.coverage.title` | هل تصل خدمتنا إلى حيّك؟ | Votre quartier est-il couvert ? | [ ] |
+| `home.example.arrivesAround` | يصل طردك حوالي الساعة | Votre colis arrive vers | [ ] |
+| `home.example.badge` | مثال | Exemple | [ ] |
+| `home.example.distance` | على بعد {distance} كم | À {distance} km | [ ] |
+| `home.example.driver` | سامي | Sami | [ ] |
+| `home.example.enRoute` | في الطريق مع {driver} | En route avec {driver} | [ ] |
+| `home.example.label` | مثال على التتبع | Exemple de suivi | [ ] |
+| `home.example.merchant` | بوتيك ياسمين | Boutique Yasmine | [ ] |
+| `home.example.pickedUp` | تم استلام الطرد | Colis récupéré | [ ] |
+| `home.example.proof` | تسليم مع إثبات | Remise avec preuve | [ ] |
+| `home.example.proofDetail` | رمز أو توقيع أو صورة | Code, signature ou photo | [ ] |
+| `home.hero.addressPlaceholder` | الشارع أو الحي أو المدينة | Rue, quartier ou ville | [ ] |
+| `home.hero.arrival` | إلى | Arrivée | [ ] |
+| `home.hero.cta` | عرض السعر | Voir le prix | [ ] |
+| `home.hero.departure` | من | Départ | [ ] |
+| `home.hero.note` | لا تؤكد الطلب إلا بعد رؤية السعر. | Vous validez seulement après avoir vu le prix. | [ ] |
+| `home.hero.subtitle` | تستلم FastGo وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل الطلب. | FastGo récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander. | [ ] |
+| `home.hero.title` | طردك ينطلق اليوم، وتعرف أين هو. | Votre colis part aujourd'hui. Vous savez où il est. | [ ] |
+| `home.hero.trackingButton` | تتبع | Suivre | [ ] |
+| `home.hero.trackingLabel` | هل لديك رقم تتبع؟ | Déjà un numéro de suivi ? | [ ] |
+| `home.merchants.collected` | المحصّل هذا الأسبوع | Collecté cette semaine | [ ] |
+| `home.merchants.cta` | اكتشف عرض التجار | Découvrir l'offre commerçants | [ ] |
+| `home.merchants.fees` | الرسوم المخصومة | Frais déduits | [ ] |
+| `home.merchants.receivable` | تستلمها يوم الجمعة | À recevoir vendredi | [ ] |
+| `home.merchants.sample` | مثال على كشف | Exemple de relevé | [ ] |
+| `home.merchants.text` | استورد طلباتك وتتبع كل طرد، واحصل على كشف واضح لكل تحويل من الدفع عند الاستلام. | Importez vos commandes, suivez chaque colis et recevez un relevé clair pour chaque reversement de contre-remboursement. | [ ] |
+| `home.merchants.title` | أنت تبيع ونحن نوصل، وتعرف أين أموالك. | Vous vendez, nous livrons. Et vous savez où est votre argent. | [ ] |
+| `home.offers.compare` | مقارنة الخدمات | Comparer les offres | [ ] |
+| `home.offers.title` | اختر حسب الاستعجال | Choisissez selon l'urgence | [ ] |
+| `home.promise.cash` | نقدًا عند الاستلام أو التسليم | Espèces à l'enlèvement ou à la livraison | [ ] |
+| `home.promise.merchants` | هل أنت تاجر؟ | Vous êtes commerçant ? | [ ] |
+| `home.promise.price` | السعر مفصل قبل التأكيد | Prix détaillé avant de valider | [ ] |
+| `home.promise.proof` | إثبات عند كل تسليم | Une preuve à chaque remise | [ ] |
+| `home.recipient.cashToPay` | المبلغ المطلوب نقدًا | À payer en espèces | [ ] |
+| `home.recipient.code` | الرمز الذي تعطيه | Code à donner | [ ] |
+| `home.recipient.note` | مثال. يُفتح الرابط دون تطبيق، بالفرنسية أو العربية أو الإنجليزية. | Exemple. Le lien s'ouvre sans application, en français, en arabe ou en anglais. | [ ] |
+| `home.recipient.share` | مشاركة موقعي | Partager ma position | [ ] |
+| `home.recipient.status` | {driver}، عامل التوصيل، في الطريق إليك. الطرد مرسل من {merchant}. | {driver}, votre livreur, est en route. Envoi de {merchant}. | [ ] |
+| `home.recipient.title` | ما يصل إلى المستلم | Ce que reçoit votre destinataire | [ ] |
+| `home.steps.order.text` | العناوين والطرد والموعد: يتغير السعر أثناء الإدخال. | Adresses, colis, créneau : le prix se met à jour pendant la saisie. | [ ] |
+| `home.steps.order.title` | تطلب في أقل من دقيقتين | Vous commandez en moins de 2 minutes | [ ] |
+| `home.steps.payment` | تدفع نقدًا عند الاستلام أو عند التسليم. ويتلقى التجار المتعاقدون فاتورة شهرية. | Vous réglez en espèces à l'enlèvement ou à la livraison. Les commerçants sous contrat reçoivent une facture mensuelle. | [ ] |
+| `home.steps.pickup.text` | تصلك رقم تتبع ويصل المستلم رابط خاص به. | Vous recevez un numéro de suivi et le destinataire un lien personnel. | [ ] |
+| `home.steps.pickup.title` | يستلم عامل التوصيل الطرد | Un livreur récupère le colis | [ ] |
+| `home.steps.proof.text` | رمز أو توقيع أو صورة، يمكن الاطلاع عليها في أي وقت. | Code, signature ou photo, consultables à tout moment. | [ ] |
+| `home.steps.proof.title` | التسليم مثبت | La remise est prouvée | [ ] |
+| `home.steps.recipient.text` | يرى وقت الوصول والمبلغ المطلوب، ويمكنه اختيار موعد آخر. | Il voit l'heure d'arrivée, le montant à payer et peut choisir un autre créneau. | [ ] |
+| `home.steps.recipient.title` | يعرف المستلم متى وكم | Le destinataire sait quand et combien | [ ] |
+| `home.steps.title` | من الطلب إلى التسليم، لا أحد يبقى دون جواب | De la commande à la remise, personne ne reste sans réponse | [ ] |
 | `languageSwitcher.label` | اللغة | Langue | [ ] |
+| `legal.cgvSections.cancellation` | الإلغاء والرسوم | Annulation et frais | [ ] |
+| `legal.cgvSections.data` | البيانات الشخصية | Données personnelles | [ ] |
+| `legal.cgvSections.liability` | الفقدان والضرر والتعويض | Perte, dommage et indemnisation | [ ] |
+| `legal.cgvSections.purpose` | الموضوع | Objet | [ ] |
+| `legal.docs.cgv` | شروط البيع | CGV | [ ] |
+| `legal.docs.cookies` | ملفات تعريف الارتباط | Cookies | [ ] |
+| `legal.docs.notice` | البيانات القانونية | Mentions légales | [ ] |
+| `legal.docs.privacy` | الخصوصية | Confidentialité | [ ] |
+| `legal.nav` | المستندات | Documents | [ ] |
+| `legal.note` | نص يقدمه المستشار القانوني لـ FastGo ويعتمده. | Texte à fournir et à valider par le conseil juridique de FastGo. | [ ] |
+| `legal.titles.cgv` | شروط البيع العامة | Conditions générales de vente | [ ] |
+| `legal.titles.cookies` | ملفات تعريف الارتباط | Cookies | [ ] |
+| `legal.titles.notice` | البيانات القانونية | Mentions légales | [ ] |
+| `legal.titles.privacy` | سياسة الخصوصية | Politique de confidentialité | [ ] |
+| `merchants.benefits.cod.text` | المبالغ المحصّلة والرسوم والتحويلات، طردًا بطرد. | Montants collectés, frais et reversements, colis par colis. | [ ] |
+| `merchants.benefits.cod.title` | تتبع الدفع عند الاستلام | Suivez le contre-remboursement | [ ] |
+| `merchants.benefits.connect.text` | واجهة API وShopify وWooCommerce. قريبًا. | API, Shopify et WooCommerce. Bientôt disponibles. | [ ] |
+| `merchants.benefits.connect.title` | اربط موقعك | Connectez votre site | [ ] |
+| `merchants.benefits.import.text` | CSV أو Excel. تُحدَّد الأسطر التي تحتاج إلى تصحيح ويمكن تصحيحها في مكانها. | CSV ou Excel. Les lignes à corriger sont signalées et se corrigent sur place. | [ ] |
+| `merchants.benefits.import.title` | استورد دفعة واحدة | Importez en une fois | [ ] |
+| `merchants.benefits.invoice.text` | أسعار متفاوض عليها، وكشف مفصل، وفاتورة إلكترونية. | Tarifs négociés, relevé détaillé et facture électronique. | [ ] |
+| `merchants.benefits.invoice.title` | فاتورة واحدة في الشهر | Une facture par mois | [ ] |
+| `merchants.benefits.pickups.text` | متاجر ومستودعات، مع عدة مستخدمين. | Boutiques et entrepôts, avec plusieurs utilisateurs. | [ ] |
+| `merchants.benefits.pickups.title` | عدة نقاط استلام | Plusieurs points d'enlèvement | [ ] |
+| `merchants.benefits.returns.text` | يؤكد المستلم موقعه ويغيّر الموعد من رابطه. | Le destinataire confirme sa position et change de créneau par son lien. | [ ] |
+| `merchants.benefits.returns.title` | قلّل المرتجعات | Réduisez les retours | [ ] |
+| `merchants.benefits.title` | ما الذي يتغير في متجرك | Ce qui change pour votre boutique | [ ] |
+| `merchants.eyebrow` | التجار | Commerçants | [ ] |
+| `merchants.quote` | اطلب عرض سعر | Demander un devis | [ ] |
+| `merchants.signUp` | إنشاء حساب | Créer un compte | [ ] |
+| `merchants.statement.collected` | المحصّل عند الاستلام | COD collecté | [ ] |
+| `merchants.statement.delivered` | المسلَّمة | Livrés | [ ] |
+| `merchants.statement.deliveredValue` | {count, plural, one {# طرد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} | {count, plural, one {# colis} other {# colis}} | [ ] |
+| `merchants.statement.fees` | الرسوم المخصومة | Frais déduits | [ ] |
+| `merchants.statement.receivable` | المستحق لك | À recevoir | [ ] |
+| `merchants.statement.returned` | المرتجعة | Retours | [ ] |
+| `merchants.statement.sample` | مثال | Exemple | [ ] |
+| `merchants.statement.title` | كشف الأسبوع | Relevé de la semaine | [ ] |
+| `merchants.talk.cta` | احصل على عرضي | Recevoir ma proposition | [ ] |
+| `merchants.talk.text` | يعود إليك فريقنا بعرض مناسب. | Notre équipe revient vers vous avec une proposition adaptée. | [ ] |
+| `merchants.talk.title` | لنتحدث عن حجم طلباتك | Parlons de vos volumes | [ ] |
+| `merchants.title` | بع بطمأنينة أكبر. كل طرد وكل دينار يتم تتبعه. | Vendez plus sereinement. Chaque colis et chaque dinar sont suivis. | [ ] |
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
+| `meta.pages.cgv.description` | شروط البيع الخاصة بـ FastGo. | Conditions générales de vente de FastGo. | [ ] |
+| `meta.pages.cgv.title` | شروط البيع \| FastGo | Conditions générales de vente \| FastGo | [ ] |
+| `meta.pages.contact.description` | سؤال أو عرض سعر أو شكوى: اكتب إلى FastGo، برقم تتبع أو بدونه. | Une question, un devis ou une réclamation : écrivez à FastGo, avec ou sans numéro de suivi. | [ ] |
+| `meta.pages.contact.title` | اتصل بنا \| FastGo | Contact \| FastGo | [ ] |
+| `meta.pages.cookies.description` | معلومات حول ملفات تعريف الارتباط في موقع FastGo. | Informations sur les cookies sur le site FastGo. | [ ] |
+| `meta.pages.cookies.title` | ملفات تعريف الارتباط \| FastGo | Cookies \| FastGo | [ ] |
+| `meta.pages.driver.description` | اطّلع على شروط التوصيل مع FastGo وأرسل ترشحك. | Découvrez ce qu'il faut pour livrer avec FastGo et envoyez votre candidature. | [ ] |
+| `meta.pages.driver.title` | كن عامل توصيل \| FastGo | Devenir livreur \| FastGo | [ ] |
+| `meta.pages.help.description` | أجوبة عن الأسئلة الشائعة حول الطلب والتتبع والدفع والشكاوى. | Réponses aux questions fréquentes sur la commande, le suivi, le paiement et les réclamations. | [ ] |
+| `meta.pages.help.title` | المساعدة \| FastGo | Aide \| FastGo | [ ] |
+| `meta.pages.home.description` | اطلب توصيلًا داخل المدينة، واطّلع على السعر قبل التأكيد، وتتبع طردك حتى التسليم مع إثبات. | Commandez une livraison en ville, voyez le prix avant de valider et suivez votre colis jusqu'à la remise avec preuve. | [ ] |
+| `meta.pages.home.title` | FastGo: توصيل سريع للوثائق والطرود | FastGo : livraison express de plis et de colis | [ ] |
+| `meta.pages.merchants.description` | استورد طلباتك وتتبع كل طرد وكل مبلغ مدفوع عند الاستلام مع FastGo. | Importez vos commandes, suivez chaque colis et chaque contre-remboursement avec FastGo. | [ ] |
+| `meta.pages.merchants.title` | عرض التجار \| FastGo | Offre commerçants \| FastGo | [ ] |
+| `meta.pages.notice.description` | البيانات القانونية الخاصة بـ FastGo. | Mentions légales de FastGo. | [ ] |
+| `meta.pages.notice.title` | البيانات القانونية \| FastGo | Mentions légales \| FastGo | [ ] |
+| `meta.pages.order.description` | الطلب عبر الإنترنت قريبًا. | La commande en ligne arrive bientôt. | [ ] |
+| `meta.pages.order.title` | اطلب الآن \| FastGo | Commander \| FastGo | [ ] |
+| `meta.pages.privacy.description` | سياسة الخصوصية الخاصة بـ FastGo. | Politique de confidentialité de FastGo. | [ ] |
+| `meta.pages.privacy.title` | الخصوصية \| FastGo | Confidentialité \| FastGo | [ ] |
+| `meta.pages.services.description` | سريع أو عادي أو مجدول: قارن عروض FastGo وأنواع الشحنات والخيارات. | Express, Standard ou Programmée : comparez les offres FastGo, les types d'envoi et les options. | [ ] |
+| `meta.pages.services.title` | الخدمات والأسعار \| FastGo | Services et tarifs \| FastGo | [ ] |
+| `meta.pages.signIn.description` | تسجيل الدخول إلى حسابك قريبًا. | La connexion à votre compte arrive bientôt. | [ ] |
+| `meta.pages.signIn.title` | تسجيل الدخول \| FastGo | Connexion \| FastGo | [ ] |
+| `meta.pages.signUp.description` | إنشاء الحساب قريبًا. | La création de compte arrive bientôt. | [ ] |
+| `meta.pages.signUp.title` | إنشاء حساب \| FastGo | Créer un compte \| FastGo | [ ] |
+| `meta.pages.tracking.description` | أدخل رقم تتبع FastGo لمعرفة حالة الطرد ووقت الوصول المقدّر. | Saisissez votre numéro de suivi FastGo pour voir le statut et l'heure d'arrivée estimée. | [ ] |
+| `meta.pages.tracking.title` | تتبع طرد \| FastGo | Suivre un colis \| FastGo | [ ] |
+| `meta.pages.zones.description` | تحقق في ثوانٍ مما إذا كان عنوانك ضمن مناطق خدمة FastGo. | Vérifiez en quelques secondes si votre adresse est desservie par FastGo. | [ ] |
+| `meta.pages.zones.title` | المناطق المشمولة \| FastGo | Zones desservies \| FastGo | [ ] |
 | `meta.title` | FastGo | FastGo | [ ] |
-| `notFound.title` | الصفحة غير موجودة | Page introuvable | [ ] |
+| `nav.closeMenu` | إغلاق القائمة | Fermer le menu | [ ] |
+| `nav.help` | المساعدة | Aide | [ ] |
+| `nav.home` | الرئيسية | Accueil | [ ] |
+| `nav.label` | التنقل الرئيسي | Navigation principale | [ ] |
+| `nav.merchants` | التجار | Commerçants | [ ] |
+| `nav.openMenu` | فتح القائمة | Ouvrir le menu | [ ] |
+| `nav.order` | اطلب الآن | Commander | [ ] |
+| `nav.services` | الخدمات والأسعار | Services et tarifs | [ ] |
+| `nav.signIn` | تسجيل الدخول | Connexion | [ ] |
+| `nav.tracking` | تتبع طرد | Suivre un colis | [ ] |
+| `notFound.home` | العودة إلى الرئيسية | Retour à l'accueil | [ ] |
+| `notFound.text` | هذه الصفحة غير موجودة أو تم نقلها. | Cette page n'existe pas ou a été déplacée. | [ ] |
+| `notFound.title` | هذا الطرد ضاع، لا طردك. | Ce colis s'est perdu, pas le vôtre. | [ ] |
+| `notFound.track` | تتبع طرد | Suivre un colis | [ ] |
+| `offers.express.delay` | أقل من ساعة | Moins de 1 h | [ ] |
+| `offers.express.delayCell` | أقل من ساعة | Moins de 1 h | [ ] |
+| `offers.express.name` | سريع | Express | [ ] |
+| `offers.express.tagline` | لما لا يحتمل الانتظار. | Pour ce qui ne peut pas attendre. | [ ] |
+| `offers.scheduled.delay` | في الموعد الذي تختاره | Au créneau choisi | [ ] |
+| `offers.scheduled.delayCell` | الموعد الذي تختاره | Créneau choisi | [ ] |
+| `offers.scheduled.name` | مجدول | Programmée | [ ] |
+| `offers.scheduled.tagline` | يعرف المستلم الموعد مسبقًا. | Le destinataire connaît l'heure à l'avance. | [ ] |
+| `offers.standard.delay` | في نفس اليوم | Dans la journée | [ ] |
+| `offers.standard.delayCell` | في نفس اليوم | Dans la journée | [ ] |
+| `offers.standard.name` | عادي | Standard | [ ] |
+| `offers.standard.tagline` | يُستلم ويُسلَّم قبل الساعة المحددة. | Récupéré et livré avant l'heure limite. | [ ] |
+| `placeholders.address` | [العنوان] | [ADRESSE] | [ ] |
+| `placeholders.answer` | [الجواب] | [RÉPONSE] | [ ] |
+| `placeholders.city` | [المدينة] | [VILLE] | [ ] |
+| `placeholders.cityFrom` | [مدينة الانطلاق] | [VILLE DE DÉPART] | [ ] |
+| `placeholders.cityTo` | [مدينة الوصول] | [VILLE D'ARRIVÉE] | [ ] |
+| `placeholders.email` | [البريد الإلكتروني] | [E-MAIL] | [ ] |
+| `placeholders.fee` | [التعرفة] | [TARIF] | [ ] |
+| `placeholders.limit` | [الحد] | [LIMITE] | [ ] |
+| `placeholders.list` | [قائمة يعتمدها FastGo] | [LISTE À VALIDER PAR FASTGO] | [ ] |
+| `placeholders.phone` | [الهاتف] | [TÉLÉPHONE] | [ ] |
+| `placeholders.price` | [السعر] | [PRIX] | [ ] |
+| `placeholders.priceTnd` | [السعر] د.ت | [PRIX] TND | [ ] |
+| `placeholders.supportHours` | [ساعات عمل خدمة العملاء] | [HORAIRES DU SERVICE CLIENT] | [ ] |
+| `placeholders.text` | [النص] | [TEXTE] | [ ] |
+| `placeholders.time` | [الساعة] | [HEURE] | [ ] |
+| `placeholders.vehicle` | [المركبة] | [VÉHICULE] | [ ] |
+| `services.extras.declaredValue` | القيمة المصرّح بها | Valeur déclarée | [ ] |
+| `services.extras.fragile` | طرد هش | Colis fragile | [ ] |
+| `services.extras.retry` | محاولة جديدة | Nouvelle tentative | [ ] |
+| `services.extras.return` | الإرجاع إلى المرسل | Retour à l'expéditeur | [ ] |
+| `services.extras.title` | الخيارات والرسوم | Options et frais | [ ] |
+| `services.eyebrow` | الخدمات والأسعار | Services et tarifs | [ ] |
+| `services.forbiddenLabel` | الأشياء الممنوعة: | Objets interdits : | [ ] |
+| `services.forbiddenNote` | يؤكد العميل ذلك عند الطلب. | Le client le confirme à la commande. | [ ] |
+| `services.included` | مشمول | Inclus | [ ] |
+| `services.merchantsOnly` | التجار | Commerçants | [ ] |
+| `services.parcelTypes.document` | مظروف، وثيقة | Pli, document | [ ] |
+| `services.parcelTypes.large` | طرد كبير | Colis volumineux | [ ] |
+| `services.parcelTypes.medium` | طرد متوسط | Colis moyen | [ ] |
+| `services.parcelTypes.small` | طرد صغير | Petit colis | [ ] |
+| `services.parcelTypes.title` | أنواع الشحنات | Types d'envoi | [ ] |
+| `services.rows.cod` | الدفع عند الاستلام | Contre-remboursement | [ ] |
+| `services.rows.cutoff` | الساعة القصوى | Heure limite | [ ] |
+| `services.rows.delay` | المدة | Délai | [ ] |
+| `services.rows.price` | سعر الانطلاق | Prix de départ | [ ] |
+| `services.rows.proof` | إثبات التسليم | Preuve de remise | [ ] |
+| `services.tableLabel` | مقارنة العروض | Comparaison des offres | [ ] |
+| `services.title` | سعر واضح قبل أن تطلب. | Un prix clair, avant de commander. | [ ] |
+| `tracking.arrival` | الوصول المقدّر | Arrivée estimée | [ ] |
+| `tracking.empty.text` | أدخل الرقم الذي وصلك برسالة نصية أو بالبريد الإلكتروني. | Saisissez le numéro reçu par SMS ou par e-mail. | [ ] |
+| `tracking.empty.title` | أين طردك؟ | Où est votre colis ? | [ ] |
+| `tracking.historyLabel` | سجل الطرد | Historique du colis | [ ] |
+| `tracking.label` | رقم التتبع | Numéro de suivi | [ ] |
+| `tracking.notFound.text` | لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع FastGo. | Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo. | [ ] |
+| `tracking.notFound.title` | الرقم غير موجود | Numéro introuvable | [ ] |
+| `tracking.problem.cta` | تواصل مع FastGo | Contacter FastGo | [ ] |
+| `tracking.problem.title` | هل من مشكلة؟ | Un problème ? | [ ] |
+| `tracking.route` | من {from} إلى {to} | De {from} vers {to} | [ ] |
+| `tracking.searching` | جارٍ البحث… | Recherche… | [ ] |
+| `tracking.steps.confirmed` | تم تأكيد الطلب | Commande confirmée | [ ] |
+| `tracking.steps.created` | تم إنشاء الطلب | Commande créée | [ ] |
+| `tracking.steps.delivered` | تم التسليم | Livré | [ ] |
+| `tracking.steps.out_for_delivery` | قيد التوصيل | En cours de livraison | [ ] |
+| `tracking.steps.picked_up` | تم استلام الطرد | Colis récupéré | [ ] |
+| `tracking.submit` | تتبع | Suivre | [ ] |
+| `tracking.title` | تتبع طرد | Suivre un colis | [ ] |
+| `tracking.yourParcel.text` | يعرض الرابط الذي وصلك برسالة نصية المبلغ المطلوب ورمز التسليم، ويتيح تغيير الموعد. | Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau. | [ ] |
+| `tracking.yourParcel.title` | هل هذا طردك؟ | C'est votre colis ? | [ ] |
+| `zones.addressLabel` | عنوانك | Votre adresse | [ ] |
+| `zones.addressPlaceholder` | نهج ابن خلدون | Rue Ibn Khaldoun | [ ] |
+| `zones.checking` | جارٍ التحقق… | Vérification… | [ ] |
+| `zones.inZone.order` | اطلب الآن | Commander | [ ] |
+| `zones.inZone.text` | الخدمات المتاحة: {services}. | Services disponibles : {services}. | [ ] |
+| `zones.inZone.title` | هذا العنوان ضمن مناطق الخدمة. | Cette adresse est desservie. | [ ] |
+| `zones.launch` | الانطلاق في {city}. | Lancement à {city}. | [ ] |
+| `zones.outOfZone.request` | اطلب هذه المنطقة | Demander cette zone | [ ] |
+| `zones.outOfZone.text` | اختر عنوانًا آخر أو اطلب فتح هذه المنطقة. | Choisissez une autre adresse ou demandez l'ouverture de cette zone. | [ ] |
+| `zones.outOfZone.title` | لا نوصل إلى هناك بعد. | Nous n'y livrons pas encore. | [ ] |
+| `zones.submit` | تحقق | Vérifier | [ ] |
+| `zones.title` | المناطق المشمولة | Zones desservies | [ ] |
+| `zones.unknown.contact` | اتصل بنا | Nous contacter | [ ] |
+| `zones.unknown.text` | أضف الشارع والمدينة أو معلمًا قريبًا. يمكنك أيضًا التواصل معنا. | Ajoutez la rue et la ville, ou un point de repère. Vous pouvez aussi nous contacter. | [ ] |
+| `zones.unknown.title` | لم نتعرّف على هذا العنوان. | Adresse non reconnue. | [ ] |

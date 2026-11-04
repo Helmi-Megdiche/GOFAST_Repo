@@ -1,20 +1,78 @@
 {
   "meta": {
     "title": "FastGo",
-    "description": "Livraison express de plis et de colis."
+    "description": "Livraison express de plis et de colis.",
+    "pages": {
+      "home": {
+        "title": "FastGo : livraison express de plis et de colis",
+        "description": "Commandez une livraison en ville, voyez le prix avant de valider et suivez votre colis jusqu'à la remise avec preuve."
+      },
+      "services": {
+        "title": "Services et tarifs | FastGo",
+        "description": "Express, Standard ou Programmée : comparez les offres FastGo, les types d'envoi et les options."
+      },
+      "merchants": {
+        "title": "Offre commerçants | FastGo",
+        "description": "Importez vos commandes, suivez chaque colis et chaque contre-remboursement avec FastGo."
+      },
+      "tracking": {
+        "title": "Suivre un colis | FastGo",
+        "description": "Saisissez votre numéro de suivi FastGo pour voir le statut et l'heure d'arrivée estimée."
+      },
+      "zones": {
+        "title": "Zones desservies | FastGo",
+        "description": "Vérifiez en quelques secondes si votre adresse est desservie par FastGo."
+      },
+      "help": {
+        "title": "Aide | FastGo",
+        "description": "Réponses aux questions fréquentes sur la commande, le suivi, le paiement et les réclamations."
+      },
+      "contact": {
+        "title": "Contact | FastGo",
+        "description": "Une question, un devis ou une réclamation : écrivez à FastGo, avec ou sans numéro de suivi."
+      },
+      "driver": {
+        "title": "Devenir livreur | FastGo",
+        "description": "Découvrez ce qu'il faut pour livrer avec FastGo et envoyez votre candidature."
+      },
+      "cgv": {
+        "title": "Conditions générales de vente | FastGo",
+        "description": "Conditions générales de vente de FastGo."
+      },
+      "privacy": {
+        "title": "Confidentialité | FastGo",
+        "description": "Politique de confidentialité de FastGo."
+      },
+      "notice": {
+        "title": "Mentions légales | FastGo",
+        "description": "Mentions légales de FastGo."
+      },
+      "cookies": {
+        "title": "Cookies | FastGo",
+        "description": "Informations sur les cookies sur le site FastGo."
+      },
+      "order": {
+        "title": "Commander | FastGo",
+        "description": "La commande en ligne arrive bientôt."
+      },
+      "signIn": {
+        "title": "Connexion | FastGo",
+        "description": "La connexion à votre compte arrive bientôt."
+      },
+      "signUp": {
+        "title": "Créer un compte | FastGo",
+        "description": "La création de compte arrive bientôt."
+      }
+    }
   },
   "common": {
     "skipToContent": "Aller au contenu",
-    "home": "Accueil"
+    "home": "Accueil",
+    "loading": "Chargement…",
+    "from": "À partir de"
   },
   "languageSwitcher": {
     "label": "Langue"
-  },
-  "home": {
-    "tagline": "Livraison express de plis et de colis."
-  },
-  "notFound": {
-    "title": "Page introuvable"
   },
   "devUi": {
     "title": "Bibliothèque de composants",
@@ -34,7 +92,14 @@
       "avatars": "Avatars",
       "icons": "Icônes",
       "logo": "Logo",
-      "formats": "Formats"
+      "formats": "Formats",
+      "layout": "Bandeaux",
+      "timeline": "Chronologie",
+      "keyValue": "Libellé et valeur",
+      "accordion": "Question déroulante",
+      "chips": "Puces",
+      "checkbox": "Case à cocher",
+      "fileAttach": "Pièce jointe"
     },
     "typography": {
       "d1": "Votre colis part aujourd'hui. Vous savez où il est.",
@@ -127,6 +192,457 @@
     "formats": {
       "money": "Montants",
       "date": "Date et heure (Africa/Tunis)"
+    },
+    "more": {
+      "bandDefault": "Bandeau clair",
+      "bandTint": "Bandeau gris",
+      "bandDark": "Bandeau sombre",
+      "bandDeep": "Bandeau très sombre",
+      "timelineDone": "Colis récupéré",
+      "timelineCurrent": "En cours de livraison",
+      "timelineTodo": "Remise avec preuve",
+      "accordionQuestion": "Comment le prix est-il calculé ?",
+      "accordionAnswer": "Selon l'offre, la zone, la distance et le poids.",
+      "chipsLabel": "Exemple de puces",
+      "chipOn": "Commander",
+      "chipOff": "Suivi et livraison",
+      "checkboxLabel": "J'accepte les CGV.",
+      "attachLabel": "Ajouter une pièce jointe (5 Mo)",
+      "attachRemove": "Retirer la pièce jointe",
+      "attachError": "Le fichier dépasse 5 Mo."
     }
+  },
+  "placeholders": {
+    "price": "[PRIX]",
+    "priceTnd": "[PRIX] TND",
+    "city": "[VILLE]",
+    "cityFrom": "[VILLE DE DÉPART]",
+    "cityTo": "[VILLE D'ARRIVÉE]",
+    "phone": "[TÉLÉPHONE]",
+    "email": "[E-MAIL]",
+    "address": "[ADRESSE]",
+    "supportHours": "[HORAIRES DU SERVICE CLIENT]",
+    "time": "[HEURE]",
+    "limit": "[LIMITE]",
+    "fee": "[TARIF]",
+    "list": "[LISTE À VALIDER PAR FASTGO]",
+    "text": "[TEXTE]",
+    "answer": "[RÉPONSE]",
+    "vehicle": "[VÉHICULE]"
+  },
+  "nav": {
+    "label": "Navigation principale",
+    "home": "Accueil",
+    "services": "Services et tarifs",
+    "merchants": "Commerçants",
+    "tracking": "Suivre un colis",
+    "help": "Aide",
+    "signIn": "Connexion",
+    "order": "Commander",
+    "openMenu": "Ouvrir le menu",
+    "closeMenu": "Fermer le menu"
+  },
+  "footer": {
+    "tagline": "Livraison express de plis et de colis.",
+    "servicesTitle": "Services",
+    "offers": "Offres et tarifs",
+    "zones": "Zones desservies",
+    "merchants": "Commerçants",
+    "helpTitle": "Aide",
+    "faq": "Questions fréquentes",
+    "contact": "Contact",
+    "driver": "Devenir livreur",
+    "legalTitle": "Légal",
+    "terms": "CGV",
+    "privacy": "Confidentialité",
+    "notice": "Mentions légales"
+  },
+  "offers": {
+    "express": {
+      "name": "Express",
+      "delay": "Moins de 1 h",
+      "delayCell": "Moins de 1 h",
+      "tagline": "Pour ce qui ne peut pas attendre."
+    },
+    "standard": {
+      "name": "Standard",
+      "delay": "Dans la journée",
+      "delayCell": "Dans la journée",
+      "tagline": "Récupéré et livré avant l'heure limite."
+    },
+    "scheduled": {
+      "name": "Programmée",
+      "delay": "Au créneau choisi",
+      "delayCell": "Créneau choisi",
+      "tagline": "Le destinataire connaît l'heure à l'avance."
+    }
+  },
+  "services": {
+    "eyebrow": "Services et tarifs",
+    "title": "Un prix clair, avant de commander.",
+    "tableLabel": "Comparaison des offres",
+    "rows": {
+      "delay": "Délai",
+      "cutoff": "Heure limite",
+      "price": "Prix de départ",
+      "proof": "Preuve de remise",
+      "cod": "Contre-remboursement"
+    },
+    "included": "Inclus",
+    "merchantsOnly": "Commerçants",
+    "parcelTypes": {
+      "title": "Types d'envoi",
+      "document": "Pli, document",
+      "small": "Petit colis",
+      "medium": "Colis moyen",
+      "large": "Colis volumineux"
+    },
+    "extras": {
+      "title": "Options et frais",
+      "fragile": "Colis fragile",
+      "declaredValue": "Valeur déclarée",
+      "retry": "Nouvelle tentative",
+      "return": "Retour à l'expéditeur"
+    },
+    "forbiddenLabel": "Objets interdits :",
+    "forbiddenNote": "Le client le confirme à la commande."
+  },
+  "merchants": {
+    "eyebrow": "Commerçants",
+    "title": "Vendez plus sereinement. Chaque colis et chaque dinar sont suivis.",
+    "quote": "Demander un devis",
+    "signUp": "Créer un compte",
+    "statement": {
+      "title": "Relevé de la semaine",
+      "delivered": "Livrés",
+      "deliveredValue": "{count, plural, one {# colis} other {# colis}}",
+      "returned": "Retours",
+      "collected": "COD collecté",
+      "fees": "Frais déduits",
+      "receivable": "À recevoir",
+      "sample": "Exemple"
+    },
+    "benefits": {
+      "title": "Ce qui change pour votre boutique",
+      "import": {
+        "title": "Importez en une fois",
+        "text": "CSV ou Excel. Les lignes à corriger sont signalées et se corrigent sur place."
+      },
+      "cod": {
+        "title": "Suivez le contre-remboursement",
+        "text": "Montants collectés, frais et reversements, colis par colis."
+      },
+      "returns": {
+        "title": "Réduisez les retours",
+        "text": "Le destinataire confirme sa position et change de créneau par son lien."
+      },
+      "pickups": {
+        "title": "Plusieurs points d'enlèvement",
+        "text": "Boutiques et entrepôts, avec plusieurs utilisateurs."
+      },
+      "invoice": {
+        "title": "Une facture par mois",
+        "text": "Tarifs négociés, relevé détaillé et facture électronique."
+      },
+      "connect": {
+        "title": "Connectez votre site",
+        "text": "API, Shopify et WooCommerce. Bientôt disponibles."
+      }
+    },
+    "talk": {
+      "title": "Parlons de vos volumes",
+      "text": "Notre équipe revient vers vous avec une proposition adaptée.",
+      "cta": "Recevoir ma proposition"
+    }
+  },
+  "tracking": {
+    "title": "Suivre un colis",
+    "label": "Numéro de suivi",
+    "submit": "Suivre",
+    "searching": "Recherche…",
+    "empty": {
+      "title": "Où est votre colis ?",
+      "text": "Saisissez le numéro reçu par SMS ou par e-mail."
+    },
+    "arrival": "Arrivée estimée",
+    "route": "De {from} vers {to}",
+    "historyLabel": "Historique du colis",
+    "steps": {
+      "created": "Commande créée",
+      "confirmed": "Commande confirmée",
+      "picked_up": "Colis récupéré",
+      "out_for_delivery": "En cours de livraison",
+      "delivered": "Livré"
+    },
+    "notFound": {
+      "title": "Numéro introuvable",
+      "text": "Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo."
+    },
+    "yourParcel": {
+      "title": "C'est votre colis ?",
+      "text": "Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau."
+    },
+    "problem": {
+      "title": "Un problème ?",
+      "cta": "Contacter FastGo"
+    }
+  },
+  "zones": {
+    "title": "Zones desservies",
+    "launch": "Lancement à {city}.",
+    "addressLabel": "Votre adresse",
+    "addressPlaceholder": "Rue Ibn Khaldoun",
+    "submit": "Vérifier",
+    "checking": "Vérification…",
+    "inZone": {
+      "title": "Cette adresse est desservie.",
+      "text": "Services disponibles : {services}.",
+      "order": "Commander"
+    },
+    "outOfZone": {
+      "title": "Nous n'y livrons pas encore.",
+      "text": "Choisissez une autre adresse ou demandez l'ouverture de cette zone.",
+      "request": "Demander cette zone"
+    },
+    "unknown": {
+      "title": "Adresse non reconnue.",
+      "text": "Ajoutez la rue et la ville, ou un point de repère. Vous pouvez aussi nous contacter.",
+      "contact": "Nous contacter"
+    }
+  },
+  "help": {
+    "title": "Comment pouvons-nous aider ?",
+    "searchLabel": "Rechercher dans l'aide",
+    "topicsLabel": "Thèmes",
+    "topics": {
+      "order": "Commander",
+      "tracking": "Suivi et livraison",
+      "payment": "Paiement et factures",
+      "claims": "Retours et réclamations",
+      "merchants": "Commerçants"
+    },
+    "questions": {
+      "price": {
+        "q": "Comment le prix est-il calculé ?",
+        "a": "Selon l'offre, la zone, la distance et le poids. Le détail s'affiche avant la validation et le prix est garanti 15 minutes."
+      },
+      "cancel": {
+        "q": "Puis-je annuler ma commande ?"
+      },
+      "absent": {
+        "q": "Que se passe-t-il si le destinataire est absent ?"
+      },
+      "deliveryCode": {
+        "q": "À quoi sert le code de remise ?"
+      },
+      "damaged": {
+        "q": "Quand dois-je signaler un colis endommagé ?"
+      },
+      "invoice": {
+        "q": "Comment obtenir ma facture ?"
+      }
+    },
+    "noResult": "Aucune question ne correspond à votre recherche.",
+    "notFound": {
+      "title": "Vous n'avez pas trouvé ?",
+      "cta": "Nous contacter"
+    }
+  },
+  "contact": {
+    "eyebrow": "Contact",
+    "title": "Une question, un devis, un problème ?",
+    "lead": "Avec un numéro de suivi, votre demande est rattachée directement au colis.",
+    "form": {
+      "type": "Votre demande",
+      "types": {
+        "question": "Question",
+        "quote": "Devis",
+        "claim": "Réclamation"
+      },
+      "name": "Nom",
+      "phone": "Téléphone",
+      "email": "E-mail",
+      "tracking": "Numéro de suivi (facultatif)",
+      "message": "Message",
+      "attach": "Ajouter une pièce jointe (5 Mo)",
+      "removeAttachment": "Retirer la pièce jointe",
+      "captcha": "Je ne suis pas un robot",
+      "captchaChecking": "Vérification…",
+      "submit": "Envoyer ma demande",
+      "sending": "Envoi…"
+    },
+    "success": {
+      "title": "Votre demande est enregistrée.",
+      "ticket": "Ticket",
+      "text": "Un accusé de réception vous est envoyé automatiquement.",
+      "again": "Envoyer une autre demande"
+    }
+  },
+  "driver": {
+    "eyebrow": "Rejoindre FastGo",
+    "title": "Livrez avec FastGo.",
+    "needs": {
+      "title": "Ce qu'il vous faut",
+      "licence": "Un permis valide, si votre véhicule en demande un",
+      "vehicle": "Un véhicule assuré et à jour de sa visite technique",
+      "phone": "Un téléphone Android 10 ou plus, ou un iPhone sous iOS 16.4 ou plus"
+    },
+    "process": {
+      "title": "Comment ça se passe",
+      "apply": "Vous envoyez votre candidature",
+      "check": "Nous vérifions vos documents",
+      "train": "Vous êtes formé sur le terrain",
+      "activate": "Vous activez l'application et recevez vos missions"
+    },
+    "form": {
+      "title": "Candidature",
+      "fullName": "Nom complet",
+      "phone": "Téléphone",
+      "vehicle": "Véhicule",
+      "vehicles": {
+        "moto": "Moto"
+      },
+      "zone": "Zone souhaitée",
+      "attach": "Permis et assurance (5 Mo)",
+      "removeAttachment": "Retirer le document",
+      "submit": "Envoyer ma candidature",
+      "sending": "Envoi…"
+    },
+    "success": {
+      "title": "Candidature envoyée.",
+      "reference": "Référence",
+      "text": "Nous vérifions vos documents."
+    }
+  },
+  "legal": {
+    "nav": "Documents",
+    "docs": {
+      "cgv": "CGV",
+      "privacy": "Confidentialité",
+      "notice": "Mentions légales",
+      "cookies": "Cookies"
+    },
+    "titles": {
+      "cgv": "Conditions générales de vente",
+      "privacy": "Politique de confidentialité",
+      "notice": "Mentions légales",
+      "cookies": "Cookies"
+    },
+    "note": "Texte à fournir et à valider par le conseil juridique de FastGo.",
+    "cgvSections": {
+      "purpose": "Objet",
+      "cancellation": "Annulation et frais",
+      "liability": "Perte, dommage et indemnisation",
+      "data": "Données personnelles"
+    }
+  },
+  "comingSoon": {
+    "title": "Bientôt disponible",
+    "text": "Cette page arrive bientôt.",
+    "home": "Retour à l'accueil",
+    "pages": {
+      "order": "Commander",
+      "signIn": "Connexion",
+      "signUp": "Créer un compte"
+    }
+  },
+  "forms": {
+    "errors": {
+      "required": "Ce champ est obligatoire.",
+      "phoneInvalid": "Numéro invalide. Exemple : +216 20 000 000.",
+      "emailInvalid": "Adresse e-mail invalide.",
+      "trackingInvalid": "Le numéro de suivi ressemble à FG-7K4M-2QXP.",
+      "addressTooShort": "Saisissez au moins 3 caractères.",
+      "attachmentTooLarge": "Le fichier dépasse 5 Mo.",
+      "captchaRequired": "Confirmez que vous n'êtes pas un robot."
+    },
+    "serverErrors": {
+      "attachmentTooLarge": "Le fichier dépasse 5 Mo.",
+      "captchaFailed": "La vérification anti-robot a échoué. Réessayez.",
+      "invalidTrackingCode": "Le numéro de suivi ressemble à FG-7K4M-2QXP."
+    }
+  },
+  "home": {
+    "hero": {
+      "title": "Votre colis part aujourd'hui. Vous savez où il est.",
+      "subtitle": "FastGo récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander.",
+      "departure": "Départ",
+      "arrival": "Arrivée",
+      "addressPlaceholder": "Rue, quartier ou ville",
+      "cta": "Voir le prix",
+      "note": "Vous validez seulement après avoir vu le prix.",
+      "trackingLabel": "Déjà un numéro de suivi ?",
+      "trackingButton": "Suivre"
+    },
+    "example": {
+      "label": "Exemple de suivi",
+      "badge": "Exemple",
+      "arrivesAround": "Votre colis arrive vers",
+      "pickedUp": "Colis récupéré",
+      "enRoute": "En route avec {driver}",
+      "distance": "À {distance} km",
+      "proof": "Remise avec preuve",
+      "proofDetail": "Code, signature ou photo",
+      "driver": "Sami",
+      "merchant": "Boutique Yasmine"
+    },
+    "promise": {
+      "price": "Prix détaillé avant de valider",
+      "proof": "Une preuve à chaque remise",
+      "cash": "Espèces à l'enlèvement ou à la livraison",
+      "merchants": "Vous êtes commerçant ?"
+    },
+    "offers": {
+      "title": "Choisissez selon l'urgence",
+      "compare": "Comparer les offres"
+    },
+    "steps": {
+      "title": "De la commande à la remise, personne ne reste sans réponse",
+      "order": {
+        "title": "Vous commandez en moins de 2 minutes",
+        "text": "Adresses, colis, créneau : le prix se met à jour pendant la saisie."
+      },
+      "pickup": {
+        "title": "Un livreur récupère le colis",
+        "text": "Vous recevez un numéro de suivi et le destinataire un lien personnel."
+      },
+      "recipient": {
+        "title": "Le destinataire sait quand et combien",
+        "text": "Il voit l'heure d'arrivée, le montant à payer et peut choisir un autre créneau."
+      },
+      "proof": {
+        "title": "La remise est prouvée",
+        "text": "Code, signature ou photo, consultables à tout moment."
+      },
+      "payment": "Vous réglez en espèces à l'enlèvement ou à la livraison. Les commerçants sous contrat reçoivent une facture mensuelle."
+    },
+    "recipient": {
+      "title": "Ce que reçoit votre destinataire",
+      "status": "{driver}, votre livreur, est en route. Envoi de {merchant}.",
+      "cashToPay": "À payer en espèces",
+      "code": "Code à donner",
+      "share": "Partager ma position",
+      "note": "Exemple. Le lien s'ouvre sans application, en français, en arabe ou en anglais."
+    },
+    "merchants": {
+      "title": "Vous vendez, nous livrons. Et vous savez où est votre argent.",
+      "text": "Importez vos commandes, suivez chaque colis et recevez un relevé clair pour chaque reversement de contre-remboursement.",
+      "cta": "Découvrir l'offre commerçants",
+      "receivable": "À recevoir vendredi",
+      "collected": "Collecté cette semaine",
+      "fees": "Frais déduits",
+      "sample": "Exemple de relevé"
+    },
+    "coverage": {
+      "title": "Votre quartier est-il couvert ?",
+      "text": "Lancement à {city}. Vérifiez une adresse en quelques secondes.",
+      "cta": "Vérifier mon adresse"
+    }
+  },
+  "notFound": {
+    "title": "Ce colis s'est perdu, pas le vôtre.",
+    "text": "Cette page n'existe pas ou a été déplacée.",
+    "home": "Retour à l'accueil",
+    "track": "Suivre un colis"
   }
 }

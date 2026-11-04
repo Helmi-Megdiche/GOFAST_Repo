@@ -25,14 +25,29 @@ apps/web/
    ├─ app/
    │  ├─ fonts.ts           next/font: Poppins, Inter, JetBrains Mono, Noto Sans Arabic
    │  ├─ globals.css        Tailwind + @fastgo/ui theme, scans packages/ui for classes
-   │  └─ [locale]/          the only layout. Sets <html lang dir>. dir="rtl" for ar.
-   │     ├─ layout.tsx, page.tsx, not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
+   │  └─ [locale]/          the only layout (header, <main id="main">, footer). Sets <html lang dir>.
+   │     ├─ layout.tsx, page.tsx (home), not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
+   │     ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
+   │     ├─ commander, connexion, inscription   "coming soon" placeholders, noindex (real pages: Prompt 3)
    │     └─ dev/ui/page.tsx  component showcase (see below)
-   ├─ components/           app-level components (site-header, locale-switcher, money)
+   ├─ components/           app-level components (site-header/footer, mobile-menu, money, page-hero...)
+   │  ├─ home/, tracking/, zones/, help/, contact/, driver/   one folder per page that has client forms
    │  └─ dev/ui-showcase.tsx
-   └─ lib/data/             mock data layer. Pages read from here; swapped for the API client later.
-      └─ fixtures/          example data (names, amounts, tracking codes). Never in components.
+   └─ lib/
+      ├─ data/              mock data layer. Pages read from here; swapped for the API client later.
+      │  └─ fixtures/       example data (names, amounts, tracking codes). Never in components.
+      ├─ forms/             zod schemas (error codes, not text) and useErrorMessage
+      ├─ seo.ts, page.ts    title/description/canonical/hreflang helper, locale + metadata helpers
+      └─ tracking-code.ts, limits.ts   shared validator (FG-XXXX-XXXX) and the 5 MB attachment limit
 ```
+
+## Mock data rules
+
+- Functions in `lib/data` return codes, keys, ISO UTC dates and millimes. **Never display text.** Words come from the catalogs.
+- Values FastGo has not given yet (prices, hours, limits, fees, cities) are `null`: the page prints the
+  placeholder in the active language (`placeholders.*`: `[PRIX]`, `[HEURE]`, `[LIMITE]`, `[TARIF]`, `[VILLE]`...).
+- `NEXT_PUBLIC_SITE_URL` (see `.env.example`) feeds the canonical and hreflang links.
+- `pnpm --filter @fastgo/web test` runs the unit tests of the data layer and the form schemas.
 
 ## Languages
 
@@ -66,3 +81,15 @@ apps/web/
 `pnpm test:e2e` checks, for fr and ar at 1440 and 360 px: `lang` and `dir`, the font stack,
 no horizontal scroll, axe-core (WCAG 2 A/AA), and saves a screenshot. Compare it with
 `docs/ui/screenshots/<screen>.jpg` by eye, then list what still differs in the PR.
+The references are the 1440 px pages scaled to 1080 px, so compare the 1440 px shots.
+
+`e2e/public-site.spec.ts` covers the public site:
+- every page in fr and ar at 1440 and 360 px, the home page in en, metadata and hreflang;
+- the tracking, zone check, contact (captcha, 5 MB exactly and 5 MB + 1 byte) and driver flows;
+- `/suivi`: the URL is the source of truth (search, `?n=` in lower case, bad number, nav link, Back);
+- `/fr/suivi` and `/fr/contact` with JavaScript off (the h1 and the form are in the server HTML), and
+  forms that take personal data use `method="post"`;
+- focus: the captcha and the Suivre button keep it while busy, the confirmation takes it after sending;
+- `?type=` on `/contact` (`constructor`, `__proto__` fall back to Question);
+- the header at 900, 1000, 1100, 1200 and 1440 px in fr, ar and en: one row, no overlap, no overflow,
+  logo 42 px and 44 px buttons from 1200 px, burger menu below 1100 px.

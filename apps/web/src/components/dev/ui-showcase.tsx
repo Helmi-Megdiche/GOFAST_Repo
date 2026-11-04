@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { useTranslations } from "next-intl";
 import type { Messages } from "@fastgo/i18n";
 import {
+  Accordion,
   Alert,
   Avatar,
   Badge,
@@ -9,13 +10,19 @@ import {
   Card,
   CardBody,
   CardHeader,
+  Checkbox,
+  Chip,
+  ChipNav,
+  Container,
   Field,
   ICONS,
   Icon,
   Input,
+  KeyValue,
   KpiTile,
   Logo,
   Ltr,
+  Section as Band,
   Select,
   Stepper,
   TBody,
@@ -25,11 +32,14 @@ import {
   Td,
   Textarea,
   Th,
+  Timeline,
+  TimelineItem,
   Tr,
   type BadgeTone,
   type IconName,
 } from "@fastgo/ui";
 import { DateTime, Money } from "@/components/money";
+import { FileAttachDemo } from "./file-attach-demo";
 import { devUiFixtures as data } from "@/lib/data/fixtures/dev-ui";
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -371,6 +381,71 @@ export function UiShowcase() {
             </ul>
           </Card>
         </div>
+      </Section>
+
+      <Section id="layout" title={sectionTitle("layout")}>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {(
+            [
+              ["default", t("more.bandDefault")],
+              ["tint", t("more.bandTint")],
+              ["dark", t("more.bandDark")],
+              ["deep", t("more.bandDeep")],
+            ] as const
+          ).map(([tone, label]) => (
+            <Band key={tone} tone={tone} compact className="rounded-lg border border-line">
+              <Container>{label}</Container>
+            </Band>
+          ))}
+        </div>
+      </Section>
+
+      <Section id="timeline" title={sectionTitle("timeline")}>
+        <Timeline className="max-w-[360px]">
+          <TimelineItem state="done">{t("more.timelineDone")}</TimelineItem>
+          <TimelineItem state="current">
+            <b>{t("more.timelineCurrent")}</b>
+          </TimelineItem>
+          <TimelineItem state="todo">{t("more.timelineTodo")}</TimelineItem>
+        </Timeline>
+      </Section>
+
+      <Section id="key-value" title={sectionTitle("keyValue")}>
+        <Card className="max-w-[360px]">
+          <KeyValue
+            items={[
+              { term: t("kpi.collected"), value: <Money millimes={1248000} /> },
+              { term: t("kpi.fees"), value: <Money millimes={-96000} /> },
+            ]}
+          />
+        </Card>
+      </Section>
+
+      <Section id="accordion" title={sectionTitle("accordion")}>
+        <div className="flex max-w-[560px] flex-col gap-2">
+          <Accordion summary={t("more.accordionQuestion")} open>
+            {t("more.accordionAnswer")}
+          </Accordion>
+          <Accordion summary={t("more.accordionQuestion")}>{t("more.accordionAnswer")}</Accordion>
+        </div>
+      </Section>
+
+      <Section id="chips" title={sectionTitle("chips")}>
+        <ChipNav label={t("more.chipsLabel")}>
+          <Chip aria-pressed="true">{t("more.chipOn")}</Chip>
+          <Chip aria-pressed="false">{t("more.chipOff")}</Chip>
+        </ChipNav>
+      </Section>
+
+      <Section id="checkbox" title={sectionTitle("checkbox")}>
+        <div className="flex max-w-[360px] flex-col gap-3">
+          <Checkbox label={t("more.checkboxLabel")} />
+          <Checkbox label={t("more.checkboxLabel")} defaultChecked />
+        </div>
+      </Section>
+
+      <Section id="file-attach" title={sectionTitle("fileAttach")}>
+        <FileAttachDemo />
       </Section>
     </>
   );
