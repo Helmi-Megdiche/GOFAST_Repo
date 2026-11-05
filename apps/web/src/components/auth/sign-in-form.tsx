@@ -40,17 +40,20 @@ export function SignInForm({ next }: { next: string | null }) {
     if (busy.current) return;
     busy.current = true;
     let signedIn = false;
-    await handleSubmit(async (values) => {
-      const result = await signIn(values.identifier, values.password);
-      if (result.status === "ok") {
-        signedIn = true;
-        router.push(safeNext(next));
-        return;
-      }
-      setFailures((count) => count + 1);
-    })(event);
-    // Stays busy after a success, while the next page loads.
-    if (!signedIn) busy.current = false;
+    try {
+      await handleSubmit(async (values) => {
+        const result = await signIn(values.identifier, values.password);
+        if (result.status === "ok") {
+          signedIn = true;
+          router.push(safeNext(next));
+          return;
+        }
+        setFailures((count) => count + 1);
+      })(event);
+    } finally {
+      // Stays busy after a success, while the next page loads; free again if signIn threw.
+      if (!signedIn) busy.current = false;
+    }
   }
 
   return (
