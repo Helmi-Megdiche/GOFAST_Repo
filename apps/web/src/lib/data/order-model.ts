@@ -81,3 +81,12 @@ export type StatusEvent = {
   occurredAt: string;
   endReason?: EndReason;
 };
+
+/** Handover code of a parcel (4 digits), keyed by the parcel id. */
+export type DeliveryCode = {
+  parcelId: string;
+  code: string;
+  failedAttempts: number;
+  /** ISO UTC, null until the code expires. */
+  expiresAt: string | null;
+};

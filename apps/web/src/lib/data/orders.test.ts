@@ -3,6 +3,7 @@ import { setClock } from "../order/clock";
 import { CODE_VERIFIED_WINDOW_MS } from "../order/constants";
 import type { OrderDraft } from "../order/draft";
 import { makeQuote } from "../order/pricing";
+import { priceInputOf } from "../order/steps";
 import { buildOrderRequest, type OrderRequest } from "../order/request";
 import { availableSlots } from "../order/slots";
 import { readyDraft as readyTestDraft } from "../order/test-draft";
@@ -11,7 +12,20 @@ import { readJson, useMemoryStorage, writeJson } from "../storage";
 import { createAccount, sessionFor } from "./accounts";
 import { FIXTURE_ACCOUNTS } from "./fixtures/accounts";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
-import { FAIL_NEXT_ORDER_RESPONSE_KEY } from "./mock-db";
+import { FAIL_NEXT_ORDER_REQUEST_KEY, FAIL_NEXT_ORDER_RESPONSE_KEY, readTable } from "./mock-db";
+import {
+  ACCOUNT_ORDERS,
+  DELIVERY_CODES,
+  OUTBOX,
+  PARCELS,
+  RECIPIENT_LINKS,
+  STATUS_EVENTS,
+  type AccountOrder,
+  type DeliveryCode,
+  type Parcel,
+  type StatusEvent,
+} from "./order-model";
+import type { OutboxMessage } from "./outbox";
 import {
   createOrder,
   findOrderByKey,
@@ -291,5 +305,174 @@ describe("after the order", () => {
     for (const personal of ["Amel", "Yasmine", "Habib", "Khaldoun", "20000000", "50000000"]) {
       expect(text).not.toContain(personal);
     }
+  });
+});
+
+describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", () => {
+  function threeParcelDraft(): OrderDraft {
+    const draft = readyDraft();
+    draft.parcel.count = "3";
+    draft.parcel.fragile = false;
+    draft.parcel.weightKg = "2,5";
+    draft.parcel.declaredValueMillimes = 100_000;
+    const quote = makeQuote(priceInputOf(draft)!, T0);
+    return { ...draft, quote, acceptedQuoteId: quote.id };
+  }
+  const parcelsOf = (code: string) =>
+    Object.values(readTable<Parcel>(PARCELS))
+      .filter((p) => p.orderCode === code)
+      .sort((a, b) => a.index - b.index);
+
+  it("writes the order as received and three to_collect parcels with shares that sum up", async () => {
+    await verifyPhone();
+    const draft = threeParcelDraft();
+    const created = await createOrder(request(draft), "k-three");
+    if (created.status !== "created") throw new Error();
+    const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[created.code]!;
+    expect(order.status).toBe("received");
+    expect(order.totalMillimes).toBe(draft.quote!.totalMillimes);
+    expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
+      order.totalMillimes,
+    );
+    expect(order.freightPayerAccepted).toBe(false);
+    expect(order.ownerAccountId).toBeNull();
+    const parcels = parcelsOf(created.code);
+    expect(parcels.map((p) => p.weightDeclaredG)).toEqual([833, 833, 834]);
+    expect(parcels.map((p) => p.declaredValueMillimes)).toEqual([33_333, 33_333, 33_334]);
+    expect(parcels.map((p) => p.status)).toEqual(["to_collect", "to_collect", "to_collect"]);
+    expect(parcels.map((p) => p.barcode)).toEqual([1, 2, 3].map((i) => `${created.code}-${i}`));
+    expect(parcels.every((p) => p.codMillimes === null && p.size === "small")).toBe(true);
+    expect(parcels.every((p) => p.proofLevel === "codeOrPhotoWithPosition")).toBe(true);
+    // events: order null -> received (guest), one per parcel
+    const events = Object.values(readTable<StatusEvent>(STATUS_EVENTS));
+    expect(
+      events.filter((e) => e.subjectType === "order" && e.subjectId === created.code),
+    ).toMatchObject([{ fromStatus: null, toStatus: "received", actorId: "guest" }]);
+    for (const parcel of parcels) {
+      expect(events.filter((e) => e.subjectId === parcel.id)).toMatchObject([
+        { fromStatus: null, toStatus: "to_collect" },
+      ]);
+    }
+    // one delivery code per parcel, 4 digits
+    const codes = Object.values(readTable<DeliveryCode>(DELIVERY_CODES)).filter((c) =>
+      parcels.some((p) => p.id === c.parcelId),
+    );
+    expect(codes).toHaveLength(3);
+    for (const row of codes) {
+      expect(row.code).toMatch(/^\d{4}$/);
+      expect(row.failedAttempts).toBe(0);
+      expect(row.expiresAt).toBeNull();
+    }
+  });
+
+  it("no declared value gives null on every parcel", async () => {
+    await verifyPhone();
+    const draft = threeParcelDraft();
+    draft.parcel.declaredValueMillimes = null;
+    const created = await createOrder(request(draft), "k-novalue");
+    if (created.status !== "created") throw new Error();
+    expect(parcelsOf(created.code).map((p) => p.declaredValueMillimes)).toEqual([null, null, null]);
+  });
+
+  it("freightPayer follows the payment mode", async () => {
+    await verifyPhone();
+    const orderOf = async (draft: OrderDraft, key: string) => {
+      const created = await createOrder(request(draft), key);
+      if (created.status !== "created") throw new Error(JSON.stringify(created));
+      return readTable<AccountOrder>(ACCOUNT_ORDERS)[created.code]!;
+    };
+    expect((await orderOf({ ...readyDraft(), payment: "cashDelivery" }, "p1")).freightPayer).toBe(
+      "recipient",
+    );
+    expect((await orderOf({ ...readyDraft(), payment: "cashPickup" }, "p2")).freightPayer).toBe(
+      "sender",
+    );
+    setSession(sessionFor({ ...FIXTURE_ACCOUNTS[1]!, google: false }));
+    const mine = await orderOf({ ...readyDraft(), payment: "account" }, "p3");
+    expect(mine.freightPayer).toBe("sender");
+    expect(mine.ownerAccountId).toBe(FIXTURE_ACCOUNTS[1]!.id);
+    signOut();
+  });
+
+  it("smsLanguage en: the order and the outbox message are en, stored as template + params", async () => {
+    await verifyPhone();
+    const draft = readyDraft();
+    draft.recipient.smsLanguage = "en";
+    const created = await createOrder(request(draft), "k-en");
+    if (created.status !== "created") throw new Error();
+    const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[created.code]!;
+    expect(order.recipientLocale).toBe("en");
+    const messages = Object.values(readTable<OutboxMessage>(OUTBOX));
+    expect(messages).toHaveLength(1);
+    const [token] = Object.keys(readTable(RECIPIENT_LINKS));
+    expect(messages[0]).toMatchObject({
+      orderCode: created.code,
+      channel: "sms",
+      template: "trackingLink",
+      locale: "en",
+      params: { trackingCode: created.code, linkToken: token },
+    });
+    expect(token).not.toContain(created.code);
+  });
+
+  it("a replayed key writes no second order, parcel set, link or message", async () => {
+    await verifyPhone();
+    const req = request(threeParcelDraft());
+    const first = await createOrder(req, "k-replay");
+    const second = await createOrder(req, "k-replay");
+    if (first.status !== "created" || second.status !== "created") throw new Error();
+    expect(second.replay).toBe(true);
+    expect(Object.keys(readTable(ACCOUNT_ORDERS))).toEqual([first.code]);
+    expect(Object.keys(readTable(PARCELS))).toHaveLength(3);
+    expect(Object.keys(readTable(RECIPIENT_LINKS))).toHaveLength(1);
+    expect(Object.keys(readTable(OUTBOX))).toHaveLength(1);
+    expect(Object.keys(readTable(DELIVERY_CODES))).toHaveLength(3);
+  });
+
+  it("legacy order still tracks: a row only in fg.mock.orders is found", async () => {
+    writeJson("fg.mock.orders", {
+      "FG-2345-6789": {
+        code: "FG-2345-6789",
+        idempotencyKey: "old",
+        fingerprint: "{}",
+        createdAt: "2026-11-04T08:30:00.000Z",
+        pickup: { startUtc: "2026-11-04T09:00:00Z", endUtc: "2026-11-04T10:00:00Z" },
+        recipientName: "Amel B.",
+      },
+    });
+    const found = await getOrderConfirmation("FG-2345-6789");
+    expect(found?.recipientName).toBe("Amel B.");
+  });
+});
+
+describe("createOrder: failNext", () => {
+  it.each(["createOrder.request", "createOrder.response"])(
+    "%s makes it throw NetworkError once",
+    async (op) => {
+      await verifyPhone();
+      const key = `fg.mock.failNext:${op}`;
+      writeJson(key, true);
+      await expect(createOrder(request(), "k-fn")).rejects.toBeInstanceOf(NetworkError);
+      expect(readJson(key)).toBeNull();
+    },
+  );
+
+  it("the request key loses the order, the response key keeps it", async () => {
+    await verifyPhone();
+    writeJson("fg.mock.failNext:createOrder.request", true);
+    await expect(createOrder(request(), "k-a")).rejects.toBeInstanceOf(NetworkError);
+    expect(await findOrderByKey("k-a")).toBeNull();
+    writeJson("fg.mock.failNext:createOrder.response", true);
+    await expect(createOrder(request(), "k-b")).rejects.toBeInstanceOf(NetworkError);
+    expect(await findOrderByKey("k-b")).not.toBeNull();
+  });
+
+  it("the two Prompt 3 alias keys still make it throw", async () => {
+    await verifyPhone();
+    writeJson(FAIL_NEXT_ORDER_REQUEST_KEY, true);
+    await expect(createOrder(request(), "k-c")).rejects.toBeInstanceOf(NetworkError);
+    writeJson(FAIL_NEXT_ORDER_RESPONSE_KEY, true);
+    await expect(createOrder(request(), "k-d")).rejects.toBeInstanceOf(NetworkError);
+    expect(readJson(FAIL_NEXT_ORDER_RESPONSE_KEY)).toBeNull();
   });
 });
