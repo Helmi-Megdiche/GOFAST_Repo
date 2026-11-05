@@ -719,6 +719,7 @@ The manual Lighthouse and device checks stay.
 | Delivery attempts: 2, then return | D4 | **P** (parameter table, R501) | `MAX_DELIVERY_ATTEMPTS = 2` |
 | Handover code always with COD | link, proof | **P** (parameter table) | `proofLevelFor` |
 | Value threshold for stronger proof and for a required code (one threshold, H23) | proof | U, "seuil fixé", "à fixer" | `PROOF_VALUE_THRESHOLD_MILLIMES = null` |
+| Digits of a parcel's handover code (4) | `createOrder`, D1 | U, from the D1 mockup, not in the cahier (F14) | `DELIVERY_CODE_DIGITS` |
 | Splitting W13's whole-order weight and declared value across N parcels, last parcel takes the remainder | `createOrder` | U, listed default (cahier silent) | `splitWhole` |
 | COD contract option "deduct overdue invoices" | P05 | U per contract (R707 sets the rule) | fixture `deductOverdueInvoices` |
 | Invoice numbering `FAC-AAAA-NNNNNNN`, `AV-AAAA-NNNNNNN` | C04, C05 | S (R603) | regex, enforced |
@@ -772,6 +773,7 @@ The rule: FastGo gets the values the cahier marks "à fixer" or "Proposition", t
 - **F11** (no D; "à fixer"). The weight tolerance (R208), and the value threshold for stronger proof and a required code (one threshold, H23).
 - **F12** (no D; R502). The failure reason list. The mock uses the mockup's three reasons until then.
 - **F13** (no D; mockup only). The import limits (10 MB from the mockup, 1,000 rows in the mock) and the claim attachment limits (5 MB per file, images and PDF, at most 5 files).
+- **F14** (no D; mockup only). The number of digits of the handover code (4 in the D1 mockup).
 
 Lawyer's list: R607 checkbox wording, with the other legal texts.
 

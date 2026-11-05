@@ -1,4 +1,5 @@
 import { now } from "../order/clock";
+import { DELIVERY_CODE_DIGITS } from "../order/constants";
 import { addressPriceKey, isQuoteValid, priceKey, type PriceLine } from "../order/pricing";
 import { fingerprint, type OrderRequest } from "../order/request";
 import { isSlotInFuture } from "../order/slots";
@@ -126,12 +127,13 @@ function consumeFailNextWithAlias(op: string, aliasKey: string): boolean {
   return consumeFailNext(op) || alias;
 }
 
-/** 4 random digits (0000 to 9999), rejection-sampled so every code is equally likely. */
+/** DELIVERY_CODE_DIGITS random digits, rejection-sampled so every code is equally likely. */
 function randomDeliveryCode(): string {
-  const limit = 4_294_960_000; // 429 496 * 10 000, the largest multiple of 10 000 in a Uint32
+  const modulus = 10 ** DELIVERY_CODE_DIGITS;
+  const limit = Math.floor(2 ** 32 / modulus) * modulus; // the largest multiple of modulus in a Uint32
   for (;;) {
     const [n] = crypto.getRandomValues(new Uint32Array(1));
-    if (n! < limit) return String(n! % 10_000).padStart(4, "0");
+    if (n! < limit) return String(n! % modulus).padStart(DELIVERY_CODE_DIGITS, "0");
   }
 }
 

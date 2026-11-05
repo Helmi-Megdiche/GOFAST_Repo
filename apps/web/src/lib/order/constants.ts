@@ -49,6 +49,12 @@ export const CODE_SEND_WINDOW_MS = 15 * MINUTE;
 export const PASSWORD_MIN_LENGTH = 10;
 
 /**
+ * Digits of a parcel's handover code. Unsourced: it comes from the D1 mockup, the cahier gives no
+ * length (listed for FastGo, F14).
+ */
+export const DELIVERY_CODE_DIGITS = 4;
+
+/**
  * Declared value above which a stronger proof would apply. FastGo has not fixed it: null means the
  * rule never triggers (see proof.ts). Do not put a number here without the cahier.
  */

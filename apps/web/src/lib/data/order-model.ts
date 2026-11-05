@@ -74,7 +74,7 @@ export type StatusEvent = {
   id: string;
   subjectType: "order" | "parcel" | "mission";
   subjectId: string;
-  /** null only for a mission's creation (`null → proposed`). */
+  /** null only for a creation event: an order's or a parcel's first status, or a mission's `null → proposed`. */
   fromStatus: string | null;
   toStatus: string;
   actorId: string;
