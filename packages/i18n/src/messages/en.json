@@ -920,7 +920,8 @@
         "paymentNotAllowed": "This payment method is not available for your account.",
         "slotPast": "The chosen time slot has passed. Choose another one.",
         "termsRequired": "Accept the terms of sale to confirm.",
-        "network": "The connection was lost. Try again."
+        "network": "The connection was lost. Try again.",
+        "draftChanged": "Your order was changed in another tab. Check it, then confirm."
       },
       "serviceLines": {
         "express": "{service}, in under 1 hour",

@@ -12,6 +12,7 @@ import {
   updateDraft,
   withSenderPhone,
 } from "./draft";
+import { readyDraft } from "./test-draft";
 
 const T0 = Date.parse("2026-11-04T10:00:00Z");
 let store: Map<string, string>;
@@ -54,6 +55,27 @@ describe("order draft (CMD-07)", () => {
     expect(loadDraft(T0)).toBeNull();
     expect(() => saveDraft(emptyDraft(T0), T0)).not.toThrow();
     expect(() => clearDraft()).not.toThrow();
+  });
+
+  it("reads a draft with the right version but a broken shape as empty, and deletes it", () => {
+    const base = { version: 1, expiresAt: T0 + 60_000, idempotencyKey: "k" };
+    const broken = [
+      { ...base, sender: null, recipient: null, parcel: null, service: null },
+      { ...base, sender: {}, recipient: {}, parcel: {}, service: {} },
+      { ...emptyDraft(T0), sender: { ...emptyDraft(T0).sender, address: "x" } },
+      { ...emptyDraft(T0), parcel: { ...emptyDraft(T0).parcel, declaredValueMillimes: "1e3" } },
+      { ...emptyDraft(T0), service: { code: "teleport", slot: null } },
+      { ...emptyDraft(T0), quote: "free" },
+      { ...emptyDraft(T0), payment: "card" },
+    ];
+    for (const value of broken) {
+      store.set(DRAFT_KEY, JSON.stringify(value));
+      expect(loadDraft(T0)).toBeNull();
+      expect(store.has(DRAFT_KEY)).toBe(false);
+    }
+    const ready = readyDraft(T0);
+    store.set(DRAFT_KEY, JSON.stringify(ready));
+    expect(loadDraft(T0)).toEqual(ready);
   });
 
   it("is cleared after the order", () => {

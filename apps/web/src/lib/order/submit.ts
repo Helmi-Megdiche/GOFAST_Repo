@@ -8,7 +8,9 @@ export type SubmitResult =
   | { status: "created"; code: string }
   | { status: "refused"; error: OrderError }
   | { status: "lost" }
-  | { status: "incomplete" };
+  | { status: "incomplete" }
+  /** Another tab changed the order since this tab showed it: nothing was sent, show what is saved. */
+  | { status: "changed" };
 
 /** An order exists for this key (placed here or in another tab): the draft is done. */
 async function existingOrder(idempotencyKey: string): Promise<SubmitResult | null> {
@@ -23,6 +25,7 @@ async function existingOrder(idempotencyKey: string): Promise<SubmitResult | nul
  * records the attempt and the request fingerprint, so after a lost answer (even after a reload)
  * only a retry of the same payload is offered. The draft is cleared once the order exists.
  * A tab whose draft was cleared or replaced elsewhere never writes it back: it looks the order up.
+ * A tab whose draft was changed elsewhere sends nothing ("changed") and shows the saved draft.
  */
 export async function submitOrder(draft: OrderDraft): Promise<SubmitResult> {
   const stored = loadDraft();
@@ -37,9 +40,13 @@ export async function submitOrder(draft: OrderDraft): Promise<SubmitResult> {
   if (pending && pending.fingerprint !== print) {
     return { status: "refused", error: "idempotencyConflict" };
   }
+  // What this tab shows must be what is saved: a stale tab never sends (nor writes back) an order
+  // that another tab has changed since, e.g. a new weight that needs a new price.
+  const saved = buildOrderRequest(stored, stored.termsAccepted);
+  if (!pending && (!saved || fingerprint(saved) !== print)) return { status: "changed" };
 
   saveDraft({
-    ...draft,
+    ...stored,
     submitAttemptedAt: stored.submitAttemptedAt ?? draft.submitAttemptedAt ?? now(),
     expiresAt: stored.expiresAt,
     pendingSubmit: { fingerprint: print },

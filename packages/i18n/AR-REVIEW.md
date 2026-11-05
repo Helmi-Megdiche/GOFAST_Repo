@@ -593,6 +593,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.dropoff` | التسليم | Livraison | [ ] |
 | `order.review.edit` | تعديل | Modifier | [ ] |
 | `order.review.editSection` | تعديل: {section} | Modifier : {section} | [ ] |
+| `order.review.errors.draftChanged` | تم تعديل طلبك في علامة تبويب أخرى. راجعه ثم أكّده. | Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez. | [ ] |
 | `order.review.errors.idempotencyConflict` | أُرسل هذا الطلب سابقًا بمعلومات مختلفة. أعد تحميل الصفحة. | Cette commande a déjà été envoyée avec d'autres informations. Rechargez la page. | [ ] |
 | `order.review.errors.network` | انقطع الاتصال. أعد المحاولة. | La connexion a été coupée. Réessayez. | [ ] |
 | `order.review.errors.outOfZone` | أحد العنوانين غير مشمول بالخدمة. | Une des adresses n'est pas desservie. | [ ] |

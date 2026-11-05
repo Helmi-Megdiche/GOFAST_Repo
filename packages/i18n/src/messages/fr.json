@@ -920,7 +920,8 @@
         "paymentNotAllowed": "Ce mode de paiement n'est pas disponible pour votre compte.",
         "slotPast": "Le créneau choisi est passé. Choisissez-en un autre.",
         "termsRequired": "Acceptez les CGV pour valider.",
-        "network": "La connexion a été coupée. Réessayez."
+        "network": "La connexion a été coupée. Réessayez.",
+        "draftChanged": "Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez."
       },
       "serviceLines": {
         "express": "{service}, en moins de 1 h",

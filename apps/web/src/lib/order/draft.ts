@@ -1,10 +1,11 @@
+import { z } from "zod";
 import type { ParcelTypeCode, ServiceCode } from "../data/services";
 import type { ZoneResult } from "../data/zones";
 import { normalizePhone } from "../phone";
 import { readJson, removeKey, writeJson } from "../storage";
 import { now } from "./clock";
 import { DRAFT_RETENTION_MS } from "./constants";
-import type { Quote } from "./pricing";
+import { PRICE_LINES, type Quote } from "./pricing";
 import type { Slot } from "./slots";
 
 /**
@@ -110,18 +111,86 @@ export function emptyDraft(at: number = now()): OrderDraft {
   };
 }
 
+// The shape a saved draft must have to be used (CMD-07). Anything else in storage (edited by hand,
+// an older build, a broken write) is deleted on read, so a page never reads a missing field.
+const pinShape = z.object({ x: z.number(), y: z.number() }).nullable();
+const serviceCode = z.enum(["express", "standard", "scheduled"]);
+const zoneShape = z
+  .discriminatedUnion("status", [
+    z.object({ status: z.literal("in-zone"), services: z.array(serviceCode), zone: z.string() }),
+    z.object({ status: z.literal("out-of-zone") }),
+    z.object({ status: z.literal("unknown") }),
+  ])
+  .nullable();
+const addressShape = z.object({
+  text: z.string(),
+  confirmed: z.boolean(),
+  pin: pinShape,
+  zone: zoneShape,
+  landmark: z.string(),
+});
+const slotShape = z.object({ id: z.string(), startUtc: z.string(), endUtc: z.string() }).nullable();
+const millimes = z.number().int();
+const quoteShape = z
+  .object({
+    id: z.string(),
+    input: z.object({
+      service: serviceCode,
+      parcelType: z.enum(["document", "small", "medium", "large"]),
+      weightKg: z.number(),
+      fragile: z.boolean(),
+      zone: z.string(),
+      from: z.string(),
+      to: z.string(),
+    }),
+    lines: z.record(z.enum(PRICE_LINES), millimes),
+    totalMillimes: millimes,
+    surcharge: z.object({ code: z.literal("rain"), ceilingMillimes: millimes.nullable() }),
+    quotedAt: z.string(),
+    expiresAt: z.string(),
+  })
+  .nullable();
+
+const draftShape = z.object({
+  version: z.literal(VERSION),
+  updatedAt: z.number(),
+  expiresAt: z.number(),
+  idempotencyKey: z.string().min(1),
+  submitAttemptedAt: z.number().nullable(),
+  pendingSubmit: z.object({ fingerprint: z.string() }).nullable(),
+  sender: z.object({
+    address: addressShape,
+    name: z.string(),
+    phone: z.string(),
+    slot: slotShape,
+  }),
+  recipient: z.object({
+    address: addressShape,
+    name: z.string(),
+    phone: z.string(),
+    instructions: z.string(),
+    smsLanguage: z.enum(["fr", "ar", "en"]),
+    save: z.boolean(),
+  }),
+  parcel: z.object({
+    type: z.enum(["document", "small", "medium", "large"]).nullable(),
+    count: z.string(),
+    weightKg: z.string(),
+    content: z.string(),
+    declaredValueMillimes: millimes.nonnegative().nullable(),
+    fragile: z.boolean(),
+  }),
+  service: z.object({ code: serviceCode.nullable(), slot: slotShape }),
+  quote: quoteShape,
+  acceptedQuoteId: z.string().nullable(),
+  previousTotalMillimes: millimes.nullable(),
+  payment: z.enum(["cashPickup", "cashDelivery", "account"]).nullable(),
+  termsAccepted: z.boolean(),
+  verifiedPhone: z.string().nullable(),
+});
+
 function isDraft(value: unknown): value is OrderDraft {
-  if (typeof value !== "object" || value === null) return false;
-  const draft = value as Partial<OrderDraft>;
-  return (
-    draft.version === VERSION &&
-    typeof draft.expiresAt === "number" &&
-    typeof draft.idempotencyKey === "string" &&
-    typeof draft.sender === "object" &&
-    typeof draft.recipient === "object" &&
-    typeof draft.parcel === "object" &&
-    typeof draft.service === "object"
-  );
+  return draftShape.safeParse(value).success;
 }
 
 /**

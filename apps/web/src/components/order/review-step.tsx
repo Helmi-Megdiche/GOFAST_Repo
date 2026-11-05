@@ -173,6 +173,10 @@ function Review({
     } else if (result.status === "refused") {
       if (result.error === "quoteExpired") await recalculate();
       setProblem({ kind: "error", code: result.error });
+    } else if (result.status === "changed") {
+      // Another tab changed the order: show what is saved (the step guard may send it to W14).
+      setProblem({ kind: "error", code: "draftChanged" });
+      reload();
     } else {
       goTo("sender");
     }
@@ -191,6 +195,10 @@ function Review({
       return;
     }
     if (result.status === "lost") return;
+    if (result.status === "changed") {
+      reload();
+      return;
+    }
     // The answer came back as a refusal: a new key is allowed only once no order exists for the old one.
     const resolved = await resolveLostSubmit(draft);
     if ("code" in resolved) {
