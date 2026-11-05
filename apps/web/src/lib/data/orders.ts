@@ -269,6 +269,14 @@ function writeEvent(
   });
 }
 
+/** The answer for a key already stored: the same order again, or a conflict if the request differs. */
+function replayOf(idempotencyKey: string, print: string): CreateOrderResult | null {
+  const known = readTable<{ fingerprint: string; code: string }>(KEYS)[idempotencyKey];
+  if (!known) return null;
+  if (known.fingerprint !== print) return { status: "refused", error: "idempotencyConflict" };
+  return { status: "created", code: known.code, replay: true };
+}
+
 export async function createOrder(
   request: OrderRequest,
   idempotencyKey: string,
@@ -278,14 +286,28 @@ export async function createOrder(
   if (consumeFailNextWithAlias("createOrder.request", FAIL_NEXT_ORDER_REQUEST_KEY)) {
     throw new NetworkError();
   }
+  return withOrderLock(() => createOrderNow(request, idempotencyKey, randomBytes));
+}
+
+/**
+ * The real server serialises two requests with the same key in its database. The mock does it with
+ * a Web Lock shared by every tab of the browser, so two tabs pressing Valider at once give one order.
+ */
+async function withOrderLock<T>(work: () => T): Promise<T> {
+  const locks = typeof window === "undefined" ? undefined : window.navigator.locks;
+  return locks ? locks.request("fg.mock.createOrder", () => work()) : work();
+}
+
+function createOrderNow(
+  request: OrderRequest,
+  idempotencyKey: string,
+  randomBytes?: RandomBytes,
+): CreateOrderResult {
   const at = now();
   const print = fingerprint(request);
 
-  const known = readTable<{ fingerprint: string; code: string }>(KEYS)[idempotencyKey];
-  if (known) {
-    if (known.fingerprint !== print) return { status: "refused", error: "idempotencyConflict" };
-    return { status: "created", code: known.code, replay: true };
-  }
+  const known = replayOf(idempotencyKey, print);
+  if (known) return known;
 
   const error = check(request, at);
   if (error) return { status: "refused", error };
