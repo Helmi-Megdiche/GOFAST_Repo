@@ -127,7 +127,11 @@ export function TrackingView({ code }: { code: string }) {
                   <div>
                     <p className="text-sm text-muted">{t("arrival")}</p>
                     <p className="font-display text-[44px] leading-tight font-bold">
-                      <DateTime value={shown.parcel.etaUtc} style="time" />
+                      {shown.parcel.etaUtc ? (
+                        <DateTime value={shown.parcel.etaUtc} style="time" />
+                      ) : (
+                        p("time")
+                      )}
                     </p>
                   </div>
                   <Badge

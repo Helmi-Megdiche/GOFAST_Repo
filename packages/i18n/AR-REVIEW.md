@@ -10,7 +10,104 @@ native-speaker review before release (CLAUDE.md).
 
 | Key | Arabic | French (source) | Reviewed |
 | --- | --- | --- | --- |
+| `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
+| `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
+| `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |
+| `auth.code.missing.title` | لا يوجد تحقق جارٍ. | Aucune vérification en cours. | [ ] |
+| `auth.code.notReceived` | لم يصلك؟ | Pas reçu ? | [ ] |
+| `auth.code.resend` | إعادة إرسال الرمز | Renvoyer le code | [ ] |
+| `auth.code.resendIn` | إعادة الإرسال بعد {seconds} ث | Renvoyer dans {seconds} s | [ ] |
+| `auth.code.results.expired` | انتهت صلاحية هذا الرمز. اطلب رمزًا جديدًا. | Ce code a expiré. Demandez-en un nouveau. | [ ] |
+| `auth.code.results.incomplete` | أدخل الأرقام الـ{length}. | Saisissez les {length} chiffres. | [ ] |
+| `auth.code.results.invalidTarget` | رقم غير صالح. | Numéro invalide. | [ ] |
+| `auth.code.results.locked` | محاولات كثيرة. أعد المحاولة عند {time}. | Trop d'essais. Réessayez à {time}. | [ ] |
+| `auth.code.results.noCode` | لا يوجد رمز حالي. اطلب رمزًا. | Aucun code en cours. Demandez un code. | [ ] |
+| `auth.code.results.sent` | أُرسل رمز جديد. | Nouveau code envoyé. | [ ] |
+| `auth.code.results.tooMany` | طلبت رموزًا كثيرة. أعد المحاولة عند {time}. | Trop de codes demandés. Réessayez à {time}. | [ ] |
+| `auth.code.results.tooSoon` | انتظر قبل طلب رمز جديد. | Patientez avant de demander un nouveau code. | [ ] |
+| `auth.code.results.wrong` | رمز غير صحيح. {count, plural, one {بقيت محاولة واحدة.} two {بقيت محاولتان.} few {بقيت # محاولات.} many {بقيت # محاولة.} other {بقيت # محاولة.}} | Code incorrect. {count, plural, one {Il reste # essai.} other {Il reste # essais.}} | [ ] |
+| `auth.code.sending` | جارٍ إرسال الرمز… | Envoi du code… | [ ] |
+| `auth.code.sentTo` | أُرسل إلى <target></target>. صالح لمدة {minutes} دقائق. | Envoyé au <target></target>. Il reste valable {minutes} minutes. | [ ] |
+| `auth.code.sentToEmail` | أُرسل إلى <target></target>. صالح لمدة {minutes} دقائق. | Envoyé à <target></target>. Il reste valable {minutes} minutes. | [ ] |
+| `auth.code.title` | أدخل الرمز الذي وصلك | Saisissez le code reçu | [ ] |
+| `auth.code.verify` | تحقق | Vérifier | [ ] |
+| `auth.code.verifying` | جارٍ التحقق… | Vérification… | [ ] |
+| `auth.forgot.back` | العودة إلى تسجيل الدخول | Retour à la connexion | [ ] |
+| `auth.forgot.phone` | الهاتف | Téléphone | [ ] |
+| `auth.forgot.submit` | احصل على رمز | Recevoir un code | [ ] |
+| `auth.forgot.text` | أدخل هاتفك. سنرسل إليك رمزًا لاختيار كلمة مرور جديدة. | Indiquez votre téléphone. Nous vous enverrons un code pour en choisir un nouveau. | [ ] |
+| `auth.forgot.title` | نسيت كلمة المرور | Mot de passe oublié | [ ] |
+| `auth.google.chooserText` | محاكاة: تسجيل الدخول الحقيقي عبر Google لاحقًا. | Simulation : la vraie connexion Google arrive plus tard. | [ ] |
+| `auth.google.chooserTitle` | اختر حساب Google (محاكاة) | Choisir un compte Google (simulation) | [ ] |
+| `auth.google.close` | إغلاق | Fermer | [ ] |
+| `auth.google.connectedAs` | {email}، متصل عبر Google | {email}, connecté avec Google | [ ] |
+| `auth.google.continue` | المتابعة عبر Google | Continuer avec Google | [ ] |
+| `auth.googlePhone.changePhone` | تغيير الرقم | Changer de numéro | [ ] |
+| `auth.googlePhone.emailSubmit` | احصل على الرمز بالبريد الإلكتروني | Recevoir le code par e-mail | [ ] |
+| `auth.googlePhone.knownEmail` | لهذا البريد الإلكتروني حساب FastGo. أكّده بالرمز المرسل بالبريد الإلكتروني، ثم أضف هاتفك. | Cet e-mail a déjà un compte FastGo. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone. | [ ] |
+| `auth.googlePhone.missing` | لا يوجد تسجيل دخول جارٍ عبر Google. | Aucune connexion Google en cours. | [ ] |
+| `auth.googlePhone.phone` | الهاتف | Téléphone | [ ] |
+| `auth.googlePhone.phoneMismatch` | هذا الرقم ليس رقم حسابك. أدخل الهاتف المسجّل في حسابك على FastGo. | Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte FastGo. | [ ] |
+| `auth.googlePhone.submit` | احصل على الرمز | Recevoir le code | [ ] |
+| `auth.googlePhone.text` | يحتاجه السائق والتتبع. نتحقق منه مرة واحدة برسالة نصية. | Le livreur et le suivi en ont besoin. Nous le vérifions une seule fois par SMS. | [ ] |
+| `auth.googlePhone.title` | الخطوة الأخيرة: هاتفك | Dernière étape : votre téléphone | [ ] |
+| `auth.newPassword.done` | تم حفظ كلمة المرور. يمكنك تسجيل الدخول. | Mot de passe enregistré. Vous pouvez vous connecter. | [ ] |
+| `auth.newPassword.password` | كلمة المرور الجديدة | Nouveau mot de passe | [ ] |
+| `auth.newPassword.signIn` | تسجيل الدخول | Se connecter | [ ] |
+| `auth.newPassword.submit` | حفظ | Enregistrer | [ ] |
+| `auth.newPassword.title` | اختر كلمة مرور جديدة | Choisissez un nouveau mot de passe | [ ] |
+| `auth.noJs` | تحتاج هذه الصفحة إلى JavaScript. فعّله في متصفحك. | Cette page a besoin de JavaScript. Activez-le dans votre navigateur. | [ ] |
+| `auth.or` | أو | ou | [ ] |
+| `auth.signIn.forgot` | نسيت كلمة المرور | Mot de passe oublié | [ ] |
+| `auth.signIn.identifier` | الهاتف أو البريد الإلكتروني | Téléphone ou e-mail | [ ] |
+| `auth.signIn.invalid` | بيانات الدخول أو كلمة المرور غير صحيحة. | Identifiant ou mot de passe incorrect. | [ ] |
+| `auth.signIn.noAccount` | عميل جديد؟ | Nouveau client ? | [ ] |
+| `auth.signIn.password` | كلمة المرور | Mot de passe | [ ] |
+| `auth.signIn.remember` | البقاء متصلًا | Rester connecté | [ ] |
+| `auth.signIn.signUp` | إنشاء حساب | Créer un compte | [ ] |
+| `auth.signIn.submit` | تسجيل الدخول | Se connecter | [ ] |
+| `auth.signIn.submitting` | جارٍ تسجيل الدخول… | Connexion… | [ ] |
+| `auth.signIn.title` | تسجيل الدخول إلى حسابك | Connexion à votre compte | [ ] |
+| `auth.signUp.created` | تم إنشاء الحساب. | Compte créé. | [ ] |
+| `auth.signUp.email` | البريد الإلكتروني (اختياري) | E-mail (facultatif) | [ ] |
+| `auth.signUp.emailLater` | تم إنشاء الحساب. لم تتم إضافة بريدك الإلكتروني بعد: يمكنك تأكيده لاحقًا برمز يُرسل إلى هذا العنوان. | Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse. | [ ] |
+| `auth.signUp.emailLaterContinue` | متابعة | Continuer | [ ] |
+| `auth.signUp.kindLegend` | نوع الحساب | Type de compte | [ ] |
+| `auth.signUp.kinds.customer.text` | شحنات عرضية | Envois ponctuels | [ ] |
+| `auth.signUp.kinds.customer.title` | فرد | Particulier | [ ] |
+| `auth.signUp.kinds.merchant.text` | كميات وعقد | Volumes et contrat | [ ] |
+| `auth.signUp.kinds.merchant.title` | تاجر | Commerçant | [ ] |
+| `auth.signUp.name` | الاسم الكامل | Nom complet | [ ] |
+| `auth.signUp.password` | كلمة المرور | Mot de passe | [ ] |
+| `auth.signUp.passwordHint` | {count} أحرف على الأقل | {count} caractères au minimum | [ ] |
+| `auth.signUp.phone` | الهاتف | Téléphone | [ ] |
+| `auth.signUp.phoneHint` | ستتلقى رمزًا برسالة نصية. | Vous recevrez un code par SMS. | [ ] |
+| `auth.signUp.submit` | متابعة | Continuer | [ ] |
+| `auth.signUp.terms` | أوافق على <cgv>شروط البيع</cgv> و<privacy>سياسة الخصوصية</privacy>. | J'accepte les <cgv>CGV</cgv> et la <privacy>politique de confidentialité</privacy>. | [ ] |
+| `auth.signUp.title` | إنشاء حساب | Créer un compte | [ ] |
+| `cmd.back` | رجوع | Retour | [ ] |
+| `cmd.busy` | لحظة… | Un instant… | [ ] |
+| `cmd.cancel` | إلغاء | Annuler | [ ] |
+| `cmd.cancelConfirm.confirm` | نعم، احذف كل شيء | Oui, tout effacer | [ ] |
+| `cmd.cancelConfirm.keep` | لا، أكمل | Non, continuer | [ ] |
+| `cmd.cancelConfirm.text` | ستُحذف المعلومات التي أدخلتها من هذا الجهاز. | Les informations saisies seront effacées de cet appareil. | [ ] |
+| `cmd.cancelConfirm.title` | إلغاء هذا الطلب؟ | Annuler cette commande ? | [ ] |
+| `cmd.continue` | متابعة | Continuer | [ ] |
+| `cmd.homeLabel` | FastGo، الرئيسية | FastGo, accueil | [ ] |
+| `cmd.loading` | جارٍ تحميل طلبك… | Chargement de votre commande… | [ ] |
+| `cmd.noJs` | للطلب، فعّل JavaScript في متصفحك. | Pour commander, activez JavaScript dans votre navigateur. | [ ] |
+| `cmd.saveAndQuit` | حفظ والخروج | Enregistrer et quitter | [ ] |
+| `cmd.stepStates.current` | المرحلة الحالية | Étape en cours | [ ] |
+| `cmd.stepStates.done` | مكتملة | Terminé | [ ] |
+| `cmd.stepStates.todo` | لم تبدأ | À faire | [ ] |
+| `cmd.stepperLabel` | مراحل الطلب | Étapes de la commande | [ ] |
+| `cmd.steps.parcel` | 3. الطرد | 3. Colis | [ ] |
+| `cmd.steps.recipient` | 2. المستلم | 2. Destinataire | [ ] |
+| `cmd.steps.review` | 5. المراجعة | 5. Vérification | [ ] |
+| `cmd.steps.sender` | 1. المرسل | 1. Expéditeur | [ ] |
+| `cmd.steps.service` | 4. الخدمة | 4. Service | [ ] |
 | `comingSoon.home` | العودة إلى الرئيسية | Retour à l'accueil | [ ] |
+| `comingSoon.pages.account` | حسابي | Mon compte | [ ] |
 | `comingSoon.pages.order` | اطلب الآن | Commander | [ ] |
 | `comingSoon.pages.signIn` | تسجيل الدخول | Connexion | [ ] |
 | `comingSoon.pages.signUp` | إنشاء حساب | Créer un compte | [ ] |
@@ -98,6 +195,11 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.more.timelineCurrent` | قيد التوصيل | En cours de livraison | [ ] |
 | `devUi.more.timelineDone` | تم استلام الطرد | Colis récupéré | [ ] |
 | `devUi.more.timelineTodo` | تسليم مع إثبات | Remise avec preuve | [ ] |
+| `devUi.order.codeLabel` | رمز من 6 أرقام | Code à 6 chiffres | [ ] |
+| `devUi.order.mapInstructions` | انقر على الخريطة، أو استخدم الأسهم ثم Enter. | Cliquez sur la carte, ou utilisez les flèches puis Entrée. | [ ] |
+| `devUi.order.mapLabel` | خريطة تجريبية | Carte de démonstration | [ ] |
+| `devUi.order.pinAt` | العلامة: {x}٪، {y}٪ | Repère : {x} %, {y} % | [ ] |
+| `devUi.order.radioLegend` | الخدمة | Service | [ ] |
 | `devUi.sections.accordion` | سؤال قابل للطي | Question déroulante | [ ] |
 | `devUi.sections.alerts` | التنبيهات | Alertes | [ ] |
 | `devUi.sections.avatars` | الصور الرمزية | Avatars | [ ] |
@@ -106,15 +208,19 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.sections.cards` | البطاقات | Cartes | [ ] |
 | `devUi.sections.checkbox` | مربع الاختيار | Case à cocher | [ ] |
 | `devUi.sections.chips` | الشرائح | Puces | [ ] |
+| `devUi.sections.codeInput` | رمز التحقق | Code de vérification | [ ] |
 | `devUi.sections.colors` | الألوان | Couleurs | [ ] |
 | `devUi.sections.fileAttach` | المرفق | Pièce jointe | [ ] |
 | `devUi.sections.formats` | الصيغ | Formats | [ ] |
 | `devUi.sections.forms` | النماذج | Formulaires | [ ] |
+| `devUi.sections.google` | زر Google | Bouton Google | [ ] |
 | `devUi.sections.icons` | الأيقونات | Icônes | [ ] |
 | `devUi.sections.keyValue` | عنوان وقيمة | Libellé et valeur | [ ] |
 | `devUi.sections.kpi` | المؤشرات | Indicateurs | [ ] |
 | `devUi.sections.layout` | أشرطة الصفحة | Bandeaux | [ ] |
 | `devUi.sections.logo` | الشعار | Logo | [ ] |
+| `devUi.sections.map` | خريطة (مؤقتة) | Carte (provisoire) | [ ] |
+| `devUi.sections.radioCard` | اختيار على شكل بطاقة | Choix en carte | [ ] |
 | `devUi.sections.stepper` | الخطوات | Étapes | [ ] |
 | `devUi.sections.table` | الجدول | Tableau | [ ] |
 | `devUi.sections.tabs` | التبويبات | Onglets | [ ] |
@@ -183,13 +289,25 @@ native-speaker review before release (CLAUDE.md).
 | `footer.tagline` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
 | `footer.terms` | شروط البيع | CGV | [ ] |
 | `footer.zones` | المناطق المشمولة | Zones desservies | [ ] |
+| `forms.errors.addressNotConfirmed` | اختر اقتراحًا أو ضع علامة على الخريطة. | Choisissez une suggestion ou placez un repère sur la carte. | [ ] |
 | `forms.errors.addressTooShort` | أدخل 3 أحرف على الأقل. | Saisissez au moins 3 caractères. | [ ] |
 | `forms.errors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.errors.captchaRequired` | أكّد أنك لست روبوتًا. | Confirmez que vous n'êtes pas un robot. | [ ] |
+| `forms.errors.codeIncomplete` | أدخل الرمز كاملًا. | Saisissez le code complet. | [ ] |
+| `forms.errors.countInvalid` | أدخل عددًا صحيحًا، 1 على الأقل. | Indiquez un nombre entier, 1 au minimum. | [ ] |
+| `forms.errors.declaredValueInvalid` | مبلغ غير صالح. مثال: 48.500 أو 1,152.000. | Montant invalide. Exemple : 48,500 ou 48.5. | [ ] |
 | `forms.errors.emailInvalid` | عنوان البريد الإلكتروني غير صالح. | Adresse e-mail invalide. | [ ] |
+| `forms.errors.parcelTypeRequired` | اختر نوع الشحنة. | Choisissez un type d'envoi. | [ ] |
+| `forms.errors.passwordTooShort` | 10 أحرف على الأقل. | 10 caractères au minimum. | [ ] |
+| `forms.errors.paymentRequired` | اختر طريقة الدفع. | Choisissez un mode de paiement. | [ ] |
 | `forms.errors.phoneInvalid` | رقم غير صالح. مثال: 000 000 20 216+. | Numéro invalide. Exemple : +216 20 000 000. | [ ] |
 | `forms.errors.required` | هذا الحقل إلزامي. | Ce champ est obligatoire. | [ ] |
+| `forms.errors.serviceRequired` | اختر خدمة. | Choisissez un service. | [ ] |
+| `forms.errors.slotPast` | انقضى هذا الموعد. اختر موعدًا آخر. | Ce créneau est passé. Choisissez-en un autre. | [ ] |
+| `forms.errors.slotRequired` | اختر موعدًا. | Choisissez un créneau. | [ ] |
+| `forms.errors.termsRequired` | وافق على الشروط للمتابعة. | Acceptez les conditions pour continuer. | [ ] |
 | `forms.errors.trackingInvalid` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
+| `forms.errors.weightInvalid` | أدخل الوزن بالكغ، مثلًا 2 أو 2.5. | Indiquez un poids en kg, par exemple 2 ou 2,5. | [ ] |
 | `forms.serverErrors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.serverErrors.captchaFailed` | فشل التحقق من أنك لست روبوتًا. حاول مرة أخرى. | La vérification anti-robot a échoué. Réessayez. | [ ] |
 | `forms.serverErrors.invalidTrackingCode` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
@@ -306,14 +424,20 @@ native-speaker review before release (CLAUDE.md).
 | `merchants.talk.title` | لنتحدث عن حجم طلباتك | Parlons de vos volumes | [ ] |
 | `merchants.title` | بع بطمأنينة أكبر. كل طرد وكل دينار يتم تتبعه. | Vendez plus sereinement. Chaque colis et chaque dinar sont suivis. | [ ] |
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
+| `meta.pages.account.description` | مساحتك قريبًا. | Votre espace client arrive bientôt. | [ ] |
+| `meta.pages.account.title` | حسابي \| FastGo | Mon compte \| FastGo | [ ] |
 | `meta.pages.cgv.description` | شروط البيع الخاصة بـ FastGo. | Conditions générales de vente de FastGo. | [ ] |
 | `meta.pages.cgv.title` | شروط البيع \| FastGo | Conditions générales de vente \| FastGo | [ ] |
+| `meta.pages.code.description` | أدخل الرمز الذي وصلك. | Saisissez le code reçu. | [ ] |
+| `meta.pages.code.title` | رمز التحقق \| FastGo | Code de vérification \| FastGo | [ ] |
 | `meta.pages.contact.description` | سؤال أو عرض سعر أو شكوى: اكتب إلى FastGo، برقم تتبع أو بدونه. | Une question, un devis ou une réclamation : écrivez à FastGo, avec ou sans numéro de suivi. | [ ] |
 | `meta.pages.contact.title` | اتصل بنا \| FastGo | Contact \| FastGo | [ ] |
 | `meta.pages.cookies.description` | معلومات حول ملفات تعريف الارتباط في موقع FastGo. | Informations sur les cookies sur le site FastGo. | [ ] |
 | `meta.pages.cookies.title` | ملفات تعريف الارتباط \| FastGo | Cookies \| FastGo | [ ] |
 | `meta.pages.driver.description` | اطّلع على شروط التوصيل مع FastGo وأرسل ترشحك. | Découvrez ce qu'il faut pour livrer avec FastGo et envoyez votre candidature. | [ ] |
 | `meta.pages.driver.title` | كن عامل توصيل \| FastGo | Devenir livreur \| FastGo | [ ] |
+| `meta.pages.googlePhone.description` | أضف هاتفك بعد تسجيل الدخول عبر Google. | Ajoutez votre téléphone après la connexion avec Google. | [ ] |
+| `meta.pages.googlePhone.title` | الخطوة الأخيرة \| FastGo | Dernière étape \| FastGo | [ ] |
 | `meta.pages.help.description` | أجوبة عن الأسئلة الشائعة حول الطلب والتتبع والدفع والشكاوى. | Réponses aux questions fréquentes sur la commande, le suivi, le paiement et les réclamations. | [ ] |
 | `meta.pages.help.title` | المساعدة \| FastGo | Aide \| FastGo | [ ] |
 | `meta.pages.home.description` | اطلب توصيلًا داخل المدينة، واطّلع على السعر قبل التأكيد، وتتبع طردك حتى التسليم مع إثبات. | Commandez une livraison en ville, voyez le prix avant de valider et suivez votre colis jusqu'à la remise avec preuve. | [ ] |
@@ -324,6 +448,26 @@ native-speaker review before release (CLAUDE.md).
 | `meta.pages.notice.title` | البيانات القانونية \| FastGo | Mentions légales \| FastGo | [ ] |
 | `meta.pages.order.description` | الطلب عبر الإنترنت قريبًا. | La commande en ligne arrive bientôt. | [ ] |
 | `meta.pages.order.title` | اطلب الآن \| FastGo | Commander \| FastGo | [ ] |
+| `meta.pages.orderCode.description` | أدخل الرمز الذي وصلك برسالة نصية لتأكيد الطلب. | Saisissez le code reçu par SMS pour valider la commande. | [ ] |
+| `meta.pages.orderCode.title` | الطلب: رمز التحقق \| FastGo | Commander : code de vérification \| FastGo | [ ] |
+| `meta.pages.orderConfirmation.description` | رقم التتبع والخطوات التالية لتوصيلك. | Votre numéro de suivi et la suite de votre livraison. | [ ] |
+| `meta.pages.orderConfirmation.title` | تم تسجيل الطلب \| FastGo | Commande enregistrée \| FastGo | [ ] |
+| `meta.pages.orderOutOfZone.description` | لا نوصل إلى هذا العنوان بعد. | Nous ne livrons pas encore à cette adresse. | [ ] |
+| `meta.pages.orderOutOfZone.title` | عنوان خارج مناطق الخدمة \| FastGo | Adresse hors zone \| FastGo | [ ] |
+| `meta.pages.orderParcel.description` | صف ما سنوصله. | Décrivez ce que nous livrons. | [ ] |
+| `meta.pages.orderParcel.title` | الطلب: الطرد \| FastGo | Commander : colis \| FastGo | [ ] |
+| `meta.pages.orderRecipient.description` | أدخل عنوان التسليم والمستلم. | Indiquez l'adresse de livraison et le destinataire. | [ ] |
+| `meta.pages.orderRecipient.title` | الطلب: المستلم \| FastGo | Commander : destinataire \| FastGo | [ ] |
+| `meta.pages.orderReview.description` | راجع تفاصيل السعر وأكّد طلبك. | Vérifiez le détail du prix et validez votre commande. | [ ] |
+| `meta.pages.orderReview.title` | الطلب: المراجعة \| FastGo | Commander : vérification \| FastGo | [ ] |
+| `meta.pages.orderSender.description` | أدخل عنوان استلام طردك. | Indiquez l'adresse de collecte de votre colis. | [ ] |
+| `meta.pages.orderSender.title` | الطلب: المرسل \| FastGo | Commander : expéditeur \| FastGo | [ ] |
+| `meta.pages.orderService.description` | اختر متى يجب أن يصل الطرد. | Choisissez quand le colis doit arriver. | [ ] |
+| `meta.pages.orderService.title` | الطلب: الخدمة \| FastGo | Commander : service \| FastGo | [ ] |
+| `meta.pages.passwordForgot.description` | احصل على رمز لاختيار كلمة مرور جديدة. | Recevez un code pour choisir un nouveau mot de passe. | [ ] |
+| `meta.pages.passwordForgot.title` | نسيت كلمة المرور \| FastGo | Mot de passe oublié \| FastGo | [ ] |
+| `meta.pages.passwordNew.description` | اختر كلمة المرور الجديدة. | Choisissez votre nouveau mot de passe. | [ ] |
+| `meta.pages.passwordNew.title` | كلمة مرور جديدة \| FastGo | Nouveau mot de passe \| FastGo | [ ] |
 | `meta.pages.privacy.description` | سياسة الخصوصية الخاصة بـ FastGo. | Politique de confidentialité de FastGo. | [ ] |
 | `meta.pages.privacy.title` | الخصوصية \| FastGo | Confidentialité \| FastGo | [ ] |
 | `meta.pages.services.description` | سريع أو عادي أو مجدول: قارن عروض FastGo وأنواع الشحنات والخيارات. | Express, Standard ou Programmée : comparez les offres FastGo, les types d'envoi et les options. | [ ] |
@@ -363,8 +507,154 @@ native-speaker review before release (CLAUDE.md).
 | `offers.standard.delayCell` | في نفس اليوم | Dans la journée | [ ] |
 | `offers.standard.name` | عادي | Standard | [ ] |
 | `offers.standard.tagline` | يُستلم ويُسلَّم قبل الساعة المحددة. | Récupéré et livré avant l'heure limite. | [ ] |
+| `order.address.checking` | جارٍ التحقق من العنوان… | Vérification de l'adresse… | [ ] |
+| `order.address.hint` | اختر اقتراحًا أو ضع علامة على الخريطة. | Choisissez une suggestion ou placez un repère sur la carte. | [ ] |
+| `order.address.inZone` | هذا العنوان ضمن مناطق الخدمة. | Adresse desservie. | [ ] |
+| `order.address.mapInstructions` | انقر على الخريطة، أو استخدم الأسهم ثم Enter لوضع العلامة. | Cliquez sur la carte, ou utilisez les flèches puis Entrée pour placer le repère. | [ ] |
+| `order.address.mapLabel` | الخريطة: ضع علامة لـ{field} | Carte : placer un repère pour {field} | [ ] |
+| `order.address.outOfZone` | هذا العنوان غير مشمول بالخدمة بعد. | Cette adresse n'est pas encore desservie. | [ ] |
+| `order.address.pinPosition` | العلامة على بُعد {x}% من اليسار و{y}% من الأعلى. اضغط Enter لتثبيتها. | Repère à {x} % depuis la gauche et {y} % depuis le haut. Appuyez sur Entrée pour le placer. | [ ] |
+| `order.address.pinText` | علامة على الخريطة | Repère placé sur la carte | [ ] |
+| `order.address.suggestionsLabel` | اقتراحات | Suggestions | [ ] |
+| `order.address.unknown` | لم نتعرّف على العنوان. اختر اقتراحًا أو ضع علامة. | Adresse non reconnue. Choisissez une suggestion ou placez un repère. | [ ] |
+| `order.code.accountExists.signIn` | تسجيل الدخول | Se connecter | [ ] |
+| `order.code.accountExists.text` | سجّل الدخول لإتمام الطلب. مسودتك محفوظة. | Connectez-vous pour terminer la commande. Votre brouillon est gardé. | [ ] |
+| `order.code.accountExists.title` | لهذا الرقم حساب بالفعل. | Ce numéro a déjà un compte. | [ ] |
+| `order.confirmation.newOrder` | طلب جديد | Nouvelle commande | [ ] |
+| `order.confirmation.notFound.text` | لا يطابق هذا الرابط أي طلب على هذا الجهاز. | Ce lien ne correspond à aucune commande passée sur cet appareil. | [ ] |
+| `order.confirmation.notFound.title` | لا يوجد طلب لعرضه. | Aucune commande à afficher. | [ ] |
+| `order.confirmation.number` | رقم التتبع: <code></code> | Numéro de suivi : <code></code> | [ ] |
+| `order.confirmation.slip` | وصل الطلب (مثال) | Bon de commande (exemple) | [ ] |
+| `order.confirmation.steps.checking` | نراجع طلبك | Nous vérifions votre commande | [ ] |
+| `order.confirmation.steps.pickup` | يأتي سائق إلى عنوانك بين <start></start> و<end></end> | Un livreur vient à votre adresse entre <start></start> et <end></end> | [ ] |
+| `order.confirmation.steps.recipientSms` | تلقى {name} رابط التتبع برسالة نصية | {name} a reçu son lien de suivi par SMS | [ ] |
+| `order.confirmation.title` | تم تسجيل طلبك. | Votre commande est enregistrée. | [ ] |
+| `order.confirmation.track` | تتبع توصيلي | Suivre ma livraison | [ ] |
+| `order.outOfZone.change` | تغيير العنوان | Changer l'adresse | [ ] |
+| `order.outOfZone.hint` | هذا العنوان غير مشمول بالخدمة بعد. | Cette adresse n'est pas encore desservie. | [ ] |
+| `order.outOfZone.request` | اطلب هذه المنطقة | Demander cette zone | [ ] |
+| `order.outOfZone.text` | اختر عنوانًا آخر أو اطّلع على المناطق المتاحة. | Choisissez une autre adresse ou voyez les zones disponibles. | [ ] |
+| `order.outOfZone.title` | لا نوصل إلى هناك بعد. | Nous n'y livrons pas encore. | [ ] |
+| `order.outOfZone.zones` | عرض المناطق | Voir les zones | [ ] |
+| `order.parcel.content` | المحتوى | Contenu | [ ] |
+| `order.parcel.count` | عدد الطرود | Nombre de colis | [ ] |
+| `order.parcel.declaredValue` | القيمة المصرّح بها (د.ت، اختياري) | Valeur déclarée (TND, facultatif) | [ ] |
+| `order.parcel.declaredValueParsed` | أي <amount></amount> | Soit <amount></amount> | [ ] |
+| `order.parcel.fragile` | طرد هش | Colis fragile | [ ] |
+| `order.parcel.option` | خيار | Option | [ ] |
+| `order.parcel.title` | ماذا سنوصل؟ | Que livrons-nous ? | [ ] |
+| `order.parcel.typeLegend` | نوع الشحنة | Type d'envoi | [ ] |
+| `order.parcel.types.document.hint` | وثائق | Documents | [ ] |
+| `order.parcel.types.document.name` | مظروف | Pli | [ ] |
+| `order.parcel.types.large.hint` | [الحد] | [LIMITE] | [ ] |
+| `order.parcel.types.large.name` | كبير | Volumineux | [ ] |
+| `order.parcel.types.medium.hint` | [الحد] | [LIMITE] | [ ] |
+| `order.parcel.types.medium.name` | متوسط | Moyen | [ ] |
+| `order.parcel.types.small.hint` | [الحد] | [LIMITE] | [ ] |
+| `order.parcel.types.small.name` | طرد صغير | Petit colis | [ ] |
+| `order.parcel.weight` | الوزن التقديري (كغ) | Poids estimé (kg) | [ ] |
+| `order.price.detail` | تفاصيل السعر | Détail du prix | [ ] |
+| `order.price.example` | مبالغ على سبيل المثال. | Montants d'exemple. | [ ] |
+| `order.price.expired.accept` | قبول السعر الجديد | Accepter le nouveau prix | [ ] |
+| `order.price.expired.accepted` | تم قبول السعر الجديد. | Nouveau prix accepté. | [ ] |
+| `order.price.expired.text` | انتهت مدة الضمان البالغة 15 دقيقة. السعر الجديد: <next></next>. السابق: <previous></previous>. | La garantie de 15 minutes est passée. Nouveau prix : <next></next>. Avant : <previous></previous>. | [ ] |
+| `order.price.expired.title` | أُعيد حساب السعر. | Le prix a été recalculé. | [ ] |
+| `order.price.from` | ابتداءً من <amount></amount> | Dès <amount></amount> | [ ] |
+| `order.price.guarantee` | شامل الضريبة، مضمون لمدة 15 دقيقة. مبالغ على سبيل المثال. | TTC, garanti 15 minutes. Montants d'exemple. | [ ] |
+| `order.price.lines.base` | الخدمة والمنطقة: {service}، المنطقة {zone} | Service et zone : {service}, zone {zone} | [ ] |
+| `order.price.lines.discount` | تخفيض | Remise | [ ] |
+| `order.price.lines.distance` | المسافة | Distance | [ ] |
+| `order.price.lines.options` | الخيارات | Options | [ ] |
+| `order.price.lines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
+| `order.price.lines.surcharge` | رسوم إضافية: {name} (الحد الأقصى: <ceiling></ceiling>) | Majoration {name} (plafond : <ceiling></ceiling>) | [ ] |
+| `order.price.lines.vat` | الأداء على القيمة المضافة | TVA | [ ] |
+| `order.price.lines.weight` | الوزن | Poids | [ ] |
+| `order.price.pending` | سيظهر بمجرد معرفة عنوان التسليم. | Il s'affichera dès que l'adresse de livraison sera connue. | [ ] |
+| `order.price.provisional` | سعر مبدئي | Prix provisoire | [ ] |
+| `order.price.provisionalNote` | مبلغ على سبيل المثال، يُحدَّد حسب الطرد والخدمة. | Montant d'exemple, à préciser selon le colis et l'offre. | [ ] |
+| `order.price.surchargeNames.rain` | المطر | pluie | [ ] |
+| `order.price.timeLeft` | السعر مضمون لمدة {time} أخرى. | Prix garanti encore {time}. | [ ] |
+| `order.price.timeLeftShort` | {minutes, plural, zero {لم يبقَ وقت من الضمان.} one {بقيت دقيقة واحدة من الضمان.} two {بقيت دقيقتان من الضمان.} few {بقيت # دقائق من الضمان.} many {بقيت # دقيقة من الضمان.} other {بقيت # دقيقة من الضمان.}} | {minutes, plural, one {Plus que # min de garantie.} other {Plus que # min de garantie.}} | [ ] |
+| `order.price.title` | السعر | Votre prix | [ ] |
+| `order.price.total` | المجموع شامل الضريبة | Total TTC | [ ] |
+| `order.recipient.address` | عنوان التسليم | Adresse de livraison | [ ] |
+| `order.recipient.instructions` | تعليمات (اختياري) | Instructions (facultatif) | [ ] |
+| `order.recipient.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
+| `order.recipient.languages.ar` | العربية | Arabe | [ ] |
+| `order.recipient.languages.en` | الإنجليزية | Anglais | [ ] |
+| `order.recipient.languages.fr` | الفرنسية | Français | [ ] |
+| `order.recipient.name` | اسم المستلم | Nom du destinataire | [ ] |
+| `order.recipient.phone` | الهاتف | Téléphone | [ ] |
+| `order.recipient.phoneHint` | يتلقى رابط التتبع برسالة نصية. | Il reçoit le lien de suivi par SMS. | [ ] |
+| `order.recipient.save` | حفظ هذا المستلم | Enregistrer ce destinataire | [ ] |
+| `order.recipient.smsLanguage` | لغة الرسالة والرابط | Langue du SMS et du lien | [ ] |
+| `order.recipient.title` | إلى أين يذهب؟ | Où va-t-il ? | [ ] |
+| `order.review.delivery` | توصيلك | Votre livraison | [ ] |
+| `order.review.dropoff` | التسليم | Livraison | [ ] |
+| `order.review.edit` | تعديل | Modifier | [ ] |
+| `order.review.editSection` | تعديل: {section} | Modifier : {section} | [ ] |
+| `order.review.errors.draftChanged` | تم تعديل طلبك في علامة تبويب أخرى. راجعه ثم أكّده. | Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez. | [ ] |
+| `order.review.errors.idempotencyConflict` | أُرسل هذا الطلب سابقًا بمعلومات مختلفة. أعد تحميل الصفحة. | Cette commande a déjà été envoyée avec d'autres informations. Rechargez la page. | [ ] |
+| `order.review.errors.network` | انقطع الاتصال. أعد المحاولة. | La connexion a été coupée. Réessayez. | [ ] |
+| `order.review.errors.outOfZone` | أحد العنوانين غير مشمول بالخدمة. | Une des adresses n'est pas desservie. | [ ] |
+| `order.review.errors.paymentNotAllowed` | طريقة الدفع هذه غير متاحة لحسابك. | Ce mode de paiement n'est pas disponible pour votre compte. | [ ] |
+| `order.review.errors.phoneNotVerified` | يجب التحقق من هاتفك برسالة نصية. | Votre téléphone doit être vérifié par SMS. | [ ] |
+| `order.review.errors.quoteExpired` | انتهت صلاحية السعر. أُعيد حسابه. | Le prix a expiré. Il a été recalculé. | [ ] |
+| `order.review.errors.quoteNotAccepted` | اقبل السعر الجديد للمتابعة. | Acceptez le nouveau prix pour continuer. | [ ] |
+| `order.review.errors.serviceUnavailable` | هذه الخدمة لم تعد متاحة لهذين العنوانين. اختر خدمة أخرى. | Ce service n'est plus disponible pour ces adresses. Choisissez-en un autre. | [ ] |
+| `order.review.errors.slotPast` | انقضى الموعد المختار. اختر موعدًا آخر. | Le créneau choisi est passé. Choisissez-en un autre. | [ ] |
+| `order.review.errors.termsRequired` | وافق على شروط البيع للتأكيد. | Acceptez les CGV pour valider. | [ ] |
+| `order.review.lost.editBlocked` | التعديلات معطّلة إلى أن يصل رد على هذا الطلب. | Les modifications sont bloquées tant que cette commande n'a pas de réponse. | [ ] |
+| `order.review.lost.retry` | أعد المحاولة | Réessayer | [ ] |
+| `order.review.lost.text` | لا نعرف إن وصل الطلب. أعد المحاولة: لن يُنشأ مرتين. | Nous ne savons pas si la commande est arrivée. Réessayez : elle ne sera pas créée deux fois. | [ ] |
+| `order.review.lost.title` | انقطع الاتصال. | La connexion a été coupée. | [ ] |
+| `order.review.parcel` | الطرد | Colis | [ ] |
+| `order.review.parcelSummary` | {type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{fragile, select, yes {، هش} other {}} | {type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, {weight} kg{fragile, select, yes {, fragile} other {}} | [ ] |
+| `order.review.paymentLegend` | كيف تدفع؟ | Comment réglez-vous ? | [ ] |
+| `order.review.payments.account.text` | فاتورة شهرية، للتجار المتعاقدين. | Facture mensuelle, commerçants sous contrat. | [ ] |
+| `order.review.payments.account.title` | حساب العميل | Compte client | [ ] |
+| `order.review.payments.cashDelivery.text` | يدفع المستلم. إن رفض، تبقى تكاليف التوصيل والإرجاع على عاتقك. | Le destinataire paie. S'il refuse, le port et le retour restent à votre charge. | [ ] |
+| `order.review.payments.cashDelivery.title` | نقدًا عند التسليم | Espèces à la livraison | [ ] |
+| `order.review.payments.cashPickup.text` | تدفع للسائق عند استلامه الطرد. | Vous payez le livreur quand il récupère le colis. | [ ] |
+| `order.review.payments.cashPickup.title` | نقدًا عند الاستلام | Espèces à l'enlèvement | [ ] |
+| `order.review.person` | {name}، {address} | {name}, {address} | [ ] |
+| `order.review.phoneCheckNote` | نتحقق من هاتفك برسالة نصية قبل الطلب الأول. | Nous vérifions votre téléphone par SMS avant la première commande. | [ ] |
+| `order.review.pickup` | الاستلام | Collecte | [ ] |
+| `order.review.proof` | الإثبات | Preuve | [ ] |
+| `order.review.proofs.codeElseAgentPhone` | رمز يُرسل إلى المستلم؛ وإن تعذّر، يتحقق موظف عبر الهاتف مع توقيع وصورة | Code envoyé au destinataire ; à défaut, validation par un agent au téléphone, avec signature et photo | [ ] |
+| `order.review.proofs.codeOrPhotoPosition` | رمز يُرسل إلى المستلم، أو صورة مع الموقع | Code envoyé au destinataire, ou photo avec position | [ ] |
+| `order.review.proofs.codeOrSignaturePhoto` | رمز يُرسل إلى المستلم، أو توقيع وصورة | Code envoyé au destinataire, ou signature et photo | [ ] |
+| `order.review.serviceLines.express` | {service}، في أقل من ساعة | {service}, en moins de 1 h | [ ] |
+| `order.review.serviceLines.scheduled` | {service}، {slot} | {service}, {slot} | [ ] |
+| `order.review.serviceLines.standard` | {service}، قبل {time} | {service}, avant {time} | [ ] |
+| `order.review.submit` | تأكيد الطلب | Valider la commande | [ ] |
+| `order.review.submitting` | جارٍ التأكيد… | Validation… | [ ] |
+| `order.review.terms` | أوافق على <link>شروط البيع</link> وأؤكد أن الطرد لا يحتوي على أي شيء محظور. | J'accepte les <link>CGV</link> et je confirme que le colis ne contient pas d'objet interdit. | [ ] |
+| `order.review.title` | راجع وأكّد | Vérifiez et validez | [ ] |
+| `order.sender.address` | عنوان الاستلام | Adresse de collecte | [ ] |
+| `order.sender.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
+| `order.sender.name` | اسمك | Votre nom | [ ] |
+| `order.sender.phone` | الهاتف | Téléphone | [ ] |
+| `order.sender.slot` | موعد الاستلام | Créneau de collecte | [ ] |
+| `order.sender.slotExample` | مواعيد على سبيل المثال. | Créneaux d'exemple. | [ ] |
+| `order.sender.slotPlaceholder` | اختر موعدًا | Choisissez un créneau | [ ] |
+| `order.sender.title` | من أين ينطلق الطرد؟ | D'où part le colis ? | [ ] |
+| `order.service.delays.express` | يُسلَّم في أقل من ساعة | Livré en moins de 1 h | [ ] |
+| `order.service.delays.scheduled` | اختر موعدك | Choisissez votre créneau | [ ] |
+| `order.service.delays.standard` | يُسلَّم اليوم قبل {time} | Livré aujourd'hui avant {time} | [ ] |
+| `order.service.legend` | الخدمة | Service | [ ] |
+| `order.service.pricing` | جارٍ حساب السعر… | Calcul du prix… | [ ] |
+| `order.service.slot` | موعد التسليم | Créneau de livraison | [ ] |
+| `order.service.submit` | مراجعة طلبي | Vérifier ma commande | [ ] |
+| `order.service.surcharge` | رسوم إضافية ({name}) بقيمة <amount></amount> مشمولة، بحد أقصى <ceiling></ceiling>. نعرضها الآن حتى لا يتغير السعر في النهاية. | Majoration {name} de <amount></amount> incluse, plafonnée à <ceiling></ceiling>. Elle est affichée pour que le prix ne change pas à la fin. | [ ] |
+| `order.service.title` | متى يجب أن يصل؟ | Quand doit-il arriver ? | [ ] |
+| `order.service.unavailable` | غير متاح بعد لهذين العنوانين. | Pas encore disponible pour ces adresses. | [ ] |
+| `order.slot.onDate` | يوم {date}، من {start} إلى {end} | Le {date}, de {start} à {end} | [ ] |
+| `order.slot.today` | اليوم، من {start} إلى {end} | Aujourd'hui, de {start} à {end} | [ ] |
+| `order.slot.tomorrow` | غدًا، من {start} إلى {end} | Demain, de {start} à {end} | [ ] |
 | `placeholders.address` | [العنوان] | [ADRESSE] | [ ] |
 | `placeholders.answer` | [الجواب] | [RÉPONSE] | [ ] |
+| `placeholders.ceiling` | [سقف] | [PLAFOND] | [ ] |
 | `placeholders.city` | [المدينة] | [VILLE] | [ ] |
 | `placeholders.cityFrom` | [مدينة الانطلاق] | [VILLE DE DÉPART] | [ ] |
 | `placeholders.cityTo` | [مدينة الوصول] | [VILLE D'ARRIVÉE] | [ ] |

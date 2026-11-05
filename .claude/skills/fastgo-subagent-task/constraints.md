@@ -1,0 +1,7 @@
+- New commits only (no amend, rebase, force-push, merge). Messages start with feature or rule IDs and end with the session trailer lines.
+- Money in integer millimes, formatted with the shared helper. UTC stored, Africa/Tunis shown.
+- Every string in fr, ar and en (fastgo-i18n-keys). Logical CSS only, tokens only, LTR for numbers, amounts, phones, codes.
+- Unsourced values only in apps/web/src/lib/order/constants.ts. No invented prices, fees, thresholds or legal text.
+- No phone, e-mail, address or name in a URL. No password or code in storage. Fake data only.
+- Bugs: reproduce, failing test first, then fix. A non-reproducing item is reported, not changed.
+- Before committing: pnpm lint && pnpm typecheck && pnpm test; e2e with fastgo-e2e-fast.

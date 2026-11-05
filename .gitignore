@@ -10,3 +10,6 @@ playwright-report/
 *.tsbuildinfo
 next-env.d.ts
 coverage/
+__pycache__/
+*.pyc
+.superpowers/

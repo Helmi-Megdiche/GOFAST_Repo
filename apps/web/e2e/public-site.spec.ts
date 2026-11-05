@@ -18,9 +18,8 @@ const PAGES = [
   { path: "/livreur", ref: "W08-Livreur" },
   { path: "/legal/cgv", ref: "W09-Legal" },
   { path: "/page-inconnue", ref: "W10-Introuvable", status: 404 },
-  { path: "/commander", ref: "coming-soon-commander" },
-  { path: "/connexion", ref: "coming-soon-connexion" },
-  { path: "/inscription", ref: "coming-soon-inscription" },
+  // The order flow and sign-in pages are covered by order-flow.spec.ts and auth.spec.ts.
+  { path: "/compte", ref: "coming-soon-compte" },
 ] as const;
 
 const LOCALES = [
@@ -110,9 +109,9 @@ test("the header buttons go to /commander and /connexion", async ({ page }) => {
   }
   await page.goto("/fr");
   await page.locator("header").getByRole("link", { name: "Commander" }).click();
-  await expect(page).toHaveURL(/\/fr\/commander$/);
-  await expect(page.getByRole("heading", { name: "Commander" })).toBeVisible();
-  await expect(page.getByText("Bientôt disponible")).toBeVisible();
+  // /commander opens the first step of the order (W11).
+  await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
+  await expect(page.getByRole("heading", { level: 1, name: "D'où part le colis ?" })).toBeVisible();
 });
 
 test("the nav marks the current page and nothing on zones, contact, livreur or legal", async ({
@@ -284,14 +283,25 @@ test("home: the tracking field opens /suivi?n= and refuses a bad number", async 
   await expect(page.getByText("Arrivée estimée")).toBeVisible();
 });
 
-test("home: Voir le prix opens /commander with nothing in the URL", async ({ page }) => {
+test("home: Voir le prix carries the addresses through the draft, with nothing in the URL", async ({
+  page,
+}) => {
   await page.goto("/fr");
   await page.getByLabel("Départ").fill("Avenue Habib Bourguiba");
   await page.getByLabel("Arrivée").fill("Rue Ibn Khaldoun");
   await page.getByRole("button", { name: "Voir le prix" }).click();
-  await expect(page).toHaveURL(/\/fr\/commander$/);
+  await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
   expect(page.url()).not.toContain("?");
   expect(decodeURIComponent(page.url())).not.toMatch(/Bourguiba|Khaldoun/);
+  // The typed address is in the draft, not yet confirmed: a suggestion or the pin is still needed.
+  await expect(page.getByRole("textbox", { name: "Adresse de collecte", exact: true })).toHaveValue(
+    "Avenue Habib Bourguiba",
+  );
+  const draft = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("fg.order.draft.v1") ?? "null"),
+  );
+  expect(draft.sender.address).toMatchObject({ text: "Avenue Habib Bourguiba", confirmed: false });
+  expect(draft.recipient.address).toMatchObject({ text: "Rue Ibn Khaldoun", confirmed: false });
 });
 
 // ── Zone check (W05, FE-04) ───────────────────────────────────────────────────────────────────
@@ -300,10 +310,18 @@ test("zones: in zone, out of zone, unknown address, too short", async ({ page })
   const field = page.getByLabel("Votre adresse");
   const submit = page.getByRole("button", { name: "Vérifier" });
 
-  await field.fill("Rue Ibn Khaldoun");
+  // The W05 mockup's answer, "Express et Standard", is the two-service fixture address. The
+  // addresses of the order mockups offer the three services of W14 (lib/data/zones.ts).
+  await field.fill("Rue de Marseille");
   await submit.click();
   await expect(page.getByText("Cette adresse est desservie.")).toBeVisible();
   await expect(page.getByText("Services disponibles : Express et Standard.")).toBeVisible();
+
+  await field.fill("Rue Ibn Khaldoun");
+  await submit.click();
+  await expect(
+    page.getByText("Services disponibles : Express, Standard et Programmée."),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Commander" }).last()).toHaveAttribute(
     "href",
     "/fr/commander",
@@ -583,10 +601,35 @@ for (const entry of PAGES.filter((item) => !("status" in item))) {
   });
 }
 
-test("coming-soon pages are noindex, real pages are not", async ({ page }) => {
-  for (const url of ["/fr/commander", "/fr/connexion", "/fr/inscription"]) {
+test("order, sign-in and coming-soon pages are noindex, public pages are not", async ({ page }) => {
+  for (const url of [
+    "/fr/commander",
+    "/fr/commander/expediteur",
+    "/fr/commander/destinataire",
+    "/fr/commander/colis",
+    "/fr/commander/service",
+    "/fr/commander/verification",
+    "/fr/commander/code",
+    "/fr/commander/confirmation",
+    "/fr/commander/hors-zone",
+    "/fr/connexion",
+    "/fr/inscription",
+    "/fr/code",
+    "/fr/mot-de-passe",
+    "/fr/mot-de-passe/nouveau",
+    "/fr/google-telephone",
+    "/fr/compte",
+  ]) {
     await page.goto(url);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
+    // A client redirect (e.g. /commander to its first step) can briefly leave the old page's tag
+    // next to the new one: every robots tag present must say noindex.
+    const robots = page.locator('meta[name="robots"]');
+    await expect(robots.first()).toHaveAttribute("content", /noindex/);
+    for (const content of await robots.evaluateAll((tags) =>
+      tags.map((tag) => tag.getAttribute("content")),
+    )) {
+      expect(content, url).toMatch(/noindex/);
+    }
   }
   await page.goto("/fr/services");
   await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
@@ -632,9 +675,10 @@ test.describe("without JavaScript", () => {
       for (const method of methods) expect(method, url).toBe("post");
     }
     await page.goto("/fr");
+    // The home inputs have names now (decision 3), and the form posts: never a GET with addresses.
     const quote = page.locator("main form").first();
     expect(await quote.evaluate((form) => (form as HTMLFormElement).method)).toBe("post");
-    expect(await quote.locator("input[name]").count()).toBe(0);
+    expect(await quote.locator("input[name]").count()).toBe(2);
   });
 });
 

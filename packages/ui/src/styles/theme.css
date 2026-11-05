@@ -20,7 +20,7 @@
   --breakpoint-*: initial;
 
   --breakpoint-sm: 45rem; /* 720px  */
-  --breakpoint-md: 56.25rem; /* 900px: nav collapses below */
+  --breakpoint-md: 56.25rem; /* 900px: two-column layouts. The header burger menu is below 1100px (site-header). */
   --breakpoint-lg: 75rem; /* 1200px: content max width */
   --breakpoint-xl: 90rem; /* 1440px */
 
@@ -102,6 +102,13 @@
   --color-on-inverse: var(--fg-on-inverse);
   --color-on-inverse-muted: var(--fg-on-inverse-muted);
   --color-accent-on-inverse: var(--fg-accent-on-inverse);
+
+  --color-map: var(--fg-map);
+  --color-map-road: var(--fg-map-road);
+  --color-google: var(--fg-google);
+  --color-google-hover: var(--fg-google-hover);
+  --color-google-border: var(--fg-google-border);
+  --color-google-ink: var(--fg-google-ink);
 
   --font-sans: var(--fg-font-ui);
   --font-display: var(--fg-font-display);
