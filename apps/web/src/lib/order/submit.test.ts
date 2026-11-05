@@ -17,7 +17,7 @@ beforeEach(async () => {
   clock = T0;
   setClock(() => clock);
   await sendCode({ channel: "sms", value: TEST_PHONE }, "order");
-  await verifyCode({ channel: "sms", value: TEST_PHONE }, FIXTURE_CODES[0]);
+  await verifyCode({ channel: "sms", value: TEST_PHONE }, FIXTURE_CODES[0], "order");
 });
 
 const saved = (): OrderDraft => saveDraft(readyDraft(T0), T0);
@@ -87,6 +87,9 @@ describe("resolveLostSubmit", () => {
     expect(await findOrderByKey(draft.idempotencyKey)).toBeNull();
 
     clock = T0 + 15 * 60_000; // the retry comes after the price guarantee
+    // and after the verification window (CODE_VERIFIED_WINDOW_MS): the phone is checked again.
+    await sendCode({ channel: "sms", value: TEST_PHONE }, "order");
+    await verifyCode({ channel: "sms", value: TEST_PHONE }, FIXTURE_CODES[1], "order");
     const pending = loadDraft()!;
     expect(await submitOrder(pending)).toEqual({ status: "refused", error: "quoteExpired" });
     const resolved = await resolveLostSubmit(loadDraft()!);

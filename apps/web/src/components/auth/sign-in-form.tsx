@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
@@ -31,15 +31,27 @@ export function SignInForm({ next }: { next: string | null }) {
     defaultValues: { identifier: "", password: "", remember: false },
   });
   const { errors, isSubmitting } = formState;
+  // The button is only aria-disabled while busy (it stays focusable), so the handler refuses a
+  // second submit itself. A ref, not isSubmitting: a double click arrives before the re-render.
+  const busy = useRef(false);
 
-  const onSubmit = handleSubmit(async (values) => {
-    const result = await signIn(values.identifier, values.password);
-    if (result.status === "ok") {
-      router.push(safeNext(next));
-      return;
-    }
-    setFailures((count) => count + 1);
-  });
+  async function onSubmit(event: FormEvent) {
+    event.preventDefault();
+    if (busy.current) return;
+    busy.current = true;
+    let signedIn = false;
+    await handleSubmit(async (values) => {
+      const result = await signIn(values.identifier, values.password);
+      if (result.status === "ok") {
+        signedIn = true;
+        router.push(safeNext(next));
+        return;
+      }
+      setFailures((count) => count + 1);
+    })(event);
+    // Stays busy after a success, while the next page loads.
+    if (!signedIn) busy.current = false;
+  }
 
   return (
     <>

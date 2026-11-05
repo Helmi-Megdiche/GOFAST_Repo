@@ -1000,7 +1000,9 @@
       "terms": "I accept the <cgv>terms of sale</cgv> and the <privacy>privacy policy</privacy>.",
       "submit": "Continue",
       "emailTaken": "This email already has an account. Sign in.",
-      "created": "Account created."
+      "created": "Account created.",
+      "emailLater": "Account created. Your e-mail is not added yet: you can confirm it later, with a code sent to that address.",
+      "emailLaterContinue": "Continue"
     },
     "code": {
       "title": "Enter the code you received",
@@ -1052,7 +1054,9 @@
       "submit": "Get the code",
       "knownEmail": "This email already has a FastGo account. Confirm it with the code sent by email, then add your phone.",
       "emailSubmit": "Get the code by email",
-      "missing": "No Google sign-in in progress."
+      "missing": "No Google sign-in in progress.",
+      "phoneMismatch": "This number is not the one on your account. Enter the phone saved on your FastGo account.",
+      "changePhone": "Change number"
     }
   }
 }

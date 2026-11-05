@@ -77,7 +77,7 @@ export function CodeVerification({
       return;
     }
     setBusy(true);
-    const result = await verifyCode(target, code);
+    const result = await verifyCode(target, code, purpose);
     if (result.status === "ok") {
       setNotice(null);
       const shown = await onVerified();

@@ -8,7 +8,7 @@ import { readyDraft as readyTestDraft } from "../order/test-draft";
 import { isValidTrackingCode } from "../tracking-code";
 import { readJson, useMemoryStorage, writeJson } from "../storage";
 import { createAccount, sessionFor } from "./accounts";
-import { FIXTURE_ACCOUNTS, FIXTURE_CODES } from "./fixtures/accounts";
+import { FIXTURE_ACCOUNTS } from "./fixtures/accounts";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
 import { FAIL_NEXT_ORDER_RESPONSE_KEY } from "./mock-db";
 import {
@@ -19,7 +19,7 @@ import {
   NetworkError,
   uniqueTrackingCode,
 } from "./orders";
-import { sendCode, verifyCode } from "./otp";
+import { mockCodeFor, sendCode, verifyCode } from "./otp";
 import { setSession, signOut } from "./session";
 import { lookupTracking } from "./tracking";
 
@@ -34,7 +34,9 @@ const request = (draft = readyDraft(), terms = true): OrderRequest =>
 
 async function verifyPhone() {
   await sendCode({ channel: "sms", value: PHONE }, "order");
-  await verifyCode({ channel: "sms", value: PHONE }, FIXTURE_CODES[0]);
+  // The phone is verified "now": a verification counts only for CODE_VERIFIED_WINDOW_MS.
+  const target = { channel: "sms", value: PHONE } as const;
+  await verifyCode(target, mockCodeFor(target, "order")!, "order");
 }
 
 beforeEach(() => {
@@ -104,8 +106,8 @@ describe("createOrder: checks at creation", () => {
   });
 
   it("refuses an expired quote, or one that no longer matches the parcel (R205)", async () => {
-    await verifyPhone();
     clock = T0 + 15 * 60_000;
+    await verifyPhone();
     expect(await createOrder(request(), "k1")).toEqual({
       status: "refused",
       error: "quoteExpired",
@@ -157,9 +159,9 @@ describe("createOrder: checks at creation", () => {
   });
 
   it("refuses a pickup slot that has started", async () => {
-    await verifyPhone();
     const draft = readyDraft();
     clock = Date.parse(draft.sender.slot!.startUtc);
+    await verifyPhone();
     draft.quote = makeQuote(draft.quote!.input, clock);
     draft.acceptedQuoteId = draft.quote.id;
     expect(await createOrder(request(draft), "k")).toEqual({
@@ -178,6 +180,7 @@ describe("createOrder: checks at creation", () => {
     draft.acceptedQuoteId = draft.quote.id;
     expect((await createOrder(request(structuredClone(draft)), "k1")).status).toBe("created");
     clock = Date.parse(slots[0]!.startUtc);
+    await verifyPhone();
     draft.quote = makeQuote(draft.quote.input, clock);
     draft.acceptedQuoteId = draft.quote.id;
     expect(await createOrder(request(draft), "k2")).toEqual({

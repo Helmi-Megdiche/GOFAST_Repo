@@ -1000,7 +1000,9 @@
       "terms": "J'accepte les <cgv>CGV</cgv> et la <privacy>politique de confidentialité</privacy>.",
       "submit": "Continuer",
       "emailTaken": "Cet e-mail a déjà un compte. Connectez-vous.",
-      "created": "Compte créé."
+      "created": "Compte créé.",
+      "emailLater": "Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse.",
+      "emailLaterContinue": "Continuer"
     },
     "code": {
       "title": "Saisissez le code reçu",
@@ -1052,7 +1054,9 @@
       "submit": "Recevoir le code",
       "knownEmail": "Cet e-mail a déjà un compte FastGo. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone.",
       "emailSubmit": "Recevoir le code par e-mail",
-      "missing": "Aucune connexion Google en cours."
+      "missing": "Aucune connexion Google en cours.",
+      "phoneMismatch": "Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte FastGo.",
+      "changePhone": "Changer de numéro"
     }
   }
 }

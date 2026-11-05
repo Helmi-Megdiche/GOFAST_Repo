@@ -1,8 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
 import { useMemoryStorage } from "../storage";
+import { GOOGLE_PENDING_MAX_AGE_MS } from "../order/constants";
 import {
+  attachPhone,
   claimOrderPhone,
+  findById,
   createAccount,
   createLightAccount,
   isVerifiedPhoneForSession,
@@ -12,7 +15,7 @@ import { requestPasswordReset, setNewPassword, signIn } from "./auth";
 import { FIXTURE_ACCOUNTS, FIXTURE_CODES, FIXTURE_PASSWORD } from "./fixtures/accounts";
 import { googleSignIn, pendingGoogle } from "./google";
 import { sendCode, verifyCode } from "./otp";
-import { canPayOnAccount, getSession, setSession, SESSION_KEY } from "./session";
+import { canPayOnAccount, getSession, setSession, SESSION_KEY, signOut } from "./session";
 
 const T0 = Date.parse("2026-11-04T10:00:00Z");
 const [customer, merchantOk, merchantPending] = FIXTURE_ACCOUNTS as [
@@ -21,10 +24,12 @@ const [customer, merchantOk, merchantPending] = FIXTURE_ACCOUNTS as [
   (typeof FIXTURE_ACCOUNTS)[0],
 ];
 let store: Map<string, string>;
+let clock = T0;
 
 beforeEach(() => {
   store = useMemoryStorage();
-  setClock(() => T0);
+  clock = T0;
+  setClock(() => clock);
 });
 
 describe("accounts (R101)", () => {
@@ -107,7 +112,7 @@ describe("sign-in (ESP-01, decision 16)", () => {
       status: "notVerified",
     });
     await requestPasswordReset(customer.phone);
-    await verifyCode({ channel: "sms", value: customer.phone }, FIXTURE_CODES[0]);
+    await verifyCode({ channel: "sms", value: customer.phone }, FIXTURE_CODES[0], "reset");
     expect(await setNewPassword(customer.phone, "short")).toEqual({ status: "tooShort" });
     expect(await setNewPassword(customer.phone, "long-enough-1")).toEqual({ status: "ok" });
     expect(await setNewPassword(customer.phone, "long-enough-1")).toEqual({
@@ -117,7 +122,7 @@ describe("sign-in (ESP-01, decision 16)", () => {
 
   it("a sign-up code is not a reset code", async () => {
     await sendCode({ channel: "sms", value: customer.phone }, "signUp");
-    await verifyCode({ channel: "sms", value: customer.phone }, FIXTURE_CODES[0]);
+    await verifyCode({ channel: "sms", value: customer.phone }, FIXTURE_CODES[0], "signUp");
     expect(await setNewPassword(customer.phone, "long-enough-1")).toEqual({
       status: "notVerified",
     });
@@ -134,6 +139,45 @@ describe("Google (R103)", () => {
     const result = await googleSignIn("google-known");
     expect(result).toMatchObject({ status: "knownEmail", maskedEmail: "s•••@example.tn" });
     expect(pendingGoogle()).toMatchObject({ known: true, emailVerified: false });
+  });
+});
+
+describe("pending Google sign-in (PR #5 review, item 14)", () => {
+  it("expires after GOOGLE_PENDING_MAX_AGE_MS (unsourced, constants.ts)", async () => {
+    await googleSignIn("google-new");
+    clock = T0 + GOOGLE_PENDING_MAX_AGE_MS - 1;
+    expect(pendingGoogle()).not.toBeNull();
+    clock = T0 + GOOGLE_PENDING_MAX_AGE_MS;
+    expect(pendingGoogle()).toBeNull();
+  });
+
+  it("is cleared on sign-out", async () => {
+    await googleSignIn("google-known");
+    signOut();
+    expect(pendingGoogle()).toBeNull();
+  });
+
+  it("is cleared on sign-in", async () => {
+    await googleSignIn("google-known");
+    expect((await signIn(customer.phone, FIXTURE_PASSWORD)).status).toBe("ok");
+    expect(pendingGoogle()).toBeNull();
+  });
+
+  it("an entry without its start time is not trusted", async () => {
+    store.set(
+      "fg.mock.google.pending",
+      JSON.stringify({ profileId: "google-new", kind: "customer" }),
+    );
+    expect(pendingGoogle()).toBeNull();
+  });
+});
+
+describe("attachPhone (PR #5 review, item 15)", () => {
+  it("an account that has a phone accepts only that same phone", () => {
+    expect(attachPhone(customer.id, "+216 55 123 456")).toEqual({ status: "phoneMismatch" });
+    expect(findById(customer.id)?.phone).toBe(customer.phone);
+    expect(attachPhone(customer.id, "+216 98 000 001").status).toBe("created");
+    expect(findById(customer.id)?.phone).toBe(customer.phone);
   });
 });
 

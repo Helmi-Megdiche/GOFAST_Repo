@@ -26,6 +26,18 @@ export const CODE_RESEND_DELAY_MS = 60 * 1000;
 export const CODE_MAX_ATTEMPTS = 5;
 export const CODE_LOCK_MS = 15 * MINUTE;
 
+/**
+ * Unsourced (proposal, PR #5 review): a verified code still counts for its step (create the account
+ * or the order, set a new password) for 10 minutes after it was typed, then it must be sent again.
+ */
+export const CODE_VERIFIED_WINDOW_MS = 10 * MINUTE;
+
+/**
+ * Unsourced (proposal, PR #5 review): a Google sign-in left half-way (W22, the e-mail or SMS code) is
+ * forgotten 30 minutes after the account was chosen in the Google chooser.
+ */
+export const GOOGLE_PENDING_MAX_AGE_MS = 30 * MINUTE;
+
 /** Unsourced (proposal): at most 5 codes sent to one phone or e-mail in the same 15 minutes. */
 export const CODE_MAX_SENDS = 5;
 export const CODE_SEND_WINDOW_MS = 15 * MINUTE;

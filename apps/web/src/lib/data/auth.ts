@@ -4,6 +4,7 @@ import { findByEmail, findByPhone, sessionFor } from "./accounts";
 import { mockDelay } from "./delay";
 import { FIXTURE_PASSWORD } from "./fixtures/accounts";
 import { consumeVerification, isTargetVerified, sendCode, type SendResult } from "./otp";
+import { clearPendingGoogle } from "./google";
 import { setSession, type Session } from "./session";
 
 /** Mock of POST /v1/auth/sign-in (ESP-01). */
@@ -19,6 +20,8 @@ export async function signIn(identifier: string, password: string): Promise<Sign
   if (!account || password !== FIXTURE_PASSWORD) return { status: "invalidCredentials" };
   const session = sessionFor(account);
   setSession(session);
+  // A Google sign-in left half-way must not finish later on top of this session.
+  clearPendingGoogle();
   return { status: "ok", session };
 }
 

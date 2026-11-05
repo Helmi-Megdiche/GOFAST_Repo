@@ -94,12 +94,17 @@ test("sign-in: a wrong password and an unknown account get the same message (dec
 
 test("sign-in goes to /compte by default, to a path of this site, never to an external URL", async ({
   page,
+  baseURL,
 }) => {
   for (const [next, expected] of [
     [null, /\/fr\/compte$/],
     ["https://evil.example/steal", /\/fr\/compte$/],
     ["//evil.example", /\/fr\/compte$/],
     ["/\\evil.example", /\/fr\/compte$/],
+    // The normalized path must not become "//host" (PR #5 review, item 11).
+    ["/fr//evil.example", /\/fr\/compte$/],
+    ["/..//evil.example", /\/fr\/compte$/],
+    ["/%2e%2e//evil.example", /\/fr\/compte$/],
     ["/suivi?n=FG-7K4M-2QXP", /\/fr\/suivi\?n=FG-7K4M-2QXP$/],
   ] as const) {
     await page.goto(`/fr/connexion${next ? `?next=${encodeURIComponent(next)}` : ""}`);
@@ -107,7 +112,7 @@ test("sign-in goes to /compte by default, to a path of this site, never to an ex
     await input(page, "password").fill(PASSWORD);
     await submit(page).click();
     await expect(page).toHaveURL(expected);
-    expect(new URL(page.url()).host).toBe("localhost:3100");
+    expect(new URL(page.url()).host).toBe(new URL(baseURL ?? "").host);
     await page.evaluate(() => localStorage.removeItem("fg.mock.session"));
   }
 });
@@ -300,4 +305,132 @@ test("?next= is kept through W18, W22 and W20, and the draft comes back intact",
   await codeBox(page).fill(FIRST_CODE);
   await submit(page).click();
   await expect(page).toHaveURL(/\/fr\/suivi$/);
+});
+
+// ── PR #5 review, group B ────────────────────────────────────────────────────────────────────
+const sessionWrites = (page: Page) =>
+  page.evaluate(() => Number(sessionStorage.getItem("test.sessionWrites") ?? "0"));
+
+test("sign-in: a double click on the button signs in once (item 17)", async ({ page }) => {
+  // Counts the writes of the mock session (one per successful sign-in call).
+  await page.addInitScript(() => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (key: string, value: string) {
+      if (this === window.localStorage && key === "fg.mock.session") {
+        const count = Number(window.sessionStorage.getItem("test.sessionWrites") ?? "0");
+        setItem.call(window.sessionStorage, "test.sessionWrites", String(count + 1));
+      }
+      return setItem.call(this, key, value);
+    };
+  });
+  await page.goto("/fr/connexion");
+  await input(page, "identifier").fill(KNOWN_PHONE);
+  await input(page, "password").fill(PASSWORD);
+  await submit(page).dblclick();
+  await expect(page).toHaveURL(/\/fr\/compte$/);
+  expect(await sessionWrites(page)).toBe(1);
+});
+
+test("sign-up with an e-mail: the account is created without it and the message is the same, taken or not (item 13)", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  const texts: string[] = [];
+  for (const [phone, email] of [
+    ["+216 55 123 456", "sami.t@example.tn"], // e-mail of a fixture account
+    ["+216 55 123 457", "nouveau@example.tn"],
+  ] as const) {
+    await page.evaluate(() => localStorage.removeItem("fg.mock.session")).catch(() => {});
+    await page.goto("/fr/inscription");
+    await input(page, "name").fill("Nour H.");
+    await input(page, "phone").fill(phone);
+    await input(page, "email").fill(email);
+    await input(page, "password").fill("long-enough-pass");
+    await input(page, "terms").check();
+    await submit(page).click();
+    await expect(page).toHaveURL(/\/fr\/code$/);
+    await codeBox(page).fill(FIRST_CODE);
+    await submit(page).click();
+    const notice = page.locator("main").getByText(/vous pourrez le confirmer plus tard/);
+    await expect(notice).toBeVisible();
+    await expect(page.getByText("Cet e-mail a déjà un compte")).toHaveCount(0);
+    texts.push((await notice.textContent()) ?? "");
+    expect((await session(page))?.kind).toBe("customer");
+    const accounts = await page.evaluate(() =>
+      Object.values(JSON.parse(localStorage.getItem("fg.mock.accounts") ?? "{}")),
+    );
+    // No e-mail is attached without a code sent to it.
+    expect(accounts.map((a) => (a as { email: string | null }).email)).not.toContain(email);
+    await page.getByRole("button", { name: "Continuer" }).click();
+    await expect(page).toHaveURL(/\/fr\/compte$/);
+  }
+  expect(new Set(texts).size).toBe(1);
+});
+
+test("Google: a second tab cannot skip the e-mail code of a known e-mail (R103, item 12)", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  // Tab 1: a new Google e-mail, phone of the known account, up to the SMS code.
+  await googleNew(page, "fr");
+  await input(page, "phone").fill(KNOWN_PHONE);
+  await input(page, "terms").check();
+  await submit(page).click();
+  await expect(page).toHaveURL(/\/fr\/code$/);
+  // Tab 2: the known Google e-mail replaces the sign-in in progress, e-mail not confirmed.
+  const other = await page.context().newPage();
+  await other.goto("/fr/connexion");
+  await other.locator("main button").filter({ hasText: "Google" }).first().click();
+  await other.getByRole("button", { name: /Sami T\./ }).click();
+  await expect(other).toHaveURL(/\/fr\/google-telephone$/);
+  // Tab 1: the right SMS code must not sign in to the known account.
+  await codeBox(page).fill(FIRST_CODE);
+  await submit(page).click();
+  await expect(page).toHaveURL(/\/fr\/google-telephone$/);
+  await expect(page.getByRole("button", { name: "Recevoir le code par e-mail" })).toBeVisible();
+  expect(await session(page)).toBeNull();
+});
+
+test("Google, known e-mail: another phone than the account's is refused (item 15)", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  await page.goto("/fr/connexion");
+  await page.locator("main button").filter({ hasText: "Google" }).first().click();
+  await page.getByRole("button", { name: /Sami T\./ }).click();
+  await page.getByRole("button", { name: "Recevoir le code par e-mail" }).click();
+  await codeBox(page).fill(FIRST_CODE);
+  await submit(page).click();
+  await expect(page).toHaveURL(/\/fr\/google-telephone$/);
+  await input(page, "phone").fill(NEW_PHONE);
+  await input(page, "terms").check();
+  await submit(page).click();
+  await codeBox(page).fill(FIRST_CODE);
+  await submit(page).click();
+  await expect(
+    page.locator("main").getByText("Ce numéro n'est pas celui de votre compte."),
+  ).toBeVisible();
+  expect(await session(page)).toBeNull();
+  const accounts = await page.evaluate(() => localStorage.getItem("fg.mock.accounts") ?? "");
+  expect(accounts).not.toContain("+21655123456");
+});
+
+test("a password reset right after a sign-up code gets its own code and works (item 16)", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  await signUp(page, "fr", KNOWN_PHONE);
+  await expect(page.getByText(/Renvoyer dans \d+ s/)).toBeVisible(); // the sign-up code was sent
+  await page.goto("/fr/mot-de-passe");
+  await input(page, "phone").fill(KNOWN_PHONE);
+  await submit(page).click();
+  await expect(page).toHaveURL(/\/fr\/code$/);
+  await codeBox(page).fill(SECOND_CODE); // the second code sent to this phone
+  await submit(page).click();
+  await expect(page).toHaveURL(/\/fr\/mot-de-passe\/nouveau$/);
+  await input(page, "password").fill("a-new-long-password");
+  await submit(page).click();
+  await expect(
+    page.getByText("Mot de passe enregistré. Vous pouvez vous connecter."),
+  ).toBeVisible();
 });

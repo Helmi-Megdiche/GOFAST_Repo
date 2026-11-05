@@ -41,7 +41,9 @@ export type CreateResult =
   | { status: "created"; account: Account }
   | { status: "phoneTaken" }
   | { status: "emailTaken" }
-  | { status: "invalidPhone" };
+  | { status: "invalidPhone" }
+  /** attachPhone only: the account already has another phone. */
+  | { status: "phoneMismatch" };
 
 /**
  * Creates an account after its phone was verified. R101: refuses a phone or an e-mail that
@@ -95,11 +97,15 @@ export function claimOrderPhone(input: { name: string; phone: string }): "ok" | 
   return "ok";
 }
 
-/** Adds a verified phone to an account that has none yet (Google, known e-mail, R103). */
+/**
+ * Google with a known e-mail (R103): adds a verified phone to an account that has none yet. An
+ * account that already has a phone accepts only that same phone: never replaced from here.
+ */
 export function attachPhone(accountId: string, phone: string): CreateResult {
   const account = findById(accountId);
   const normalized = normalizePhone(phone);
   if (!account || !normalized) return { status: "invalidPhone" };
+  if (account.phone && account.phone !== normalized) return { status: "phoneMismatch" };
   const owner = findByPhone(normalized);
   if (owner && owner.id !== account.id) return { status: "phoneTaken" };
   const updated: Account = { ...account, phone: normalized, phoneVerified: true };

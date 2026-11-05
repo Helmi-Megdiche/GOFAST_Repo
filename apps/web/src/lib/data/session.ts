@@ -15,6 +15,9 @@ export type Session = {
 
 export const SESSION_KEY = "fg.mock.session";
 
+/** The Google sign-in in progress (lib/data/google.ts). Kept here so sign-out can clear it. */
+export const GOOGLE_PENDING_KEY = "fg.mock.google.pending";
+
 export function getSession(): Session | null {
   const value = readJson(SESSION_KEY) as Partial<Session> | null;
   if (
@@ -38,8 +41,10 @@ export function setSession(session: Session): void {
   writeJson(SESSION_KEY, session);
 }
 
+/** Ends the session and forgets a Google sign-in left half-way. */
 export function signOut(): void {
   removeKey(SESSION_KEY);
+  removeKey(GOOGLE_PENDING_KEY);
 }
 
 /** R104: "Compte client" only for a merchant whose contract is validated. */

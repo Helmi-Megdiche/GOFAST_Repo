@@ -43,10 +43,12 @@ native-speaker review before release (CLAUDE.md).
 | `auth.google.close` | إغلاق | Fermer | [ ] |
 | `auth.google.connectedAs` | {email}، متصل عبر Google | {email}, connecté avec Google | [ ] |
 | `auth.google.continue` | المتابعة عبر Google | Continuer avec Google | [ ] |
+| `auth.googlePhone.changePhone` | تغيير الرقم | Changer de numéro | [ ] |
 | `auth.googlePhone.emailSubmit` | احصل على الرمز بالبريد الإلكتروني | Recevoir le code par e-mail | [ ] |
 | `auth.googlePhone.knownEmail` | لهذا البريد الإلكتروني حساب FastGo. أكّده بالرمز المرسل بالبريد الإلكتروني، ثم أضف هاتفك. | Cet e-mail a déjà un compte FastGo. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone. | [ ] |
 | `auth.googlePhone.missing` | لا يوجد تسجيل دخول جارٍ عبر Google. | Aucune connexion Google en cours. | [ ] |
 | `auth.googlePhone.phone` | الهاتف | Téléphone | [ ] |
+| `auth.googlePhone.phoneMismatch` | هذا الرقم ليس رقم حسابك. أدخل الهاتف المسجّل في حسابك على FastGo. | Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte FastGo. | [ ] |
 | `auth.googlePhone.submit` | احصل على الرمز | Recevoir le code | [ ] |
 | `auth.googlePhone.text` | يحتاجه السائق والتتبع. نتحقق منه مرة واحدة برسالة نصية. | Le livreur et le suivi en ont besoin. Nous le vérifions une seule fois par SMS. | [ ] |
 | `auth.googlePhone.title` | الخطوة الأخيرة: هاتفك | Dernière étape : votre téléphone | [ ] |
@@ -68,6 +70,8 @@ native-speaker review before release (CLAUDE.md).
 | `auth.signIn.title` | تسجيل الدخول إلى حسابك | Connexion à votre compte | [ ] |
 | `auth.signUp.created` | تم إنشاء الحساب. | Compte créé. | [ ] |
 | `auth.signUp.email` | البريد الإلكتروني (اختياري) | E-mail (facultatif) | [ ] |
+| `auth.signUp.emailLater` | تم إنشاء الحساب. لم تتم إضافة بريدك الإلكتروني بعد: يمكنك تأكيده لاحقًا برمز يُرسل إلى هذا العنوان. | Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse. | [ ] |
+| `auth.signUp.emailLaterContinue` | متابعة | Continuer | [ ] |
 | `auth.signUp.emailTaken` | لهذا البريد الإلكتروني حساب بالفعل. سجّل الدخول. | Cet e-mail a déjà un compte. Connectez-vous. | [ ] |
 | `auth.signUp.kindLegend` | نوع الحساب | Type de compte | [ ] |
 | `auth.signUp.kinds.customer.text` | شحنات عرضية | Envois ponctuels | [ ] |
