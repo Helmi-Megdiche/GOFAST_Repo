@@ -54,8 +54,8 @@ Test each plan rule and each ruling against the purpose it serves, with real seq
 Source: PR 0, the `noParcelTaken` bug came from the plan's own wording, and the code followed it. PR 0 round 1: `picked_up → lost` held for one parcel, but with 3 parcels, P1 taken then lost while P2 and P3 were still `to_collect` wrote `picked_up → in_transit → lost`, and the test asserted the `in_transit` event.
 
 **RV-03. Declared tables must list every move the code can make.**
-Compare the transition tables with the moves that derivation and cascades can produce, and report any pair the table does not list.
-Source: PR 0, `picked_up → lost` was produced by derivation but missing from the order table.
+Compare the transition tables with the moves that derivation and cascades can produce, and report any pair the table does not list. A derived state must never move backward. Keep a test that walks the parcel table through many sequences on a 2 or 3 parcel order and checks every order event against the order table.
+Source: PR 0, `picked_up → lost` was produced by derivation but missing from the order table. PR 0 round 2: the fix for a loss during pickup made a loss after `in_transit` write `in_transit → picked_up`.
 
 **RV-04. Effects meant for internal use must not be reachable directly.**
 For each public function, try the inputs that only a cascade should send. They must be refused with nothing changed and no event written.
