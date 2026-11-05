@@ -20,9 +20,7 @@ export function splitWhole(total: number, n: number): number[] {
  * Accepts ".", "," or "٫" as the decimal separator and Arabic-Indic digits. More than 3 decimals is
  * refused, since grams are the smallest unit.
  */
-export function kgTextToGrams(
-  text: string,
-): number | { refused: "tooManyDecimals" | "invalid" } {
+export function kgTextToGrams(text: string): number | { refused: "tooManyDecimals" | "invalid" } {
   const latin = toLatinDigits(text.trim()).replace(",", ".");
   const match = /^(\d+)(?:\.(\d+))?$/.exec(latin);
   if (!match) return { refused: "invalid" };

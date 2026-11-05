@@ -1,5 +1,9 @@
 import { PROOF_VALUE_THRESHOLD_MILLIMES } from "./constants";
 
+/** Proof level of a parcel (ADR-1, section 4 table), weakest to strongest. */
+export type ProofLevel =
+  "codeOrPhotoWithPosition" | "codeOrSignatureAndPhoto" | "codeOrAgentPhoneWithSignatureAndPhoto";
+
 /**
  * Proof of delivery shown on W15 (rules from the cahier):
  * - ordinary parcel, no COD: recipient code, or photo with position

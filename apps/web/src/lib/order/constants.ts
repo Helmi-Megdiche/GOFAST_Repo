@@ -13,6 +13,9 @@ export const QUOTE_VALIDITY_MS = 15 * MINUTE;
 /** Unsourced (proposal): a draft is kept 24 h after its last edit, then deleted on read. */
 export const DRAFT_RETENTION_MS = 24 * HOUR;
 
+/** Unsourced: "délai fixé", R406. The recipient link stops working 24 h after the order is final. */
+export const RECIPIENT_LINK_AFTER_DELIVERY_MS = 24 * HOUR;
+
 /** Unsourced (mockup W20): the SMS code has 6 digits. */
 export const CODE_LENGTH = 6;
 
