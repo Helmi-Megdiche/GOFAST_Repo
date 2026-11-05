@@ -301,6 +301,10 @@ describe("after the order", () => {
     if (created.status !== "created") throw new Error();
     const result = await lookupTracking(created.code.toLowerCase());
     expect(result.status).toBe("found");
+    if (result.status !== "found") throw new Error("expected found");
+    expect(result.tracking.status).toBe("received");
+    expect(result.tracking.history.map((entry) => entry.status)).toEqual(["received"]);
+    expect(result.tracking.parcelCount).toBe(1);
     const text = JSON.stringify(result);
     for (const personal of ["Amel", "Yasmine", "Habib", "Khaldoun", "20000000", "50000000"]) {
       expect(text).not.toContain(personal);

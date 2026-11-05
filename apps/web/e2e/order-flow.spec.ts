@@ -512,7 +512,7 @@ test("W16: tracking link, sample slip, /suivi finds the order without personal d
 
   await page.getByRole("link", { name: "Suivre ma livraison" }).click();
   await expect(page).toHaveURL(new RegExp(`/fr/suivi\\?n=${code}$`));
-  await expect(page.getByText("Commande créée").first()).toBeVisible();
+  await expect(page.getByText("Nous avons reçu votre commande")).toBeVisible();
   await expect(page.locator("main")).not.toContainText(/Amel|Yasmine|Bourguiba|Khaldoun/);
 });
 

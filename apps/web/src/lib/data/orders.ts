@@ -14,7 +14,7 @@ import { splitWhole, kgTextToGrams } from "../order/split";
 import { readJson, removeKey } from "../storage";
 import { isVerifiedPhoneForSession } from "./accounts";
 import { mockDelay } from "./delay";
-import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
+import { FIXTURE_ORDER_CODES } from "./fixtures/orders";
 import {
   consumeFailNext,
   FAIL_NEXT_ORDER_REQUEST_KEY,
@@ -36,7 +36,6 @@ import { isTargetVerified } from "./otp";
 import { writeOutbox } from "./outbox";
 import { mintRecipientLink } from "./recipient-links";
 import { canPayOnAccount, getSession } from "./session";
-import type { PublicParcel } from "./tracking";
 
 /** Mock of POST /v1/orders with an Idempotency-Key header (R202, R203). */
 export type OrderError =
@@ -76,7 +75,7 @@ const KEYS = "fg.mock.idempotency";
 
 /** Codes already used, including the fixtures: a code is never given twice (R203). */
 function issuedCodes(): Set<string> {
-  return new Set([FOUND_TRACKING_CODE, ...Object.keys(readTable<StoredOrder>(ORDERS))]);
+  return new Set([...FIXTURE_ORDER_CODES, ...Object.keys(readTable<StoredOrder>(ORDERS))]);
 }
 
 export function uniqueTrackingCode(randomBytes?: RandomBytes): string {
@@ -329,19 +328,6 @@ export async function getOrderConfirmation(code: string): Promise<{
   return order
     ? { code: order.code, recipientName: order.recipientName, pickup: order.pickup }
     : null;
-}
-
-/** Public tracking of a new order: status, dates and cities only (SUI-01), no name or address. */
-export function publicParcelOf(code: string): PublicParcel | null {
-  const order = readTable<StoredOrder>(ORDERS)[normalizeTrackingCode(code)];
-  if (!order) return null;
-  return {
-    currentStep: "created",
-    etaUtc: null,
-    fromCity: null,
-    toCity: null,
-    history: [{ step: "created", atUtc: order.createdAt }],
-  };
 }
 
 /** "Bon de commande" (W16): a small static sample PDF marked as an example (decision 20). */

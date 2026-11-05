@@ -431,13 +431,6 @@
     "arrival": "Arrivée estimée",
     "route": "De {from} vers {to}",
     "historyLabel": "Historique du colis",
-    "steps": {
-      "created": "Commande créée",
-      "confirmed": "Commande confirmée",
-      "picked_up": "Colis récupéré",
-      "out_for_delivery": "En cours de livraison",
-      "delivered": "Livré"
-    },
     "notFound": {
       "title": "Numéro introuvable",
       "text": "Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo."
@@ -449,7 +442,8 @@
     "problem": {
       "title": "Un problème ?",
       "cta": "Contacter FastGo"
-    }
+    },
+    "parcel": "Colis"
   },
   "zones": {
     "title": "Zones desservies",
@@ -1062,5 +1056,47 @@
       "changePhone": "Changer de numéro"
     },
     "noJs": "Cette page a besoin de JavaScript. Activez-le dans votre navigateur."
+  },
+  "orders": {
+    "status": {
+      "received": "Reçue",
+      "confirmed": "Confirmée",
+      "assigned": "Attribuée",
+      "pickup_failed": "Collecte ratée",
+      "picked_up": "Prise en charge",
+      "in_transit": "En route",
+      "delivered": "Livrée",
+      "partially_delivered": "Livrée en partie",
+      "returned": "Rendue",
+      "lost": "Perdue",
+      "canceled": "Annulée"
+    },
+    "client": {
+      "received": "Nous avons reçu votre commande",
+      "confirmed": "Votre commande est confirmée",
+      "assigned": "Un livreur vient chercher votre colis",
+      "pickup_failed": "La collecte n'a pas pu se faire",
+      "picked_up": "{count, plural, one {Votre colis est récupéré} other {Vos # colis sont récupérés}}",
+      "in_transit": "Votre livraison est en cours",
+      "delivered": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "partially_delivered": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "returned": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "lost": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "canceled": "Votre commande est annulée"
+    }
+  },
+  "parcels": {
+    "status": {
+      "to_collect": "À prendre",
+      "taken": "Pris",
+      "at_depot": "Au dépôt",
+      "in_transit": "En route",
+      "delivery_failed": "Remise ratée",
+      "returning": "Retour",
+      "handed_over": "Remis",
+      "returned": "Rendu",
+      "lost": "Perdu",
+      "canceled": "Annulé"
+    }
   }
 }

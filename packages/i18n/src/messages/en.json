@@ -431,13 +431,6 @@
     "arrival": "Estimated arrival",
     "route": "From {from} to {to}",
     "historyLabel": "Parcel history",
-    "steps": {
-      "created": "Order created",
-      "confirmed": "Order confirmed",
-      "picked_up": "Parcel picked up",
-      "out_for_delivery": "Out for delivery",
-      "delivered": "Delivered"
-    },
     "notFound": {
       "title": "Number not found",
       "text": "No parcel matches this number. Check it or contact FastGo."
@@ -449,7 +442,8 @@
     "problem": {
       "title": "A problem?",
       "cta": "Contact FastGo"
-    }
+    },
+    "parcel": "Parcel"
   },
   "zones": {
     "title": "Areas served",
@@ -1062,5 +1056,47 @@
       "changePhone": "Change number"
     },
     "noJs": "This page needs JavaScript. Turn it on in your browser."
+  },
+  "orders": {
+    "status": {
+      "received": "Received",
+      "confirmed": "Confirmed",
+      "assigned": "Assigned",
+      "pickup_failed": "Pickup failed",
+      "picked_up": "Picked up",
+      "in_transit": "In transit",
+      "delivered": "Delivered",
+      "partially_delivered": "Partially delivered",
+      "returned": "Returned",
+      "lost": "Lost",
+      "canceled": "Canceled"
+    },
+    "client": {
+      "received": "We have received your order",
+      "confirmed": "Your order is confirmed",
+      "assigned": "A driver is coming to pick up your parcel",
+      "pickup_failed": "The pickup could not be done",
+      "picked_up": "{count, plural, one {Your parcel has been picked up} other {Your # parcels have been picked up}}",
+      "in_transit": "Your delivery is on its way",
+      "delivered": "Delivery outcome: {outcome}. Details per parcel follow.",
+      "partially_delivered": "Delivery outcome: {outcome}. Details per parcel follow.",
+      "returned": "Delivery outcome: {outcome}. Details per parcel follow.",
+      "lost": "Delivery outcome: {outcome}. Details per parcel follow.",
+      "canceled": "Your order is canceled"
+    }
+  },
+  "parcels": {
+    "status": {
+      "to_collect": "To collect",
+      "taken": "Taken",
+      "at_depot": "At the depot",
+      "in_transit": "In transit",
+      "delivery_failed": "Delivery failed",
+      "returning": "Returning",
+      "handed_over": "Handed over",
+      "returned": "Returned",
+      "lost": "Lost",
+      "canceled": "Canceled"
+    }
   }
 }

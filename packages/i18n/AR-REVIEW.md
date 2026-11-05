@@ -652,6 +652,38 @@ native-speaker review before release (CLAUDE.md).
 | `order.slot.onDate` | يوم {date}، من {start} إلى {end} | Le {date}, de {start} à {end} | [ ] |
 | `order.slot.today` | اليوم، من {start} إلى {end} | Aujourd'hui, de {start} à {end} | [ ] |
 | `order.slot.tomorrow` | غدًا، من {start} إلى {end} | Demain, de {start} à {end} | [ ] |
+| `orders.client.assigned` | سيأتي سائق لاستلام طردك | Un livreur vient chercher votre colis | [ ] |
+| `orders.client.canceled` | تم إلغاء طلبك | Votre commande est annulée | [ ] |
+| `orders.client.confirmed` | تم تأكيد طلبك | Votre commande est confirmée | [ ] |
+| `orders.client.delivered` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.client.in_transit` | طلبك قيد التوصيل | Votre livraison est en cours | [ ] |
+| `orders.client.lost` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.client.partially_delivered` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.client.picked_up` | {count, plural, one {تم استلام طردك} two {تم استلام طردَيك} few {تم استلام # طرود} many {تم استلام # طردًا} other {تم استلام # طرد}} | {count, plural, one {Votre colis est récupéré} other {Vos # colis sont récupérés}} | [ ] |
+| `orders.client.pickup_failed` | تعذّر الاستلام | La collecte n'a pas pu se faire | [ ] |
+| `orders.client.received` | لقد استلمنا طلبك | Nous avons reçu votre commande | [ ] |
+| `orders.client.returned` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.status.assigned` | تم الإسناد | Attribuée | [ ] |
+| `orders.status.canceled` | ملغى | Annulée | [ ] |
+| `orders.status.confirmed` | مؤكَّد | Confirmée | [ ] |
+| `orders.status.delivered` | تم التسليم | Livrée | [ ] |
+| `orders.status.in_transit` | في الطريق | En route | [ ] |
+| `orders.status.lost` | مفقود | Perdue | [ ] |
+| `orders.status.partially_delivered` | تم التسليم جزئيًا | Livrée en partie | [ ] |
+| `orders.status.picked_up` | تم التكفّل به | Prise en charge | [ ] |
+| `orders.status.pickup_failed` | تعذّر الاستلام | Collecte ratée | [ ] |
+| `orders.status.received` | تم الاستلام | Reçue | [ ] |
+| `orders.status.returned` | تمت الإعادة | Rendue | [ ] |
+| `parcels.status.at_depot` | في المستودع | Au dépôt | [ ] |
+| `parcels.status.canceled` | ملغى | Annulé | [ ] |
+| `parcels.status.delivery_failed` | تعذّر التسليم | Remise ratée | [ ] |
+| `parcels.status.handed_over` | تم التسليم | Remis | [ ] |
+| `parcels.status.in_transit` | في الطريق | En route | [ ] |
+| `parcels.status.lost` | مفقود | Perdu | [ ] |
+| `parcels.status.returned` | تمت الإعادة | Rendu | [ ] |
+| `parcels.status.returning` | قيد الإرجاع | Retour | [ ] |
+| `parcels.status.taken` | تم أخذه | Pris | [ ] |
+| `parcels.status.to_collect` | بانتظار الاستلام | À prendre | [ ] |
 | `placeholders.address` | [العنوان] | [ADRESSE] | [ ] |
 | `placeholders.answer` | [الجواب] | [RÉPONSE] | [ ] |
 | `placeholders.ceiling` | [سقف] | [PLAFOND] | [ ] |
@@ -698,15 +730,11 @@ native-speaker review before release (CLAUDE.md).
 | `tracking.label` | رقم التتبع | Numéro de suivi | [ ] |
 | `tracking.notFound.text` | لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع FastGo. | Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo. | [ ] |
 | `tracking.notFound.title` | الرقم غير موجود | Numéro introuvable | [ ] |
+| `tracking.parcel` | الطرد | Colis | [ ] |
 | `tracking.problem.cta` | تواصل مع FastGo | Contacter FastGo | [ ] |
 | `tracking.problem.title` | هل من مشكلة؟ | Un problème ? | [ ] |
 | `tracking.route` | من {from} إلى {to} | De {from} vers {to} | [ ] |
 | `tracking.searching` | جارٍ البحث… | Recherche… | [ ] |
-| `tracking.steps.confirmed` | تم تأكيد الطلب | Commande confirmée | [ ] |
-| `tracking.steps.created` | تم إنشاء الطلب | Commande créée | [ ] |
-| `tracking.steps.delivered` | تم التسليم | Livré | [ ] |
-| `tracking.steps.out_for_delivery` | قيد التوصيل | En cours de livraison | [ ] |
-| `tracking.steps.picked_up` | تم استلام الطرد | Colis récupéré | [ ] |
 | `tracking.submit` | تتبع | Suivre | [ ] |
 | `tracking.title` | تتبع طرد | Suivre un colis | [ ] |
 | `tracking.yourParcel.text` | يعرض الرابط الذي وصلك برسالة نصية المبلغ المطلوب ورمز التسليم، ويتيح تغيير الموعد. | Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau. | [ ] |

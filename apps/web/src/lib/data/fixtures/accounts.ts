@@ -11,6 +11,11 @@ export type FixtureAccount = {
   /** Merchants only (R104): "Compte client" needs a validated contract. */
   contract: "validated" | "pending" | null;
   phoneVerified: boolean;
+  /**
+   * Mock field, not in the cahier's data model: what a customer owes FastGo for returned parcels
+   * (millimes), for the screens that show a balance to settle. Absent means nothing is due.
+   */
+  returnBalanceMillimes?: number;
 };
 
 export const FIXTURE_PASSWORD = "fastgo-demo-2026";
@@ -42,6 +47,34 @@ export const FIXTURE_ACCOUNTS: FixtureAccount[] = [
     email: "atelier.nour@example.tn",
     contract: "pending",
     phoneVerified: true,
+  },
+  {
+    id: "acc-customer-empty",
+    kind: "customer",
+    name: "Lina M.",
+    phone: "+21698000003",
+    email: "lina.m@example.tn",
+    contract: null,
+    phoneVerified: true,
+  },
+  {
+    id: "acc-customer-other",
+    kind: "customer",
+    name: "Karim S.",
+    phone: "+21698000004",
+    email: "karim.s@example.tn",
+    contract: null,
+    phoneVerified: true,
+  },
+  {
+    id: "acc-customer-return-due",
+    kind: "customer",
+    name: "Hana R.",
+    phone: "+21698000005",
+    email: "hana.r@example.tn",
+    contract: null,
+    phoneVerified: true,
+    returnBalanceMillimes: 7000,
   },
 ];
 
