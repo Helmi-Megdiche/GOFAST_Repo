@@ -1,3 +1,4 @@
+import { isTargetVerified } from "../data/otp";
 import { isSlotInFuture } from "./slots";
 import { addressPriceKey, isQuoteValid, priceKey, type PriceInput, type Quote } from "./pricing";
 import { normalizePhone } from "../phone";
@@ -54,7 +55,8 @@ function parcelDone(draft: OrderDraft): boolean {
     parseCount(parcel.count) != null &&
     parseWeightKg(parcel.weightKg) != null &&
     requiredText.safeParse(parcel.content).success &&
-    declaredValueValid(parcel.declaredValueMillimes)
+    declaredValueValid(parcel.declaredValueMillimes) &&
+    parcel.declaredValueInvalid !== true
   );
 }
 
@@ -137,6 +139,18 @@ export function redirectFor(
 export function draftPhoneVerified(draft: OrderDraft): boolean {
   const phone = normalizePhone(draft.sender.phone);
   return phone != null && draft.verifiedPhone === phone;
+}
+
+/**
+ * The draft's verified phone is still accepted by the server: same phone, and its order code was
+ * verified less than CODE_VERIFIED_WINDOW_MS ago and not used yet (final review I1). The draft flag
+ * alone is not proof: past the window the code step must be offered again.
+ */
+export function draftPhoneProven(draft: OrderDraft): boolean {
+  return (
+    draftPhoneVerified(draft) &&
+    isTargetVerified({ channel: "sms", value: draft.sender.phone }, "order")
+  );
 }
 
 export { isQuoteValid };

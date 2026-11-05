@@ -8,7 +8,7 @@ import { useRouter } from "@/i18n/navigation";
 import { AccountExists, CodeVerification } from "@/components/auth/code-verification";
 import { claimOrderPhone, isVerifiedPhoneForSession } from "@/lib/data/accounts";
 import { editDraft } from "@/lib/order/draft";
-import { draftPhoneVerified, STEP_PATHS } from "@/lib/order/steps";
+import { draftPhoneProven, STEP_PATHS } from "@/lib/order/steps";
 import { handOffRefusal, submitOrder } from "@/lib/order/submit";
 import { maskPhone, normalizePhone } from "@/lib/phone";
 import { StepBusy } from "./busy";
@@ -27,14 +27,15 @@ export function OrderCodeStep({ heading }: { heading: ReactNode }) {
   const started = useRef(false);
 
   const phone = draft ? normalizePhone(draft.sender.phone) : null;
-  // Nothing to check here (no payment or CGV, answer pending, phone already verified): W15.
+  // Nothing to check here (no payment or CGV, answer pending, phone already verified and still
+  // accepted by the server): W15. A verification past its window needs a new code.
   const needsCode =
     draft != null &&
     phone != null &&
     draft.payment != null &&
     draft.termsAccepted &&
     draft.pendingSubmit == null &&
-    !draftPhoneVerified(draft) &&
+    !draftPhoneProven(draft) &&
     !isVerifiedPhoneForSession(draft.sender.phone);
 
   useEffect(() => {

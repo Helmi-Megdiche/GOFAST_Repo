@@ -62,9 +62,11 @@ export function AddressField({
     onChange({ ...latest.current, text, confirmed: true, pin: null, zone });
   }
 
-  // The pin is the address now: its label replaces the typed text, which may name another place.
+  // The pin is the address now: it replaces the typed text, which may name another place. The text
+  // stays empty (no catalog label is stored or sent): the field shows t("pinText") in the page's
+  // language (final review I3).
   async function placePin(pin: MapPoint) {
-    const text = t("pinText");
+    const text = "";
     onChange({ ...latest.current, text, confirmed: true, pin, zone: null });
     setChecking(true);
     const zone = await checkPoint(pin);
@@ -89,7 +91,7 @@ export function AddressField({
       <Field label={label} hint={t("hint")} error={message(error)} required>
         <Input
           ref={inputRef}
-          value={value.text}
+          value={value.pin && value.text === "" ? t("pinText") : value.text}
           autoComplete={autoComplete ?? "off"}
           aria-controls={suggestions.length > 0 ? listId : undefined}
           onChange={(event) =>

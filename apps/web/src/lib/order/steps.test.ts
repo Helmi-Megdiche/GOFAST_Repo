@@ -22,6 +22,24 @@ describe("declared value (stored in millimes, whatever the language)", () => {
   });
 });
 
+describe("declared value typed but not readable (final review I2)", () => {
+  it("text that does not parse stops at W13 and is never sent, whatever amount was kept", () => {
+    const draft = readyDraft(T0);
+    // "2,5000" typed after "2,500": the last valid amount is still stored.
+    draft.parcel = { ...draft.parcel, declaredValueMillimes: 2_500, declaredValueInvalid: true };
+    expect(redirectFor(draft, "review", T0)).toBe("parcel");
+    expect(redirectFor(draft, "service", T0)).toBe("parcel");
+    expect(buildOrderRequest(draft, true)).toBeNull();
+  });
+
+  it("a readable amount (or an empty field) clears the marker and passes", () => {
+    const draft = readyDraft(T0);
+    draft.parcel = { ...draft.parcel, declaredValueInvalid: false };
+    expect(redirectFor(draft, "review", T0)).toBeNull();
+    expect(buildOrderRequest(draft, true)?.parcel).not.toHaveProperty("declaredValueInvalid");
+  });
+});
+
 describe("W15 guard and the quote (R205)", () => {
   it("a weight changed after the quote sends W15 back to W14", () => {
     const draft = readyDraft(T0);

@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
+import { CODE_VERIFIED_WINDOW_MS } from "../order/constants";
 import type { OrderDraft } from "../order/draft";
 import { makeQuote } from "../order/pricing";
 import { buildOrderRequest, type OrderRequest } from "../order/request";
@@ -93,6 +94,20 @@ describe("createOrder: idempotency (R202)", () => {
 describe("createOrder: checks at creation", () => {
   it("refuses before the phone is verified (R102)", async () => {
     expect(await createOrder(request(), "k")).toEqual({
+      status: "refused",
+      error: "phoneNotVerified",
+    });
+  });
+
+  it("refuses once CODE_VERIFIED_WINDOW_MS has passed since the code was verified (I1)", async () => {
+    await verifyPhone();
+    clock = T0 + CODE_VERIFIED_WINDOW_MS - 1;
+    expect((await createOrder(request(), "k-in")).status).toBe("created");
+    useMemoryStorage();
+    clock = T0;
+    await verifyPhone();
+    clock = T0 + CODE_VERIFIED_WINDOW_MS;
+    expect(await createOrder(request(), "k-late")).toEqual({
       status: "refused",
       error: "phoneNotVerified",
     });

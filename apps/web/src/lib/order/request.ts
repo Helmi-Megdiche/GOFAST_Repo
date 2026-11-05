@@ -61,6 +61,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
     count == null ||
     weightKg == null ||
     !declaredValueValid(parcel.declaredValueMillimes) ||
+    parcel.declaredValueInvalid === true ||
     !service.code ||
     !draft.quote ||
     !draft.payment

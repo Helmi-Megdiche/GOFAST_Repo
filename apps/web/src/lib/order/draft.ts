@@ -53,6 +53,11 @@ export type OrderDraft = {
     content: string;
     /** Parsed once, in the language it was typed in (never re-read in another language). */
     declaredValueMillimes: number | null;
+    /**
+     * True while the declared-value text does not parse (final review I2). The last valid amount
+     * stays in declaredValueMillimes but is never sent: the guard keeps the order on W13.
+     */
+    declaredValueInvalid?: boolean;
     fragile: boolean;
   };
   service: { code: ServiceCode | null; slot: Slot | null };
@@ -99,6 +104,7 @@ export function emptyDraft(at: number = now()): OrderDraft {
       weightKg: "",
       content: "",
       declaredValueMillimes: null,
+      declaredValueInvalid: false,
       fragile: false,
     },
     service: { code: null, slot: null },
@@ -178,6 +184,8 @@ const draftShape = z.object({
     weightKg: z.string(),
     content: z.string(),
     declaredValueMillimes: millimes.nonnegative().nullable(),
+    // Optional: a draft saved before this field is read as readable (it was checked by Continue).
+    declaredValueInvalid: z.boolean().optional(),
     fragile: z.boolean(),
   }),
   service: z.object({ code: serviceCode.nullable(), slot: slotShape }),

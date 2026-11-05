@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FIRST_CODE, MORNING } from "./helpers";
+import { FIRST_CODE, MORNING, SECOND_CODE } from "./helpers";
 
 /**
  * PR #5, group D: a careless or hostile customer on the order flow and the sign-in (mock data,
@@ -123,6 +123,21 @@ async function enterCode(page: Page, code = FIRST_CODE) {
   await expect(page).toHaveURL(/\/commander\/code$/);
   await page.getByRole("textbox", { name: "Code à 6 chiffres" }).fill(code);
   await page.getByRole("button", { name: "Vérifier" }).click();
+}
+
+const MERCHANT_PHONE = "+216 71 000 001"; // fixture merchant, contract validated
+
+async function merchantReview(page: Page) {
+  await page.clock.install({ time: MORNING });
+  await page.goto("/fr/connexion");
+  await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(MERCHANT_PHONE);
+  await page.locator('input[name="password"]').fill(PASSWORD);
+  await page.getByRole("button", { name: "Se connecter" }).click();
+  await expect(page).toHaveURL(/\/fr\/compte$/);
+  await page.goto("/fr/commander");
+  // Another sender phone than the account's: the session does not prove it, only the SMS code does.
+  await toReview(page, SENDER_PHONE);
+  await payAndAccept(page);
 }
 
 const CONFIRMED = /\/commander\/confirmation\?n=FG-[A-Z0-9]{4}-[A-Z0-9]{4}$/;
@@ -488,5 +503,137 @@ test.describe("abuse", () => {
     }
     for (const open of elsewhere.pages()) visited.push(open.url());
     await elsewhere.close();
+  });
+
+  // ── Final review I1: the verified window (CODE_VERIFIED_WINDOW_MS) runs out before the order ──
+  test("a lost request retried after the verified window asks for a new code, then one order", async ({
+    page,
+  }) => {
+    await merchantReview(page);
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await page.evaluate(() => localStorage.setItem("fg.mock.failNextOrderRequest", "true"));
+    await enterCode(page);
+    await expect(page).toHaveURL(/\/commander\/verification$/);
+    await expect(page.getByText("La connexion a été coupée.")).toBeVisible();
+    expect(await orders(page)).toBe(0);
+
+    await page.clock.fastForward("11:00"); // past the verified window, the price still holds
+    await page.getByRole("button", { name: "Réessayer" }).click();
+    await expect(page).toHaveURL(/\/commander\/code$/);
+    expect((await draft(page)).verifiedPhone).toBeNull();
+    await enterCode(page, SECOND_CODE);
+    await expect(page).toHaveURL(CONFIRMED);
+    expect(await orders(page)).toBe(1);
+  });
+
+  test("a refused order, Valider again after the verified window: new code, then one order", async ({
+    page,
+  }) => {
+    await merchantReview(page);
+    await page.clock.fastForward("11:00");
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await page.clock.fastForward("04:30"); // the price expires: the code is checked, the order refused
+    await enterCode(page);
+    await expect(page).toHaveURL(/\/commander\/verification$/);
+    await page.getByRole("button", { name: "Accepter le nouveau prix" }).click();
+    expect((await draft(page)).verifiedPhone).toBe("+21620000000");
+
+    await page.clock.fastForward("11:00"); // the customer comes back after the verified window
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await expect(page).toHaveURL(/\/commander\/code$/);
+    await enterCode(page, SECOND_CODE);
+    await expect(page).toHaveURL(CONFIRMED);
+    expect(await orders(page)).toBe(1);
+  });
+
+  test("/commander/code after the verified window asks for a new code instead of going back", async ({
+    page,
+  }) => {
+    await merchantReview(page);
+    await page.clock.fastForward("11:00");
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await page.clock.fastForward("04:30");
+    await enterCode(page);
+    await expect(page).toHaveURL(/\/commander\/verification$/);
+    await page.getByRole("button", { name: "Accepter le nouveau prix" }).click();
+    await page.clock.fastForward("11:00");
+    await page.goto("/fr/commander/code");
+    await expect(page.getByText("+216 20 ••• 000")).toBeVisible();
+    await expect(page).toHaveURL(/\/commander\/code$/);
+  });
+
+  // ── Final review I2: a declared value that does not parse never leaves W13 ──
+  test("a declared value made unreadable after a valid one stops at W13 on Back", async ({
+    page,
+  }) => {
+    await start(page);
+    await toReview(page);
+    await payAndAccept(page);
+    await page.goto("/fr/commander/colis");
+    const field = page.locator('input[name="declaredValue"]');
+    await field.fill("2,500");
+    await expect(page.locator("main p[aria-live=polite]")).toContainText("2,500");
+    await expect.poll(async () => (await draft(page)).parcel.declaredValueMillimes).toBe(2_500);
+    await field.fill("2,5000"); // a typo: four decimals
+    // The parsed amount under the field goes away: the text was read (and saved) as unreadable.
+    await expect(page.locator("main p[aria-live=polite]")).toHaveCount(0);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/commander\/colis$/);
+    await page.goto("/fr/commander/verification");
+    await expect(page).toHaveURL(/\/commander\/colis$/);
+    expect(await orders(page)).toBe(0);
+  });
+
+  // ── Final review I3: a pin stores no label; the label is shown in the page's language ──
+  test("a pin placed in fr reads in Arabic after a switch, and the order sends no label", async ({
+    page,
+  }) => {
+    await start(page);
+    const address = textbox(page, "Adresse de collecte");
+    await address.fill("Route de Sousse");
+    await page
+      .getByRole("button", { name: "Carte : placer un repère pour Adresse de collecte" })
+      .focus();
+    await page.keyboard.press("ArrowUp");
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("status").filter({ hasText: "Adresse desservie." })).toBeVisible();
+    await expect(address).toHaveValue("Repère placé sur la carte");
+    await textbox(page, "Votre nom").fill("Yasmine K.");
+    await textbox(page, "Téléphone").fill(SENDER_PHONE);
+    await page.getByLabel("Créneau de collecte").selectOption({ index: 1 });
+    await page.getByRole("button", { name: "Continuer" }).click();
+    await fillRecipient(page);
+    await fillParcel(page);
+    await chooseStandard(page);
+    await page.getByRole("button", { name: "Vérifier ma commande" }).click();
+    await expect(page).toHaveURL(/\/fr\/commander\/verification$/);
+    await expect(page.locator("main")).toContainText("Repère placé sur la carte");
+
+    await page.getByRole("link", { name: "عربي", exact: true }).click();
+    await expect(page).toHaveURL(/\/ar\/commander\/verification$/);
+    await expect(page.locator("main")).toContainText("علامة على الخريطة");
+    await expect(page.locator("main")).not.toContainText("Repère");
+    await page.goto("/ar/commander/expediteur");
+    await expect(page.locator('input[autocomplete="street-address"]')).toHaveValue(
+      "علامة على الخريطة",
+    );
+    expect((await draft(page)).sender.address.text).toBe("");
+
+    await page.goto("/fr/commander/verification");
+    await payAndAccept(page);
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await enterCode(page);
+    await expect(page).toHaveURL(CONFIRMED);
+    const prints = await page.evaluate(() =>
+      Object.values(
+        JSON.parse(localStorage.getItem("fg.mock.idempotency") ?? "{}") as Record<
+          string,
+          { fingerprint: string }
+        >,
+      ).map((row) => row.fingerprint),
+    );
+    expect(prints).toHaveLength(1);
+    expect(prints[0]).toContain('"address":""');
+    expect(prints[0]).not.toMatch(/Repère|علامة|Pin placed/);
   });
 });

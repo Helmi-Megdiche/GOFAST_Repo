@@ -798,7 +798,8 @@ test.describe("order logic", () => {
     await page.keyboard.press("Enter");
     await expect(page.getByRole("status").filter({ hasText: "Adresse desservie." })).toBeVisible();
     await expect(address).toHaveValue("Repère placé sur la carte");
-    expect((await draft(page)).sender.address.text).toBe("Repère placé sur la carte");
+    // The label is shown, not stored (final review I3): the text stays empty with the pin.
+    expect((await draft(page)).sender.address.text).toBe("");
   });
 
   test("a slot chosen for tomorrow reads today on the next day", async ({ page }) => {

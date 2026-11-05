@@ -15,7 +15,7 @@ import { proofFor } from "@/lib/order/proof";
 import { parseCount } from "@/lib/order/schemas";
 import { isSlotInFuture } from "@/lib/order/slots";
 import {
-  draftPhoneVerified,
+  draftPhoneProven,
   priceInputOf,
   STEP_PATHS,
   withNewQuote,
@@ -151,7 +151,7 @@ function Review({
       return;
     }
     // CMD-03: without a verified phone, the code step comes first (it creates the light account).
-    if (!draftPhoneVerified(draft) && !isVerifiedPhoneForSession(draft.sender.phone)) {
+    if (!draftPhoneProven(draft) && !isVerifiedPhoneForSession(draft.sender.phone)) {
       goTo("code");
       return;
     }
@@ -171,6 +171,11 @@ function Review({
     } else if (result.status === "lost") {
       setProblem({ kind: "lost" });
     } else if (result.status === "refused") {
+      // The verified code ran out (CODE_VERIFIED_WINDOW_MS): submitOrder forgot it, ask for a new one.
+      if (result.error === "phoneNotVerified") {
+        goTo("code");
+        return;
+      }
       if (result.error === "quoteExpired") await recalculate();
       setProblem({ kind: "error", code: result.error });
     } else if (result.status === "changed") {
@@ -206,6 +211,11 @@ function Review({
       router.push(`/commander/confirmation?n=${resolved.code}`);
       return;
     }
+    // The verified code ran out while the answer was missing: a new code, then the new key is sent.
+    if (result.status === "refused" && result.error === "phoneNotVerified") {
+      goTo("code");
+      return;
+    }
     reload(); // the draft now has a new key and no pending answer
     setProblem(result.status === "refused" ? { kind: "error", code: result.error } : null);
   }
@@ -223,8 +233,9 @@ function Review({
       </Link>
     );
 
+  // A pin stores no text: its label is shown in the current language (final review I3).
   const addressText = (address: OrderDraft["sender"]["address"]) =>
-    address.text || addressT("pinText");
+    address.pin && address.text === "" ? addressT("pinText") : address.text;
   const count = parseCount(draft.parcel.count) ?? 1;
   // W15 mockup: "Standard, avant 19 h". The cut-off hour is not sourced yet: [HEURE].
   const service = draft.service.code;
@@ -447,7 +458,7 @@ function Review({
         <p className="sr-only" role="status">
           {announcement}
         </p>
-        {!draftPhoneVerified(draft) && !isVerifiedPhoneForSession(draft.sender.phone) ? (
+        {!draftPhoneProven(draft) && !isVerifiedPhoneForSession(draft.sender.phone) ? (
           <p className="text-2xs text-muted">{t("phoneCheckNote")}</p>
         ) : null}
       </Card>

@@ -28,8 +28,10 @@ function parcelOf(values: Partial<Values>, locale: Locale, current: OrderDraft["
     count: values.count ?? "",
     weightKg: values.weightKg ?? "",
     content: values.content ?? "",
-    // Text that does not parse (yet) leaves the last valid amount; Continue refuses it anyway.
+    // Text that does not parse (yet) leaves the last valid amount but marks it unreadable: Continue
+    // refuses it, and the step guard and the order request refuse the marked draft (final review I2).
     declaredValueMillimes: declared.ok ? declared.millimes : current.declaredValueMillimes,
+    declaredValueInvalid: !declared.ok,
     fragile: values.fragile === true,
   };
 }

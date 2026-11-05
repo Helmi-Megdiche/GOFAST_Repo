@@ -64,6 +64,7 @@ describe("order draft (CMD-07)", () => {
       { ...base, sender: {}, recipient: {}, parcel: {}, service: {} },
       { ...emptyDraft(T0), sender: { ...emptyDraft(T0).sender, address: "x" } },
       { ...emptyDraft(T0), parcel: { ...emptyDraft(T0).parcel, declaredValueMillimes: "1e3" } },
+      { ...emptyDraft(T0), parcel: { ...emptyDraft(T0).parcel, declaredValueInvalid: "yes" } },
       { ...emptyDraft(T0), service: { code: "teleport", slot: null } },
       { ...emptyDraft(T0), quote: "free" },
       { ...emptyDraft(T0), payment: "card" },

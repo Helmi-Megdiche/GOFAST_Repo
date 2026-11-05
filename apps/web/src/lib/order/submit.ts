@@ -73,8 +73,14 @@ export async function submitOrder(draft: OrderDraft): Promise<SubmitResult> {
   }
 
   // Refused: no order exists for this key, so the customer may change the draft again.
+  // phoneNotVerified: the server no longer counts the code (CODE_VERIFIED_WINDOW_MS), so the draft
+  // forgets it too and the code step (W20) is offered again instead of the same refusal.
   const latest = loadDraft() ?? draft;
-  saveDraft({ ...latest, pendingSubmit: null });
+  saveDraft({
+    ...latest,
+    pendingSubmit: null,
+    verifiedPhone: result.error === "phoneNotVerified" ? null : latest.verifiedPhone,
+  });
   return { status: "refused", error: result.error };
 }
 
@@ -90,8 +96,12 @@ export async function resolveLostSubmit(
     clearDraft();
     return { code };
   }
+  // Built on the saved copy of this attempt when there is one: what the refusal just changed (a
+  // verified phone that no longer counts) is not undone by the tab's older copy.
+  const stored = loadDraft();
+  const base = stored && stored.idempotencyKey === draft.idempotencyKey ? stored : draft;
   return {
-    draft: saveDraft({ ...draft, idempotencyKey: crypto.randomUUID(), pendingSubmit: null }),
+    draft: saveDraft({ ...base, idempotencyKey: crypto.randomUUID(), pendingSubmit: null }),
   };
 }
 

@@ -5,6 +5,7 @@ import { FAIL_NEXT_ORDER_REQUEST_KEY, FAIL_NEXT_ORDER_RESPONSE_KEY } from "../da
 import { sendCode, verifyCode } from "../data/otp";
 import { useMemoryStorage, writeJson } from "../storage";
 import { setClock } from "./clock";
+import { CODE_VERIFIED_WINDOW_MS } from "./constants";
 import { loadDraft, saveDraft, type OrderDraft } from "./draft";
 import { resolveLostSubmit, submitOrder } from "./submit";
 import { readyDraft, TEST_PHONE } from "./test-draft";
@@ -106,5 +107,35 @@ describe("resolveLostSubmit", () => {
     expect(resolved.draft.idempotencyKey).not.toBe(draft.idempotencyKey);
     expect(resolved.draft.pendingSubmit).toBeNull();
     expect(loadDraft()?.idempotencyKey).toBe(resolved.draft.idempotencyKey);
+  });
+});
+
+describe("a verification older than CODE_VERIFIED_WINDOW_MS (final review I1)", () => {
+  const verified = (): OrderDraft =>
+    saveDraft({ ...readyDraft(T0), verifiedPhone: "+21620000000" }, T0);
+
+  it("a phoneNotVerified refusal forgets the draft's verified phone, so the code step comes back", async () => {
+    const draft = verified();
+    clock = T0 + CODE_VERIFIED_WINDOW_MS;
+    expect(await submitOrder(draft)).toEqual({ status: "refused", error: "phoneNotVerified" });
+    expect(loadDraft()?.verifiedPhone).toBeNull();
+    expect(loadDraft()?.idempotencyKey).toBe(draft.idempotencyKey);
+  });
+
+  it("after a lost request, the new key does not bring the stale verified phone back", async () => {
+    const draft = verified();
+    writeJson(FAIL_NEXT_ORDER_REQUEST_KEY, true);
+    expect(await submitOrder(draft)).toEqual({ status: "lost" });
+    clock = T0 + CODE_VERIFIED_WINDOW_MS + 60_000;
+    expect(await submitOrder(loadDraft()!)).toEqual({
+      status: "refused",
+      error: "phoneNotVerified",
+    });
+    // The tab still holds its copy with verifiedPhone set, as review-step.tsx does.
+    const resolved = await resolveLostSubmit(draft);
+    if ("code" in resolved) throw new Error("no order exists for the old key");
+    expect(resolved.draft.verifiedPhone).toBeNull();
+    expect(loadDraft()?.verifiedPhone).toBeNull();
+    expect(loadDraft()?.idempotencyKey).not.toBe(draft.idempotencyKey);
   });
 });
