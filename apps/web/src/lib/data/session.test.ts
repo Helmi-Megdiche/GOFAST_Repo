@@ -67,7 +67,7 @@ describe("session with a user and a role", () => {
         role: "admin",
       }),
       expect.objectContaining({
-        userId: "usr-yasmine-user",
+        userId: "usr-walid-user",
         accountId: "acc-merchant-validated",
         name: "Walid H.",
         phone: "+21671000012",

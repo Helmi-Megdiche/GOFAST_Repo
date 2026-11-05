@@ -408,13 +408,13 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[created.code]!;
     expect(order).toMatchObject({
       ownerAccountId: "acc-merchant-validated",
-      createdByUserId: "usr-yasmine-user",
+      createdByUserId: "usr-walid-user",
     });
     const first = Object.values(readTable<StatusEvent>(STATUS_EVENTS)).filter(
       (e) => e.subjectType === "order" && e.subjectId === created.code,
     );
     expect(first).toMatchObject([
-      { fromStatus: null, toStatus: "received", actorId: "usr-yasmine-user" },
+      { fromStatus: null, toStatus: "received", actorId: "usr-walid-user" },
     ]);
     signOut();
   });

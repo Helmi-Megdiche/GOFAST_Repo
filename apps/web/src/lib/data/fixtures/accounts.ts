@@ -36,7 +36,7 @@ export const FIXTURE_TEAM_MEMBERS: FixtureTeamMember[] = [
     role: "admin",
   },
   {
-    userId: "usr-yasmine-user",
+    userId: "usr-walid-user",
     accountId: "acc-merchant-validated",
     name: "Walid H.",
     phone: "+21671000012",

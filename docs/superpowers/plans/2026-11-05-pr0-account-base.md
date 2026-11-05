@@ -214,7 +214,7 @@ Rules the tests pin (all from the umbrella, ADR-1):
 - Produces:
   - `Session` gains `userId: string` and `role: "admin" | "user" | null`;
   - `getSession upgrades an old session`: a stored session without `userId` gets `userId = accountId`; without `role` gets `null` for a customer and `"admin"` for a merchant;
-  - `FIXTURE_TEAM_MEMBERS: {userId; accountId; name; phone; role: "admin" | "user"}[]` — `usr-yasmine-admin` (Yasmine K., `+21671000011`, admin) and `usr-yasmine-user` (Walid H., `+21671000012`, user), both on `acc-merchant-validated`. Signing in with a member's phone and `FIXTURE_PASSWORD` gives `{accountId: "acc-merchant-validated", userId, role, kind: "merchant", contract: "validated"}`;
+  - `FIXTURE_TEAM_MEMBERS: {userId; accountId; name; phone; role: "admin" | "user"}[]` — `usr-yasmine-admin` (Yasmine K., `+21671000011`, admin) and `usr-walid-user` (Walid H., `+21671000012`, user), both on `acc-merchant-validated`. Signing in with a member's phone and `FIXTURE_PASSWORD` gives `{accountId: "acc-merchant-validated", userId, role, kind: "merchant", contract: "validated"}`;
   - `sessionFor(account)`: `userId = account.id`, `role = null` for a customer, `"admin"` for the merchant account itself;
   - `homeFor(session: Session): "/compte" | "/pro"`; after sign-in with no `next`, the redirect is `homeFor(session)`; a `next` stays honoured by `safeNext`;
   - `signOut()` also removes the order draft key (from `lib/order/draft.ts`) and never touches `fg.mock.*` tables.
