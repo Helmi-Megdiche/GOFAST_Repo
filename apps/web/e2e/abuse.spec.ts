@@ -346,7 +346,12 @@ test.describe("abuse", () => {
   });
 
   test("switching language at every step keeps the step and what was typed", async ({ page }) => {
+    // The step's own fr page must be loaded and idle before the first swap: the click that got us
+    // here (Continue, Vérifier, Valider) navigates asynchronously, and a language link clicked
+    // before it lands swaps the previous step's path.
     const swap = async (path: RegExp, check: (p: Page) => Promise<void>) => {
+      await expect(page).toHaveURL(new RegExp(`/fr/commander/${path.source}`));
+      await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
       for (const [label, locale] of [
         ["EN", "en"],
         ["عربي", "ar"],
