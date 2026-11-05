@@ -16,6 +16,7 @@ export {
 export { Field, type FieldProps } from "./components/field";
 export { Card, CardBody, CardHeader, type CardProps, type CardTone } from "./components/card";
 export { Badge, type BadgeTone } from "./components/badge";
+export { Dialog } from "./components/dialog";
 export { Table, THead, TBody, Tr, Th, Td, type RowTone } from "./components/table";
 export { KpiTile, type KpiTone } from "./components/kpi-tile";
 export { Stepper, type Step, type StepState } from "./components/stepper";

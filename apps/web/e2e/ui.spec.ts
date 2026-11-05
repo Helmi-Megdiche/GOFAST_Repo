@@ -94,3 +94,74 @@ test("the current language is legible in the header switcher", async ({ page }) 
     expect(color, locale).not.toBe("rgb(255, 255, 255)");
   }
 });
+
+test("Dialog: opens on the safe button, Escape closes it, focus returns to the opener", async ({
+  page,
+}) => {
+  await page.goto("/fr/dev/ui");
+  const opener = page.getByRole("button", { name: "Ouvrir la boîte de dialogue" });
+  const status = page.getByTestId("dialog-state");
+  await expect(status).toHaveText("État : fermé");
+  await opener.click();
+  const dialog = page.getByRole("dialog", { name: "Annuler cette commande ?" });
+  await expect(dialog).toBeVisible();
+  await expect(status).toHaveText("État : ouvert");
+  await expect(dialog.getByRole("button", { name: "Non, garder" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(dialog).toBeHidden();
+  await expect(opener).toBeFocused();
+  await expect(status).toHaveText("État : fermé");
+
+  // A plain button of the form closes it too.
+  await opener.click();
+  await dialog.getByRole("button", { name: "Oui, annuler" }).click();
+  await expect(dialog).toBeHidden();
+  await expect(status).toHaveText("État : fermé");
+
+  const results = await new AxeBuilder({ page })
+    .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+    .analyze();
+  expect(results.violations.map((v) => v.id)).toEqual([]);
+});
+
+test("Dialog is clean with axe while open, in Arabic too", async ({ page }) => {
+  for (const [locale, opener] of [
+    ["fr", "Ouvrir la boîte de dialogue"],
+    ["ar", "فتح مربع الحوار"],
+  ] as const) {
+    await page.goto(`/${locale}/dev/ui`);
+    await page.getByRole("button", { name: opener }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    const results = await new AxeBuilder({ page })
+      .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"])
+      .analyze();
+    expect(
+      results.violations.map((v) => v.id),
+      locale,
+    ).toEqual([]);
+  }
+});
+
+test("stacked table: cards with a column label per cell at 360 px, a normal table at 1440 px", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 360, height: 800 });
+  await page.goto("/fr/dev/ui");
+  const region = page.getByRole("region", { name: "Exemple de tableau empilé" });
+  await region.scrollIntoViewIfNeeded();
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow, "horizontal overflow in px").toBeLessThanOrEqual(0);
+  const regionOverflow = await region.evaluate((el) => el.scrollWidth - el.clientWidth);
+  expect(regionOverflow, "overflow inside the region").toBeLessThanOrEqual(0);
+  const firstRow = region.locator("tbody tr").first();
+  for (const label of ["Numéro", "Statut", "Montant"]) {
+    await expect(firstRow.getByText(label, { exact: true }).first()).toBeVisible();
+  }
+  // The real headers stay in the DOM for assistive technology.
+  await expect(region.getByRole("columnheader")).toHaveCount(3);
+
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await expect(firstRow.locator("td span[aria-hidden]").first()).toBeHidden();
+});

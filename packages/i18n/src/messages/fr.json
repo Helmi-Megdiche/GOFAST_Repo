@@ -155,7 +155,9 @@
       "radioCard": "Choix en carte",
       "codeInput": "Code de vérification",
       "map": "Carte (provisoire)",
-      "google": "Bouton Google"
+      "google": "Bouton Google",
+      "dialog": "Boîte de dialogue",
+      "stackedTable": "Tableau empilé"
     },
     "typography": {
       "d1": "Votre colis part aujourd'hui. Vous savez où il est.",
@@ -209,7 +211,9 @@
       "label": "Exemple de tableau",
       "number": "Numéro",
       "status": "Statut",
-      "amount": "Montant"
+      "amount": "Montant",
+      "stackedLabel": "Exemple de tableau empilé",
+      "stackedHint": "Sous 600 px de large, chaque ligne devient une carte."
     },
     "kpi": {
       "collected": "Collecté cette semaine",
@@ -273,6 +277,15 @@
       "mapLabel": "Carte de démonstration",
       "mapInstructions": "Cliquez sur la carte, ou utilisez les flèches puis Entrée.",
       "pinAt": "Repère : {x} %, {y} %"
+    },
+    "dialog": {
+      "open": "Ouvrir la boîte de dialogue",
+      "title": "Annuler cette commande ?",
+      "text": "Exemple de boîte de dialogue. Rien n'est enregistré.",
+      "keep": "Non, garder",
+      "confirm": "Oui, annuler",
+      "stateClosed": "État : fermé",
+      "stateOpen": "État : ouvert"
     }
   },
   "placeholders": {

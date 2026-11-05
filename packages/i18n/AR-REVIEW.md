@@ -159,6 +159,13 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.buttons.secondary` | تتبع | Suivre | [ ] |
 | `devUi.buttons.small` | صغير | Petit | [ ] |
 | `devUi.cards.title` | الطرد | Colis | [ ] |
+| `devUi.dialog.confirm` | نعم، إلغاء | Oui, annuler | [ ] |
+| `devUi.dialog.keep` | لا، الإبقاء عليه | Non, garder | [ ] |
+| `devUi.dialog.open` | فتح مربع الحوار | Ouvrir la boîte de dialogue | [ ] |
+| `devUi.dialog.stateClosed` | الحالة: مغلق | État : fermé | [ ] |
+| `devUi.dialog.stateOpen` | الحالة: مفتوح | État : ouvert | [ ] |
+| `devUi.dialog.text` | مثال على مربع حوار. لا يتم حفظ أي شيء. | Exemple de boîte de dialogue. Rien n'est enregistré. | [ ] |
+| `devUi.dialog.title` | هل تريد إلغاء هذا الطلب؟ | Annuler cette commande ? | [ ] |
 | `devUi.formats.date` | التاريخ والوقت (Africa/Tunis) | Date et heure (Africa/Tunis) | [ ] |
 | `devUi.formats.money` | المبالغ | Montants | [ ] |
 | `devUi.forms.addressHint` | اكتب اسم الشارع أو معلماً قريباً. | Indiquez la rue ou un point de repère. | [ ] |
@@ -210,6 +217,7 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.sections.chips` | الشرائح | Puces | [ ] |
 | `devUi.sections.codeInput` | رمز التحقق | Code de vérification | [ ] |
 | `devUi.sections.colors` | الألوان | Couleurs | [ ] |
+| `devUi.sections.dialog` | مربع حوار | Boîte de dialogue | [ ] |
 | `devUi.sections.fileAttach` | المرفق | Pièce jointe | [ ] |
 | `devUi.sections.formats` | الصيغ | Formats | [ ] |
 | `devUi.sections.forms` | النماذج | Formulaires | [ ] |
@@ -221,6 +229,7 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.sections.logo` | الشعار | Logo | [ ] |
 | `devUi.sections.map` | خريطة (مؤقتة) | Carte (provisoire) | [ ] |
 | `devUi.sections.radioCard` | اختيار على شكل بطاقة | Choix en carte | [ ] |
+| `devUi.sections.stackedTable` | جدول مكدّس | Tableau empilé | [ ] |
 | `devUi.sections.stepper` | الخطوات | Étapes | [ ] |
 | `devUi.sections.table` | الجدول | Tableau | [ ] |
 | `devUi.sections.tabs` | التبويبات | Onglets | [ ] |
@@ -238,6 +247,8 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.table.amount` | المبلغ | Montant | [ ] |
 | `devUi.table.label` | جدول تجريبي | Exemple de tableau | [ ] |
 | `devUi.table.number` | الرقم | Numéro | [ ] |
+| `devUi.table.stackedHint` | عندما يقل العرض عن 600 بكسل، يصبح كل صف بطاقة. | Sous 600 px de large, chaque ligne devient une carte. | [ ] |
+| `devUi.table.stackedLabel` | مثال على جدول مكدّس | Exemple de tableau empilé | [ ] |
 | `devUi.table.status` | الحالة | Statut | [ ] |
 | `devUi.tabs.invoices` | الفواتير | Factures | [ ] |
 | `devUi.tabs.label` | تبويبات تجريبية | Exemple d'onglets | [ ] |

@@ -155,7 +155,9 @@
       "radioCard": "Card choice",
       "codeInput": "Verification code",
       "map": "Map (placeholder)",
-      "google": "Google button"
+      "google": "Google button",
+      "dialog": "Dialog",
+      "stackedTable": "Stacked table"
     },
     "typography": {
       "d1": "Your parcel leaves today. You know where it is.",
@@ -209,7 +211,9 @@
       "label": "Sample table",
       "number": "Number",
       "status": "Status",
-      "amount": "Amount"
+      "amount": "Amount",
+      "stackedLabel": "Stacked table example",
+      "stackedHint": "Below 600 px wide, each row becomes a card."
     },
     "kpi": {
       "collected": "Collected this week",
@@ -273,6 +277,15 @@
       "mapLabel": "Demo map",
       "mapInstructions": "Click the map, or use the arrow keys then Enter.",
       "pinAt": "Pin: {x}%, {y}%"
+    },
+    "dialog": {
+      "open": "Open the dialog",
+      "title": "Cancel this order?",
+      "text": "Dialog example. Nothing is saved.",
+      "keep": "No, keep it",
+      "confirm": "Yes, cancel",
+      "stateClosed": "State: closed",
+      "stateOpen": "State: open"
     }
   },
   "placeholders": {
