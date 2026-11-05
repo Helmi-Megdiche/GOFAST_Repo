@@ -55,7 +55,9 @@ export const ORDER_NEXT: Record<OrderStatus, readonly OrderStatus[]> = {
   confirmed: ["assigned", "canceled"],
   assigned: ["picked_up", "pickup_failed", "canceled", "confirmed"],
   pickup_failed: ["confirmed", "canceled"],
-  picked_up: ["in_transit"],
+  // `lost` only by derivation (a parcel lost right after the scan, ruling of 5 Nov 2026): a direct order
+  // transition to it is refused with derivedState, and it never passes through in_transit.
+  picked_up: ["in_transit", "lost"],
   in_transit: ["delivered", "partially_delivered", "returned", "lost"],
   delivered: [],
   partially_delivered: [],
@@ -77,7 +79,7 @@ export const PARCEL_NEXT: Record<ParcelStatus, readonly ParcelStatus[]> = {
   canceled: [],
 };
 
-/** `finished` from `proposed` or `accepted` only with an endReason (early end, H1). */
+/** `finished` from `proposed` or `accepted` is an early end: reachable only through the order cascades (H1). */
 export const MISSION_NEXT: Record<MissionStatus, readonly MissionStatus[]> = {
   proposed: ["accepted", "refused", "expired", "finished"],
   accepted: ["arrived", "finished"],
@@ -113,11 +115,17 @@ export const FINAL_PARCEL_STATES: readonly ParcelStatus[] = [
 ];
 
 export type Refusal =
-  "illegalTransition" | "derivedState" | "orderNotAssigned" | "noParcelTaken" | "notFound";
+  | "illegalTransition"
+  | "derivedState"
+  | "orderNotAssigned"
+  | "noParcelTaken"
+  | "endReasonInternal"
+  | "notFound";
 
 export type TransitionResult = { ok: true } | { refused: Refusal; from?: string; to?: string };
 
 type Subject = { type: "order" | "parcel" | "mission"; id: string };
+/** `endReason` is accepted only to be refused (`endReasonInternal`): the order cascades set it. */
 type Options = { endReason?: EndReason; at?: number };
 
 const SYSTEM = "system";
@@ -225,7 +233,8 @@ function cancelParcelsToCollect(orderCode: string, at: number): void {
 function endActivePickupMission(orderCode: string, endReason: EndReason, at: number): void {
   const mission = activePickupMission(orderCode);
   if (mission && MISSION_ACTIVE.includes(mission.status)) {
-    transition({ type: "mission", id: mission.id }, "finished", SYSTEM, { endReason, at });
+    // Internal call: the public `transition` refuses a non-null endReason.
+    transitionMission(mission.id, "finished", SYSTEM, endReason, at);
   }
 }
 
@@ -315,7 +324,9 @@ function transitionMission(
     // alone refused the finish once the scanned parcel had moved on (in_transit, lost, handed_over...).
     if (
       mission.kind === "pickup" &&
-      !parcelsOf(mission.orderCode).some((p) => p.status !== "to_collect" && p.status !== "canceled")
+      !parcelsOf(mission.orderCode).some(
+        (p) => p.status !== "to_collect" && p.status !== "canceled",
+      )
     ) {
       return { refused: "noParcelTaken", from, to };
     }
@@ -346,6 +357,10 @@ export function transition(
   actorId: string,
   options: Options = {},
 ): TransitionResult {
+  // The three end reasons are the result of an order change (assigned → confirmed, assigned →
+  // pickup_failed, → canceled), never a call of their own: a mission ended alone would leave an
+  // `assigned` order with no active mission. Refused before anything is read or written.
+  if (options.endReason != null) return { refused: "endReasonInternal" };
   const at = options.at ?? now();
   switch (subject.type) {
     case "order":
@@ -353,12 +368,6 @@ export function transition(
     case "parcel":
       return transitionParcel(subject.id, to as ParcelStatus, actorId, at);
     case "mission":
-      return transitionMission(
-        subject.id,
-        to as MissionStatus,
-        actorId,
-        options.endReason ?? null,
-        at,
-      );
+      return transitionMission(subject.id, to as MissionStatus, actorId, null, at);
   }
 }

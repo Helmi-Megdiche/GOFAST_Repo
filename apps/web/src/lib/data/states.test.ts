@@ -173,16 +173,15 @@ describe("mission table", () => {
       it(`${from} → ${to}: ${allowed ? "ok" : "illegalTransition"}`, () => {
         const m = createMission(CODE, "pickup");
         writeRow(MISSIONS, m.id, { ...m, status: from });
-        let endReason: Mission["endReason"] = null;
+        // Called directly, `finished` is a normal finish: it needs `arrived` and a scanned parcel.
+        // The early ends from proposed and accepted exist only through the order cascade (below).
+        const direct = to === "finished" ? from === "arrived" : allowed;
         if (to === "finished" && from === "arrived") {
-          // normal finish: one parcel taken
           setOrderStatus("picked_up");
           setParcelStatus(1, "taken");
-        } else if (to === "finished") {
-          endReason = "driverRemoved";
         }
-        const result = transition(M(m.id), to, "driver-1", { endReason });
-        if (allowed) {
+        const result = transition(M(m.id), to, "driver-1");
+        if (direct) {
           ok(result);
           expect(mission(m.id).status).toBe(to);
         } else {
@@ -192,6 +191,76 @@ describe("mission table", () => {
       });
     }
   }
+
+  // The early ends are the result of an order change, never a call of their own (ruling, 5 Nov 2026).
+  describe("early end of the pickup mission, through the order cascade only", () => {
+    type Reason = "driverRemoved" | "pickupFailed" | "orderCanceled";
+    const CASES: { reason: Reason; orderTo: OrderStatus; orderToStatus: OrderStatus }[] = [
+      { reason: "driverRemoved", orderTo: "confirmed", orderToStatus: "confirmed" },
+      { reason: "pickupFailed", orderTo: "pickup_failed", orderToStatus: "pickup_failed" },
+      { reason: "orderCanceled", orderTo: "canceled", orderToStatus: "canceled" },
+    ];
+    const FROM: MissionStatus[] = ["proposed", "accepted", "arrived"];
+
+    for (const { reason, orderTo, orderToStatus } of CASES) {
+      for (const from of FROM) {
+        it(`${from} → finished with ${reason}, when the order goes assigned → ${orderTo}`, () => {
+          const m = toAssigned();
+          if (from !== "proposed") ok(transition(M(m.id), "accepted", "driver-1"));
+          if (from === "arrived") ok(transition(M(m.id), "arrived", "driver-1"));
+          expect(mission(m.id).status).toBe(from);
+          ok(transition(O, orderTo, "staff-1", { at: T0 + 5 }));
+          expect(order().status).toBe(orderToStatus);
+          expect(mission(m.id)).toMatchObject({
+            status: "finished",
+            endReason: reason,
+            finishedAt: new Date(T0 + 5).toISOString(),
+          });
+          expect(eventsOf("mission", m.id).at(-1)).toMatchObject({
+            fromStatus: from,
+            toStatus: "finished",
+            actorId: "system",
+            endReason: reason,
+          });
+          expect(activePickupMission(CODE)).toBeNull();
+        });
+      }
+    }
+
+    for (const reason of ["driverRemoved", "pickupFailed", "orderCanceled"] as const) {
+      for (const from of FROM) {
+        it(`a direct ${from} → finished with ${reason} is refused with endReasonInternal and changes nothing`, () => {
+          const m = toAssigned();
+          if (from !== "proposed") ok(transition(M(m.id), "accepted", "driver-1"));
+          if (from === "arrived") ok(transition(M(m.id), "arrived", "driver-1"));
+          const tables = () =>
+            JSON.stringify([
+              readTable(ACCOUNT_ORDERS),
+              readTable(PARCELS),
+              readTable(MISSIONS),
+              readTable(STATUS_EVENTS),
+            ]);
+          const before = tables();
+          expect(transition(M(m.id), "finished", "driver-1", { endReason: reason })).toEqual({
+            refused: "endReasonInternal",
+          });
+          expect(tables()).toBe(before);
+          expect(mission(m.id).status).toBe(from);
+          expect(order().status).toBe("assigned");
+          expect(activePickupMission(CODE)?.id).toBe(m.id);
+        });
+      }
+    }
+
+    it("a direct normal finish (endReason null) stays public", () => {
+      const m = toAssigned();
+      ok(transition(M(m.id), "accepted", "driver-1"));
+      ok(transition(M(m.id), "arrived", "driver-1"));
+      ok(transition(P(1), "taken", "driver-1"));
+      ok(transition(M(m.id), "finished", "driver-1", { endReason: null }));
+      expect(mission(m.id)).toMatchObject({ status: "finished", endReason: null });
+    });
+  });
 
   it("a normal finish (endReason null) is only allowed from arrived", () => {
     const m = createMission(CODE, "pickup");
@@ -258,9 +327,22 @@ describe("derived order state", () => {
     expect(order().status).toBe("in_transit");
   });
 
-  // Gap in the umbrella: its order table lists only `picked_up → in_transit`, but `taken → lost` is
-  // a parcel transition, so an order whose only counted parcel is lost right after the scan derives
-  // `lost` directly. Pinned here; listed in the PR and in the umbrella's cahier v2 list.
+  // Ruling (Helmi, 5 Nov 2026): `picked_up → lost` is a listed move, never through `in_transit`,
+  // because the customer would see a delivery that never happened. `taken → lost` is a parcel
+  // transition, so an order whose only counted parcel is lost right after the scan derives `lost`
+  // directly. A direct order transition to `lost` stays refused (`derivedState`, see the order table).
+  // To confirm in the cahier v2 (umbrella section 18, item 15).
+  it("ORDER_NEXT lists lost as a next state of picked_up, reached only by derivation", () => {
+    expect(ORDER_NEXT.picked_up).toEqual(["in_transit", "lost"]);
+    setOrderStatus("picked_up");
+    expect(transition(O, "lost", "staff-1")).toMatchObject({
+      refused: "derivedState",
+      from: "picked_up",
+      to: "lost",
+    });
+    expect(order().status).toBe("picked_up");
+  });
+
   it("an only counted parcel lost right after the scan gives picked_up → lost", () => {
     const m = toAssigned();
     ok(transition(M(m.id), "accepted", "driver-1"));

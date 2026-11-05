@@ -55,7 +55,7 @@ Prompt 3 also left these for Prompt 4:
 | `confirmed` | Confirmée | Votre commande est confirmée | `assigned`, `canceled` |
 | `assigned` | Attribuée | Un livreur vient chercher votre colis | `picked_up`, `pickup_failed`, `canceled`, `confirmed` (driver removed) |
 | `pickup_failed` | Collecte ratée | La collecte n'a pas pu se faire | `confirmed` (new slot), `canceled` |
-| `picked_up` | Prise en charge | Vos colis sont récupérés, avec leur nombre (`{count}` parcels) | `in_transit` |
+| `picked_up` | Prise en charge | Vos colis sont récupérés, avec leur nombre (`{count}` parcels) | `in_transit`, `lost` (derived only: the only counted parcel is lost right after the scan; the order never passes through `in_transit`, ruling of 5 Nov 2026) |
 | `in_transit` | En route | Votre livraison est en cours | one of the four outcomes, derived |
 | `delivered` | Livrée | the outcome and the detail per parcel | end |
 | `partially_delivered` | Livrée en partie | the outcome and the detail per parcel | end |
@@ -84,7 +84,7 @@ Prompt 3 also left these for Prompt 4:
   - `proposed` → `accepted`, `refused` or `expired`;
   - `accepted` → `arrived`;
   - `arrived` → `finished`.
-  - **Early end:** the active mission goes to `finished` with an `endReason`, from `proposed`, `accepted` or `arrived`:
+  - **Early end:** the active mission goes to `finished` with an `endReason`, from `proposed`, `accepted` or `arrived`. **Only the order cascades set an end reason** (ruling of 5 Nov 2026): the public `transition` refuses `finished` with a non-null `endReason` as `{refused: "endReasonInternal"}` and writes nothing, because a mission ended alone would leave an `assigned` order with no active mission. A direct normal finish (`endReason: null`) stays public. The three reasons are:
     - `"driverRemoved"` when the order goes `assigned → confirmed`;
     - `"pickupFailed"` when the order goes `assigned → pickup_failed`;
     - `"orderCanceled"` when the order is canceled.
