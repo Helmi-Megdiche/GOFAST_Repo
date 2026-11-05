@@ -172,10 +172,13 @@ export function deriveOrderOutcome(parcels: ParcelStatus[]): DerivedOutcome {
   const counted = parcels.filter((s) => s !== "canceled");
   if (counted.length === 0) throw new Error("deriveOrderOutcome: no counted parcel");
   const allFinal = counted.every((s) => FINAL_PARCEL_STATES.includes(s));
-  // `to_collect` counts as "not moved yet": during the pickup, before the normal finish cancels them,
-  // the other parcels are still to_collect and the order is picked_up (first scan).
+  // `to_collect` and `lost` do not count as "moved on": while every other parcel is still taken, the
+  // order stays picked_up, so a loss never shows a delivery that did not happen (ruling of 5 Nov:
+  // picked_up -> lost directly). `to_collect` parcels are canceled at the normal finish.
   if (!allFinal)
-    return counted.every((s) => s === "taken" || s === "to_collect") ? "picked_up" : "in_transit";
+    return counted.every((s) => s === "taken" || s === "to_collect" || s === "lost")
+      ? "picked_up"
+      : "in_transit";
   const handed = counted.filter((s) => s === "handed_over").length;
   if (handed === counted.length) return "delivered";
   if (handed > 0) return "partially_delivered";

@@ -412,11 +412,11 @@ describe("pickup mission finish", () => {
       expect(orderEventCount()).toBe(before);
     });
 
-    it("P1 taken then lost: passes, cancels P2 and P3, the order reaches lost with one event", () => {
+    it("P1 taken then lost: the order stays picked_up, then one picked_up -> lost event at the finish", () => {
       const m = arrivedMission();
       ok(transition(P(1), "taken", "driver-1"));
       ok(transition(P(1), "lost", "staff-1"));
-      expect(order().status).toBe("in_transit");
+      expect(order()).toMatchObject({ status: "picked_up", lossReported: true });
       const before = orderEventCount();
       ok(transition(M(m.id), "finished", "driver-1"));
       expect(parcel(2).status).toBe("canceled");
@@ -424,10 +424,28 @@ describe("pickup mission finish", () => {
       expect(order()).toMatchObject({ status: "lost", lossReported: true });
       expect(orderEventCount()).toBe(before + 1);
       expect(eventsOf("order", CODE).at(-1)).toMatchObject({
-        fromStatus: "in_transit",
+        fromStatus: "picked_up",
         toStatus: "lost",
         actorId: "system",
       });
+    });
+
+    it("P1 and P2 taken, P1 lost: the order stays picked_up", () => {
+      arrivedMission();
+      ok(transition(P(1), "taken", "driver-1"));
+      ok(transition(P(2), "taken", "driver-1"));
+      ok(transition(P(1), "lost", "staff-1"));
+      expect(order().status).toBe("picked_up");
+    });
+
+    it("P1 lost while P2 is in_transit: the order is in_transit", () => {
+      arrivedMission();
+      ok(transition(P(1), "taken", "driver-1"));
+      ok(transition(P(2), "taken", "driver-1"));
+      ok(transition(P(2), "at_depot", "driver-1"));
+      ok(transition(P(2), "in_transit", "driver-1"));
+      ok(transition(P(1), "lost", "staff-1"));
+      expect(order().status).toBe("in_transit");
     });
 
     it("P1 handed over: passes, cancels P2 and P3, the order reaches delivered with one event", () => {
