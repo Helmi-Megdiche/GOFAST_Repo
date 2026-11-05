@@ -59,7 +59,7 @@ Source: PR 0, `picked_up → lost` was produced by derivation but missing from t
 
 **RV-04. Effects meant for internal use must not be reachable directly.**
 For each public function, try the inputs that only a cascade should send. They must be refused with nothing changed and no event written.
-Source: PR 0, a direct mission end with `endReason` left the order `assigned` with no active mission.
+Source: PR 0, a direct mission end with `endReason` left the order `assigned` with no active mission. PR 0 round 3 check: `recomputeOrder` throws on an unlisted move after the parcel row and its event were already written. Every refusal or throw comes before the first write.
 
 **RV-05. Recheck every earlier choice when its inputs change, and again on submit.**
 Change an earlier step, then try to continue and to submit with the old choice.
