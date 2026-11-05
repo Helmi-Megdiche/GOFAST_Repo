@@ -47,6 +47,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - Do not edit a package owned by another engineer without telling them. Owners: `apps/web` Engineer 1, `apps/backoffice` and finance modules Engineer 2, `apps/driver` and infrastructure Engineer 3. `packages/ui` and `packages/i18n` are shared: changes there need one approval from another owner.
 - If the spec and the mockup disagree, the spec wins. Note the gap in the PR.
 - If Claude is unsure about a business rule, it stops and asks. It does not invent prices, fees, thresholds or legal text. Placeholders stay visible as `[PRIX]`, `[VILLE]`, `[TÉLÉPHONE]`.
+- Read `REVIEW.md` before every push. Reviewer findings are binding; disagree with evidence and wait.
 - Update this file when a team-wide decision changes. Put app-specific notes in `apps/<app>/CLAUDE.md`.
 
 ## Commands
