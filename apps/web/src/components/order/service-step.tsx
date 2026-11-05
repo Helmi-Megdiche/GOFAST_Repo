@@ -75,6 +75,8 @@ function ServiceForm({
 
   async function choose(service: ServiceCode) {
     setError(undefined);
+    // A disabled card is never priced, even if it is reached another way.
+    if (!available.has(service)) return;
     const input = inputFor(service);
     if (!input) return;
     const result = await getQuote(
@@ -115,7 +117,7 @@ function ServiceForm({
   }, []);
 
   function onContinue() {
-    if (!draft.service.code || !quoteMatches(draft)) {
+    if (!draft.service.code || !available.has(draft.service.code) || !quoteMatches(draft)) {
       setError("serviceRequired");
       const first = SERVICES.find((service) => available.has(service));
       if (first) setFocusTarget({ selector: `#service-${first}` });
