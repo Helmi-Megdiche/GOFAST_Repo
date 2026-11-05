@@ -50,8 +50,8 @@ For each check on a current state, replay the action with the subject moved to e
 Source: PR 0, `noParcelTaken` tested `status === "taken"`. A parcel that was scanned and then moved on made the pickup finish refuse, so the mission stayed open and the order could stay `in_transit`.
 
 **RV-02. Code that matches the plan can still be wrong.**
-Test each plan rule against the purpose it serves, with real sequences of actions. If the plan is wrong, correct the plan and send the change to Helmi.
-Source: PR 0, the `noParcelTaken` bug came from the plan's own wording, and the code followed it.
+Test each plan rule and each ruling against the purpose it serves, with real sequences of actions: one parcel, then several parcels at different steps. Read every event written, not only the final state. A test that asserts the result the code gives today proves nothing about the ruling. If the plan is wrong, correct the plan and send the change to Helmi.
+Source: PR 0, the `noParcelTaken` bug came from the plan's own wording, and the code followed it. PR 0 round 1: `picked_up → lost` held for one parcel, but with 3 parcels, P1 taken then lost while P2 and P3 were still `to_collect` wrote `picked_up → in_transit → lost`, and the test asserted the `in_transit` event.
 
 **RV-03. Declared tables must list every move the code can make.**
 Compare the transition tables with the moves that derivation and cascades can produce, and report any pair the table does not list.
@@ -93,10 +93,14 @@ Source: PR #5, a test read the W14 price without waiting and failed 7 times out 
 
 **RV-11. When behaviour changes, reread what describes it.**
 Search for the changed name in comments, tests and plan text.
-Source: PR 0, the `StatusEvent.fromStatus` comment still described mission creation only after order and parcel creation events were added.
+Source: PR 0, the `StatusEvent.fromStatus` comment still described mission creation only after order and parcel creation events were added. PR 0 round 1: the fixture user Walid H. had the id `usr-yasmine-user`.
 
 ### The review itself
 
 **RV-12. A check must be able to fail.**
 Before trusting a command as evidence, run it on a case known to be bad, or read its output line by line.
 Source: PR 0 review, a line-ending check with `grep "\r$"` matched lines ending in the letter `r`, so its result meant nothing. It was thrown away and not reported.
+
+**RV-13. Text is never assembled from pieces in code.**
+Search the diff for literal words, punctuation or spacing between JSX expressions (`:`, `/`, `-`, ` de `). The whole line is one catalog key with parameters. Render the page in ar and en and read the line.
+Source: PR 0 round 1, the public tracking parcel line wrote `{t("parcel")} 1 :` with a French space and colon, shown as is in ar and en.
