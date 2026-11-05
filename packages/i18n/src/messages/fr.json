@@ -62,6 +62,58 @@
       "signUp": {
         "title": "Créer un compte | FastGo",
         "description": "La création de compte arrive bientôt."
+      },
+      "orderSender": {
+        "title": "Commander : expéditeur | FastGo",
+        "description": "Indiquez l'adresse de collecte de votre colis."
+      },
+      "orderRecipient": {
+        "title": "Commander : destinataire | FastGo",
+        "description": "Indiquez l'adresse de livraison et le destinataire."
+      },
+      "orderParcel": {
+        "title": "Commander : colis | FastGo",
+        "description": "Décrivez ce que nous livrons."
+      },
+      "orderService": {
+        "title": "Commander : service | FastGo",
+        "description": "Choisissez quand le colis doit arriver."
+      },
+      "orderReview": {
+        "title": "Commander : vérification | FastGo",
+        "description": "Vérifiez le détail du prix et validez votre commande."
+      },
+      "orderCode": {
+        "title": "Commander : code de vérification | FastGo",
+        "description": "Saisissez le code reçu par SMS pour valider la commande."
+      },
+      "orderConfirmation": {
+        "title": "Commande enregistrée | FastGo",
+        "description": "Votre numéro de suivi et la suite de votre livraison."
+      },
+      "orderOutOfZone": {
+        "title": "Adresse hors zone | FastGo",
+        "description": "Nous ne livrons pas encore à cette adresse."
+      },
+      "code": {
+        "title": "Code de vérification | FastGo",
+        "description": "Saisissez le code reçu."
+      },
+      "passwordForgot": {
+        "title": "Mot de passe oublié | FastGo",
+        "description": "Recevez un code pour choisir un nouveau mot de passe."
+      },
+      "passwordNew": {
+        "title": "Nouveau mot de passe | FastGo",
+        "description": "Choisissez votre nouveau mot de passe."
+      },
+      "googlePhone": {
+        "title": "Dernière étape | FastGo",
+        "description": "Ajoutez votre téléphone après la connexion avec Google."
+      },
+      "account": {
+        "title": "Mon compte | FastGo",
+        "description": "Votre espace client arrive bientôt."
       }
     }
   },
@@ -99,7 +151,11 @@
       "accordion": "Question déroulante",
       "chips": "Puces",
       "checkbox": "Case à cocher",
-      "fileAttach": "Pièce jointe"
+      "fileAttach": "Pièce jointe",
+      "radioCard": "Choix en carte",
+      "codeInput": "Code de vérification",
+      "map": "Carte (provisoire)",
+      "google": "Bouton Google"
     },
     "typography": {
       "d1": "Votre colis part aujourd'hui. Vous savez où il est.",
@@ -210,6 +266,13 @@
       "attachLabel": "Ajouter une pièce jointe (5 Mo)",
       "attachRemove": "Retirer la pièce jointe",
       "attachError": "Le fichier dépasse 5 Mo."
+    },
+    "order": {
+      "radioLegend": "Service",
+      "codeLabel": "Code à 6 chiffres",
+      "mapLabel": "Carte de démonstration",
+      "mapInstructions": "Cliquez sur la carte, ou utilisez les flèches puis Entrée.",
+      "pinAt": "Repère : {x} %, {y} %"
     }
   },
   "placeholders": {
@@ -228,7 +291,8 @@
     "list": "[LISTE À VALIDER PAR FASTGO]",
     "text": "[TEXTE]",
     "answer": "[RÉPONSE]",
-    "vehicle": "[VÉHICULE]"
+    "vehicle": "[VÉHICULE]",
+    "ceiling": "[PLAFOND]"
   },
   "nav": {
     "label": "Navigation principale",
@@ -543,7 +607,8 @@
     "pages": {
       "order": "Commander",
       "signIn": "Connexion",
-      "signUp": "Créer un compte"
+      "signUp": "Créer un compte",
+      "account": "Mon compte"
     }
   },
   "forms": {
@@ -554,7 +619,19 @@
       "trackingInvalid": "Le numéro de suivi ressemble à FG-7K4M-2QXP.",
       "addressTooShort": "Saisissez au moins 3 caractères.",
       "attachmentTooLarge": "Le fichier dépasse 5 Mo.",
-      "captchaRequired": "Confirmez que vous n'êtes pas un robot."
+      "captchaRequired": "Confirmez que vous n'êtes pas un robot.",
+      "addressNotConfirmed": "Choisissez une suggestion ou placez un repère sur la carte.",
+      "slotRequired": "Choisissez un créneau.",
+      "slotPast": "Ce créneau est passé. Choisissez-en un autre.",
+      "parcelTypeRequired": "Choisissez un type d'envoi.",
+      "countInvalid": "Indiquez un nombre entier, 1 au minimum.",
+      "weightInvalid": "Indiquez un poids en kg, par exemple 2 ou 2,5.",
+      "declaredValueInvalid": "Montant invalide. Exemple : 48,500 ou 48.5.",
+      "serviceRequired": "Choisissez un service.",
+      "paymentRequired": "Choisissez un mode de paiement.",
+      "termsRequired": "Acceptez les conditions pour continuer.",
+      "passwordTooShort": "10 caractères au minimum.",
+      "codeIncomplete": "Saisissez le code complet."
     },
     "serverErrors": {
       "attachmentTooLarge": "Le fichier dépasse 5 Mo.",
@@ -644,5 +721,337 @@
     "text": "Cette page n'existe pas ou a été déplacée.",
     "home": "Retour à l'accueil",
     "track": "Suivre un colis"
+  },
+  "cmd": {
+    "homeLabel": "FastGo, accueil",
+    "saveAndQuit": "Enregistrer et quitter",
+    "stepperLabel": "Étapes de la commande",
+    "stepStates": {
+      "done": "Terminé",
+      "current": "Étape en cours",
+      "todo": "À faire"
+    },
+    "steps": {
+      "sender": "1. Expéditeur",
+      "recipient": "2. Destinataire",
+      "parcel": "3. Colis",
+      "service": "4. Service",
+      "review": "5. Vérification"
+    },
+    "loading": "Chargement de votre commande…",
+    "noJs": "Pour commander, activez JavaScript dans votre navigateur.",
+    "continue": "Continuer",
+    "back": "Retour",
+    "cancel": "Annuler",
+    "cancelConfirm": {
+      "title": "Annuler cette commande ?",
+      "text": "Les informations saisies seront effacées de cet appareil.",
+      "confirm": "Oui, tout effacer",
+      "keep": "Non, continuer"
+    },
+    "busy": "Un instant…"
+  },
+  "order": {
+    "address": {
+      "suggestionsLabel": "Suggestions",
+      "noSuggestion": "Aucune suggestion. Placez un repère sur la carte.",
+      "hint": "Choisissez une suggestion ou placez un repère sur la carte.",
+      "mapLabel": "Carte : placer un repère pour {field}",
+      "mapInstructions": "Cliquez sur la carte, ou utilisez les flèches puis Entrée pour placer le repère.",
+      "pinText": "Repère placé sur la carte",
+      "checking": "Vérification de l'adresse…",
+      "inZone": "Adresse desservie.",
+      "outOfZone": "Cette adresse n'est pas encore desservie.",
+      "unknown": "Adresse non reconnue. Choisissez une suggestion ou placez un repère."
+    },
+    "sender": {
+      "title": "D'où part le colis ?",
+      "address": "Adresse de collecte",
+      "landmark": "Point de repère (facultatif)",
+      "name": "Votre nom",
+      "phone": "Téléphone",
+      "slot": "Créneau de collecte",
+      "slotPlaceholder": "Choisissez un créneau",
+      "slotExample": "Créneaux d'exemple."
+    },
+    "slot": {
+      "today": "Aujourd'hui, de {start} à {end}",
+      "tomorrow": "Demain, de {start} à {end}"
+    },
+    "recipient": {
+      "title": "Où va-t-il ?",
+      "address": "Adresse de livraison",
+      "landmark": "Point de repère (facultatif)",
+      "name": "Nom du destinataire",
+      "phone": "Téléphone",
+      "phoneHint": "Il reçoit le lien de suivi par SMS.",
+      "instructions": "Instructions (facultatif)",
+      "smsLanguage": "Langue du SMS et du lien",
+      "languages": {
+        "fr": "Français",
+        "ar": "Arabe",
+        "en": "Anglais"
+      },
+      "save": "Enregistrer ce destinataire"
+    },
+    "parcel": {
+      "title": "Que livrons-nous ?",
+      "typeLegend": "Type d'envoi",
+      "types": {
+        "document": {
+          "name": "Pli",
+          "hint": "Documents"
+        },
+        "small": {
+          "name": "Petit colis",
+          "hint": "[LIMITE]"
+        },
+        "medium": {
+          "name": "Moyen",
+          "hint": "[LIMITE]"
+        },
+        "large": {
+          "name": "Volumineux",
+          "hint": "[LIMITE]"
+        }
+      },
+      "count": "Nombre de colis",
+      "weight": "Poids estimé (kg)",
+      "content": "Contenu",
+      "declaredValue": "Valeur déclarée (TND, facultatif)",
+      "declaredValueParsed": "Soit <amount></amount>",
+      "option": "Option",
+      "fragile": "Colis fragile"
+    },
+    "service": {
+      "title": "Quand doit-il arriver ?",
+      "legend": "Service",
+      "delays": {
+        "express": "Livré en moins de 1 h",
+        "standard": "Livré aujourd'hui avant {time}",
+        "scheduled": "Choisissez votre créneau"
+      },
+      "slot": "Créneau de livraison",
+      "surcharge": "Majoration {name} de <amount></amount> incluse, plafonnée à <ceiling></ceiling>. Elle est affichée pour que le prix ne change pas à la fin.",
+      "submit": "Vérifier ma commande",
+      "pricing": "Calcul du prix…",
+      "unavailable": "Pas encore disponible pour ces adresses."
+    },
+    "price": {
+      "title": "Votre prix",
+      "pending": "Il s'affichera dès que l'adresse de livraison sera connue.",
+      "provisional": "Prix provisoire",
+      "from": "Dès <amount></amount>",
+      "example": "Montants d'exemple.",
+      "provisionalNote": "Montant d'exemple, à préciser selon le colis et l'offre.",
+      "guarantee": "TTC, garanti 15 minutes. Montants d'exemple.",
+      "detail": "Détail du prix",
+      "lines": {
+        "base": "Service et zone : {service}, zone {zone}",
+        "distance": "Distance",
+        "weight": "Poids",
+        "options": "Options",
+        "surcharge": "Majoration {name} (plafond : <ceiling></ceiling>)",
+        "discount": "Remise",
+        "vat": "TVA",
+        "stamp": "Timbre fiscal"
+      },
+      "surchargeNames": {
+        "rain": "pluie"
+      },
+      "total": "Total TTC",
+      "timeLeft": "Prix garanti encore {time}.",
+      "timeLeftShort": "Plus que {minutes} min de garantie.",
+      "expired": {
+        "title": "Le prix a été recalculé.",
+        "text": "La garantie de 15 minutes est passée. Nouveau prix : <next></next>. Avant : <previous></previous>.",
+        "accept": "Accepter le nouveau prix",
+        "accepted": "Nouveau prix accepté."
+      }
+    },
+    "review": {
+      "title": "Vérifiez et validez",
+      "delivery": "Votre livraison",
+      "edit": "Modifier",
+      "editSection": "Modifier : {section}",
+      "pickup": "Collecte",
+      "dropoff": "Livraison",
+      "parcel": "Colis",
+      "proof": "Preuve",
+      "person": "{name}, {address}",
+      "parcelSummary": "{count, plural, one {# colis} other {# colis}} ({type}), {weight} kg",
+      "fragile": "fragile",
+      "proofs": {
+        "codeOrPhotoPosition": "Code envoyé au destinataire, ou photo avec position",
+        "codeOrSignaturePhoto": "Code envoyé au destinataire, ou signature et photo",
+        "codeElseAgentPhone": "Code envoyé au destinataire ; à défaut, validation par un agent au téléphone, avec signature et photo"
+      },
+      "paymentLegend": "Comment réglez-vous ?",
+      "payments": {
+        "cashPickup": {
+          "title": "Espèces à l'enlèvement",
+          "text": "Vous payez le livreur quand il récupère le colis."
+        },
+        "cashDelivery": {
+          "title": "Espèces à la livraison",
+          "text": "Le destinataire paie. S'il refuse, le port et le retour restent à votre charge."
+        },
+        "account": {
+          "title": "Compte client",
+          "text": "Facture mensuelle, commerçants sous contrat."
+        }
+      },
+      "terms": "J'accepte les <link>CGV</link> et je confirme que le colis ne contient pas d'objet interdit.",
+      "submit": "Valider la commande",
+      "submitting": "Validation…",
+      "phoneCheckNote": "Nous vérifions votre téléphone par SMS avant la première commande.",
+      "lost": {
+        "title": "La connexion a été coupée.",
+        "text": "Nous ne savons pas si la commande est arrivée. Réessayez : elle ne sera pas créée deux fois.",
+        "retry": "Réessayer",
+        "editBlocked": "Les modifications sont bloquées tant que cette commande n'a pas de réponse."
+      },
+      "errors": {
+        "idempotencyConflict": "Cette commande a déjà été envoyée avec d'autres informations. Rechargez la page.",
+        "outOfZone": "Une des adresses n'est pas desservie.",
+        "phoneNotVerified": "Votre téléphone doit être vérifié par SMS.",
+        "quoteExpired": "Le prix a expiré. Il a été recalculé.",
+        "quoteNotAccepted": "Acceptez le nouveau prix pour continuer.",
+        "paymentNotAllowed": "Ce mode de paiement n'est pas disponible pour votre compte.",
+        "slotPast": "Le créneau choisi est passé. Choisissez-en un autre.",
+        "termsRequired": "Acceptez les CGV pour valider.",
+        "network": "La connexion a été coupée. Réessayez."
+      }
+    },
+    "code": {
+      "accountExists": {
+        "title": "Ce numéro a déjà un compte.",
+        "text": "Connectez-vous pour terminer la commande. Votre brouillon est gardé.",
+        "signIn": "Se connecter"
+      },
+      "creating": "Création de la commande…"
+    },
+    "confirmation": {
+      "title": "Votre commande est enregistrée.",
+      "number": "Numéro de suivi : <code></code>",
+      "steps": {
+        "checking": "Nous vérifions votre commande",
+        "recipientSms": "{name} a reçu son lien de suivi par SMS",
+        "pickup": "Un livreur vient à votre adresse entre <start></start> et <end></end>"
+      },
+      "track": "Suivre ma livraison",
+      "slip": "Bon de commande (exemple)",
+      "newOrder": "Nouvelle commande",
+      "notFound": {
+        "title": "Aucune commande à afficher.",
+        "text": "Ce lien ne correspond à aucune commande passée sur cet appareil."
+      }
+    },
+    "outOfZone": {
+      "title": "Nous n'y livrons pas encore.",
+      "text": "Choisissez une autre adresse ou voyez les zones disponibles.",
+      "hint": "Cette adresse n'est pas encore desservie.",
+      "change": "Changer l'adresse",
+      "zones": "Voir les zones",
+      "request": "Demander cette zone"
+    }
+  },
+  "auth": {
+    "or": "ou",
+    "google": {
+      "continue": "Continuer avec Google",
+      "chooserTitle": "Choisir un compte Google (simulation)",
+      "chooserText": "Simulation : la vraie connexion Google arrive plus tard.",
+      "close": "Fermer",
+      "connectedAs": "{email}, connecté avec Google"
+    },
+    "signIn": {
+      "title": "Connexion à votre compte",
+      "identifier": "Téléphone ou e-mail",
+      "password": "Mot de passe",
+      "remember": "Rester connecté",
+      "forgot": "Mot de passe oublié",
+      "submit": "Se connecter",
+      "submitting": "Connexion…",
+      "noAccount": "Nouveau client ?",
+      "signUp": "Créer un compte",
+      "invalid": "Identifiant ou mot de passe incorrect."
+    },
+    "signUp": {
+      "title": "Créer un compte",
+      "kindLegend": "Type de compte",
+      "kinds": {
+        "customer": {
+          "title": "Particulier",
+          "text": "Envois ponctuels"
+        },
+        "merchant": {
+          "title": "Commerçant",
+          "text": "Volumes et contrat"
+        }
+      },
+      "name": "Nom complet",
+      "phone": "Téléphone",
+      "phoneHint": "Vous recevrez un code par SMS.",
+      "email": "E-mail (facultatif)",
+      "password": "Mot de passe",
+      "passwordHint": "{count} caractères au minimum",
+      "terms": "J'accepte les <cgv>CGV</cgv> et la <privacy>politique de confidentialité</privacy>.",
+      "submit": "Continuer",
+      "emailTaken": "Cet e-mail a déjà un compte. Connectez-vous.",
+      "created": "Compte créé."
+    },
+    "code": {
+      "title": "Saisissez le code reçu",
+      "sentTo": "Envoyé au <target></target>. Il reste valable {minutes} minutes.",
+      "label": "Code à {length} chiffres",
+      "verify": "Vérifier",
+      "verifying": "Vérification…",
+      "notReceived": "Pas reçu ?",
+      "resendIn": "Renvoyer dans {seconds} s",
+      "resend": "Renvoyer le code",
+      "sending": "Envoi du code…",
+      "changeNumber": "Changer de numéro",
+      "results": {
+        "wrong": "Code incorrect. {count, plural, one {Il reste # essai.} other {Il reste # essais.}}",
+        "expired": "Ce code a expiré. Demandez-en un nouveau.",
+        "locked": "Trop d'essais. Réessayez à {time}.",
+        "tooSoon": "Patientez avant de demander un nouveau code.",
+        "tooMany": "Trop de codes demandés. Réessayez à {time}.",
+        "sent": "Nouveau code envoyé.",
+        "noCode": "Aucun code en cours. Demandez un code.",
+        "invalidTarget": "Numéro invalide.",
+        "incomplete": "Saisissez les {length} chiffres."
+      },
+      "missing": {
+        "title": "Aucune vérification en cours.",
+        "text": "Recommencez depuis le formulaire.",
+        "back": "Retour au formulaire"
+      },
+      "sentToEmail": "Envoyé à <target></target>. Il reste valable {minutes} minutes."
+    },
+    "forgot": {
+      "title": "Mot de passe oublié",
+      "text": "Indiquez votre téléphone. Nous vous enverrons un code pour en choisir un nouveau.",
+      "phone": "Téléphone",
+      "submit": "Recevoir un code",
+      "back": "Retour à la connexion"
+    },
+    "newPassword": {
+      "title": "Choisissez un nouveau mot de passe",
+      "password": "Nouveau mot de passe",
+      "submit": "Enregistrer",
+      "done": "Mot de passe enregistré. Vous pouvez vous connecter.",
+      "signIn": "Se connecter"
+    },
+    "googlePhone": {
+      "title": "Dernière étape : votre téléphone",
+      "text": "Le livreur et le suivi en ont besoin. Nous le vérifions une seule fois par SMS.",
+      "phone": "Téléphone",
+      "submit": "Recevoir le code",
+      "knownEmail": "Cet e-mail a déjà un compte FastGo. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone.",
+      "emailSubmit": "Recevoir le code par e-mail",
+      "missing": "Aucune connexion Google en cours."
+    }
   }
 }

@@ -2,8 +2,8 @@ import { useTranslations } from "next-intl";
 import { Button, Container, Section } from "@fastgo/ui";
 import { Link } from "@/i18n/navigation";
 
-/** Placeholder for pages that arrive later (/commander, /connexion, /inscription). Never indexed. */
-export function ComingSoon({ page }: { page: "order" | "signIn" | "signUp" }) {
+/** Placeholder for pages that arrive later (/compte until Prompt 4). Never indexed. */
+export function ComingSoon({ page }: { page: "order" | "signIn" | "signUp" | "account" }) {
   const t = useTranslations("comingSoon");
   return (
     <Section compact>

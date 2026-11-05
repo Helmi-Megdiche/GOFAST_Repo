@@ -1,0 +1,561 @@
+import { expect, test, type Page } from "@playwright/test";
+import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage, shot } from "./helpers";
+
+/**
+ * Order flow (W11 to W17, CMD-01 to CMD-07) on mock data. Fake names and phones only.
+ * The mock "server" lives in this browser's localStorage, so every test starts empty.
+ */
+
+const SENDER_PHONE = "+216 20 000 000";
+const KNOWN_PHONE = "+216 98 000 001"; // fixture account Sami T. (lib/data/fixtures/accounts.ts)
+const PASSWORD = "fastgo-demo-2026"; // fixture password, mock only
+
+const textbox = (page: Page, name: string) => page.getByRole("textbox", { name, exact: true });
+const orders = (page: Page) =>
+  page.evaluate(
+    () => Object.keys(JSON.parse(localStorage.getItem("fg.mock.orders") ?? "{}")).length,
+  );
+const draft = (page: Page) =>
+  page.evaluate(() => JSON.parse(localStorage.getItem("fg.order.draft.v1") ?? "null"));
+
+async function start(page: Page, locale = "fr") {
+  await page.clock.install({ time: MORNING });
+  await page.goto(`/${locale}/commander`);
+  await expect(page).toHaveURL(new RegExp(`/${locale}/commander/expediteur$`));
+}
+
+async function fillSender(page: Page, phone = SENDER_PHONE, address = "Avenue Habib Bourguiba") {
+  await textbox(page, "Adresse de collecte").fill(address.slice(0, 6));
+  await page.getByRole("button", { name: address }).click();
+  await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
+  await textbox(page, "Votre nom").fill("Yasmine K.");
+  await textbox(page, "Téléphone").fill(phone);
+  await page.getByLabel("Créneau de collecte").selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Continuer" }).click();
+}
+
+async function fillRecipient(page: Page, address = "Rue Ibn Khaldoun") {
+  await expect(page).toHaveURL(/\/commander\/destinataire$/);
+  await textbox(page, "Adresse de livraison").fill(address.slice(0, 6));
+  await page.getByRole("button", { name: address }).click();
+  await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
+  await textbox(page, "Nom du destinataire").fill("Amel B.");
+  await textbox(page, "Téléphone").fill("+216 50 000 000");
+  await page.getByRole("button", { name: "Continuer" }).click();
+}
+
+async function fillParcel(page: Page) {
+  await expect(page).toHaveURL(/\/commander\/colis$/);
+  await page.getByRole("radio", { name: /Petit colis/ }).check();
+  await textbox(page, "Poids estimé (kg)").fill("2");
+  await textbox(page, "Contenu").fill("Vêtements");
+  await textbox(page, "Valeur déclarée (TND, facultatif)").fill("48,500");
+  await page.getByRole("checkbox", { name: "Colis fragile" }).check();
+  await page.getByRole("button", { name: "Continuer" }).click();
+}
+
+async function chooseStandard(page: Page) {
+  await expect(page).toHaveURL(/\/commander\/service$/);
+  await page.getByRole("radio", { name: /Standard/ }).click();
+  await expect(page.getByRole("radio", { name: /Standard/ })).toBeChecked();
+}
+
+async function toReview(page: Page, phone = SENDER_PHONE) {
+  await fillSender(page, phone);
+  await fillRecipient(page);
+  await fillParcel(page);
+  await chooseStandard(page);
+  await page.getByRole("button", { name: "Vérifier ma commande" }).click();
+  await expect(page).toHaveURL(/\/commander\/verification$/);
+}
+
+async function payAndAccept(page: Page) {
+  await page.getByRole("radio", { name: /Espèces à l'enlèvement/ }).click();
+  await expect(page.getByRole("radio", { name: /Espèces à l'enlèvement/ })).toBeChecked();
+  await page.getByRole("checkbox", { name: /CGV/ }).check();
+}
+
+async function signInAs(page: Page, phone: string) {
+  await page.goto("/fr/connexion");
+  await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(phone);
+  await page.locator('input[name="password"]').fill(PASSWORD);
+  await page.getByRole("button", { name: "Se connecter" }).click();
+  await expect(page).toHaveURL(/\/fr\/compte$/);
+}
+
+async function placeGuestOrder(page: Page) {
+  await start(page);
+  await toReview(page);
+  await payAndAccept(page);
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+  await expect(page).toHaveURL(/\/commander\/code$/);
+  await page.getByRole("textbox", { name: "Code à 6 chiffres" }).fill(FIRST_CODE);
+  await page.getByRole("button", { name: "Vérifier" }).click();
+  await expect(page).toHaveURL(/\/commander\/confirmation\?n=FG-[A-Z0-9]{4}-[A-Z0-9]{4}$/);
+  return new URL(page.url()).searchParams.get("n") ?? "";
+}
+
+// ── Every page in fr and ar at 1440 and 360 px: lang, dir, axe, no horizontal scroll ─────────
+const STATES: { ref: string; path: string; reach: (page: Page) => Promise<string | void> }[] = [
+  { ref: "W11-Cmd1", path: "/commander/expediteur", reach: async () => {} },
+  { ref: "W12-Cmd2", path: "/commander/destinataire", reach: (page) => fillSender(page) },
+  {
+    ref: "W13-Cmd3",
+    path: "/commander/colis",
+    reach: async (page) => {
+      await fillSender(page);
+      await fillRecipient(page);
+    },
+  },
+  {
+    ref: "W14-Cmd4",
+    path: "/commander/service",
+    reach: async (page) => {
+      await fillSender(page);
+      await fillRecipient(page);
+      await fillParcel(page);
+      await chooseStandard(page);
+    },
+  },
+  {
+    ref: "W15-Cmd5",
+    path: "/commander/verification",
+    reach: async (page) => {
+      await toReview(page);
+      await payAndAccept(page);
+    },
+  },
+  {
+    ref: "W20-Code-commande",
+    path: "/commander/code",
+    reach: async (page) => {
+      await toReview(page);
+      await payAndAccept(page);
+      await page.getByRole("button", { name: "Valider la commande" }).click();
+      await expect(page).toHaveURL(/\/commander\/code$/);
+    },
+  },
+  {
+    ref: "W17-HorsZone",
+    path: "/commander/hors-zone",
+    reach: async (page) => {
+      await fillSender(page);
+      await textbox(page, "Adresse de livraison").fill("Route ");
+      await page.getByRole("button", { name: "Route de Sousse, km 40" }).click();
+      await expect(
+        page.getByRole("status").filter({ hasText: "pas encore desservie" }),
+      ).toBeVisible();
+      await textbox(page, "Nom du destinataire").fill("Amel B.");
+      await textbox(page, "Téléphone").fill("+216 50 000 000");
+      await page.getByRole("button", { name: "Continuer" }).click();
+      await expect(page).toHaveURL(/\/commander\/hors-zone$/);
+    },
+  },
+];
+
+for (const state of STATES) {
+  for (const locale of LOCALES) {
+    for (const viewport of VIEWPORTS) {
+      test(`${state.ref} /${locale.code}${state.path} at ${viewport.width}px`, async ({ page }) => {
+        await page.setViewportSize(viewport);
+        await start(page);
+        await state.reach(page);
+        await page.goto(`/${locale.code}${state.path}`);
+        await expect(page).toHaveURL(new RegExp(`/${locale.code}${state.path}$`));
+        await expect(page.locator("[aria-busy=true]")).toHaveCount(0);
+        await checkPage(page, locale, `${state.ref}-${locale.code}-${viewport.width}`);
+      });
+    }
+  }
+}
+
+for (const locale of LOCALES) {
+  for (const viewport of VIEWPORTS) {
+    test(`W16-Confirmation /${locale.code} at ${viewport.width}px`, async ({ page }) => {
+      await page.setViewportSize(viewport);
+      const code = await placeGuestOrder(page);
+      await page.goto(`/${locale.code}/commander/confirmation?n=${code}`);
+      await expect(page.getByText(code)).toBeVisible();
+      await checkPage(page, locale, `W16-Confirmation-${locale.code}-${viewport.width}`);
+    });
+  }
+}
+
+// ── The 5 steps, the SMS code and the double click (Prompt 3) ────────────────────────────────
+test("a guest goes through the 5 steps, checks the phone and gets one order (CMD-03, R202)", async ({
+  page,
+}) => {
+  await start(page);
+  await toReview(page);
+  await payAndAccept(page);
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+  await expect(page).toHaveURL(/\/commander\/code$/);
+
+  const code = page.getByRole("textbox", { name: "Code à 6 chiffres" });
+  await expect(code).toHaveAttribute("autocomplete", "one-time-code");
+  await expect(code).toHaveAttribute("inputmode", "numeric");
+  await expect(code).toHaveAttribute("dir", "ltr");
+  await expect(page.getByText("+216 20 ••• 000")).toBeVisible();
+
+  await code.fill(FIRST_CODE);
+  await page.getByRole("button", { name: "Vérifier" }).dblclick();
+  await expect(page).toHaveURL(/\/commander\/confirmation\?n=FG-/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    "Votre commande est enregistrée.",
+  );
+  expect(await orders(page)).toBe(1);
+  expect(await draft(page)).toBeNull(); // cleared after the order
+  // The light account was created once and is signed in.
+  const accounts = await page.evaluate(() =>
+    Object.values(JSON.parse(localStorage.getItem("fg.mock.accounts") ?? "{}")),
+  );
+  expect(accounts).toHaveLength(1);
+});
+
+test("a double click on Valider creates one order (R202)", async ({ page }) => {
+  await page.clock.install({ time: MORNING });
+  await signInAs(page, KNOWN_PHONE);
+  await page.goto("/fr/commander");
+  await toReview(page, KNOWN_PHONE);
+  await payAndAccept(page);
+  // Signed in with this exact phone: no code step.
+  await page.getByRole("button", { name: "Valider la commande" }).dblclick();
+  await expect(page).toHaveURL(/\/commander\/confirmation\?n=FG-/);
+  expect(await orders(page)).toBe(1);
+});
+
+test("a lost answer, a reload and a retry give one order, and edits wait for the answer (R202)", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  await signInAs(page, KNOWN_PHONE);
+  await page.goto("/fr/commander");
+  await toReview(page, KNOWN_PHONE);
+  await payAndAccept(page);
+  await page.evaluate(() => localStorage.setItem("fg.mock.failNextOrderResponse", "true"));
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+
+  await expect(page.getByText("La connexion a été coupée.")).toBeVisible();
+  await expect(page.getByRole("link", { name: /Modifier/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Valider la commande" })).toHaveCount(0);
+  expect(await orders(page)).toBe(1); // it did reach the mock server
+
+  await page.reload();
+  await expect(page.getByText("La connexion a été coupée.")).toBeVisible();
+  await page.getByRole("button", { name: "Réessayer" }).click();
+  await expect(page).toHaveURL(/\/commander\/confirmation\?n=FG-/);
+  expect(await orders(page)).toBe(1);
+});
+
+// ── Price (R204, R205, R207) ─────────────────────────────────────────────────────────────────
+test("W14 shows a price on every card, and the chosen card is the quote (R207 surcharge)", async ({
+  page,
+}) => {
+  await start(page);
+  await fillSender(page);
+  await fillRecipient(page);
+  await fillParcel(page);
+  await chooseStandard(page);
+  await expect(page.getByRole("radio", { name: /Express.*16,660/ })).toBeVisible();
+  await expect(page.getByRole("radio", { name: /Standard.*11,305/ })).toBeVisible();
+  await expect(page.getByRole("complementary", { name: "Votre prix" })).toContainText("11,305 TND");
+  await expect(page.getByText(/Standard[\s\S]*avant \[HEURE\]/).first()).toBeVisible();
+  await expect(
+    page.getByText(/Majoration pluie de 1,000\sTND incluse, plafonnée à \[PLAFOND\]/),
+  ).toBeVisible();
+  await expect(page.getByText("Code promo")).toHaveCount(0); // CMD-10 is L2
+});
+
+test("W15 lists every price line, even at 0,000, and they add up (R204, R207)", async ({
+  page,
+}) => {
+  await start(page);
+  await toReview(page);
+  const detail = page.getByRole("complementary", { name: "Détail du prix" });
+  const lines: [string, string][] = [
+    ["Service et zone : Standard, zone A", "6,000"],
+    ["Distance", "2,500"],
+    ["Poids", "0,000"],
+    ["Options", "0,000"],
+    ["Majoration pluie (plafond : [PLAFOND])", "1,000"],
+    ["Remise", "0,000"],
+    ["TVA", "1,805"],
+    ["Timbre fiscal", "0,000"],
+  ];
+  for (const [term, amount] of lines) {
+    const row = detail.locator("dl > div").filter({ has: page.getByText(term, { exact: true }) });
+    await expect(row, term).toContainText(amount);
+  }
+  await expect(detail).toContainText("11,305 TND");
+  await expect(detail).toContainText("Montants d'exemple.");
+  // Proof for a fragile parcel, no COD (cahier rule).
+  await expect(page.getByText("Code envoyé au destinataire, ou signature et photo")).toBeVisible();
+  // R104: a guest never sees "Compte client".
+  await expect(page.getByRole("radio", { name: /Compte client/ })).toHaveCount(0);
+});
+
+test("after 15 minutes the price is recalculated and must be accepted again (R205, fake clock)", async ({
+  page,
+}) => {
+  await start(page);
+  await toReview(page);
+  await payAndAccept(page);
+  await expect(page.getByRole("timer")).toContainText(/1[45]:\d\d/);
+  await page.clock.fastForward("14:00");
+  await expect(page.getByRole("timer")).toContainText(/0[01]:\d\d/);
+  await page.clock.fastForward("01:05");
+
+  await expect(page.getByText("Le prix a été recalculé.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Valider la commande" })).toHaveAttribute(
+    "aria-disabled",
+    "true",
+  );
+  await page.getByRole("button", { name: "Valider la commande" }).click({ force: true });
+  await expect(page).toHaveURL(/\/commander\/verification$/);
+
+  await page.getByRole("button", { name: "Accepter le nouveau prix" }).click();
+  await expect(page.getByRole("timer")).toContainText(/1[45]:\d\d/);
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+  await expect(page).toHaveURL(/\/commander\/code$/);
+});
+
+// ── Payment (R104), account (R101) ───────────────────────────────────────────────────────────
+test("'Compte client' appears only for a merchant with a validated contract (R104)", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  await signInAs(page, "+216 71 000 002"); // merchant, contract pending
+  await page.goto("/fr/commander");
+  await toReview(page, "+216 71 000 002");
+  await expect(page.getByRole("radio", { name: /Compte client/ })).toHaveCount(0);
+
+  await signInAs(page, "+216 71 000 001"); // merchant, contract validated
+  await page.goto("/fr/commander/verification");
+  await expect(page.getByRole("radio", { name: /Compte client/ })).toBeVisible();
+  // The refusal sentence of the mockup stays on cash on delivery (listed in the PR).
+  await expect(
+    page.getByText(
+      "Le destinataire paie. S'il refuse, le port et le retour restent à votre charge.",
+    ),
+  ).toBeVisible();
+});
+
+test("a phone that already has an account is asked to sign in after the right code, then the order goes through (R101)", async ({
+  page,
+}) => {
+  await start(page);
+  await toReview(page, KNOWN_PHONE);
+  await payAndAccept(page);
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+  await page.getByRole("textbox", { name: "Code à 6 chiffres" }).fill(FIRST_CODE);
+  await page.getByRole("button", { name: "Vérifier" }).click();
+  await expect(page.getByText("Ce numéro a déjà un compte.")).toBeVisible();
+  expect(await orders(page)).toBe(0);
+
+  await page.getByRole("link", { name: "Se connecter" }).click();
+  await expect(page).toHaveURL(/\/fr\/connexion\?next=%2Fcommander%2Fverification$/);
+  await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(KNOWN_PHONE);
+  await page.locator('input[name="password"]').fill(PASSWORD);
+  await page.getByRole("button", { name: "Se connecter" }).click();
+  await expect(page).toHaveURL(/\/fr\/commander\/verification$/);
+  // The draft is intact, the phone is the account's: no second code.
+  await expect(page.getByText("Amel B., Rue Ibn Khaldoun")).toBeVisible();
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+  await expect(page).toHaveURL(/\/commander\/confirmation\?n=FG-/);
+  expect(await orders(page)).toBe(1);
+});
+
+// ── Addresses and zones (CMD-02, R201) ───────────────────────────────────────────────────────
+test("free text alone cannot continue; the pin can be placed with the keyboard", async ({
+  page,
+}) => {
+  await start(page);
+  await textbox(page, "Adresse de collecte").fill("12 rue des Orangers");
+  await textbox(page, "Votre nom").fill("Yasmine K.");
+  await textbox(page, "Téléphone").fill(SENDER_PHONE);
+  await page.getByLabel("Créneau de collecte").selectOption({ index: 1 });
+  await page.getByRole("button", { name: "Continuer" }).click();
+  await expect(page).toHaveURL(/\/commander\/expediteur$/);
+  await expect(
+    page.getByText("Choisissez une suggestion ou placez un repère sur la carte.").last(),
+  ).toBeVisible();
+
+  const map = page.getByRole("button", {
+    name: "Carte : placer un repère pour Adresse de collecte",
+  });
+  await map.focus();
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("Enter");
+  await expect(page.getByRole("status").filter({ hasText: "Adresse desservie." })).toBeVisible();
+  await page.getByRole("button", { name: "Continuer" }).click();
+  await expect(page).toHaveURL(/\/commander\/destinataire$/);
+});
+
+test("an out-of-zone address shows W17 and no price anywhere (R201)", async ({ page }) => {
+  await start(page);
+  await fillSender(page, SENDER_PHONE, "Route de Sousse, km 40");
+  await expect(page).toHaveURL(/\/commander\/hors-zone$/);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("D'où part le colis ?");
+  await expect(page.getByText("Nous n'y livrons pas encore.")).toBeVisible();
+  await expect(page.locator("main")).not.toContainText("TND");
+  expect(decodeURIComponent(page.url())).not.toMatch(/Sousse/);
+  await expect(page.getByRole("link", { name: "Demander cette zone" })).toHaveAttribute(
+    "href",
+    "/fr/contact",
+  );
+  // A later step opened directly comes back to W17, never to a price.
+  await page.goto("/fr/commander/service");
+  await expect(page).toHaveURL(/\/commander\/hors-zone$/);
+});
+
+// ── Step guard, draft (CMD-07) ───────────────────────────────────────────────────────────────
+test("opening a later step directly goes to the first incomplete one", async ({ page }) => {
+  await page.goto("/fr/commander/verification");
+  await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
+  await start(page);
+  await fillSender(page);
+  await page.goto("/fr/commander/service");
+  await expect(page).toHaveURL(/\/fr\/commander\/destinataire$/);
+  await page.goto("/fr/commander/hors-zone"); // nothing is out of zone
+  await expect(page).toHaveURL(/\/fr\/commander\/destinataire$/);
+});
+
+test("the draft survives a reload and a language change, and never goes in the URL", async ({
+  page,
+}) => {
+  await start(page);
+  await fillSender(page);
+  await fillRecipient(page);
+  await textbox(page, "Contenu").fill("Livres");
+  await page.reload();
+  await expect(textbox(page, "Contenu")).toHaveValue("Livres");
+  await page.getByRole("link", { name: "EN", exact: true }).click();
+  await expect(page).toHaveURL(/\/en\/commander\/colis$/);
+  await expect(page.getByRole("textbox", { name: "Contents", exact: true })).toHaveValue("Livres");
+  expect(decodeURIComponent(page.url())).not.toMatch(/Livres|Yasmine|Amel|Bourguiba|Khaldoun|216/);
+});
+
+test("in English the declared value reads 48.500 and 1,152.000", async ({ page }) => {
+  await start(page);
+  await fillSender(page);
+  await fillRecipient(page);
+  await page.goto("/en/commander/colis");
+  const value = page.getByRole("textbox", { name: "Declared value (TND, optional)", exact: true });
+  await value.fill("48.500");
+  await expect(page.getByText("That is 48.500 TND")).toBeVisible();
+  await value.fill("1,152.000");
+  await expect(page.getByText("That is 1,152.000 TND")).toBeVisible();
+  await value.fill("1,15");
+  await page.getByRole("button", { name: "Continue" }).click();
+  await expect(page.getByText("Invalid amount.")).toBeVisible();
+});
+
+test("'Enregistrer et quitter' keeps the draft; 'Annuler' deletes it after confirmation", async ({
+  page,
+}) => {
+  await start(page);
+  await textbox(page, "Votre nom").fill("Yasmine K.");
+  await page.getByRole("link", { name: "Enregistrer et quitter" }).click();
+  await expect(page).toHaveURL(/\/fr$/);
+  await page.goto("/fr/commander");
+  await expect(textbox(page, "Votre nom")).toHaveValue("Yasmine K.");
+
+  await page.getByRole("button", { name: "Annuler" }).click();
+  await page.getByRole("button", { name: "Non, continuer" }).click();
+  expect(await draft(page)).not.toBeNull();
+  await page.getByRole("button", { name: "Annuler" }).click();
+  await page.getByRole("button", { name: "Oui, tout effacer" }).click();
+  await expect(page).toHaveURL(/\/fr$/);
+  expect(await draft(page)).toBeNull();
+});
+
+test("a corrupted or unknown draft is read as empty and the page still works", async ({ page }) => {
+  await page.goto("/fr");
+  await page.evaluate(() => localStorage.setItem("fg.order.draft.v1", "{not json"));
+  await page.goto("/fr/commander/colis");
+  await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
+  await expect(textbox(page, "Votre nom")).toHaveValue("");
+});
+
+test("a pickup slot that has started is never listed (fake clock, 18:30 in Tunis)", async ({
+  page,
+}) => {
+  await page.clock.install({ time: new Date("2026-11-04T17:30:00Z") });
+  await page.goto("/fr/commander/expediteur");
+  const select = page.getByLabel("Créneau de collecte");
+  await expect(select.locator("option").nth(1)).toBeAttached(); // the form has loaded the draft
+  const options = await select.locator("option").allTextContents();
+  expect(options.slice(1).length).toBeGreaterThan(0);
+  for (const option of options.slice(1)) expect(option).toMatch(/^Demain/);
+});
+
+test("the focus moves to the new h1 after each step", async ({ page }) => {
+  await start(page);
+  await fillSender(page);
+  await expect(page.getByRole("heading", { level: 1, name: "Où va-t-il ?" })).toBeFocused();
+});
+
+// ── After the order (W16, CMD-06) ────────────────────────────────────────────────────────────
+test("W16: tracking link, sample slip, /suivi finds the order without personal data", async ({
+  page,
+  request,
+}) => {
+  const code = await placeGuestOrder(page);
+  await expect(page.getByText("Amel B. a reçu son lien de suivi par SMS")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Annuler/ })).toHaveCount(0); // CMD-08: Prompt 4
+  const slip = page.getByRole("link", { name: "Bon de commande (exemple)" });
+  const href = await slip.getAttribute("href");
+  expect(href).toBe("/examples/bon-de-commande-exemple.pdf");
+  const pdf = await request.get(href ?? "");
+  expect(pdf.status()).toBe(200);
+  expect((await pdf.body()).subarray(0, 5).toString()).toBe("%PDF-");
+
+  await page.getByRole("link", { name: "Suivre ma livraison" }).click();
+  await expect(page).toHaveURL(new RegExp(`/fr/suivi\\?n=${code}$`));
+  await expect(page.getByText("Commande créée").first()).toBeVisible();
+  await expect(page.locator("main")).not.toContainText(/Amel|Yasmine|Bourguiba|Khaldoun/);
+});
+
+test("W16 with an unknown or invalid number shows a neutral page", async ({ page }) => {
+  for (const n of ["FG-0000-0000", "<b>x</b>"]) {
+    await page.goto(`/fr/commander/confirmation?n=${encodeURIComponent(n)}`);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Aucune commande à afficher.");
+  }
+});
+
+test("an unknown path under /commander is a 404 with the site header and footer", async ({
+  page,
+}) => {
+  const response = await page.goto("/fr/commander/inconnu");
+  expect(response?.status()).toBe(404);
+  await expect(page.locator("header nav")).toBeVisible();
+  await expect(page.locator("footer")).toBeVisible();
+});
+
+test.describe("without JavaScript", () => {
+  test.use({ javaScriptEnabled: false });
+  test("each step shows its h1 and says ordering needs JavaScript", async ({ page, request }) => {
+    const pages: [string, string][] = [
+      ["/fr/commander/expediteur", "D'où part le colis ?"],
+      ["/fr/commander/verification", "Vérifiez et validez"],
+    ];
+    for (const [path, title] of pages) {
+      await page.goto(path);
+      await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible();
+      // Chromium still parses <noscript> as if scripts ran when Playwright turns JavaScript off,
+      // so the message is checked in the server HTML: a browser without JavaScript shows it.
+      const html = await (await request.get(path)).text();
+      expect(html).toMatch(
+        /<noscript><p[^>]*>Pour commander, activez JavaScript dans votre navigateur\.<\/p><\/noscript>/,
+      );
+    }
+  });
+});
+
+test("cmd chrome: no site nav, no footer, no dark-mode button", async ({ page }) => {
+  await page.goto("/fr/commander/expediteur");
+  await expect(page.locator("header nav")).toHaveCount(0);
+  await expect(page.locator("footer")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: /sombre|dark/i })).toHaveCount(0);
+  await shot(page, "cmd-chrome-fr-1440");
+});

@@ -13,7 +13,8 @@ Playwright + axe-core for end-to-end checks. Everything runs on mock data for no
 ```
 apps/web/
 ├─ public/brand/            logo-dark.png (navy backgrounds), logo-light.png (light backgrounds)
-├─ e2e/                     Playwright tests (ui.spec.ts, routing.spec.ts)
+├─ public/examples/         bon-de-commande-exemple.pdf (W16 sample slip, marked EXEMPLE, fake data)
+├─ e2e/                     Playwright tests (ui, routing, public-site, order-flow, auth) + helpers.ts
 ├─ playwright.config.ts     builds and serves the app on :3100 with FG_DEV_UI=1
 └─ src/
    ├─ proxy.ts              next-intl routing ("/" -> cookie language or /fr). Next 16 name for middleware.
@@ -27,20 +28,31 @@ apps/web/
    │  ├─ globals.css        Tailwind + @fastgo/ui theme, scans packages/ui for classes
    │  └─ [locale]/
    │     ├─ layout.tsx      <html lang dir> (the only place), fonts, intl provider, skip link. No chrome.
-   │     └─ (site)/         route group (not in the URL): layout.tsx = header, <main id="main">, footer
-   │        ├─ page.tsx (home), not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
-   │        ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
-   │        ├─ commander, connexion, inscription   "coming soon" placeholders, noindex (real pages: Prompt 3)
-   │        └─ dev/ui/page.tsx  component showcase (see below)
+   │     ├─ (site)/         route group (not in the URL): layout.tsx = header, <main id="main">, footer
+   │     │  ├─ page.tsx (home), not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
+   │     │  ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
+   │     │  ├─ connexion, inscription, code, mot-de-passe(/nouveau), google-telephone   W18 to W22, noindex
+   │     │  ├─ compte           "coming soon", noindex, default page after sign-in (Prompt 4)
+   │     │  └─ dev/ui/page.tsx  component showcase (see below)
+   │     └─ (cmd)/          order chrome: logo, language, "Enregistrer et quitter", no nav or footer
+   │        └─ commander/   entry (first incomplete step), expediteur, destinataire, colis, service,
+   │                        verification, code, confirmation, hors-zone (W11 to W17), all noindex
    ├─ components/           app-level components (site-header/footer, mobile-menu, money, page-hero...)
    │  ├─ home/, tracking/, zones/, help/, contact/, driver/   one folder per page that has client forms
+   │  ├─ order/             cmd header, step frame, one component per step, price aside, address field
+   │  ├─ auth/              W18 to W22 forms, the shared code step (W20), mock Google chooser
    │  └─ dev/ui-showcase.tsx
    └─ lib/
       ├─ data/              mock data layer. Pages read from here; swapped for the API client later.
       │  └─ fixtures/       example data (names, amounts, tracking codes). Never in components.
       ├─ forms/             zod schemas (error codes, not text) and useErrorMessage
+      ├─ order/             constants (every unsourced value), draft (the one localStorage module), clock,
+      │                     pricing, slots, proof, schemas, steps (guard), request, submit (idempotency)
+      ├─ auth/              safeNext (?next= only on this site), in-memory auth flow
       ├─ seo.ts, page.ts    title/description/canonical/hreflang helper, locale + metadata helpers
-      └─ tracking-code.ts, limits.ts   shared validator (FG-XXXX-XXXX) and the 5 MB attachment limit
+      ├─ storage.ts         safe localStorage access (missing, full or broken storage never breaks a page)
+      ├─ phone.ts, digits.ts   Tunisian phone normalize/mask, Arabic-Indic digits to Latin
+      └─ tracking-code.ts, limits.ts   shared validator and generator (FG-XXXX-XXXX), the 5 MB limit
 ```
 
 ## Mock data rules
@@ -50,6 +62,24 @@ apps/web/
   placeholder in the active language (`placeholders.*`: `[PRIX]`, `[HEURE]`, `[LIMITE]`, `[TARIF]`, `[VILLE]`...).
 - `NEXT_PUBLIC_SITE_URL` (see `.env.example`) feeds the canonical and hreflang links.
 - `pnpm --filter @fastgo/web test` runs the unit tests of the data layer and the form schemas.
+
+## Order flow and sign-in (Prompt 3)
+
+- The mock "server" keeps its tables in localStorage on this device (`lib/data/mock-db.ts`):
+  `fg.mock.accounts`, `fg.mock.codes` (no code is stored: the n-th code sent is a fixture),
+  `fg.mock.orders`, `fg.mock.idempotency`. The session is `fg.mock.session` (id, kind, contract,
+  verified flag, masked phone only). The draft is `fg.order.draft.v1`. Nothing else.
+- Fixture values, mock only, never in the UI (`lib/data/fixtures/accounts.ts`): password
+  `fastgo-demo-2026`; customer `+216 98 000 001`; merchants `+216 71 000 001` (contract validated)
+  and `+216 71 000 002` (pending); SMS / e-mail codes `482615`, then `731904`, then `590286`;
+  Google chooser: Amel B. (new e-mail) and Sami T. (known e-mail).
+- `localStorage["fg.mock.failNextOrderResponse"] = "true"` makes the next order answer get lost
+  after the order was created (tests of the network cut, R202).
+- Unsourced values (code length, validity, resend delay, attempts, password length, draft
+  retention) live in `lib/order/constants.ts` only. Prices are example fixtures
+  (`lib/data/fixtures/pricing.ts`), labelled "Montants d'exemple".
+- Steps read the draft in the browser: each page server-renders its h1 and a busy placeholder, and
+  `<noscript>` says ordering needs JavaScript.
 
 ## Languages
 
@@ -85,6 +115,11 @@ apps/web/
 no horizontal scroll, axe-core (WCAG 2 A/AA), and saves a screenshot. Compare it with
 `docs/ui/screenshots/<screen>.jpg` by eye, then list what still differs in the PR.
 The references are the 1440 px pages scaled to 1080 px, so compare the 1440 px shots.
+
+`e2e/order-flow.spec.ts` and `e2e/auth.spec.ts` cover W11 to W22: every page in fr and ar at 1440 and
+360 px, the 5 steps with the SMS code, the double click and the lost answer (R202), the price lines
+and the 15-minute expiry with a fake clock (R204, R205, R207), R101, R103, R104, the step guard, the
+draft, `?next=`, and every code case. Tests use `page.clock` and the fixture codes.
 
 `e2e/public-site.spec.ts` covers the public site:
 - every page in fr and ar at 1440 and 360 px, the home page in en, metadata and hreflang;

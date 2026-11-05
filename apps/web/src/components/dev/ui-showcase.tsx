@@ -40,6 +40,7 @@ import {
 } from "@fastgo/ui";
 import { DateTime, Money } from "@/components/money";
 import { FileAttachDemo } from "./file-attach-demo";
+import { CodeInputDemo, GoogleDemo, MapDemo, RadioCardDemo } from "./order-components-demo";
 import { devUiFixtures as data } from "@/lib/data/fixtures/dev-ui";
 
 function Section({ id, title, children }: { id: string; title: string; children: ReactNode }) {
@@ -446,6 +447,22 @@ export function UiShowcase() {
 
       <Section id="file-attach" title={sectionTitle("fileAttach")}>
         <FileAttachDemo />
+      </Section>
+
+      <Section id="radio-card" title={sectionTitle("radioCard")}>
+        <RadioCardDemo />
+      </Section>
+
+      <Section id="code-input" title={sectionTitle("codeInput")}>
+        <CodeInputDemo />
+      </Section>
+
+      <Section id="map" title={sectionTitle("map")}>
+        <MapDemo />
+      </Section>
+
+      <Section id="google" title={sectionTitle("google")}>
+        <GoogleDemo />
       </Section>
     </>
   );

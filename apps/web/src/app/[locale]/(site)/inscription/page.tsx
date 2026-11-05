@@ -1,11 +1,20 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { Suspense } from "react";
+import { AuthCard } from "@/components/auth/auth-card";
+import { SignUpForm } from "@/components/auth/sign-up-form";
+import { SignUpFromUrl } from "@/components/auth/with-next";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
 export const generateMetadata = ({ params }: PageParams) =>
   localizedMetadata(params, "/inscription", "signUp", { noindex: true });
 
-/** Sign-up is Prompt 3: the merchants page "Créer un compte" button lands here. */
-export default async function SignUpPage({ params }: PageParams) {
+/** W19 (ESP-01). */
+export default async function Page({ params }: PageParams) {
   await resolveLocale(params);
-  return <ComingSoon page="signUp" />;
+  return (
+    <AuthCard wide>
+      <Suspense fallback={<SignUpForm next={null} />}>
+        <SignUpFromUrl />
+      </Suspense>
+    </AuthCard>
+  );
 }

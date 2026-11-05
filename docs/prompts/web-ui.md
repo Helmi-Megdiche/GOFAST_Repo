@@ -76,6 +76,10 @@ Build from docs/ui:
 - Recipient link D1 to D5, mobile first, no account, opened by a token in the URL (SUI-02, SUI-03). D1AR-Suivi and D1EN-Suivi are the language references.
 - PWA manifest and install prompt for the client side (FE-13), following IP01 and IP02.
 
+Also from Prompt 3, left for the client space:
+- CMD-08: cancelling an order (L1 in the spec). W16 has no cancel button yet.
+- CMD-02: remembered addresses and saved recipients for the next order ("Enregistrer ce destinataire" is mock only today).
+
 Protect /compte and /pro routes with a mock session. Mock data must include the empty states (no order yet, no invoice) and the error states.
 Same Playwright and screenshot comparison steps as before.
 ```

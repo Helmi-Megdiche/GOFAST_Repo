@@ -53,6 +53,7 @@ describe("checkZone", () => {
     expect(await checkZone("Rue Ibn Khaldoun")).toEqual({
       status: "in-zone",
       services: ["express", "standard"],
+      zone: "A",
     });
     expect((await checkZone("  avenue HABIB Bourguiba, Tunis ")).status).toBe("in-zone");
   });

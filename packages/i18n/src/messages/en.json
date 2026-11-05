@@ -62,6 +62,58 @@
       "signUp": {
         "title": "Create an account | FastGo",
         "description": "Account creation is coming soon."
+      },
+      "orderSender": {
+        "title": "Order: sender | FastGo",
+        "description": "Enter the pickup address of your parcel."
+      },
+      "orderRecipient": {
+        "title": "Order: recipient | FastGo",
+        "description": "Enter the delivery address and the recipient."
+      },
+      "orderParcel": {
+        "title": "Order: parcel | FastGo",
+        "description": "Describe what we deliver."
+      },
+      "orderService": {
+        "title": "Order: service | FastGo",
+        "description": "Choose when the parcel must arrive."
+      },
+      "orderReview": {
+        "title": "Order: review | FastGo",
+        "description": "Check the price breakdown and confirm your order."
+      },
+      "orderCode": {
+        "title": "Order: verification code | FastGo",
+        "description": "Enter the code received by SMS to confirm the order."
+      },
+      "orderConfirmation": {
+        "title": "Order placed | FastGo",
+        "description": "Your tracking number and the next steps of your delivery."
+      },
+      "orderOutOfZone": {
+        "title": "Address outside our areas | FastGo",
+        "description": "We don't deliver to this address yet."
+      },
+      "code": {
+        "title": "Verification code | FastGo",
+        "description": "Enter the code you received."
+      },
+      "passwordForgot": {
+        "title": "Forgotten password | FastGo",
+        "description": "Get a code to choose a new password."
+      },
+      "passwordNew": {
+        "title": "New password | FastGo",
+        "description": "Choose your new password."
+      },
+      "googlePhone": {
+        "title": "Last step | FastGo",
+        "description": "Add your phone after signing in with Google."
+      },
+      "account": {
+        "title": "My account | FastGo",
+        "description": "Your customer space is coming soon."
       }
     }
   },
@@ -99,7 +151,11 @@
       "accordion": "Accordion",
       "chips": "Chips",
       "checkbox": "Checkbox",
-      "fileAttach": "Attachment"
+      "fileAttach": "Attachment",
+      "radioCard": "Card choice",
+      "codeInput": "Verification code",
+      "map": "Map (placeholder)",
+      "google": "Google button"
     },
     "typography": {
       "d1": "Your parcel leaves today. You know where it is.",
@@ -210,6 +266,13 @@
       "attachLabel": "Add an attachment (5 MB)",
       "attachRemove": "Remove the attachment",
       "attachError": "The file is larger than 5 MB."
+    },
+    "order": {
+      "radioLegend": "Service",
+      "codeLabel": "6-digit code",
+      "mapLabel": "Demo map",
+      "mapInstructions": "Click the map, or use the arrow keys then Enter.",
+      "pinAt": "Pin: {x}%, {y}%"
     }
   },
   "placeholders": {
@@ -228,7 +291,8 @@
     "list": "[LIST TO BE VALIDATED BY FASTGO]",
     "text": "[TEXT]",
     "answer": "[ANSWER]",
-    "vehicle": "[VEHICLE]"
+    "vehicle": "[VEHICLE]",
+    "ceiling": "[CEILING]"
   },
   "nav": {
     "label": "Main navigation",
@@ -543,7 +607,8 @@
     "pages": {
       "order": "Order",
       "signIn": "Sign in",
-      "signUp": "Create an account"
+      "signUp": "Create an account",
+      "account": "My account"
     }
   },
   "forms": {
@@ -554,7 +619,19 @@
       "trackingInvalid": "A tracking number looks like FG-7K4M-2QXP.",
       "addressTooShort": "Enter at least 3 characters.",
       "attachmentTooLarge": "The file is larger than 5 MB.",
-      "captchaRequired": "Confirm that you are not a robot."
+      "captchaRequired": "Confirm that you are not a robot.",
+      "addressNotConfirmed": "Pick a suggestion or place a pin on the map.",
+      "slotRequired": "Choose a time slot.",
+      "slotPast": "This time slot has passed. Choose another one.",
+      "parcelTypeRequired": "Choose a shipment type.",
+      "countInvalid": "Enter a whole number, at least 1.",
+      "weightInvalid": "Enter a weight in kg, for example 2 or 2.5.",
+      "declaredValueInvalid": "Invalid amount. Example: 48.500 or 1,152.000.",
+      "serviceRequired": "Choose a service.",
+      "paymentRequired": "Choose a payment method.",
+      "termsRequired": "Accept the terms to continue.",
+      "passwordTooShort": "At least 10 characters.",
+      "codeIncomplete": "Enter the full code."
     },
     "serverErrors": {
       "attachmentTooLarge": "The file is larger than 5 MB.",
@@ -644,5 +721,337 @@
     "text": "This page does not exist or has moved.",
     "home": "Back to home",
     "track": "Track a parcel"
+  },
+  "cmd": {
+    "homeLabel": "FastGo, home",
+    "saveAndQuit": "Save and quit",
+    "stepperLabel": "Order steps",
+    "stepStates": {
+      "done": "Done",
+      "current": "Current step",
+      "todo": "To do"
+    },
+    "steps": {
+      "sender": "1. Sender",
+      "recipient": "2. Recipient",
+      "parcel": "3. Parcel",
+      "service": "4. Service",
+      "review": "5. Review"
+    },
+    "loading": "Loading your order…",
+    "noJs": "To order, turn on JavaScript in your browser.",
+    "continue": "Continue",
+    "back": "Back",
+    "cancel": "Cancel",
+    "cancelConfirm": {
+      "title": "Cancel this order?",
+      "text": "What you entered will be deleted from this device.",
+      "confirm": "Yes, delete everything",
+      "keep": "No, keep going"
+    },
+    "busy": "One moment…"
+  },
+  "order": {
+    "address": {
+      "suggestionsLabel": "Suggestions",
+      "noSuggestion": "No suggestion. Place a pin on the map.",
+      "hint": "Pick a suggestion or place a pin on the map.",
+      "mapLabel": "Map: place a pin for {field}",
+      "mapInstructions": "Click the map, or use the arrow keys then Enter to place the pin.",
+      "pinText": "Pin placed on the map",
+      "checking": "Checking the address…",
+      "inZone": "This address is served.",
+      "outOfZone": "This address is not served yet.",
+      "unknown": "Address not recognised. Pick a suggestion or place a pin."
+    },
+    "sender": {
+      "title": "Where does the parcel leave from?",
+      "address": "Pickup address",
+      "landmark": "Landmark (optional)",
+      "name": "Your name",
+      "phone": "Phone",
+      "slot": "Pickup time slot",
+      "slotPlaceholder": "Choose a time slot",
+      "slotExample": "Example time slots."
+    },
+    "slot": {
+      "today": "Today, from {start} to {end}",
+      "tomorrow": "Tomorrow, from {start} to {end}"
+    },
+    "recipient": {
+      "title": "Where is it going?",
+      "address": "Delivery address",
+      "landmark": "Landmark (optional)",
+      "name": "Recipient's name",
+      "phone": "Phone",
+      "phoneHint": "They get the tracking link by SMS.",
+      "instructions": "Instructions (optional)",
+      "smsLanguage": "Language of the SMS and the link",
+      "languages": {
+        "fr": "French",
+        "ar": "Arabic",
+        "en": "English"
+      },
+      "save": "Save this recipient"
+    },
+    "parcel": {
+      "title": "What are we delivering?",
+      "typeLegend": "Shipment type",
+      "types": {
+        "document": {
+          "name": "Envelope",
+          "hint": "Documents"
+        },
+        "small": {
+          "name": "Small parcel",
+          "hint": "[LIMIT]"
+        },
+        "medium": {
+          "name": "Medium",
+          "hint": "[LIMIT]"
+        },
+        "large": {
+          "name": "Large",
+          "hint": "[LIMIT]"
+        }
+      },
+      "count": "Number of parcels",
+      "weight": "Estimated weight (kg)",
+      "content": "Contents",
+      "declaredValue": "Declared value (TND, optional)",
+      "declaredValueParsed": "That is <amount></amount>",
+      "option": "Option",
+      "fragile": "Fragile parcel"
+    },
+    "service": {
+      "title": "When must it arrive?",
+      "legend": "Service",
+      "delays": {
+        "express": "Delivered in under 1 hour",
+        "standard": "Delivered today before {time}",
+        "scheduled": "Choose your time slot"
+      },
+      "slot": "Delivery time slot",
+      "surcharge": "{name} surcharge of <amount></amount> included, capped at <ceiling></ceiling>. It is shown now so the price does not change at the end.",
+      "submit": "Review my order",
+      "pricing": "Calculating the price…",
+      "unavailable": "Not available yet for these addresses."
+    },
+    "price": {
+      "title": "Your price",
+      "pending": "It will show as soon as the delivery address is known.",
+      "provisional": "Provisional price",
+      "from": "From <amount></amount>",
+      "example": "Example amounts.",
+      "provisionalNote": "Example amount, to be confirmed by the parcel and the service.",
+      "guarantee": "Incl. VAT, guaranteed for 15 minutes. Example amounts.",
+      "detail": "Price breakdown",
+      "lines": {
+        "base": "Service and area: {service}, area {zone}",
+        "distance": "Distance",
+        "weight": "Weight",
+        "options": "Options",
+        "surcharge": "{name} surcharge (cap: <ceiling></ceiling>)",
+        "discount": "Discount",
+        "vat": "VAT",
+        "stamp": "Fiscal stamp"
+      },
+      "surchargeNames": {
+        "rain": "Rain"
+      },
+      "total": "Total incl. VAT",
+      "timeLeft": "Price guaranteed for {time} more.",
+      "timeLeftShort": "{minutes} min of guarantee left.",
+      "expired": {
+        "title": "The price has been recalculated.",
+        "text": "The 15-minute guarantee has passed. New price: <next></next>. Before: <previous></previous>.",
+        "accept": "Accept the new price",
+        "accepted": "New price accepted."
+      }
+    },
+    "review": {
+      "title": "Check and confirm",
+      "delivery": "Your delivery",
+      "edit": "Edit",
+      "editSection": "Edit: {section}",
+      "pickup": "Pickup",
+      "dropoff": "Delivery",
+      "parcel": "Parcel",
+      "proof": "Proof",
+      "person": "{name}, {address}",
+      "parcelSummary": "{count, plural, one {# parcel} other {# parcels}} ({type}), {weight} kg",
+      "fragile": "fragile",
+      "proofs": {
+        "codeOrPhotoPosition": "Code sent to the recipient, or photo with location",
+        "codeOrSignaturePhoto": "Code sent to the recipient, or signature and photo",
+        "codeElseAgentPhone": "Code sent to the recipient; failing that, an agent confirms by phone, with signature and photo"
+      },
+      "paymentLegend": "How do you pay?",
+      "payments": {
+        "cashPickup": {
+          "title": "Cash at pickup",
+          "text": "You pay the driver when they pick up the parcel."
+        },
+        "cashDelivery": {
+          "title": "Cash on delivery",
+          "text": "The recipient pays. If they refuse, delivery and return costs are yours."
+        },
+        "account": {
+          "title": "Customer account",
+          "text": "Monthly invoice, merchants under contract."
+        }
+      },
+      "terms": "I accept the <link>terms of sale</link> and confirm the parcel contains no forbidden item.",
+      "submit": "Confirm the order",
+      "submitting": "Confirming…",
+      "phoneCheckNote": "We check your phone by SMS before your first order.",
+      "lost": {
+        "title": "The connection was lost.",
+        "text": "We don't know whether the order arrived. Try again: it will not be created twice.",
+        "retry": "Try again",
+        "editBlocked": "Changes are blocked until this order gets an answer."
+      },
+      "errors": {
+        "idempotencyConflict": "This order was already sent with different details. Reload the page.",
+        "outOfZone": "One of the addresses is not served.",
+        "phoneNotVerified": "Your phone must be checked by SMS.",
+        "quoteExpired": "The price has expired. It has been recalculated.",
+        "quoteNotAccepted": "Accept the new price to continue.",
+        "paymentNotAllowed": "This payment method is not available for your account.",
+        "slotPast": "The chosen time slot has passed. Choose another one.",
+        "termsRequired": "Accept the terms of sale to confirm.",
+        "network": "The connection was lost. Try again."
+      }
+    },
+    "code": {
+      "accountExists": {
+        "title": "This number already has an account.",
+        "text": "Sign in to finish the order. Your draft is kept.",
+        "signIn": "Sign in"
+      },
+      "creating": "Creating the order…"
+    },
+    "confirmation": {
+      "title": "Your order is placed.",
+      "number": "Tracking number: <code></code>",
+      "steps": {
+        "checking": "We are checking your order",
+        "recipientSms": "{name} has received their tracking link by SMS",
+        "pickup": "A driver comes to your address between <start></start> and <end></end>"
+      },
+      "track": "Track my delivery",
+      "slip": "Order slip (example)",
+      "newOrder": "New order",
+      "notFound": {
+        "title": "No order to show.",
+        "text": "This link does not match an order placed on this device."
+      }
+    },
+    "outOfZone": {
+      "title": "We don't deliver there yet.",
+      "text": "Choose another address or see the areas we serve.",
+      "hint": "This address is not served yet.",
+      "change": "Change the address",
+      "zones": "See the areas",
+      "request": "Request this area"
+    }
+  },
+  "auth": {
+    "or": "or",
+    "google": {
+      "continue": "Continue with Google",
+      "chooserTitle": "Choose a Google account (simulation)",
+      "chooserText": "Simulation: the real Google sign-in comes later.",
+      "close": "Close",
+      "connectedAs": "{email}, signed in with Google"
+    },
+    "signIn": {
+      "title": "Sign in to your account",
+      "identifier": "Phone or email",
+      "password": "Password",
+      "remember": "Stay signed in",
+      "forgot": "Forgotten password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "noAccount": "New customer?",
+      "signUp": "Create an account",
+      "invalid": "Wrong phone, email or password."
+    },
+    "signUp": {
+      "title": "Create an account",
+      "kindLegend": "Account type",
+      "kinds": {
+        "customer": {
+          "title": "Individual",
+          "text": "Occasional shipments"
+        },
+        "merchant": {
+          "title": "Merchant",
+          "text": "Volumes and contract"
+        }
+      },
+      "name": "Full name",
+      "phone": "Phone",
+      "phoneHint": "You will receive a code by SMS.",
+      "email": "Email (optional)",
+      "password": "Password",
+      "passwordHint": "At least {count} characters",
+      "terms": "I accept the <cgv>terms of sale</cgv> and the <privacy>privacy policy</privacy>.",
+      "submit": "Continue",
+      "emailTaken": "This email already has an account. Sign in.",
+      "created": "Account created."
+    },
+    "code": {
+      "title": "Enter the code you received",
+      "sentTo": "Sent to <target></target>. It is valid for {minutes} minutes.",
+      "label": "{length}-digit code",
+      "verify": "Verify",
+      "verifying": "Verifying…",
+      "notReceived": "Didn't get it?",
+      "resendIn": "Resend in {seconds} s",
+      "resend": "Resend the code",
+      "sending": "Sending the code…",
+      "changeNumber": "Change the number",
+      "results": {
+        "wrong": "Wrong code. {count, plural, one {# try left.} other {# tries left.}}",
+        "expired": "This code has expired. Ask for a new one.",
+        "locked": "Too many tries. Try again at {time}.",
+        "tooSoon": "Please wait before asking for a new code.",
+        "tooMany": "Too many codes requested. Try again at {time}.",
+        "sent": "New code sent.",
+        "noCode": "No code in progress. Ask for a code.",
+        "invalidTarget": "Invalid number.",
+        "incomplete": "Enter all {length} digits."
+      },
+      "missing": {
+        "title": "No verification in progress.",
+        "text": "Start again from the form.",
+        "back": "Back to the form"
+      },
+      "sentToEmail": "Sent to <target></target>. It is valid for {minutes} minutes."
+    },
+    "forgot": {
+      "title": "Forgotten password",
+      "text": "Enter your phone. We will send you a code to choose a new one.",
+      "phone": "Phone",
+      "submit": "Get a code",
+      "back": "Back to sign-in"
+    },
+    "newPassword": {
+      "title": "Choose a new password",
+      "password": "New password",
+      "submit": "Save",
+      "done": "Password saved. You can sign in.",
+      "signIn": "Sign in"
+    },
+    "googlePhone": {
+      "title": "Last step: your phone",
+      "text": "The driver and the tracking need it. We check it once by SMS.",
+      "phone": "Phone",
+      "submit": "Get the code",
+      "knownEmail": "This email already has a FastGo account. Confirm it with the code sent by email, then add your phone.",
+      "emailSubmit": "Get the code by email",
+      "missing": "No Google sign-in in progress."
+    }
   }
 }

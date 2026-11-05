@@ -66,6 +66,14 @@
   --fg-on-inverse-muted: #c9cfd9;
   --fg-accent-on-inverse: #ff9a57; /* orange text on navy */
 
+  /* Placeholder map (fg.css .map) and the Google button (fg.css .gg, Google's own colors). */
+  --fg-map: #e8ebef;
+  --fg-map-road: #ffffff;
+  --fg-google: #ffffff;
+  --fg-google-hover: #f8f9fa;
+  --fg-google-border: #747775;
+  --fg-google-ink: #1f1f1f;
+
   color-scheme: light;
 }
 
@@ -98,6 +106,12 @@
   --fg-danger-light: #3d1c1c;
   --fg-danger-border: #6e3a3a;
   --fg-danger-tint: #2b1d1f;
+  --fg-map: #2a313c;
+  --fg-map-road: #3b4352;
+  --fg-google: #131314;
+  --fg-google-hover: #1f1f20;
+  --fg-google-border: #8e918f;
+  --fg-google-ink: #e3e3e3;
 
   --fg-alert-warning: #f2cf8e;
   --fg-alert-error: #ffc3bf;

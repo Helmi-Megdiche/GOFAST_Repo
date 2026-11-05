@@ -3,8 +3,9 @@
 import { useTranslations } from "next-intl";
 import { Button, Field, Input } from "@fastgo/ui";
 import { useRouter } from "@/i18n/navigation";
+import { seedFromHome } from "@/lib/order/draft";
 
-/** Departure and arrival, then "Voir le prix". The order flow is Prompt 3: for now it opens /commander, with nothing in the URL. */
+/** Departure and arrival, then "Voir le prix": both go into the order draft, then /commander. */
 export function QuoteForm() {
   const t = useTranslations("home.hero");
   const router = useRouter();
@@ -16,7 +17,9 @@ export function QuoteForm() {
       onSubmit={(event) => {
         event.preventDefault();
         // Addresses are personal data: they never go into the URL (and so never reach server
-        // logs). The order flow will carry them through its draft (CMD-07, Prompt 3).
+        // logs). They go into the order draft on this device (CMD-07, decision 3).
+        const form = new FormData(event.currentTarget);
+        seedFromHome(String(form.get("departure") ?? ""), String(form.get("arrival") ?? ""));
         router.push("/commander");
       }}
     >
@@ -36,13 +39,14 @@ export function QuoteForm() {
         />
         <Field label={t("departure")}>
           <Input
+            name="departure"
             placeholder={t("addressPlaceholder")}
             autoComplete="street-address"
             className="h-12 text-md"
           />
         </Field>
         <Field label={t("arrival")}>
-          <Input placeholder={t("addressPlaceholder")} className="h-12 text-md" />
+          <Input name="arrival" placeholder={t("addressPlaceholder")} className="h-12 text-md" />
         </Field>
       </div>
       <Button type="submit" size="lg" fullWidth>
