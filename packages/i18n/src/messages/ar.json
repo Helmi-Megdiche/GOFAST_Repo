@@ -460,7 +460,7 @@
       "title": "هل من مشكلة؟",
       "cta": "تواصل مع FastGo"
     },
-    "parcel": "الطرد"
+    "parcelLine": "الطرد <n></n>: {status}"
   },
   "zones": {
     "title": "المناطق المشمولة",

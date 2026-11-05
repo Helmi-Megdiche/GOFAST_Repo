@@ -736,16 +736,18 @@ test("tracking: an outcome order shows its client wording and the detail per par
   page,
 }) => {
   // FG-5A1Y-0011 is the T19 fixture: 2 parcels handed over, 1 returned.
-  for (const [lang, wording, handed] of [
-    ["fr", "Issue de la livraison : Livrée en partie", "Remis"],
-    ["en", "Delivery outcome: Partially delivered", "Handed over"],
-    ["ar", "نتيجة التوصيل: تم التسليم جزئيًا", "تم التسليم"],
+  for (const [lang, wording, handed, line] of [
+    ["fr", "Issue de la livraison : Livrée en partie", "Remis", "Colis 1 : Remis"],
+    ["en", "Delivery outcome: Partially delivered", "Handed over", "Parcel 1: Handed over"],
+    ["ar", "نتيجة التوصيل: تم التسليم جزئيًا", "تم التسليم", "الطرد 1: تم التسليم"],
   ] as const) {
     await page.goto(`/${lang}/suivi?n=FG-5A1Y-0011`);
     const main = page.locator("main");
     await expect(main.getByText(wording)).toBeVisible();
     await expect(main.getByText(handed, { exact: false }).first()).toBeVisible();
     await expect(main.locator("ul li")).toHaveCount(3);
+    // the punctuation belongs to the language: no French " :" in en or ar
+    await expect(main.locator("ul li").first()).toHaveText(line);
     for (const secret of ["Omar", "Sami", "98000001", "20000012", "Sousse"]) {
       await expect(main, secret).not.toContainText(secret);
     }

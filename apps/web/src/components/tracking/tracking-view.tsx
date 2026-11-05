@@ -171,8 +171,10 @@ export function TrackingView({ code }: { code: string }) {
                   <ul className="flex flex-col gap-1 text-sm text-muted">
                     {shown.tracking.parcelOutcomes.map((outcome, index) => (
                       <li key={index}>
-                        {t("parcel")} <span dir="ltr">{index + 1}</span> :{" "}
-                        {parcels(`status.${outcome}`)}
+                        {t.rich("parcelLine", {
+                          n: () => <span dir="ltr">{index + 1}</span>,
+                          status: parcels(`status.${outcome}`),
+                        })}
                       </li>
                     ))}
                   </ul>

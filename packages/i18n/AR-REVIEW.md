@@ -768,7 +768,7 @@ native-speaker review before release (CLAUDE.md).
 | `tracking.label` | رقم التتبع | Numéro de suivi | [ ] |
 | `tracking.notFound.text` | لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع FastGo. | Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo. | [ ] |
 | `tracking.notFound.title` | الرقم غير موجود | Numéro introuvable | [ ] |
-| `tracking.parcel` | الطرد | Colis | [ ] |
+| `tracking.parcelLine` | الطرد <n></n>: {status} | Colis <n></n> : {status} | [ ] |
 | `tracking.problem.cta` | تواصل مع FastGo | Contacter FastGo | [ ] |
 | `tracking.problem.title` | هل من مشكلة؟ | Un problème ? | [ ] |
 | `tracking.route` | من {from} إلى {to} | De {from} vers {to} | [ ] |
