@@ -8,7 +8,9 @@ const SELF = "https://fastgo.invalid";
 
 /**
  * Returns ?next= only if it is a path on this site, without the locale prefix (the i18n router adds
- * it back). Refuses absolute URLs, "//host", backslashes, control characters and schemes.
+ * it back). Refuses absolute URLs, "//host", backslashes, control characters and schemes. The check
+ * runs again on the final path (after dot segments and the locale are removed): "/fr//host" or
+ * "/..//host" would otherwise come out as "//host", which a browser reads as another site.
  */
 export function safeNext(value: string | null | undefined): string {
   if (typeof value !== "string" || value === "") return DEFAULT_AFTER_SIGN_IN;
@@ -28,5 +30,12 @@ export function safeNext(value: string | null | undefined): string {
   const path = (locales as readonly string[]).includes(first ?? "")
     ? `/${rest.join("/")}`
     : url.pathname;
-  return `${path}${url.search}${url.hash}`;
+  const result = `${path}${url.search}${url.hash}`;
+  if (!result.startsWith("/") || result.startsWith("//")) return DEFAULT_AFTER_SIGN_IN;
+  try {
+    if (new URL(result, SELF).origin !== SELF) return DEFAULT_AFTER_SIGN_IN;
+  } catch {
+    return DEFAULT_AFTER_SIGN_IN;
+  }
+  return result;
 }
