@@ -754,7 +754,6 @@
   "order": {
     "address": {
       "suggestionsLabel": "Suggestions",
-      "noSuggestion": "No suggestion. Place a pin on the map.",
       "hint": "Pick a suggestion or place a pin on the map.",
       "mapLabel": "Map: place a pin for {field}",
       "mapInstructions": "Click the map, or use the arrow keys then Enter to place the pin.",
@@ -762,7 +761,8 @@
       "checking": "Checking the address…",
       "inZone": "This address is served.",
       "outOfZone": "This address is not served yet.",
-      "unknown": "Address not recognised. Pick a suggestion or place a pin."
+      "unknown": "Address not recognised. Pick a suggestion or place a pin.",
+      "pinPosition": "Pin at {x}% from the left and {y}% from the top. Press Enter to place it."
     },
     "sender": {
       "title": "Where does the parcel leave from?",
@@ -862,7 +862,7 @@
       },
       "total": "Total incl. VAT",
       "timeLeft": "Price guaranteed for {time} more.",
-      "timeLeftShort": "{minutes} min of guarantee left.",
+      "timeLeftShort": "{minutes, plural, one {# minute of guarantee left.} other {# minutes of guarantee left.}}",
       "expired": {
         "title": "The price has been recalculated.",
         "text": "The 15-minute guarantee has passed. New price: <next></next>. Before: <previous></previous>.",
@@ -880,8 +880,7 @@
       "parcel": "Parcel",
       "proof": "Proof",
       "person": "{name}, {address}",
-      "parcelSummary": "{count, plural, one {# parcel} other {# parcels}} ({type}), {weight} kg",
-      "fragile": "fragile",
+      "parcelSummary": "{type, select, document {{count, plural, one {# envelope} other {# envelopes}}} small {{count, plural, one {# small parcel} other {# small parcels}}} medium {{count, plural, one {# medium parcel} other {# medium parcels}}} large {{count, plural, one {# large parcel} other {# large parcels}}} other {{count, plural, one {# parcel} other {# parcels}}}}, {weight} kg{fragile, select, yes {, fragile} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "Code sent to the recipient, or photo with location",
         "codeOrSignaturePhoto": "Code sent to the recipient, or signature and photo",
@@ -922,6 +921,11 @@
         "slotPast": "The chosen time slot has passed. Choose another one.",
         "termsRequired": "Accept the terms of sale to confirm.",
         "network": "The connection was lost. Try again."
+      },
+      "serviceLines": {
+        "express": "{service}, in under 1 hour",
+        "standard": "{service}, before {time}",
+        "scheduled": "{service}, {slot}"
       }
     },
     "code": {
@@ -929,8 +933,7 @@
         "title": "This number already has an account.",
         "text": "Sign in to finish the order. Your draft is kept.",
         "signIn": "Sign in"
-      },
-      "creating": "Creating the order…"
+      }
     },
     "confirmation": {
       "title": "Your order is placed.",
@@ -1014,7 +1017,6 @@
       "resendIn": "Resend in {seconds} s",
       "resend": "Resend the code",
       "sending": "Sending the code…",
-      "changeNumber": "Change the number",
       "results": {
         "wrong": "Wrong code. {count, plural, one {# try left.} other {# tries left.}}",
         "expired": "This code has expired. Ask for a new one.",
@@ -1057,6 +1059,7 @@
       "missing": "No Google sign-in in progress.",
       "phoneMismatch": "This number is not the one on your account. Enter the phone saved on your FastGo account.",
       "changePhone": "Change number"
-    }
+    },
+    "noJs": "This page needs JavaScript. Turn it on in your browser."
   }
 }

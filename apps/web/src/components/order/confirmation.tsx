@@ -45,7 +45,7 @@ export function Confirmation({ heading }: { heading: ReactNode }) {
   }
 
   return (
-    <Card className="mx-auto flex w-full max-w-[720px] flex-col items-center gap-6 px-6 py-12 text-center">
+    <Card className="flex w-full flex-col items-center gap-6 px-6 py-12 text-center">
       <span className="flex size-16 items-center justify-center rounded-full bg-success-light text-success">
         <Icon name="check" size="lg" />
       </span>

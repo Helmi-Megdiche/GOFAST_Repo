@@ -59,6 +59,11 @@ function ServiceForm({
   const slots = useMemo(() => availableSlots(now()), []);
   const [error, setError] = useState<string | undefined>();
   const [slotError, setSlotError] = useState<string | undefined>();
+  // Moved once the error is on screen, so it is read with the control.
+  const [focusTarget, setFocusTarget] = useState<{ selector: string } | null>(null);
+  useEffect(() => {
+    if (focusTarget) document.querySelector<HTMLElement>(focusTarget.selector)?.focus();
+  }, [focusTarget]);
 
   const zone = draft.recipient.address.zone;
   const available = new Set(
@@ -112,10 +117,13 @@ function ServiceForm({
   function onContinue() {
     if (!draft.service.code || !quoteMatches(draft)) {
       setError("serviceRequired");
+      const first = SERVICES.find((service) => available.has(service));
+      if (first) setFocusTarget({ selector: `#service-${first}` });
       return;
     }
     if (draft.service.code === "scheduled" && !isSlotInFuture(draft.service.slot, now())) {
       setSlotError(draft.service.slot ? "slotPast" : "slotRequired");
+      setFocusTarget({ selector: 'select[name="delivery-slot"]' });
       return;
     }
     goTo("review");
@@ -135,6 +143,7 @@ function ServiceForm({
           return (
             <div key={service} className="flex flex-col gap-2">
               <RadioCard
+                id={`service-${service}`}
                 name="service"
                 value={service}
                 checked={draft.service.code === service}
@@ -153,6 +162,7 @@ function ServiceForm({
               {service === "scheduled" && draft.service.code === "scheduled" ? (
                 <Field label={t("slot")} error={message(slotError)} required className="ps-4">
                   <Select
+                    name="delivery-slot"
                     value={slots.find((slot) => slot.id === draft.service.slot?.id)?.id ?? ""}
                     onChange={(event) => {
                       setSlotError(undefined);

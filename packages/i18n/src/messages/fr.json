@@ -754,7 +754,6 @@
   "order": {
     "address": {
       "suggestionsLabel": "Suggestions",
-      "noSuggestion": "Aucune suggestion. Placez un repère sur la carte.",
       "hint": "Choisissez une suggestion ou placez un repère sur la carte.",
       "mapLabel": "Carte : placer un repère pour {field}",
       "mapInstructions": "Cliquez sur la carte, ou utilisez les flèches puis Entrée pour placer le repère.",
@@ -762,7 +761,8 @@
       "checking": "Vérification de l'adresse…",
       "inZone": "Adresse desservie.",
       "outOfZone": "Cette adresse n'est pas encore desservie.",
-      "unknown": "Adresse non reconnue. Choisissez une suggestion ou placez un repère."
+      "unknown": "Adresse non reconnue. Choisissez une suggestion ou placez un repère.",
+      "pinPosition": "Repère à {x} % depuis la gauche et {y} % depuis le haut. Appuyez sur Entrée pour le placer."
     },
     "sender": {
       "title": "D'où part le colis ?",
@@ -862,7 +862,7 @@
       },
       "total": "Total TTC",
       "timeLeft": "Prix garanti encore {time}.",
-      "timeLeftShort": "Plus que {minutes} min de garantie.",
+      "timeLeftShort": "{minutes, plural, one {Plus que # min de garantie.} other {Plus que # min de garantie.}}",
       "expired": {
         "title": "Le prix a été recalculé.",
         "text": "La garantie de 15 minutes est passée. Nouveau prix : <next></next>. Avant : <previous></previous>.",
@@ -880,8 +880,7 @@
       "parcel": "Colis",
       "proof": "Preuve",
       "person": "{name}, {address}",
-      "parcelSummary": "{count, plural, one {# colis} other {# colis}} ({type}), {weight} kg",
-      "fragile": "fragile",
+      "parcelSummary": "{type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, {weight} kg{fragile, select, yes {, fragile} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "Code envoyé au destinataire, ou photo avec position",
         "codeOrSignaturePhoto": "Code envoyé au destinataire, ou signature et photo",
@@ -922,6 +921,11 @@
         "slotPast": "Le créneau choisi est passé. Choisissez-en un autre.",
         "termsRequired": "Acceptez les CGV pour valider.",
         "network": "La connexion a été coupée. Réessayez."
+      },
+      "serviceLines": {
+        "express": "{service}, en moins de 1 h",
+        "standard": "{service}, avant {time}",
+        "scheduled": "{service}, {slot}"
       }
     },
     "code": {
@@ -929,8 +933,7 @@
         "title": "Ce numéro a déjà un compte.",
         "text": "Connectez-vous pour terminer la commande. Votre brouillon est gardé.",
         "signIn": "Se connecter"
-      },
-      "creating": "Création de la commande…"
+      }
     },
     "confirmation": {
       "title": "Votre commande est enregistrée.",
@@ -1014,7 +1017,6 @@
       "resendIn": "Renvoyer dans {seconds} s",
       "resend": "Renvoyer le code",
       "sending": "Envoi du code…",
-      "changeNumber": "Changer de numéro",
       "results": {
         "wrong": "Code incorrect. {count, plural, one {Il reste # essai.} other {Il reste # essais.}}",
         "expired": "Ce code a expiré. Demandez-en un nouveau.",
@@ -1057,6 +1059,7 @@
       "missing": "Aucune connexion Google en cours.",
       "phoneMismatch": "Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte FastGo.",
       "changePhone": "Changer de numéro"
-    }
+    },
+    "noJs": "Cette page a besoin de JavaScript. Activez-le dans votre navigateur."
   }
 }

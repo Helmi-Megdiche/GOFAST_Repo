@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type KeyboardEvent, type MouseEvent } from "react";
+import { useId, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { cn } from "../lib/cn";
 
 export type MapPoint = { x: number; y: number };
@@ -15,6 +15,8 @@ export type MapPlaceholderProps = {
   label: string;
   /** Short keyboard instructions, read by screen readers. */
   instructions: string;
+  /** Text announced politely after each arrow key, e.g. "Pin at 50% from the left and 45% from the top." */
+  positionLabel?: (point: MapPoint) => string;
   className?: string;
 };
 
@@ -32,9 +34,11 @@ export function MapPlaceholder({
   onMove,
   label,
   instructions,
+  positionLabel,
   className,
 }: MapPlaceholderProps) {
   const instructionsId = useId();
+  const [announcement, setAnnouncement] = useState("");
 
   function onClick(event: MouseEvent<HTMLButtonElement>) {
     // Enter and Space also fire a click, with detail 0: place the pin where it is.
@@ -60,7 +64,9 @@ export function MapPlaceholder({
     const move = moves[event.key];
     if (move) {
       event.preventDefault();
-      (onMove ?? onPlace)({ x: clamp(move.x), y: clamp(move.y) });
+      const point = { x: clamp(move.x), y: clamp(move.y) };
+      (onMove ?? onPlace)(point);
+      if (positionLabel) setAnnouncement(positionLabel(point));
     }
   }
 
@@ -95,6 +101,10 @@ export function MapPlaceholder({
       </button>
       <p id={instructionsId} className="text-2xs text-muted">
         {instructions}
+      </p>
+      {/* Keyboard moves only: the pin itself is a picture, so its position is read out here. */}
+      <p aria-live="polite" className="sr-only">
+        {announcement}
       </p>
     </div>
   );

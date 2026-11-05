@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
+import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { formatDate, type Locale } from "@fastgo/i18n";
-import { Alert, Button, Card, CodeInput, Field, Ltr } from "@fastgo/ui";
+import { Alert, Button, Card, CodeInput, Ltr } from "@fastgo/ui";
 import { sendCode, verifyCode, type CodePurpose, type CodeTarget } from "@/lib/data/otp";
 import { CODE_LENGTH, CODE_VALIDITY_MS } from "@/lib/order/constants";
 import { useNow } from "@/components/order/use-now";
@@ -39,6 +39,7 @@ export function CodeVerification({
   const [after, setAfter] = useState<ReactNode | null>(null);
   const sent = useRef(false);
   const input = useRef<HTMLInputElement>(null);
+  const noticeId = useId();
   const time = (iso: string) => formatDate(iso, locale, "time");
 
   async function send(isResend: boolean) {
@@ -112,10 +113,8 @@ export function CodeVerification({
           minutes: CODE_VALIDITY_MS / 60_000,
         })}
       </p>
-      <Field
-        label={<span className="sr-only">{t("label", { length: CODE_LENGTH })}</span>}
-        className="w-full items-center"
-      >
+      {/* The input is named by aria-label; the notice below describes it (wrong, expired code...). */}
+      <div className="flex w-full flex-col items-center">
         <CodeInput
           ref={input}
           length={CODE_LENGTH}
@@ -123,9 +122,10 @@ export function CodeVerification({
           onValueChange={setCode}
           invalid={notice?.tone === "error"}
           aria-label={t("label", { length: CODE_LENGTH })}
+          aria-describedby={notice?.tone === "error" ? noticeId : undefined}
         />
-      </Field>
-      <div aria-live="polite" className="w-full">
+      </div>
+      <div id={noticeId} aria-live="polite" className="w-full">
         {notice ? <Alert tone={notice.tone}>{notice.text}</Alert> : null}
       </div>
       <Button type="submit" size="lg" fullWidth aria-disabled={busy || undefined}>

@@ -55,7 +55,6 @@ function Review({
   const t = useTranslations("order.review");
   const price = useTranslations("order.price");
   const o = useTranslations("offers");
-  const parcelT = useTranslations("order.parcel");
   const addressT = useTranslations("order.address");
   const p = useTranslations("placeholders");
   const formErrors = useTranslations("forms.errors");
@@ -72,6 +71,12 @@ function Review({
   });
   useEffect(() => clearRefusal(), []);
   const [fieldErrors, setFieldErrors] = useState<{ payment?: string; terms?: string }>({});
+  // Moved once the new errors (or the accepted price) are on screen, so they are read with the control.
+  const [focusTarget, setFocusTarget] = useState<{ selector: string } | null>(null);
+  const [announcement, setAnnouncement] = useState("");
+  useEffect(() => {
+    if (focusTarget) document.querySelector<HTMLElement>(focusTarget.selector)?.focus();
+  }, [focusTarget]);
   const recalculating = useRef(false);
 
   const session = getSession();
@@ -107,6 +112,7 @@ function Review({
       now(),
     );
     recalculating.current = false;
+    setAnnouncement("");
     if (result.status !== "ok") {
       goTo("outOfZone");
       return;
@@ -128,7 +134,10 @@ function Review({
     if (!draft.payment || accountRefused) errors.payment = "paymentRequired";
     if (!draft.termsAccepted) errors.terms = "termsRequired";
     setFieldErrors(errors);
-    if (errors.payment || errors.terms) return;
+    if (errors.payment || errors.terms) {
+      setFocusTarget({ selector: errors.payment ? `#payment-${payments[0]}` : "#order-terms" });
+      return;
+    }
     if (!isQuoteValid(quote, now())) {
       await recalculate();
       return;
@@ -198,16 +207,31 @@ function Review({
       <Link
         href={STEP_PATHS[target]}
         onClick={() => markStepChange()}
+        // Starts with the visible "Modifier" (label in name), then says which section.
+        aria-label={t("editSection", { section })}
         className="text-sm font-semibold text-orange-dark"
       >
         {t("edit")}
-        <span className="sr-only"> : {section}</span>
       </Link>
     );
 
   const addressText = (address: OrderDraft["sender"]["address"]) =>
     address.text || addressT("pinText");
   const count = parseCount(draft.parcel.count) ?? 1;
+  // W15 mockup: "Standard, avant 19 h". The cut-off hour is not sourced yet: [HEURE].
+  const service = draft.service.code;
+  const serviceLine = !service
+    ? null
+    : service === "express"
+      ? t("serviceLines.express", { service: o("express.name") })
+      : service === "standard"
+        ? t("serviceLines.standard", { service: o("standard.name"), time: p("time") })
+        : draft.service.slot
+          ? t("serviceLines.scheduled", {
+              service: o("scheduled.name"),
+              slot: slotLabel(draft.service.slot),
+            })
+          : o("scheduled.name");
   const minutesLeft = Math.ceil(left / 60_000);
   const clock = `${String(Math.floor(left / 60_000)).padStart(2, "0")}:${String(Math.floor((left % 60_000) / 1000)).padStart(2, "0")}`;
 
@@ -240,22 +264,17 @@ function Review({
                   address: addressText(draft.recipient.address),
                 })}
               </dd>
-              <dd className="text-muted">
-                {draft.service.code ? o(`${draft.service.code}.name`) : null}
-                {draft.service.code === "scheduled" && draft.service.slot
-                  ? `, ${slotLabel(draft.service.slot)}`
-                  : null}
-              </dd>
+              <dd className="text-muted">{serviceLine}</dd>
             </div>
             <div>
               <dt className="text-xs text-muted">{t("parcel")}</dt>
               <dd>
                 {t("parcelSummary", {
                   count,
-                  type: draft.parcel.type ? parcelT(`types.${draft.parcel.type}.name`) : "",
+                  type: draft.parcel.type ?? "none",
                   weight: draft.parcel.weightKg,
+                  fragile: draft.parcel.fragile ? "yes" : "no",
                 })}
-                {draft.parcel.fragile ? `, ${t("fragile")}` : null}
               </dd>
             </div>
             <div>
@@ -274,6 +293,7 @@ function Review({
           {payments.map((code) => (
             <RadioCard
               key={code}
+              id={`payment-${code}`}
               name="payment"
               value={code}
               checked={!accountRefused && draft.payment === code}
@@ -346,6 +366,9 @@ function Review({
                     onClick={() => {
                       setProblem(null);
                       save((latest) => ({ ...latest, acceptedQuoteId: latest.quote?.id ?? null }));
+                      // The alert and its button go away: the focus goes to the next action.
+                      setAnnouncement(price("expired.accepted"));
+                      setFocusTarget({ selector: "#order-submit" });
                     }}
                   >
                     {price("expired.accept")}
@@ -404,6 +427,7 @@ function Review({
           </Button>
         ) : (
           <Button
+            id="order-submit"
             size="lg"
             fullWidth
             aria-disabled={busy || !accepted || undefined}
@@ -412,6 +436,9 @@ function Review({
             {busy ? t("submitting") : t("submit")}
           </Button>
         )}
+        <p className="sr-only" role="status">
+          {announcement}
+        </p>
         {!draftPhoneVerified(draft) && !isVerifiedPhoneForSession(draft.sender.phone) ? (
           <p className="text-2xs text-muted">{t("phoneCheckNote")}</p>
         ) : null}

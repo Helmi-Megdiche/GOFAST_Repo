@@ -25,7 +25,9 @@ function digitsOnly(text: string, length: number): string {
 /**
  * One real input for an SMS code (decision 14), drawn as boxes (fg.css .pin). Autofill from the
  * SMS works (autocomplete="one-time-code"), the keypad is numeric and the digits stay
- * left-to-right in Arabic. Use inside <Field>, which gives it its label.
+ * left-to-right in Arabic. Spaces, dashes and Arabic-Indic digits in a pasted code are dropped and
+ * the value is cut to `length` digits. Give it a label (aria-label or <label for>) and link its
+ * error with aria-describedby.
  */
 export function CodeInput({
   length,
@@ -64,7 +66,7 @@ export function CodeInput({
         inputMode="numeric"
         autoComplete="one-time-code"
         pattern="[0-9]*"
-        maxLength={length}
+        // No maxLength: a pasted "482 615" would be cut to "482 61" before digitsOnly keeps 6 digits.
         value={value}
         aria-invalid={invalid ? true : props["aria-invalid"]}
         onChange={(event) => onValueChange(digitsOnly(event.target.value, length))}

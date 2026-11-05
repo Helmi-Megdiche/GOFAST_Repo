@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState, type Ref } from "react";
 import { useTranslations } from "next-intl";
 import { Field, Input, MapPlaceholder, type MapPoint } from "@fastgo/ui";
 import { suggestAddresses } from "@/lib/data/addresses";
@@ -18,12 +18,15 @@ export function AddressField({
   onChange,
   error,
   autoComplete,
+  inputRef,
 }: {
   label: string;
   value: AddressDraft;
   onChange: (next: AddressDraft) => void;
   error?: string;
   autoComplete?: string;
+  /** react-hook-form's field.ref: the form focuses the address when it is the first error. */
+  inputRef?: Ref<HTMLInputElement>;
 }) {
   const t = useTranslations("order.address");
   const message = useErrorMessage();
@@ -85,6 +88,7 @@ export function AddressField({
     <div className="flex flex-col gap-3">
       <Field label={label} hint={t("hint")} error={message(error)} required>
         <Input
+          ref={inputRef}
           value={value.text}
           autoComplete={autoComplete ?? "off"}
           aria-controls={suggestions.length > 0 ? listId : undefined}
@@ -123,6 +127,9 @@ export function AddressField({
         onMove={(pin) => onChange({ ...value, pin, confirmed: false, zone: null })}
         label={t("mapLabel", { field: label })}
         instructions={t("mapInstructions")}
+        positionLabel={(point) =>
+          t("pinPosition", { x: Math.round(point.x * 100), y: Math.round(point.y * 100) })
+        }
       />
       <p
         role="status"

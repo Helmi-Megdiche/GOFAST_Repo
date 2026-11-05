@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, type ReactNode } from "react";
-import { Controller, useForm } from "react-hook-form";
+import { useController, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Button, Card, Field, Icon, Input, Select } from "@fastgo/ui";
@@ -70,6 +70,9 @@ function SenderForm({
     },
   });
   const { errors } = formState;
+  // Registered before the other fields, so on submit the form focuses the address first when it
+  // is wrong (react-hook-form focuses the first registered field in error, through field.ref).
+  const { field: addressField } = useController({ control, name: "address" });
 
   // Every change is saved, so a reload or "Enregistrer et quitter" keeps it (CMD-07).
   useEffect(() => {
@@ -105,18 +108,13 @@ function SenderForm({
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
       <Card className="flex flex-col gap-4">
-        <Controller
-          control={control}
-          name="address"
-          render={({ field }) => (
-            <AddressField
-              label={t("address")}
-              value={field.value}
-              onChange={field.onChange}
-              error={errors.address?.message}
-              autoComplete="street-address"
-            />
-          )}
+        <AddressField
+          label={t("address")}
+          value={addressField.value}
+          onChange={addressField.onChange}
+          inputRef={addressField.ref}
+          error={errors.address?.message}
+          autoComplete="street-address"
         />
         <Field label={t("landmark")}>
           <Input {...register("landmark")} />

@@ -853,3 +853,158 @@ test.describe("order logic", () => {
     await expect.poll(async () => (await draft(page)).payment).toBeNull();
   });
 });
+
+// ── Languages, focus and announcements, mockup (PR #5, group C) ──────────────────────────────
+test.describe("languages, focus and mockup", () => {
+  test("W16: the language switcher keeps ?n= (item 19)", async ({ page }) => {
+    const code = await placeGuestOrder(page);
+    await page.locator('header a[hreflang="ar"]').click();
+    await expect(page).toHaveURL(new RegExp(`/ar/commander/confirmation\\?n=${code}$`));
+    await expect(page.getByText(code)).toBeVisible();
+  });
+
+  test("W15: after 'Accepter le nouveau prix' the focus moves on and the change is announced (item 20)", async ({
+    page,
+  }) => {
+    await start(page);
+    await toReview(page);
+    await payAndAccept(page);
+    await page.clock.fastForward("15:05");
+    await page.getByRole("button", { name: "Accepter le nouveau prix" }).click();
+    await expect(page.getByRole("button", { name: "Valider la commande" })).toBeFocused();
+    await expect(
+      page.locator("main [role=status]").filter({ hasText: "Nouveau prix accepté." }),
+    ).toHaveCount(1);
+  });
+
+  test("W17 focuses its h1 and shows step 1 for a departure address (items 20, 24)", async ({
+    page,
+  }) => {
+    await start(page);
+    await fillSender(page, SENDER_PHONE, "Route de Sousse, km 40");
+    await expect(page).toHaveURL(/\/commander\/hors-zone$/);
+    await expect(
+      page.getByRole("heading", { level: 1, name: "D'où part le colis ?" }),
+    ).toBeFocused();
+    await expect(page.locator('li[aria-current="step"]')).toContainText("1. Expéditeur");
+  });
+
+  test("W17 shows step 2 for an arrival address (item 24)", async ({ page }) => {
+    await start(page);
+    await fillSender(page);
+    await textbox(page, "Adresse de livraison").fill("Route ");
+    await page.getByRole("button", { name: "Route de Sousse, km 40" }).click();
+    await expect(
+      page.getByRole("status").filter({ hasText: "pas encore desservie" }),
+    ).toBeVisible();
+    await textbox(page, "Nom du destinataire").fill("Amel B.");
+    await textbox(page, "Téléphone").fill("+216 50 000 000");
+    await page.getByRole("button", { name: "Continuer" }).click();
+    await expect(page).toHaveURL(/\/commander\/hors-zone$/);
+    await expect(page.getByRole("heading", { level: 1, name: "Où va-t-il ?" })).toBeFocused();
+    await expect(page.locator('li[aria-current="step"]')).toContainText("2. Destinataire");
+  });
+
+  test("W11 and W12: an address error takes the focus (item 20)", async ({ page }) => {
+    await start(page);
+    await page.getByRole("button", { name: "Continuer" }).click();
+    await expect(textbox(page, "Adresse de collecte")).toBeFocused();
+    await fillSender(page);
+    await expect(page).toHaveURL(/\/commander\/destinataire$/);
+    await page.getByRole("button", { name: "Continuer" }).click();
+    await expect(textbox(page, "Adresse de livraison")).toBeFocused();
+  });
+
+  test("W15: a missing payment, then missing CGV, take the focus (item 20)", async ({ page }) => {
+    await start(page);
+    await toReview(page);
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await expect(page.getByRole("radio", { name: /Espèces à l'enlèvement/ })).toBeFocused();
+    await page.getByRole("radio", { name: /Espèces à l'enlèvement/ }).click();
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await expect(page.getByRole("checkbox", { name: /CGV/ })).toBeFocused();
+  });
+
+  test("W14: no service chosen takes the focus to the first service (item 20)", async ({
+    page,
+  }) => {
+    await start(page);
+    await fillSender(page);
+    await fillRecipient(page);
+    await fillParcel(page);
+    await expect(page).toHaveURL(/\/commander\/service$/);
+    await page.getByRole("button", { name: "Vérifier ma commande" }).click();
+    await expect(page.locator("#service-error")).toHaveText("Choisissez un service.");
+    await expect(page.getByRole("radio", { name: /Express/ })).toBeFocused();
+  });
+
+  test("W20: a pasted code with a space is accepted, the error is linked to the input (item 21)", async ({
+    page,
+  }) => {
+    await start(page);
+    await toReview(page);
+    await payAndAccept(page);
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await expect(page).toHaveURL(/\/commander\/code$/);
+    const code = page.getByRole("textbox", { name: "Code à 6 chiffres" });
+    await code.fill("000000");
+    await page.getByRole("button", { name: "Vérifier" }).click();
+    await expect(code).toHaveAccessibleDescription(/Code incorrect/);
+    await code.focus();
+    await page.keyboard.insertText("482 615");
+    await expect(code).toHaveValue(FIRST_CODE);
+  });
+
+  test("the pin position is announced politely on arrow keys (item 23)", async ({ page }) => {
+    await start(page);
+    await page
+      .getByRole("button", { name: "Carte : placer un repère pour Adresse de collecte" })
+      .focus();
+    await page.keyboard.press("ArrowUp");
+    await expect(
+      page.locator('main [aria-live="polite"]').filter({ hasText: /50\s%.*45\s%/ }),
+    ).toHaveCount(1);
+  });
+
+  test("W15 in ar: the edit link and the summary use the Arabic patterns (item 23)", async ({
+    page,
+  }) => {
+    await start(page);
+    await toReview(page);
+    await page.goto("/ar/commander/verification");
+    await expect(page.getByRole("link", { name: "تعديل: توصيلك", exact: true })).toBeVisible();
+    const summary = page.locator("main dl").first().locator("dd");
+    await expect(summary.first()).toBeVisible();
+    for (const text of await summary.allInnerTexts()) expect(text).not.toContain(", ");
+  });
+
+  test("W15 reads like the mockup: service with [HEURE], '1 petit colis, 2 kg, fragile' (item 24)", async ({
+    page,
+  }) => {
+    await start(page);
+    await toReview(page);
+    const summary = page.locator("main dl").first();
+    await expect(summary).toContainText("Standard, avant [HEURE]");
+    await expect(summary).toContainText("1 petit colis, 2 kg, fragile");
+  });
+
+  test("W16 at 1440 px: stepper, full-column card, buttons on one row (item 24)", async ({
+    page,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 900 });
+    await placeGuestOrder(page);
+    await expect(page.getByRole("list", { name: "Étapes de la commande" })).toBeVisible();
+    const card = await page
+      .locator("main h1")
+      .locator("xpath=ancestor::*[contains(@class,'rounded')][1]")
+      .boundingBox();
+    const stepper = await page.getByRole("list", { name: "Étapes de la commande" }).boundingBox();
+    expect(Math.round(card?.width ?? 0)).toBe(Math.round(stepper?.width ?? -1));
+    const tops = await Promise.all(
+      [/Suivre ma livraison/, /Bon de commande/, /Nouvelle commande/].map(async (name) =>
+        Math.round((await page.getByRole("link", { name }).boundingBox())?.y ?? -1),
+      ),
+    );
+    expect(new Set(tops).size).toBe(1);
+  });
+});

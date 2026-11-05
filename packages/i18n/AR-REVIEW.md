@@ -10,7 +10,6 @@ native-speaker review before release (CLAUDE.md).
 
 | Key | Arabic | French (source) | Reviewed |
 | --- | --- | --- | --- |
-| `auth.code.changeNumber` | تغيير الرقم | Changer de numéro | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
 | `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |
@@ -57,6 +56,7 @@ native-speaker review before release (CLAUDE.md).
 | `auth.newPassword.signIn` | تسجيل الدخول | Se connecter | [ ] |
 | `auth.newPassword.submit` | حفظ | Enregistrer | [ ] |
 | `auth.newPassword.title` | اختر كلمة مرور جديدة | Choisissez un nouveau mot de passe | [ ] |
+| `auth.noJs` | تحتاج هذه الصفحة إلى JavaScript. فعّله في متصفحك. | Cette page a besoin de JavaScript. Activez-le dans votre navigateur. | [ ] |
 | `auth.or` | أو | ou | [ ] |
 | `auth.signIn.forgot` | نسيت كلمة المرور | Mot de passe oublié | [ ] |
 | `auth.signIn.identifier` | الهاتف أو البريد الإلكتروني | Téléphone ou e-mail | [ ] |
@@ -513,15 +513,14 @@ native-speaker review before release (CLAUDE.md).
 | `order.address.inZone` | هذا العنوان ضمن مناطق الخدمة. | Adresse desservie. | [ ] |
 | `order.address.mapInstructions` | انقر على الخريطة، أو استخدم الأسهم ثم Enter لوضع العلامة. | Cliquez sur la carte, ou utilisez les flèches puis Entrée pour placer le repère. | [ ] |
 | `order.address.mapLabel` | الخريطة: ضع علامة لـ{field} | Carte : placer un repère pour {field} | [ ] |
-| `order.address.noSuggestion` | لا توجد اقتراحات. ضع علامة على الخريطة. | Aucune suggestion. Placez un repère sur la carte. | [ ] |
 | `order.address.outOfZone` | هذا العنوان غير مشمول بالخدمة بعد. | Cette adresse n'est pas encore desservie. | [ ] |
+| `order.address.pinPosition` | العلامة على بُعد {x}% من اليسار و{y}% من الأعلى. اضغط Enter لتثبيتها. | Repère à {x} % depuis la gauche et {y} % depuis le haut. Appuyez sur Entrée pour le placer. | [ ] |
 | `order.address.pinText` | علامة على الخريطة | Repère placé sur la carte | [ ] |
 | `order.address.suggestionsLabel` | اقتراحات | Suggestions | [ ] |
 | `order.address.unknown` | لم نتعرّف على العنوان. اختر اقتراحًا أو ضع علامة. | Adresse non reconnue. Choisissez une suggestion ou placez un repère. | [ ] |
 | `order.code.accountExists.signIn` | تسجيل الدخول | Se connecter | [ ] |
 | `order.code.accountExists.text` | سجّل الدخول لإتمام الطلب. مسودتك محفوظة. | Connectez-vous pour terminer la commande. Votre brouillon est gardé. | [ ] |
 | `order.code.accountExists.title` | لهذا الرقم حساب بالفعل. | Ce numéro a déjà un compte. | [ ] |
-| `order.code.creating` | جارٍ إنشاء الطلب… | Création de la commande… | [ ] |
 | `order.confirmation.newOrder` | طلب جديد | Nouvelle commande | [ ] |
 | `order.confirmation.notFound.text` | لا يطابق هذا الرابط أي طلب على هذا الجهاز. | Ce lien ne correspond à aucune commande passée sur cet appareil. | [ ] |
 | `order.confirmation.notFound.title` | لا يوجد طلب لعرضه. | Aucune commande à afficher. | [ ] |
@@ -576,7 +575,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.price.provisionalNote` | مبلغ على سبيل المثال، يُحدَّد حسب الطرد والخدمة. | Montant d'exemple, à préciser selon le colis et l'offre. | [ ] |
 | `order.price.surchargeNames.rain` | المطر | pluie | [ ] |
 | `order.price.timeLeft` | السعر مضمون لمدة {time} أخرى. | Prix garanti encore {time}. | [ ] |
-| `order.price.timeLeftShort` | بقيت {minutes} دقيقة من الضمان. | Plus que {minutes} min de garantie. | [ ] |
+| `order.price.timeLeftShort` | {minutes, plural, zero {لم يبقَ وقت من الضمان.} one {بقيت دقيقة واحدة من الضمان.} two {بقيت دقيقتان من الضمان.} few {بقيت # دقائق من الضمان.} many {بقيت # دقيقة من الضمان.} other {بقيت # دقيقة من الضمان.}} | {minutes, plural, one {Plus que # min de garantie.} other {Plus que # min de garantie.}} | [ ] |
 | `order.price.title` | السعر | Votre prix | [ ] |
 | `order.price.total` | المجموع شامل الضريبة | Total TTC | [ ] |
 | `order.recipient.address` | عنوان التسليم | Adresse de livraison | [ ] |
@@ -604,13 +603,12 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.errors.quoteNotAccepted` | اقبل السعر الجديد للمتابعة. | Acceptez le nouveau prix pour continuer. | [ ] |
 | `order.review.errors.slotPast` | انقضى الموعد المختار. اختر موعدًا آخر. | Le créneau choisi est passé. Choisissez-en un autre. | [ ] |
 | `order.review.errors.termsRequired` | وافق على شروط البيع للتأكيد. | Acceptez les CGV pour valider. | [ ] |
-| `order.review.fragile` | هش | fragile | [ ] |
 | `order.review.lost.editBlocked` | التعديلات معطّلة إلى أن يصل رد على هذا الطلب. | Les modifications sont bloquées tant que cette commande n'a pas de réponse. | [ ] |
 | `order.review.lost.retry` | أعد المحاولة | Réessayer | [ ] |
 | `order.review.lost.text` | لا نعرف إن وصل الطلب. أعد المحاولة: لن يُنشأ مرتين. | Nous ne savons pas si la commande est arrivée. Réessayez : elle ne sera pas créée deux fois. | [ ] |
 | `order.review.lost.title` | انقطع الاتصال. | La connexion a été coupée. | [ ] |
 | `order.review.parcel` | الطرد | Colis | [ ] |
-| `order.review.parcelSummary` | {count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} ({type})، {weight} كغ | {count, plural, one {# colis} other {# colis}} ({type}), {weight} kg | [ ] |
+| `order.review.parcelSummary` | {type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{fragile, select, yes {، هش} other {}} | {type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, {weight} kg{fragile, select, yes {, fragile} other {}} | [ ] |
 | `order.review.paymentLegend` | كيف تدفع؟ | Comment réglez-vous ? | [ ] |
 | `order.review.payments.account.text` | فاتورة شهرية، للتجار المتعاقدين. | Facture mensuelle, commerçants sous contrat. | [ ] |
 | `order.review.payments.account.title` | حساب العميل | Compte client | [ ] |
@@ -625,6 +623,9 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.proofs.codeElseAgentPhone` | رمز يُرسل إلى المستلم؛ وإن تعذّر، يتحقق موظف عبر الهاتف مع توقيع وصورة | Code envoyé au destinataire ; à défaut, validation par un agent au téléphone, avec signature et photo | [ ] |
 | `order.review.proofs.codeOrPhotoPosition` | رمز يُرسل إلى المستلم، أو صورة مع الموقع | Code envoyé au destinataire, ou photo avec position | [ ] |
 | `order.review.proofs.codeOrSignaturePhoto` | رمز يُرسل إلى المستلم، أو توقيع وصورة | Code envoyé au destinataire, ou signature et photo | [ ] |
+| `order.review.serviceLines.express` | {service}، في أقل من ساعة | {service}, en moins de 1 h | [ ] |
+| `order.review.serviceLines.scheduled` | {service}، {slot} | {service}, {slot} | [ ] |
+| `order.review.serviceLines.standard` | {service}، قبل {time} | {service}, avant {time} | [ ] |
 | `order.review.submit` | تأكيد الطلب | Valider la commande | [ ] |
 | `order.review.submitting` | جارٍ التأكيد… | Validation… | [ ] |
 | `order.review.terms` | أوافق على <link>شروط البيع</link> وأؤكد أن الطرد لا يحتوي على أي شيء محظور. | J'accepte les <link>CGV</link> et je confirme que le colis ne contient pas d'objet interdit. | [ ] |

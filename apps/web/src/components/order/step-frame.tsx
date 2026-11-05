@@ -9,25 +9,11 @@ import { STEPS, type StepId } from "@/lib/order/steps";
  */
 export function StepFrame({ step, children }: { step: StepId | null; children: ReactNode }) {
   const t = useTranslations("cmd");
-  const index = step ? STEPS.indexOf(step) : -1;
   return (
     <Container className="py-5 sm:py-6">
       {/* The mockup's order column is 1080 px (fg.css .cl-c), narrower than the site container. */}
       <div className="mx-auto flex max-w-[1080px] flex-col gap-4">
-        {step ? (
-          <Stepper
-            label={t("stepperLabel")}
-            stateLabels={{
-              done: t("stepStates.done"),
-              current: t("stepStates.current"),
-              todo: t("stepStates.todo"),
-            }}
-            steps={STEPS.map((id, position) => ({
-              label: t(`steps.${id}`),
-              state: position < index ? "done" : position === index ? "current" : "todo",
-            }))}
-          />
-        ) : null}
+        {step ? <OrderStepper step={step} /> : null}
         <noscript>
           <p className="rounded-lg bg-warning-light px-3.5 py-3 text-sm text-alert-warning">
             {t("noJs")}
@@ -36,5 +22,25 @@ export function StepFrame({ step, children }: { step: StepId | null; children: R
         {children}
       </div>
     </Container>
+  );
+}
+
+/** The 5 steps, the given one current. Also used by W17, which knows its step only in the browser. */
+export function OrderStepper({ step }: { step: StepId }) {
+  const t = useTranslations("cmd");
+  const index = STEPS.indexOf(step);
+  return (
+    <Stepper
+      label={t("stepperLabel")}
+      stateLabels={{
+        done: t("stepStates.done"),
+        current: t("stepStates.current"),
+        todo: t("stepStates.todo"),
+      }}
+      steps={STEPS.map((id, position) => ({
+        label: t(`steps.${id}`),
+        state: position < index ? "done" : position === index ? "current" : "todo",
+      }))}
+    />
   );
 }

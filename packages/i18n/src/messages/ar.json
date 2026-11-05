@@ -754,7 +754,6 @@
   "order": {
     "address": {
       "suggestionsLabel": "اقتراحات",
-      "noSuggestion": "لا توجد اقتراحات. ضع علامة على الخريطة.",
       "hint": "اختر اقتراحًا أو ضع علامة على الخريطة.",
       "mapLabel": "الخريطة: ضع علامة لـ{field}",
       "mapInstructions": "انقر على الخريطة، أو استخدم الأسهم ثم Enter لوضع العلامة.",
@@ -762,7 +761,8 @@
       "checking": "جارٍ التحقق من العنوان…",
       "inZone": "هذا العنوان ضمن مناطق الخدمة.",
       "outOfZone": "هذا العنوان غير مشمول بالخدمة بعد.",
-      "unknown": "لم نتعرّف على العنوان. اختر اقتراحًا أو ضع علامة."
+      "unknown": "لم نتعرّف على العنوان. اختر اقتراحًا أو ضع علامة.",
+      "pinPosition": "العلامة على بُعد {x}% من اليسار و{y}% من الأعلى. اضغط Enter لتثبيتها."
     },
     "sender": {
       "title": "من أين ينطلق الطرد؟",
@@ -862,7 +862,7 @@
       },
       "total": "المجموع شامل الضريبة",
       "timeLeft": "السعر مضمون لمدة {time} أخرى.",
-      "timeLeftShort": "بقيت {minutes} دقيقة من الضمان.",
+      "timeLeftShort": "{minutes, plural, zero {لم يبقَ وقت من الضمان.} one {بقيت دقيقة واحدة من الضمان.} two {بقيت دقيقتان من الضمان.} few {بقيت # دقائق من الضمان.} many {بقيت # دقيقة من الضمان.} other {بقيت # دقيقة من الضمان.}}",
       "expired": {
         "title": "أُعيد حساب السعر.",
         "text": "انتهت مدة الضمان البالغة 15 دقيقة. السعر الجديد: <next></next>. السابق: <previous></previous>.",
@@ -880,8 +880,7 @@
       "parcel": "الطرد",
       "proof": "الإثبات",
       "person": "{name}، {address}",
-      "parcelSummary": "{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} ({type})، {weight} كغ",
-      "fragile": "هش",
+      "parcelSummary": "{type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{fragile, select, yes {، هش} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "رمز يُرسل إلى المستلم، أو صورة مع الموقع",
         "codeOrSignaturePhoto": "رمز يُرسل إلى المستلم، أو توقيع وصورة",
@@ -922,6 +921,11 @@
         "slotPast": "انقضى الموعد المختار. اختر موعدًا آخر.",
         "termsRequired": "وافق على شروط البيع للتأكيد.",
         "network": "انقطع الاتصال. أعد المحاولة."
+      },
+      "serviceLines": {
+        "express": "{service}، في أقل من ساعة",
+        "standard": "{service}، قبل {time}",
+        "scheduled": "{service}، {slot}"
       }
     },
     "code": {
@@ -929,8 +933,7 @@
         "title": "لهذا الرقم حساب بالفعل.",
         "text": "سجّل الدخول لإتمام الطلب. مسودتك محفوظة.",
         "signIn": "تسجيل الدخول"
-      },
-      "creating": "جارٍ إنشاء الطلب…"
+      }
     },
     "confirmation": {
       "title": "تم تسجيل طلبك.",
@@ -1014,7 +1017,6 @@
       "resendIn": "إعادة الإرسال بعد {seconds} ث",
       "resend": "إعادة إرسال الرمز",
       "sending": "جارٍ إرسال الرمز…",
-      "changeNumber": "تغيير الرقم",
       "results": {
         "wrong": "رمز غير صحيح. {count, plural, one {بقيت محاولة واحدة.} two {بقيت محاولتان.} few {بقيت # محاولات.} many {بقيت # محاولة.} other {بقيت # محاولة.}}",
         "expired": "انتهت صلاحية هذا الرمز. اطلب رمزًا جديدًا.",
@@ -1057,6 +1059,7 @@
       "missing": "لا يوجد تسجيل دخول جارٍ عبر Google.",
       "phoneMismatch": "هذا الرقم ليس رقم حسابك. أدخل الهاتف المسجّل في حسابك على FastGo.",
       "changePhone": "تغيير الرقم"
-    }
+    },
+    "noJs": "تحتاج هذه الصفحة إلى JavaScript. فعّله في متصفحك."
   }
 }

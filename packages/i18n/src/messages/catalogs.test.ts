@@ -55,6 +55,14 @@ describe("business placeholders", () => {
   });
 });
 
+describe("Arabic plurals", () => {
+  it("timeLeftShort is an ICU plural with every Arabic category", () => {
+    expect(flat.ar["order.price.timeLeftShort"]).toMatch(
+      /^\{minutes, plural, zero \{.+\} one \{.+\} two \{.+\} few \{.+\} many \{.+\} other \{.+\}\}$/,
+    );
+  });
+});
+
 describe("AR-REVIEW.md", () => {
   it("lists every Arabic key (run `pnpm --filter @fastgo/i18n ar-review` after adding keys)", () => {
     const file = readFileSync(new URL("../../AR-REVIEW.md", import.meta.url), "utf8");

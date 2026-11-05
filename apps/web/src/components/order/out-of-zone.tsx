@@ -8,7 +8,8 @@ import { now } from "@/lib/order/clock";
 import { loadDraft, type OrderDraft } from "@/lib/order/draft";
 import { addressOutOfZone, redirectFor, STEP_PATHS } from "@/lib/order/steps";
 import { StepBusy } from "./busy";
-import { markStepChange } from "./step-heading";
+import { OrderStepper } from "./step-frame";
+import { markStepChange, StepHeading } from "./step-heading";
 
 /** W17: an out-of-zone departure or arrival, before any price (R201). No address in any URL. */
 export function OutOfZone() {
@@ -51,7 +52,8 @@ export function OutOfZone() {
 
   return (
     <div className="flex flex-col gap-4">
-      <h1 className="text-d2">{departure ? t("sender.title") : t("recipient.title")}</h1>
+      <OrderStepper step={failed.side} />
+      <StepHeading>{departure ? t("sender.title") : t("recipient.title")}</StepHeading>
       <Card className="flex max-w-[720px] flex-col gap-4">
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium">{label}</p>
