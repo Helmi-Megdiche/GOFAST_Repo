@@ -6,8 +6,9 @@ export type ParsedAmount =
 
 const INVALID = { ok: false, error: "declaredValueInvalid" } as const;
 
-// fr: "1 152,5", "1152.5", "48,500". Space (also no-break and narrow no-break) groups thousands.
-const FR = /^(\d{1,3}(?: \d{3})+|\d+)(?:[.,](\d{1,3}))?$/;
+// fr: "1 152,5", "1152.5", "48,500". Space (also no-break and narrow no-break) groups thousands,
+// after a first group that is not 0 ("0 500" is refused, "0,500" stays 0.500 TND).
+const FR = /^([1-9]\d{0,2}(?: \d{3})+|\d+)(?:[.,](\d{1,3}))?$/;
 // en, ar: "1,152.5", "1152.5", "48.500". A comma only groups thousands, in full groups of three,
 // after a first group that is not 0 ("0,500" is a typo for 0.500, never 500 TND).
 const EN = /^([1-9]\d{0,2}(?:,\d{3})+|\d+)(?:\.(\d{1,3}))?$/;

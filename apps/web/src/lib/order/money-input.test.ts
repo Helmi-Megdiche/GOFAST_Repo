@@ -16,6 +16,11 @@ describe("parseMillimes", () => {
     ["1152.25", 1_152_250],
     ["  12 ", 12_000],
     ["٤٨٫٥", 48_500],
+    ["0,500", 500],
+    ["1 152,5", 1_152_500],
+    ["500", 500_000],
+    ["0", 0],
+    ["10 000", 10_000_000],
   ])("fr: %s is %i millimes", (input, millimes) => {
     expect(parseMillimes(input, "fr")).toEqual(ok(millimes));
   });
@@ -56,6 +61,8 @@ describe("parseMillimes", () => {
     ".5",
     "1e3",
     "Infinity",
+    "0 500",
+    "00 500",
   ])("fr refuses %s", (input) => {
     expect(parseMillimes(input, "fr")).toEqual(bad);
   });
