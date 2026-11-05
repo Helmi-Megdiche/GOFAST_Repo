@@ -294,6 +294,7 @@ test.describe("abuse", () => {
     await page.getByRole("checkbox", { name: "Colis fragile" }).uncheck();
     await page.goto("/fr/commander/verification");
     await expect(page).toHaveURL(/\/commander\/service$/);
+    await expect(page.getByRole("complementary", { name: "Votre prix" })).toContainText(/TND/);
     const total = await page.getByRole("complementary", { name: "Votre prix" }).textContent();
     await page.getByRole("button", { name: "Vérifier ma commande" }).click();
     await expect(page).toHaveURL(/\/commander\/verification$/);
