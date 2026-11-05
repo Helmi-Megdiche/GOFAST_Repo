@@ -7,7 +7,7 @@ Delivery platform for FastGo (documents and parcels, Tunisia). Three engineers b
 Customers order a delivery on the website (or the installable web app on iPhone and Android), a driver picks it up and delivers it with proof, the recipient follows it through a personal link without an account, and FastGo staff run orders, dispatch, cash, invoices (El Fatoora / TTN) and COD payouts from a back-office. Payment is cash or merchant account. Online payment is L3.
 
 - Spec: `docs/spec/fonctionnalites.md` (feature IDs such as FE-01, CMD-03, BO-06). The full cahier des charges is the online doc; ask Helmi for anything not in this repo.
-- Business rules: `docs/spec/regles.md` (rules R101–R904, scenarios T01–T50, states of orders, parcels and missions). It is the binding extract of the cahier; when it and a mockup disagree, it wins.
+- Business rules: `docs/spec/regles.md` (rules R101–R904, order and parcel states, data model, API routes and the acceptance scenarios for these screens). It is the binding extract of the cahier; when it and a mockup disagree, it wins.
 - UI reference: `docs/ui/` (152 screens). Read `docs/ui/README.md` before any UI work.
 - Lots: L1 = launch (end of week 8), L2 = after launch, L3 = later. Do not build L2 or L3 items unless the ticket says so.
 
