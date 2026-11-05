@@ -1,5 +1,6 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useBrokenStorage, useMemoryStorage } from "../storage";
+import { setClock } from "./clock";
 import { DRAFT_RETENTION_MS } from "./constants";
 import {
   clearDraft,
@@ -19,6 +20,13 @@ let store: Map<string, string>;
 
 beforeEach(() => {
   store = useMemoryStorage();
+  // editDraft and loadDraft read the clock when no time is passed: pin it near the fixed T0 so the
+  // 24 h retention never depends on the day the suite runs.
+  setClock(() => T0 + 2);
+});
+
+afterEach(() => {
+  setClock();
 });
 
 describe("order draft (CMD-07)", () => {
