@@ -19,6 +19,8 @@ import { activePickupMission, MISSION_NEXT, ORDER_NEXT, PARCEL_NEXT } from "./st
 
 const customer: Session = {
   accountId: "acc-customer",
+  userId: "acc-customer",
+  role: null,
   kind: "customer",
   contract: null,
   phoneVerified: true,

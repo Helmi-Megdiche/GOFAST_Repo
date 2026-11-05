@@ -10,7 +10,8 @@ import { readyDraft as readyTestDraft } from "../order/test-draft";
 import { isValidTrackingCode } from "../tracking-code";
 import { readJson, useMemoryStorage, writeJson } from "../storage";
 import { createAccount, sessionFor } from "./accounts";
-import { FIXTURE_ACCOUNTS } from "./fixtures/accounts";
+import { signIn } from "./auth";
+import { FIXTURE_ACCOUNTS, FIXTURE_PASSWORD, FIXTURE_TEAM_MEMBERS } from "./fixtures/accounts";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
 import { FAIL_NEXT_ORDER_REQUEST_KEY, FAIL_NEXT_ORDER_RESPONSE_KEY, readTable } from "./mock-db";
 import {
@@ -395,6 +396,26 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     const mine = await orderOf({ ...readyDraft(), payment: "account" }, "p3");
     expect(mine.freightPayer).toBe("sender");
     expect(mine.ownerAccountId).toBe(FIXTURE_ACCOUNTS[1]!.id);
+    signOut();
+  });
+
+  it("a team member's order: createdByUserId and the first event's actor are the user, the owner is the account", async () => {
+    await verifyPhone();
+    const result = await signIn(FIXTURE_TEAM_MEMBERS[1]!.phone, FIXTURE_PASSWORD);
+    if (result.status !== "ok") throw new Error();
+    const created = await createOrder(request({ ...readyDraft(), payment: "account" }), "k-member");
+    if (created.status !== "created") throw new Error();
+    const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[created.code]!;
+    expect(order).toMatchObject({
+      ownerAccountId: "acc-merchant-validated",
+      createdByUserId: "usr-yasmine-user",
+    });
+    const first = Object.values(readTable<StatusEvent>(STATUS_EVENTS)).filter(
+      (e) => e.subjectType === "order" && e.subjectId === created.code,
+    );
+    expect(first).toMatchObject([
+      { fromStatus: null, toStatus: "received", actorId: "usr-yasmine-user" },
+    ]);
     signOut();
   });
 

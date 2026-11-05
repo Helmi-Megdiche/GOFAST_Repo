@@ -14,6 +14,8 @@ import { setSession, type Session } from "./session";
 const T0 = Date.parse("2026-11-04T08:30:00Z");
 const session = (accountId: string): Session => ({
   accountId,
+  userId: accountId,
+  role: null,
   kind: "customer",
   contract: null,
   phoneVerified: true,

@@ -18,6 +18,32 @@ export type FixtureAccount = {
   returnBalanceMillimes?: number;
 };
 
+/** A person of a merchant's team (ADR-2). Signs in with their own phone and the fixture password. */
+export type FixtureTeamMember = {
+  userId: string;
+  accountId: string;
+  name: string;
+  phone: string;
+  role: "admin" | "user";
+};
+
+export const FIXTURE_TEAM_MEMBERS: FixtureTeamMember[] = [
+  {
+    userId: "usr-yasmine-admin",
+    accountId: "acc-merchant-validated",
+    name: "Yasmine K.",
+    phone: "+21671000011",
+    role: "admin",
+  },
+  {
+    userId: "usr-yasmine-user",
+    accountId: "acc-merchant-validated",
+    name: "Walid H.",
+    phone: "+21671000012",
+    role: "user",
+  },
+];
+
 export const FIXTURE_PASSWORD = "fastgo-demo-2026";
 
 export const FIXTURE_ACCOUNTS: FixtureAccount[] = [

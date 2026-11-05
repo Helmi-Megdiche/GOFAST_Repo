@@ -150,8 +150,8 @@ const FREIGHT_PAYER = {
 function writeAccountOrder(code: string, request: OrderRequest, at: number): void {
   const session = getSession();
   const iso = new Date(at).toISOString();
-  // Ruling 1: Session has no userId until Task 5, the account id stands in for it.
-  const actor = session?.accountId ?? "guest";
+  // The person who orders (a team member for a merchant), not the account that owns the order.
+  const actor = session?.userId ?? "guest";
   const recipientLocale = request.recipient.smsLanguage;
   const { count, declaredValueMillimes } = request.parcel;
   const grams = kgTextToGrams(request.parcel.weightText);
@@ -166,7 +166,7 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
   const order: AccountOrder = {
     code,
     ownerAccountId: session?.accountId ?? null,
-    createdByUserId: session?.accountId ?? null,
+    createdByUserId: session?.userId ?? null,
     createdAt: iso,
     service: request.service.code,
     sender: {
