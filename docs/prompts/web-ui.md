@@ -79,6 +79,19 @@ Build from docs/ui:
 Also from Prompt 3, left for the client space:
 - CMD-08: cancelling an order (L1 in the spec). W16 has no cancel button yet.
 - CMD-02: remembered addresses and saved recipients for the next order ("Enregistrer ce destinataire" is mock only today).
+- ESP-01, item 13 of PR #5 (confirmed by Helmi): an "add or confirm my e-mail" screen in the client space. The e-mail typed at sign-up is never attached to the account until a code sent to that address confirms it, so until this screen ships a new account cannot sign in by e-mail.
+  - It sends a code to the e-mail address and attaches the e-mail only after the right code (a wrong or expired code attaches nothing).
+  - It gives the same answer whether or not the e-mail already belongs to an account (no account enumeration) when the code is sent and when a code is wrong or expired. Only after the right code, which proves the person controls the address, may the screen say the e-mail is already used (as W20 does for a phone).
+  - R101 stays enforced: an e-mail that belongs to another customer is never attached, even after the right code.
+  - Every text and error is in fr, ar and en.
+  - Once the e-mail is confirmed, the account can sign in by e-mail (W18).
+
+Tests for the e-mail screen (unit and Playwright):
+- The e-mail is not attached after "send code", nor after a wrong or expired code; it is attached after the right code.
+- The answer and screen after "send code" are identical for an e-mail with an account and one without (same text, same next step), and a wrong code gives the same error for both.
+- An e-mail already on another account is not attached after the right code (R101), and the other account is unchanged.
+- The screen, its errors and its success message render in fr, ar (RTL) and en, with axe-core passing.
+- After confirmation, W18 sign-in by e-mail works for that account; before it, it fails as it does today.
 
 Protect /compte and /pro routes with a mock session. Mock data must include the empty states (no order yet, no invoice) and the error states.
 Same Playwright and screenshot comparison steps as before.
