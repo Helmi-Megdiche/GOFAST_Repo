@@ -5,7 +5,7 @@ description: Final FastGo verification before pushing or updating a PR. Use befo
 
 # Verify before a PR
 
-The script needs bash; it does not run in PowerShell.
+The script needs bash; it does not run in PowerShell. It keeps your `PLAYWRIGHT_BROWSERS_PATH`: in this cloud container run it as `PLAYWRIGHT_BROWSERS_PATH=/root/.cache/ms-playwright bash .claude/skills/fastgo-verify-pr/verify.sh` (the preset `/opt/pw-browsers` lacks the pinned build).
 
 1. `bash .claude/skills/fastgo-verify-pr/verify.sh`: runs lint, typecheck, unit tests and the full e2e suite (port 3100 must be free) and prints only the totals and failures. Logs go to `$TMPDIR/fastgo-verify-*.log`.
 2. Screenshots: shots are in `apps/web/test-results/shots/<ref>-<locale>-<width>.png`. Compare the 1440 px shots with `docs/ui/screenshots/<ref>.jpg` (the references are 1440 px pages scaled to 1080). Look at a few, not all: the pages the change touched, in fr and ar.
