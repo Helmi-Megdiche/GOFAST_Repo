@@ -257,6 +257,21 @@ describe("derived order state", () => {
     expect(eventsOf("order", CODE)).toHaveLength(before + 1);
     expect(order().status).toBe("in_transit");
   });
+
+  // Gap in the umbrella: its order table lists only `picked_up → in_transit`, but `taken → lost` is
+  // a parcel transition, so an order whose only counted parcel is lost right after the scan derives
+  // `lost` directly. Pinned here; listed in the PR and in the umbrella's cahier v2 list.
+  it("an only counted parcel lost right after the scan gives picked_up → lost", () => {
+    const m = toAssigned();
+    ok(transition(M(m.id), "accepted", "driver-1"));
+    ok(transition(M(m.id), "arrived", "driver-1"));
+    ok(transition(P(1), "taken", "driver-1"));
+    ok(transition(M(m.id), "finished", "driver-1"));
+    ok(transition(P(1), "lost", "staff-1"));
+    expect(order()).toMatchObject({ status: "lost", lossReported: true });
+    const last = eventsOf("order", CODE).at(-1);
+    expect(last).toMatchObject({ fromStatus: "picked_up", toStatus: "lost", actorId: "system" });
+  });
 });
 
 describe("pickup mission finish", () => {

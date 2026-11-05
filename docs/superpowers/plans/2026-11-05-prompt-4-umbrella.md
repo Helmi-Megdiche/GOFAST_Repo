@@ -997,6 +997,7 @@ A second review, on the sections changed by Helmi's corrections, is in section 1
 12. **Import.** Add a payment mode (per file or per row) and the column list to the import contract; the P02 columns have none.
 13. **W13 split.** State how a whole-order weight and declared value are split across parcels (the mock: equal parts, last takes the remainder).
 14. **Language from the site switcher (R902).** State that a signed-in user's choice in the switcher saves `accounts.locale`.
+15. **Prise en charge → Perdue.** The order table lists only Prise en charge → En route, but a parcel may go Pris → Perdu. When the only counted parcel is lost right after the scan, the derived order goes Prise en charge → Perdue directly. The mock writes that derived event (pinned in `states.test.ts`); add the pair to the order table, or state that the order passes through En route.
 
 ## 19. Second review (fresh subagent, engineering:code-review, changed sections only)
 

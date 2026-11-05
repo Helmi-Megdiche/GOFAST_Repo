@@ -164,6 +164,8 @@ export function deriveOrderOutcome(parcels: ParcelStatus[]): DerivedOutcome {
   const counted = parcels.filter((s) => s !== "canceled");
   if (counted.length === 0) throw new Error("deriveOrderOutcome: no counted parcel");
   const allFinal = counted.every((s) => FINAL_PARCEL_STATES.includes(s));
+  // `to_collect` counts as "not moved yet": during the pickup, before the normal finish cancels them,
+  // the other parcels are still to_collect and the order is picked_up (first scan).
   if (!allFinal)
     return counted.every((s) => s === "taken" || s === "to_collect") ? "picked_up" : "in_transit";
   const handed = counted.filter((s) => s === "handed_over").length;
