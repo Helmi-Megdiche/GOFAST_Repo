@@ -113,7 +113,11 @@
       },
       "account": {
         "title": "My account | FastGo",
-        "description": "Your customer space is coming soon."
+        "description": "Your FastGo customer space."
+      },
+      "pro": {
+        "title": "Merchant space | FastGo",
+        "description": "Your FastGo merchant space."
       }
     }
   },
@@ -614,8 +618,7 @@
     "pages": {
       "order": "Order",
       "signIn": "Sign in",
-      "signUp": "Create an account",
-      "account": "My account"
+      "signUp": "Create an account"
     }
   },
   "forms": {
@@ -1111,5 +1114,45 @@
       "lost": "Lost",
       "canceled": "Canceled"
     }
+  },
+  "account": {
+    "nav": {
+      "label": "My space",
+      "home": "Home",
+      "orders": "Orders",
+      "invoices": "Invoices",
+      "claims": "Claims",
+      "addresses": "Addresses",
+      "profile": "Profile",
+      "import": "Import",
+      "cod": "Cash on delivery",
+      "statements": "Statements",
+      "company": "Company"
+    },
+    "home": {
+      "title": "My account",
+      "slots": {
+        "inProgress": "Orders in progress",
+        "lastDeliveries": "Latest deliveries",
+        "toSettle": "To settle",
+        "frequentRecipients": "Frequent recipients",
+        "installBanner": "Install the app"
+      }
+    },
+    "pro": {
+      "title": "Merchant space",
+      "slots": {
+        "inProgress": "Orders in progress",
+        "lastDeliveries": "Latest deliveries",
+        "cod": "Cash on delivery",
+        "chart": "Deliveries this week"
+      }
+    },
+    "guard": {
+      "busy": "Loading your space…",
+      "notAllowed": "You do not have access to this page.",
+      "noscript": "This page needs JavaScript to show your space."
+    },
+    "signOut": "Sign out"
   }
 }

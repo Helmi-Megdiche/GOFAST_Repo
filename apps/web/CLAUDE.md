@@ -32,8 +32,9 @@ apps/web/
    │     │  ├─ page.tsx (home), not-found.tsx, [...rest]/page.tsx (unknown path -> localized 404)
    │     │  ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
    │     │  ├─ connexion, inscription, code, mot-de-passe(/nouveau), google-telephone   W18 to W22, noindex
-   │     │  ├─ compte           "coming soon", noindex, default page after sign-in (Prompt 4)
-   │     │  └─ dev/ui/page.tsx  component showcase (see below)
+   │     │     │  └─ dev/ui/page.tsx  component showcase (see below)
+   │     ├─ (account)/      client space chrome (header, SpaceNav, sign-out, footer): compte (C01 skeleton), noindex
+   │     ├─ (pro)/          merchant space chrome, same parts: pro (P01 skeleton), noindex
    │     └─ (cmd)/          order chrome: logo, language, "Enregistrer et quitter", no nav or footer
    │        └─ commander/   entry (first incomplete step), expediteur, destinataire, colis, service,
    │                        verification, code, confirmation, hors-zone (W11 to W17), all noindex
@@ -67,12 +68,17 @@ apps/web/
 
 - The mock "server" keeps its tables in localStorage on this device (`lib/data/mock-db.ts`):
   `fg.mock.accounts`, `fg.mock.codes` (no code is stored: the n-th code sent is a fixture),
-  `fg.mock.orders`, `fg.mock.idempotency`. The session is `fg.mock.session` (id, kind, contract,
-  verified flag, masked phone only). The draft is `fg.order.draft.v1`. Nothing else.
+  `fg.mock.orders`, `fg.mock.idempotency`, and since ESP-00 the order model: `fg.mock.accountOrders`,
+  `parcels`, `missions`, `statusEvents`, `deliveryCodes`, `recipientLinks`, `outbox`, plus `fg.mock.seed`
+  ("orders-v1": the fixture orders are built once through `transition`) and `fg.mock.failNext:<op>`.
+  The session is `fg.mock.session` (account id, user id, role, kind, contract,
+  verified flag, masked phone only); sign-out never touches the `fg.mock.*` tables. The draft is `fg.order.draft.v1`. Nothing else.
 - Fixture values, mock only, never in the UI (`lib/data/fixtures/accounts.ts`): password
   `fastgo-demo-2026`; customer `+216 98 000 001`; merchants `+216 71 000 001` (contract validated)
   and `+216 71 000 002` (pending); SMS / e-mail codes `482615`, then `731904`, then `590286`;
-  Google chooser: Amel B. (new e-mail) and Sami T. (known e-mail).
+  Google chooser: Amel B. (new e-mail) and Sami T. (known e-mail). Team members of the validated
+  merchant (same password): Yasmine K. `+216 71 000 011` (admin) and Walid H. `+216 71 000 012`
+  (user); both land on `/pro`. Other fake customers: Lina M. (no orders), Karim S., Hana R.
 - `localStorage["fg.mock.failNextOrderResponse"] = "true"` makes the next order answer get lost
   after the order was created, and `fg.mock.failNextOrderRequest` loses the next request before
   any order exists (tests of the network cut, R202).

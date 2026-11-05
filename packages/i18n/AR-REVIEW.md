@@ -10,6 +10,32 @@ native-speaker review before release (CLAUDE.md).
 
 | Key | Arabic | French (source) | Reviewed |
 | --- | --- | --- | --- |
+| `account.guard.busy` | جارٍ تحميل مساحتك… | Chargement de votre espace… | [ ] |
+| `account.guard.noscript` | تحتاج هذه الصفحة إلى JavaScript لعرض مساحتك. | Cette page a besoin de JavaScript pour afficher votre espace. | [ ] |
+| `account.guard.notAllowed` | ليس لديك صلاحية الوصول إلى هذه الصفحة. | Vous n'avez pas accès à cette page. | [ ] |
+| `account.home.slots.frequentRecipients` | المستلمون المتكررون | Destinataires fréquents | [ ] |
+| `account.home.slots.inProgress` | الطلبات الجارية | Commandes en cours | [ ] |
+| `account.home.slots.installBanner` | تثبيت التطبيق | Installer l'application | [ ] |
+| `account.home.slots.lastDeliveries` | آخر عمليات التسليم | Dernières livraisons | [ ] |
+| `account.home.slots.toSettle` | المبالغ المستحقة | À régler | [ ] |
+| `account.home.title` | حسابي | Mon compte | [ ] |
+| `account.nav.addresses` | العناوين | Adresses | [ ] |
+| `account.nav.claims` | الشكاوى | Réclamations | [ ] |
+| `account.nav.cod` | الدفع عند الاستلام | Paiements à la livraison | [ ] |
+| `account.nav.company` | الشركة | Entreprise | [ ] |
+| `account.nav.home` | الرئيسية | Accueil | [ ] |
+| `account.nav.import` | الاستيراد | Import | [ ] |
+| `account.nav.invoices` | الفواتير | Factures | [ ] |
+| `account.nav.label` | مساحتي | Mon espace | [ ] |
+| `account.nav.orders` | الطلبات | Commandes | [ ] |
+| `account.nav.profile` | الملف الشخصي | Profil | [ ] |
+| `account.nav.statements` | كشوف الحساب | Relevés | [ ] |
+| `account.pro.slots.chart` | عمليات التسليم هذا الأسبوع | Livraisons de la semaine | [ ] |
+| `account.pro.slots.cod` | الدفع عند الاستلام | Paiements à la livraison | [ ] |
+| `account.pro.slots.inProgress` | الطلبات الجارية | Commandes en cours | [ ] |
+| `account.pro.slots.lastDeliveries` | آخر عمليات التسليم | Dernières livraisons | [ ] |
+| `account.pro.title` | مساحة التاجر | Espace commerçant | [ ] |
+| `account.signOut` | تسجيل الخروج | Se déconnecter | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
 | `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |
@@ -107,7 +133,6 @@ native-speaker review before release (CLAUDE.md).
 | `cmd.steps.sender` | 1. المرسل | 1. Expéditeur | [ ] |
 | `cmd.steps.service` | 4. الخدمة | 4. Service | [ ] |
 | `comingSoon.home` | العودة إلى الرئيسية | Retour à l'accueil | [ ] |
-| `comingSoon.pages.account` | حسابي | Mon compte | [ ] |
 | `comingSoon.pages.order` | اطلب الآن | Commander | [ ] |
 | `comingSoon.pages.signIn` | تسجيل الدخول | Connexion | [ ] |
 | `comingSoon.pages.signUp` | إنشاء حساب | Créer un compte | [ ] |
@@ -435,7 +460,7 @@ native-speaker review before release (CLAUDE.md).
 | `merchants.talk.title` | لنتحدث عن حجم طلباتك | Parlons de vos volumes | [ ] |
 | `merchants.title` | بع بطمأنينة أكبر. كل طرد وكل دينار يتم تتبعه. | Vendez plus sereinement. Chaque colis et chaque dinar sont suivis. | [ ] |
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
-| `meta.pages.account.description` | مساحتك قريبًا. | Votre espace client arrive bientôt. | [ ] |
+| `meta.pages.account.description` | مساحة عميل FastGo الخاصة بك. | Votre espace client FastGo. | [ ] |
 | `meta.pages.account.title` | حسابي \| FastGo | Mon compte \| FastGo | [ ] |
 | `meta.pages.cgv.description` | شروط البيع الخاصة بـ FastGo. | Conditions générales de vente de FastGo. | [ ] |
 | `meta.pages.cgv.title` | شروط البيع \| FastGo | Conditions générales de vente \| FastGo | [ ] |
@@ -481,6 +506,8 @@ native-speaker review before release (CLAUDE.md).
 | `meta.pages.passwordNew.title` | كلمة مرور جديدة \| FastGo | Nouveau mot de passe \| FastGo | [ ] |
 | `meta.pages.privacy.description` | سياسة الخصوصية الخاصة بـ FastGo. | Politique de confidentialité de FastGo. | [ ] |
 | `meta.pages.privacy.title` | الخصوصية \| FastGo | Confidentialité \| FastGo | [ ] |
+| `meta.pages.pro.description` | مساحة التاجر الخاصة بك في FastGo. | Votre espace commerçant FastGo. | [ ] |
+| `meta.pages.pro.title` | مساحة التاجر \| FastGo | Espace commerçant \| FastGo | [ ] |
 | `meta.pages.services.description` | سريع أو عادي أو مجدول: قارن عروض FastGo وأنواع الشحنات والخيارات. | Express, Standard ou Programmée : comparez les offres FastGo, les types d'envoi et les options. | [ ] |
 | `meta.pages.services.title` | الخدمات والأسعار \| FastGo | Services et tarifs \| FastGo | [ ] |
 | `meta.pages.signIn.description` | تسجيل الدخول إلى حسابك قريبًا. | La connexion à votre compte arrive bientôt. | [ ] |

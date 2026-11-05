@@ -133,7 +133,7 @@ async function merchantReview(page: Page) {
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(MERCHANT_PHONE);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();
-  await expect(page).toHaveURL(/\/fr\/compte$/);
+  await expect(page).toHaveURL(/\/fr\/pro$/); // a merchant lands on /pro
   await page.goto("/fr/commander");
   // Another sender phone than the account's: the session does not prove it, only the SMS code does.
   await toReview(page, SENDER_PHONE);

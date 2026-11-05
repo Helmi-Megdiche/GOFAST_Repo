@@ -18,8 +18,7 @@ const PAGES = [
   { path: "/livreur", ref: "W08-Livreur" },
   { path: "/legal/cgv", ref: "W09-Legal" },
   { path: "/page-inconnue", ref: "W10-Introuvable", status: 404 },
-  // The order flow and sign-in pages are covered by order-flow.spec.ts and auth.spec.ts.
-  { path: "/compte", ref: "coming-soon-compte" },
+  // The order flow, sign-in and account pages are covered by order-flow.spec.ts, auth.spec.ts and account.spec.ts.
 ] as const;
 
 const LOCALES = [
@@ -620,6 +619,7 @@ test("order, sign-in and coming-soon pages are noindex, public pages are not", a
     "/fr/mot-de-passe/nouveau",
     "/fr/google-telephone",
     "/fr/compte",
+    "/fr/pro",
   ]) {
     await page.goto(url);
     // A client redirect (e.g. /commander to its first step) can briefly leave the old page's tag

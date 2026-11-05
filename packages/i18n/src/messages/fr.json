@@ -113,7 +113,11 @@
       },
       "account": {
         "title": "Mon compte | FastGo",
-        "description": "Votre espace client arrive bientôt."
+        "description": "Votre espace client FastGo."
+      },
+      "pro": {
+        "title": "Espace commerçant | FastGo",
+        "description": "Votre espace commerçant FastGo."
       }
     }
   },
@@ -614,8 +618,7 @@
     "pages": {
       "order": "Commander",
       "signIn": "Connexion",
-      "signUp": "Créer un compte",
-      "account": "Mon compte"
+      "signUp": "Créer un compte"
     }
   },
   "forms": {
@@ -1111,5 +1114,45 @@
       "lost": "Perdu",
       "canceled": "Annulé"
     }
+  },
+  "account": {
+    "nav": {
+      "label": "Mon espace",
+      "home": "Accueil",
+      "orders": "Commandes",
+      "invoices": "Factures",
+      "claims": "Réclamations",
+      "addresses": "Adresses",
+      "profile": "Profil",
+      "import": "Import",
+      "cod": "Paiements à la livraison",
+      "statements": "Relevés",
+      "company": "Entreprise"
+    },
+    "home": {
+      "title": "Mon compte",
+      "slots": {
+        "inProgress": "Commandes en cours",
+        "lastDeliveries": "Dernières livraisons",
+        "toSettle": "À régler",
+        "frequentRecipients": "Destinataires fréquents",
+        "installBanner": "Installer l'application"
+      }
+    },
+    "pro": {
+      "title": "Espace commerçant",
+      "slots": {
+        "inProgress": "Commandes en cours",
+        "lastDeliveries": "Dernières livraisons",
+        "cod": "Paiements à la livraison",
+        "chart": "Livraisons de la semaine"
+      }
+    },
+    "guard": {
+      "busy": "Chargement de votre espace…",
+      "notAllowed": "Vous n'avez pas accès à cette page.",
+      "noscript": "Cette page a besoin de JavaScript pour afficher votre espace."
+    },
+    "signOut": "Se déconnecter"
   }
 }

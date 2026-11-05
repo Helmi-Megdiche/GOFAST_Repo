@@ -113,7 +113,11 @@
       },
       "account": {
         "title": "حسابي | FastGo",
-        "description": "مساحتك قريبًا."
+        "description": "مساحة عميل FastGo الخاصة بك."
+      },
+      "pro": {
+        "title": "مساحة التاجر | FastGo",
+        "description": "مساحة التاجر الخاصة بك في FastGo."
       }
     }
   },
@@ -614,8 +618,7 @@
     "pages": {
       "order": "اطلب الآن",
       "signIn": "تسجيل الدخول",
-      "signUp": "إنشاء حساب",
-      "account": "حسابي"
+      "signUp": "إنشاء حساب"
     }
   },
   "forms": {
@@ -1111,5 +1114,45 @@
       "lost": "مفقود",
       "canceled": "ملغى"
     }
+  },
+  "account": {
+    "nav": {
+      "label": "مساحتي",
+      "home": "الرئيسية",
+      "orders": "الطلبات",
+      "invoices": "الفواتير",
+      "claims": "الشكاوى",
+      "addresses": "العناوين",
+      "profile": "الملف الشخصي",
+      "import": "الاستيراد",
+      "cod": "الدفع عند الاستلام",
+      "statements": "كشوف الحساب",
+      "company": "الشركة"
+    },
+    "home": {
+      "title": "حسابي",
+      "slots": {
+        "inProgress": "الطلبات الجارية",
+        "lastDeliveries": "آخر عمليات التسليم",
+        "toSettle": "المبالغ المستحقة",
+        "frequentRecipients": "المستلمون المتكررون",
+        "installBanner": "تثبيت التطبيق"
+      }
+    },
+    "pro": {
+      "title": "مساحة التاجر",
+      "slots": {
+        "inProgress": "الطلبات الجارية",
+        "lastDeliveries": "آخر عمليات التسليم",
+        "cod": "الدفع عند الاستلام",
+        "chart": "عمليات التسليم هذا الأسبوع"
+      }
+    },
+    "guard": {
+      "busy": "جارٍ تحميل مساحتك…",
+      "notAllowed": "ليس لديك صلاحية الوصول إلى هذه الصفحة.",
+      "noscript": "تحتاج هذه الصفحة إلى JavaScript لعرض مساحتك."
+    },
+    "signOut": "تسجيل الخروج"
   }
 }
