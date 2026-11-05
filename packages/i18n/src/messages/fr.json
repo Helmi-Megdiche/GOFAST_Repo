@@ -776,7 +776,8 @@
     },
     "slot": {
       "today": "Aujourd'hui, de {start} à {end}",
-      "tomorrow": "Demain, de {start} à {end}"
+      "tomorrow": "Demain, de {start} à {end}",
+      "onDate": "Le {date}, de {start} à {end}"
     },
     "recipient": {
       "title": "Où va-t-il ?",

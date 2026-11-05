@@ -15,7 +15,7 @@ function lowestExample(zone: string): number {
       EXAMPLE_PRICE_ROWS[service],
     ) as (keyof (typeof EXAMPLE_PRICE_ROWS)["standard"])[]) {
       const total = makeQuote(
-        { service, parcelType, weightKg: 1, fragile: false, zone },
+        { service, parcelType, weightKg: 1, fragile: false, zone, from: "", to: "" },
         0,
         "preview",
       ).totalMillimes;

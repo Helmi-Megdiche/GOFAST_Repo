@@ -1,10 +1,17 @@
 import { describe, expect, it } from "vitest";
 import { suggestAddresses } from "./addresses";
 import { getQuote } from "./pricing";
-import { checkPoint, type ZoneResult } from "./zones";
+import { checkPoint, checkZone, type ZoneResult } from "./zones";
 
 const T0 = Date.parse("2026-11-04T10:00:00Z");
-const input = { service: "standard", parcelType: "small", weightKg: 2, fragile: false } as const;
+const input = {
+  service: "standard",
+  parcelType: "small",
+  weightKg: 2,
+  fragile: false,
+  from: "Avenue Habib Bourguiba",
+  to: "Rue Ibn Khaldoun",
+} as const;
 const inZone: ZoneResult = { status: "in-zone", services: ["express", "standard"], zone: "A" };
 
 describe("getQuote (R201)", () => {
@@ -36,6 +43,24 @@ describe("address mocks (CMD-02)", () => {
   it("suggests from 2 characters", async () => {
     expect(await suggestAddresses("a")).toEqual([]);
     expect(await suggestAddresses("ibn")).toEqual(["Rue Ibn Khaldoun"]);
+  });
+
+  it("offers the three services of the W14 mockup, and two at Rue de Marseille", async () => {
+    const all = ["express", "standard", "scheduled"];
+    for (const address of ["Avenue Habib Bourguiba", "Rue Ibn Khaldoun"]) {
+      expect(await checkZone(address)).toEqual({ status: "in-zone", services: all, zone: "A" });
+    }
+    expect(await checkPoint({ x: 0.5, y: 0.5 })).toEqual({
+      status: "in-zone",
+      services: all,
+      zone: "A",
+    });
+    expect(await checkZone("Rue de Marseille")).toEqual({
+      status: "in-zone",
+      services: ["express", "standard"],
+      zone: "A",
+    });
+    expect(await suggestAddresses("marseille")).toEqual(["Rue de Marseille"]);
   });
 
   it("a pin is in zone near the centre and out of zone at the edge, never unknown", async () => {

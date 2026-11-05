@@ -1,5 +1,5 @@
 import { now } from "../order/clock";
-import { isQuoteValid, priceKey } from "../order/pricing";
+import { addressPriceKey, isQuoteValid, priceKey } from "../order/pricing";
 import { fingerprint, type OrderRequest } from "../order/request";
 import { isSlotInFuture } from "../order/slots";
 import {
@@ -12,7 +12,12 @@ import { readJson, removeKey } from "../storage";
 import { isVerifiedPhoneForSession } from "./accounts";
 import { mockDelay } from "./delay";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
-import { FAIL_NEXT_ORDER_RESPONSE_KEY, readTable, writeRow } from "./mock-db";
+import {
+  FAIL_NEXT_ORDER_REQUEST_KEY,
+  FAIL_NEXT_ORDER_RESPONSE_KEY,
+  readTable,
+  writeRow,
+} from "./mock-db";
 import { isTargetVerified } from "./otp";
 import { canPayOnAccount, getSession } from "./session";
 import type { PublicParcel } from "./tracking";
@@ -31,7 +36,7 @@ export type OrderError =
 export type CreateOrderResult =
   { status: "created"; code: string; replay: boolean } | { status: "refused"; error: OrderError };
 
-/** Thrown when the order was created but its answer was lost (simulated network cut). */
+/** Thrown when the request or its answer was lost (simulated network cut): the order may exist. */
 export class NetworkError extends Error {
   constructor() {
     super("network");
@@ -83,6 +88,8 @@ function check(request: OrderRequest, at: number): OrderError | null {
     weightKg: request.parcel.weightKg,
     fragile: request.parcel.fragile,
     zone: zone.zone,
+    from: addressPriceKey({ text: request.sender.address, pin: request.sender.pin }),
+    to: addressPriceKey({ text: request.recipient.address, pin: request.recipient.pin }),
   });
   if (current !== priceKey(request.quote.input)) return "quoteExpired";
   if (request.acceptedQuoteId !== request.quote.id) return "quoteNotAccepted";
@@ -100,6 +107,10 @@ export async function createOrder(
   randomBytes?: RandomBytes,
 ): Promise<CreateOrderResult> {
   await mockDelay();
+  if (readJson(FAIL_NEXT_ORDER_REQUEST_KEY) === true) {
+    removeKey(FAIL_NEXT_ORDER_REQUEST_KEY);
+    throw new NetworkError();
+  }
   const at = now();
   const print = fingerprint(request);
 

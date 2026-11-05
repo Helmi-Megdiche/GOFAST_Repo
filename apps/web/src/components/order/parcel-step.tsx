@@ -10,7 +10,7 @@ import { Money } from "@/components/money";
 import type { ParcelTypeCode } from "@/lib/data/services";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import type { OrderDraft } from "@/lib/order/draft";
-import { parseMillimes } from "@/lib/order/money-input";
+import { millimesInputText, parseMillimes } from "@/lib/order/money-input";
 import { parcelSchema } from "@/lib/order/schemas";
 import { StepBusy } from "./busy";
 import { PricePending, PriceProvisional } from "./price-aside";
@@ -18,7 +18,21 @@ import { useOrderStep } from "./use-order-step";
 
 const TYPES: ParcelTypeCode[] = ["document", "small", "medium", "large"];
 
-type Values = OrderDraft["parcel"];
+/** The form keeps the typed text; the draft keeps millimes, parsed in the language typed in. */
+type Values = Omit<OrderDraft["parcel"], "declaredValueMillimes"> & { declaredValue: string };
+
+function parcelOf(values: Partial<Values>, locale: Locale, current: OrderDraft["parcel"]) {
+  const declared = parseMillimes(values.declaredValue ?? "", locale);
+  return {
+    type: values.type ?? null,
+    count: values.count ?? "",
+    weightKg: values.weightKg ?? "",
+    content: values.content ?? "",
+    // Text that does not parse (yet) leaves the last valid amount; Continue refuses it anyway.
+    declaredValueMillimes: declared.ok ? declared.millimes : current.declaredValueMillimes,
+    fragile: values.fragile === true,
+  };
+}
 
 /** W13: what we deliver (CMD-01). */
 export function ParcelStep({ heading }: { heading: ReactNode }) {
@@ -56,7 +70,14 @@ function ParcelForm({
 
   const { register, handleSubmit, control, subscribe, formState } = useForm<Values>({
     resolver: zodResolver(parcelSchema(locale)),
-    defaultValues: draft.parcel,
+    defaultValues: {
+      type: draft.parcel.type,
+      count: draft.parcel.count,
+      weightKg: draft.parcel.weightKg,
+      content: draft.parcel.content,
+      declaredValue: millimesInputText(draft.parcel.declaredValueMillimes ?? null, locale),
+      fragile: draft.parcel.fragile,
+    },
   });
   const { errors } = formState;
   const declared = parseMillimes(useWatch({ control, name: "declaredValue" }) ?? "", locale);
@@ -65,22 +86,15 @@ function ParcelForm({
     return subscribe({
       formState: { values: true },
       callback: ({ values }) => {
-        save((current) => ({
-          ...current,
-          parcel: {
-            type: values.type ?? null,
-            count: values.count ?? "",
-            weightKg: values.weightKg ?? "",
-            content: values.content ?? "",
-            declaredValue: values.declaredValue ?? "",
-            fragile: values.fragile === true,
-          },
-        }));
+        save((current) => ({ ...current, parcel: parcelOf(values, locale, current.parcel) }));
       },
     });
-  }, [subscribe, save]);
+  }, [subscribe, save, locale]);
 
-  const onSubmit = handleSubmit(() => goTo("service"));
+  const onSubmit = handleSubmit((values) => {
+    save((current) => ({ ...current, parcel: parcelOf(values, locale, current.parcel) }));
+    goTo("service");
+  });
 
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">

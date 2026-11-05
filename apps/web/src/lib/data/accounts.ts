@@ -1,7 +1,7 @@
 import { maskPhone, normalizePhone } from "../phone";
 import { FIXTURE_ACCOUNTS, type FixtureAccount } from "./fixtures/accounts";
 import { readTable, writeRow } from "./mock-db";
-import { getSession, type Session } from "./session";
+import { getSession, setSession, type Session } from "./session";
 
 /** Mock accounts table (R101: one phone and one e-mail each belong to one customer only). */
 export type Account = Omit<FixtureAccount, "id"> & { id: string; google: boolean };
@@ -77,6 +77,22 @@ export function createAccount(input: {
 /** Light account from an order without an account (CMD-03). */
 export function createLightAccount(input: { name: string; phone: string }): CreateResult {
   return createAccount({ kind: "customer", name: input.name, phone: input.phone });
+}
+
+/**
+ * After the right order code (CMD-03). "accountExists" when the phone belongs to another account
+ * (R101, said only now). Otherwise a guest gets the light account and is signed in; someone already
+ * signed in keeps their session (a merchant ordering for another sender phone keeps R104).
+ */
+export function claimOrderPhone(input: { name: string; phone: string }): "ok" | "accountExists" {
+  const session = getSession();
+  const owner = findByPhone(input.phone);
+  if (owner && owner.id !== session?.accountId) return "accountExists";
+  if (!owner && !session) {
+    const created = createLightAccount(input);
+    if (created.status === "created") setSession(sessionFor(created.account));
+  }
+  return "ok";
 }
 
 /** Adds a verified phone to an account that has none yet (Google, known e-mail, R103). */

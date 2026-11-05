@@ -50,13 +50,16 @@ export type OrderDraft = {
     count: string;
     weightKg: string;
     content: string;
-    declaredValue: string;
+    /** Parsed once, in the language it was typed in (never re-read in another language). */
+    declaredValueMillimes: number | null;
     fragile: boolean;
   };
   service: { code: ServiceCode | null; slot: Slot | null };
   quote: Quote | null;
   /** Id of the quote the customer accepted after a recalculation (R205). */
   acceptedQuoteId: string | null;
+  /** Total of the accepted quote that a recalculation replaced ("Avant : …" on W15, R205). */
+  previousTotalMillimes: number | null;
   payment: PaymentCode | null;
   /** The CGV and forbidden-items box on W15 (decision 11). */
   termsAccepted: boolean;
@@ -94,12 +97,13 @@ export function emptyDraft(at: number = now()): OrderDraft {
       count: "1",
       weightKg: "",
       content: "",
-      declaredValue: "",
+      declaredValueMillimes: null,
       fragile: false,
     },
     service: { code: null, slot: null },
     quote: null,
     acceptedQuoteId: null,
+    previousTotalMillimes: null,
     payment: null,
     termsAccepted: false,
     verifiedPhone: null,
@@ -151,6 +155,21 @@ export function updateDraft(
   at: number = now(),
 ): OrderDraft {
   return saveDraft(change(loadDraft(at) ?? emptyDraft(at)), at);
+}
+
+/**
+ * A step's edit (two tabs): applied to the latest saved draft, not to the copy the tab loaded.
+ * Refused (null, nothing written) when the draft the tab shows was cleared or replaced elsewhere, or
+ * waits for an order answer (R202): a stale tab never restores a used key or lifts the expiry freeze.
+ */
+export function editDraft(
+  shownKey: string,
+  change: (draft: OrderDraft) => OrderDraft,
+  at: number = now(),
+): OrderDraft | null {
+  const stored = loadDraft(at);
+  if (!stored || stored.idempotencyKey !== shownKey || stored.pendingSubmit) return null;
+  return saveDraft(change(stored), at);
 }
 
 /** After the order is validated, or on "Annuler". */

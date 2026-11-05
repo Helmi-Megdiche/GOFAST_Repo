@@ -15,16 +15,20 @@ const SERVICES: ServiceCode[] = ["express", "standard", "scheduled"];
 const SIZES: ParcelTypeCode[] = ["document", "small", "medium", "large"];
 const T0 = Date.parse("2026-11-04T10:00:00Z");
 
+const ROUTE = { from: "Avenue Habib Bourguiba", to: "Rue Ibn Khaldoun" };
+
 describe("example pricing (R204)", () => {
-  it("every line is an integer and the lines add up to the total, for every combination", () => {
+  it("every line is an integer and the lines are listed in order, for every combination", () => {
     for (const service of SERVICES) {
       for (const parcelType of SIZES) {
         for (const weightKg of [0.5, 1, 2, 2.1, 3, 7, 30]) {
           for (const fragile of [true, false]) {
-            const quote = makeQuote({ service, parcelType, weightKg, fragile, zone: "A" }, T0);
+            const quote = makeQuote(
+              { service, parcelType, weightKg, fragile, zone: "A", ...ROUTE },
+              T0,
+            );
             for (const line of PRICE_LINES)
               expect(Number.isSafeInteger(quote.lines[line])).toBe(true);
-            expect(sumLines(quote.lines)).toBe(quote.totalMillimes);
             expect(Object.keys(quote.lines)).toEqual([...PRICE_LINES]);
           }
         }
@@ -32,10 +36,34 @@ describe("example pricing (R204)", () => {
     }
   });
 
+  // Expected totals worked out by hand from the example fixtures: base + distance 2,500 +
+  // 0,500 per started kg above 2 kg + rain 1,000 + the row's VAT (options, discount, stamp at 0).
+  it.each([
+    ["express", "document", 0.5, 9_000 + 2_500 + 0 + 1_000 + 2_375, 0],
+    ["standard", "small", 2, 6_000 + 2_500 + 0 + 1_000 + 1_805, 0],
+    ["standard", "small", 2.1, 6_000 + 2_500 + 500 + 1_000 + 1_805, 500],
+    ["scheduled", "medium", 3, 9_000 + 2_500 + 500 + 1_000 + 2_375, 500],
+    ["express", "large", 7, 14_500 + 2_500 + 2_500 + 1_000 + 3_420, 2_500],
+    ["standard", "large", 30, 10_000 + 2_500 + 14_000 + 1_000 + 2_565, 14_000],
+  ] as const)(
+    "%s %s %d kg costs %i millimes (weight line %i)",
+    (service, parcelType, weightKg, total, weight) => {
+      const quote = makeQuote(
+        { service, parcelType, weightKg, fragile: false, zone: "A", ...ROUTE },
+        T0,
+      );
+      expect(quote.lines.weight).toBe(weight);
+      expect(quote.totalMillimes).toBe(total);
+      expect(sumLines(quote.lines)).toBe(total);
+    },
+  );
+
   it("reproduces the mockup amounts for a small parcel of 2 kg", () => {
     const total = (service: ServiceCode) =>
-      makeQuote({ service, parcelType: "small", weightKg: 2, fragile: true, zone: "A" }, T0)
-        .totalMillimes;
+      makeQuote(
+        { service, parcelType: "small", weightKg: 2, fragile: true, zone: "A", ...ROUTE },
+        T0,
+      ).totalMillimes;
     expect(total("express")).toBe(16_660);
     expect(total("standard")).toBe(11_305);
     expect(total("scheduled")).toBe(12_495);
@@ -48,6 +76,7 @@ describe("example pricing (R204)", () => {
       weightKg: 2,
       fragile: false,
       zone: "A",
+      ...ROUTE,
     });
     expect(lines.discount).toBe(0);
     expect(lines.stamp).toBe(0);
@@ -56,7 +85,14 @@ describe("example pricing (R204)", () => {
 
   it("names the surcharge and leaves its ceiling unknown (R207: [PLAFOND])", () => {
     const quote = makeQuote(
-      { service: "standard", parcelType: "small", weightKg: 2, fragile: false, zone: "A" },
+      {
+        service: "standard",
+        parcelType: "small",
+        weightKg: 2,
+        fragile: false,
+        zone: "A",
+        ...ROUTE,
+      },
       T0,
     );
     expect(quote.surcharge).toEqual({ code: "rain", ceilingMillimes: null });
@@ -70,6 +106,7 @@ describe("example pricing (R204)", () => {
       weightKg: 2,
       fragile: false,
       zone: "A",
+      ...ROUTE,
     } as const;
     const key = priceKey(base);
     expect(priceKey({ ...base, service: "express" })).not.toBe(key);
@@ -77,12 +114,14 @@ describe("example pricing (R204)", () => {
     expect(priceKey({ ...base, weightKg: 3 })).not.toBe(key);
     expect(priceKey({ ...base, fragile: true })).not.toBe(key);
     expect(priceKey({ ...base, zone: "B" })).not.toBe(key);
+    expect(priceKey({ ...base, from: "Rue Ibn Khaldoun" })).not.toBe(key);
+    expect(priceKey({ ...base, to: "Avenue Habib Bourguiba" })).not.toBe(key);
   });
 });
 
 describe("price guarantee (R205, fake clock)", () => {
   const quote = makeQuote(
-    { service: "standard", parcelType: "small", weightKg: 2, fragile: false, zone: "A" },
+    { service: "standard", parcelType: "small", weightKg: 2, fragile: false, zone: "A", ...ROUTE },
     T0,
   );
 

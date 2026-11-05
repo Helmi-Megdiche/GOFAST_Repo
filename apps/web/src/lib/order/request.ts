@@ -3,10 +3,10 @@ import type { ServiceCode, ParcelTypeCode } from "../data/services";
 import type { ZoneResult } from "../data/zones";
 import { normalizePhone } from "../phone";
 import type { OrderDraft, PaymentCode } from "./draft";
-import { parseMillimes } from "./money-input";
 import type { Quote } from "./pricing";
 import { parseCount, parseWeightKg } from "./schemas";
 import type { Slot } from "./slots";
+import { declaredValueValid } from "./steps";
 
 /** What "Valider la commande" sends (mock of POST /v1/orders). Built from the draft only. */
 export type OrderRequest = {
@@ -45,17 +45,12 @@ export type OrderRequest = {
 };
 
 /** Builds the request, or null when a field the server needs is missing. */
-export function buildOrderRequest(
-  draft: OrderDraft,
-  termsAccepted: boolean,
-  locale: Locale,
-): OrderRequest | null {
+export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): OrderRequest | null {
   const { sender, recipient, parcel, service } = draft;
   const senderPhone = normalizePhone(sender.phone);
   const recipientPhone = normalizePhone(recipient.phone);
   const count = parseCount(parcel.count);
   const weightKg = parseWeightKg(parcel.weightKg);
-  const declared = parseMillimes(parcel.declaredValue, locale);
   if (
     !senderPhone ||
     !recipientPhone ||
@@ -65,7 +60,7 @@ export function buildOrderRequest(
     !parcel.type ||
     count == null ||
     weightKg == null ||
-    !declared.ok ||
+    !declaredValueValid(parcel.declaredValueMillimes) ||
     !service.code ||
     !draft.quote ||
     !draft.payment
@@ -97,7 +92,7 @@ export function buildOrderRequest(
       count,
       weightKg,
       content: parcel.content.trim(),
-      declaredValueMillimes: declared.millimes,
+      declaredValueMillimes: parcel.declaredValueMillimes,
       fragile: parcel.fragile,
     },
     service: { code: service.code, slot: service.code === "scheduled" ? service.slot : null },

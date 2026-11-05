@@ -30,7 +30,15 @@ export type PriceInput = {
   fragile: boolean;
   /** Zone code of the departure and arrival addresses (both in zone, checked before pricing). */
   zone: string;
+  /** Departure and arrival (addressPriceKey): the distance is priced, so a new address is a new price. */
+  from: string;
+  to: string;
 };
+
+/** What identifies an address for the price: its text and, when placed, the pin. */
+export function addressPriceKey(address: { text: string; pin: { x: number; y: number } | null }) {
+  return address.pin ? `${address.text}@${address.pin.x},${address.pin.y}` : address.text;
+}
 
 export type Quote = {
   id: string;
@@ -66,7 +74,15 @@ export function sumLines(lines: Record<PriceLine, number>): number {
 
 /** Same priced inputs give the same key: a change to any of them needs a new quote. */
 export function priceKey(input: PriceInput): string {
-  return [input.service, input.parcelType, input.weightKg, input.fragile, input.zone].join("|");
+  return JSON.stringify([
+    input.service,
+    input.parcelType,
+    input.weightKg,
+    input.fragile,
+    input.zone,
+    input.from,
+    input.to,
+  ]);
 }
 
 function randomId(): string {

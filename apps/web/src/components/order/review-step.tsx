@@ -1,8 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useLocale, useTranslations } from "next-intl";
-import type { Locale } from "@fastgo/i18n";
+import { useTranslations } from "next-intl";
 import { Alert, Button, Card, Checkbox, RadioCard } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { Link, useRouter } from "@/i18n/navigation";
@@ -11,13 +10,18 @@ import { getQuote } from "@/lib/data/pricing";
 import { canPayOnAccount, getSession } from "@/lib/data/session";
 import { now } from "@/lib/order/clock";
 import type { OrderDraft, PaymentCode } from "@/lib/order/draft";
-import { parseMillimes } from "@/lib/order/money-input";
 import { isQuoteValid, msLeft } from "@/lib/order/pricing";
 import { proofFor } from "@/lib/order/proof";
 import { parseCount } from "@/lib/order/schemas";
 import { isSlotInFuture } from "@/lib/order/slots";
-import { draftPhoneVerified, STEP_PATHS, type StepId } from "@/lib/order/steps";
-import { resolveLostSubmit, submitOrder } from "@/lib/order/submit";
+import {
+  draftPhoneVerified,
+  priceInputOf,
+  STEP_PATHS,
+  withNewQuote,
+  type StepId,
+} from "@/lib/order/steps";
+import { clearRefusal, peekRefusal, resolveLostSubmit, submitOrder } from "@/lib/order/submit";
 import { StepBusy } from "./busy";
 import { PriceLines } from "./price-aside";
 import { useSlotLabel } from "./slot-label";
@@ -31,7 +35,11 @@ export function ReviewStep({ heading }: { heading: ReactNode }) {
   return (
     <div className="flex flex-col gap-4">
       {heading}
-      {step.draft ? <Review draft={step.draft} save={step.save} goTo={step.goTo} /> : <StepBusy />}
+      {step.draft ? (
+        <Review draft={step.draft} save={step.save} goTo={step.goTo} reload={step.reload} />
+      ) : (
+        <StepBusy />
+      )}
     </div>
   );
 }
@@ -42,7 +50,8 @@ function Review({
   draft,
   save,
   goTo,
-}: { draft: OrderDraft } & Pick<ReturnType<typeof useOrderStep>, "save" | "goTo">) {
+  reload,
+}: { draft: OrderDraft } & Pick<ReturnType<typeof useOrderStep>, "save" | "goTo" | "reload">) {
   const t = useTranslations("order.review");
   const price = useTranslations("order.price");
   const o = useTranslations("offers");
@@ -50,19 +59,28 @@ function Review({
   const addressT = useTranslations("order.address");
   const p = useTranslations("placeholders");
   const formErrors = useTranslations("forms.errors");
-  const locale = useLocale() as Locale;
   const router = useRouter();
   const slotLabel = useSlotLabel();
   const current = useNow();
   const busyRef = useRef(false);
   const [busy, setBusy] = useState(false);
-  const [problem, setProblem] = useState<Problem>(draft.pendingSubmit ? { kind: "lost" } : null);
+  // A refusal handed over by the code step (W20) is shown here, once.
+  const [problem, setProblem] = useState<Problem>(() => {
+    if (draft.pendingSubmit) return { kind: "lost" };
+    const refusal = peekRefusal();
+    return refusal ? { kind: "error", code: refusal } : null;
+  });
+  useEffect(() => clearRefusal(), []);
   const [fieldErrors, setFieldErrors] = useState<{ payment?: string; terms?: string }>({});
-  const [previousTotal, setPreviousTotal] = useState<number | null>(null);
   const recalculating = useRef(false);
 
   const session = getSession();
   const allowAccount = canPayOnAccount(session);
+  // "Compte client" chosen before a sign-out (or by another account) is not offered any more.
+  const accountRefused = draft.payment === "account" && !allowAccount;
+  useEffect(() => {
+    if (accountRefused) save((latest) => ({ ...latest, payment: null }));
+  }, [accountRefused, save]);
   const payments: PaymentCode[] = allowAccount
     ? ["cashPickup", "cashDelivery", "account"]
     : ["cashPickup", "cashDelivery"];
@@ -73,23 +91,17 @@ function Review({
     fragile: draft.parcel.fragile,
     // The order form has no COD amount yet: no parcel is treated as COD (answer to question 2).
     cod: false,
-    declaredValueMillimes: (() => {
-      const parsed = parseMillimes(draft.parcel.declaredValue, locale);
-      return parsed.ok ? parsed.millimes : null;
-    })(),
+    declaredValueMillimes: draft.parcel.declaredValueMillimes ?? null,
   });
 
-  // R205: at expiry, recalculate and ask the customer to validate the new price.
+  // R205: at expiry, recalculate and ask the customer to validate the new price. The input is
+  // rebuilt from the draft: a stale quote input would be refused again and again.
   async function recalculate() {
-    if (!quote || recalculating.current) return;
+    const input = priceInputOf(draft);
+    if (!input || recalculating.current) return;
     recalculating.current = true;
     const result = await getQuote(
-      {
-        service: quote.input.service,
-        parcelType: quote.input.parcelType,
-        weightKg: quote.input.weightKg,
-        fragile: quote.input.fragile,
-      },
+      input,
       draft.sender.address.zone,
       draft.recipient.address.zone,
       now(),
@@ -99,14 +111,12 @@ function Review({
       goTo("outOfZone");
       return;
     }
-    setPreviousTotal(quote.totalMillimes);
-    save((latest) => ({ ...latest, quote: result.quote }));
+    save((latest) => withNewQuote(latest, result.quote));
   }
 
   const left = quote ? msLeft(quote, current) : 0;
   const expired = quote != null && accepted && left === 0;
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- R205: expiry is an outside event (the clock)
     if (expired && !locked) void recalculate();
     // recalculate reads the latest draft through save(); run it once per expiry.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -115,7 +125,7 @@ function Review({
   async function onValidate() {
     if (busyRef.current || locked) return; // double click: one order attempt at a time (R202)
     const errors: { payment?: string; terms?: string } = {};
-    if (!draft.payment) errors.payment = "paymentRequired";
+    if (!draft.payment || accountRefused) errors.payment = "paymentRequired";
     if (!draft.termsAccepted) errors.terms = "termsRequired";
     setFieldErrors(errors);
     if (errors.payment || errors.terms) return;
@@ -143,7 +153,7 @@ function Review({
     busyRef.current = true;
     setBusy(true);
     setProblem(null);
-    const result = await submitOrder(draft, locale);
+    const result = await submitOrder(draft);
     busyRef.current = false;
     setBusy(false);
     if (result.status === "created") {
@@ -163,7 +173,7 @@ function Review({
     if (busyRef.current) return;
     busyRef.current = true;
     setBusy(true);
-    const result = await submitOrder(draft, locale);
+    const result = await submitOrder(draft);
     busyRef.current = false;
     setBusy(false);
     if (result.status === "created") {
@@ -175,10 +185,11 @@ function Review({
     // The answer came back as a refusal: a new key is allowed only once no order exists for the old one.
     const resolved = await resolveLostSubmit(draft);
     if ("code" in resolved) {
+      markStepChange();
       router.push(`/commander/confirmation?n=${resolved.code}`);
       return;
     }
-    save(() => resolved.draft);
+    reload(); // the draft now has a new key and no pending answer
     setProblem(result.status === "refused" ? { kind: "error", code: result.error } : null);
   }
 
@@ -265,7 +276,7 @@ function Review({
               key={code}
               name="payment"
               value={code}
-              checked={draft.payment === code}
+              checked={!accountRefused && draft.payment === code}
               onChange={() => {
                 setFieldErrors((errors) => ({ ...errors, payment: undefined }));
                 save((latest) => ({ ...latest, payment: code }));
@@ -321,7 +332,11 @@ function Review({
                     {price.rich("expired.text", {
                       next: () => <Money millimes={quote.totalMillimes} />,
                       previous: () =>
-                        previousTotal != null ? <Money millimes={previousTotal} /> : p("price"),
+                        draft.previousTotalMillimes != null ? (
+                          <Money millimes={draft.previousTotalMillimes} />
+                        ) : (
+                          p("price")
+                        ),
                     })}
                   </span>
                   <Button
@@ -397,7 +412,7 @@ function Review({
             {busy ? t("submitting") : t("submit")}
           </Button>
         )}
-        {!draftPhoneVerified(draft) ? (
+        {!draftPhoneVerified(draft) && !isVerifiedPhoneForSession(draft.sender.phone) ? (
           <p className="text-2xs text-muted">{t("phoneCheckNote")}</p>
         ) : null}
       </Card>

@@ -1,8 +1,8 @@
 import { isSlotInFuture } from "./slots";
-import { isQuoteValid, priceKey, type PriceInput } from "./pricing";
+import { addressPriceKey, isQuoteValid, priceKey, type PriceInput, type Quote } from "./pricing";
 import { normalizePhone } from "../phone";
 import type { AddressDraft, OrderDraft } from "./draft";
-import { parcelSchema, parseWeightKg, personSchema } from "./schemas";
+import { parseCount, parseWeightKg, personSchema, requiredText } from "./schemas";
 
 /** The five steps, in order, with their path under /commander. */
 export const STEPS = ["sender", "recipient", "parcel", "service", "review"] as const;
@@ -39,13 +39,28 @@ function recipientDone(draft: OrderDraft): boolean {
   return addressInZone(draft.recipient.address) && personSchema.safeParse(draft.recipient).success;
 }
 
+/** No declared value, or a stored integer number of millimes (parsed once, on W13). */
+export function declaredValueValid(millimes: number | null | undefined): boolean {
+  return (
+    millimes === null ||
+    (typeof millimes === "number" && Number.isSafeInteger(millimes) && millimes >= 0)
+  );
+}
+
 function parcelDone(draft: OrderDraft): boolean {
-  // fr accepts both separators, so it validates whatever was typed in any language.
-  return parcelSchema("fr").safeParse(draft.parcel).success;
+  const { parcel } = draft;
+  return (
+    parcel.type != null &&
+    parseCount(parcel.count) != null &&
+    parseWeightKg(parcel.weightKg) != null &&
+    requiredText.safeParse(parcel.content).success &&
+    declaredValueValid(parcel.declaredValueMillimes)
+  );
 }
 
 function serviceDone(draft: OrderDraft, at: number): boolean {
-  if (draft.service.code == null || draft.quote == null) return false;
+  // A priced field changed since the quote (e.g. the weight on W13): W14 prices it again (R205).
+  if (draft.service.code == null || !quoteMatches(draft)) return false;
   if (draft.service.code === "scheduled" && !isSlotInFuture(draft.service.slot, at)) return false;
   return true;
 }
@@ -54,6 +69,7 @@ function serviceDone(draft: OrderDraft, at: number): boolean {
 export function priceInputOf(draft: OrderDraft): PriceInput | null {
   const weightKg = parseWeightKg(draft.parcel.weightKg);
   const zone = draft.recipient.address.zone;
+  // Distance is priced: both addresses are part of the input.
   if (!draft.service.code || !draft.parcel.type || weightKg == null || zone?.status !== "in-zone")
     return null;
   return {
@@ -62,6 +78,23 @@ export function priceInputOf(draft: OrderDraft): PriceInput | null {
     weightKg,
     fragile: draft.parcel.fragile,
     zone: zone.zone,
+    from: addressPriceKey(draft.sender.address),
+    to: addressPriceKey(draft.recipient.address),
+  };
+}
+
+/**
+ * A recalculated quote (R205), waiting for the customer to accept it. The total of the accepted
+ * quote it replaces is kept in the draft, so "Avant : …" survives a reload.
+ */
+export function withNewQuote(draft: OrderDraft, quote: Quote): OrderDraft {
+  const replacedAccepted = draft.quote != null && draft.acceptedQuoteId === draft.quote.id;
+  return {
+    ...draft,
+    quote,
+    previousTotalMillimes: replacedAccepted
+      ? (draft.quote?.totalMillimes ?? null)
+      : draft.previousTotalMillimes,
   };
 }
 
@@ -80,6 +113,9 @@ export function redirectFor(
   at: number,
 ): keyof typeof STEP_PATHS | null {
   if (!draft) return wanted === "sender" ? null : "sender";
+  // R202: an order whose answer never came back only offers "Réessayer" on W15, before any other
+  // check (a pickup slot that started since must not hide it).
+  if (draft.pendingSubmit) return wanted === "review" ? null : "review";
   if (addressOutOfZone(draft.sender.address) || addressOutOfZone(draft.recipient.address)) {
     return wanted === "sender" || wanted === "recipient" ? null : "outOfZone";
   }

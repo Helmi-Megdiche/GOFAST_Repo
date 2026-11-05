@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
-import { emptyDraft, type OrderDraft } from "../order/draft";
+import type { OrderDraft } from "../order/draft";
 import { makeQuote } from "../order/pricing";
 import { buildOrderRequest, type OrderRequest } from "../order/request";
 import { availableSlots } from "../order/slots";
+import { readyDraft as readyTestDraft } from "../order/test-draft";
 import { isValidTrackingCode } from "../tracking-code";
 import { readJson, useMemoryStorage, writeJson } from "../storage";
 import { createAccount, sessionFor } from "./accounts";
@@ -21,57 +22,15 @@ import {
 import { sendCode, verifyCode } from "./otp";
 import { setSession, signOut } from "./session";
 import { lookupTracking } from "./tracking";
-import type { ZoneResult } from "./zones";
 
 const T0 = Date.parse("2026-11-04T08:30:00Z"); // 09:30 in Tunis
 let clock = T0;
 const PHONE = "+216 20 000 000";
-const inZone: ZoneResult = { status: "in-zone", services: ["express", "standard"], zone: "A" };
 
-function readyDraft(): OrderDraft {
-  const draft = emptyDraft(T0);
-  const slot = availableSlots(T0)[0]!;
-  const quote = makeQuote(
-    { service: "standard", parcelType: "small", weightKg: 2, fragile: true, zone: "A" },
-    T0,
-  );
-  return {
-    ...draft,
-    sender: {
-      address: {
-        text: "Avenue Habib Bourguiba",
-        confirmed: true,
-        pin: null,
-        zone: inZone,
-        landmark: "",
-      },
-      name: "Yasmine K.",
-      phone: PHONE,
-      slot,
-    },
-    recipient: {
-      ...draft.recipient,
-      address: { text: "Rue Ibn Khaldoun", confirmed: true, pin: null, zone: inZone, landmark: "" },
-      name: "Amel B.",
-      phone: "+216 50 000 000",
-    },
-    parcel: {
-      type: "small",
-      count: "1",
-      weightKg: "2",
-      content: "Vêtements",
-      declaredValue: "48,500",
-      fragile: true,
-    },
-    service: { code: "standard", slot: null },
-    quote,
-    acceptedQuoteId: quote.id,
-    payment: "cashPickup",
-  };
-}
+const readyDraft = (): OrderDraft => readyTestDraft(T0);
 
 const request = (draft = readyDraft(), terms = true): OrderRequest =>
-  buildOrderRequest(draft, terms, "fr")!;
+  buildOrderRequest(draft, terms)!;
 
 async function verifyPhone() {
   await sendCode({ channel: "sms", value: PHONE }, "order");
@@ -204,6 +163,24 @@ describe("createOrder: checks at creation", () => {
     draft.quote = makeQuote(draft.quote!.input, clock);
     draft.acceptedQuoteId = draft.quote.id;
     expect(await createOrder(request(draft), "k")).toEqual({
+      status: "refused",
+      error: "slotPast",
+    });
+  });
+
+  it("refuses a scheduled delivery slot that has started", async () => {
+    await verifyPhone();
+    const draft = readyDraft();
+    const slots = availableSlots(T0);
+    draft.sender.slot = slots[slots.length - 1]!; // the pickup slot is still ahead
+    draft.service = { code: "scheduled", slot: slots[0]! };
+    draft.quote = makeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
+    draft.acceptedQuoteId = draft.quote.id;
+    expect((await createOrder(request(structuredClone(draft)), "k1")).status).toBe("created");
+    clock = Date.parse(slots[0]!.startUtc);
+    draft.quote = makeQuote(draft.quote.input, clock);
+    draft.acceptedQuoteId = draft.quote.id;
+    expect(await createOrder(request(draft), "k2")).toEqual({
       status: "refused",
       error: "slotPast",
     });

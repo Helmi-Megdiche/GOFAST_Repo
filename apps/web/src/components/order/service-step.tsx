@@ -11,9 +11,8 @@ import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { now } from "@/lib/order/clock";
 import type { OrderDraft } from "@/lib/order/draft";
 import { priceLines, sumLines } from "@/lib/order/pricing";
-import { parseWeightKg } from "@/lib/order/schemas";
 import { availableSlots, isSlotInFuture } from "@/lib/order/slots";
-import { quoteMatches } from "@/lib/order/steps";
+import { priceInputOf, quoteMatches } from "@/lib/order/steps";
 import { StepBusy } from "./busy";
 import { PricePending, PriceTotal } from "./price-aside";
 import { useSlotLabel } from "./slot-label";
@@ -71,26 +70,19 @@ function ServiceForm({
         )
       : [],
   );
-  const weightKg = parseWeightKg(draft.parcel.weightKg) ?? 1;
-  const zoneCode = zone?.status === "in-zone" ? zone.zone : "";
-  const totalFor = (service: ServiceCode) =>
-    draft.parcel.type
-      ? sumLines(
-          priceLines({
-            service,
-            parcelType: draft.parcel.type,
-            weightKg,
-            fragile: draft.parcel.fragile,
-            zone: zoneCode,
-          }),
-        )
-      : 0;
+  const inputFor = (service: ServiceCode) =>
+    priceInputOf({ ...draft, service: { ...draft.service, code: service } });
+  const totalFor = (service: ServiceCode) => {
+    const input = inputFor(service);
+    return input ? sumLines(priceLines(input)) : 0;
+  };
 
   async function choose(service: ServiceCode) {
     setError(undefined);
-    if (!draft.parcel.type) return;
+    const input = inputFor(service);
+    if (!input) return;
     const result = await getQuote(
-      { service, parcelType: draft.parcel.type, weightKg, fragile: draft.parcel.fragile },
+      input,
       draft.sender.address.zone,
       draft.recipient.address.zone,
       now(),

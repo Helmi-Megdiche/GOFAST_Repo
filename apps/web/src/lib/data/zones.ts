@@ -6,9 +6,13 @@ export type ZoneResult =
   | { status: "out-of-zone" }
   | { status: "unknown" };
 
-// Fake addresses from the mockup (W05, W17). Any other address is "unknown".
+// Fake addresses from the mockup (W11, W12, W17). Any other address is "unknown". They offer the
+// three services, as on W14; "rue de marseille" offers two, so the disabled Programmée card and
+// W05's "Express et Standard" stay tested.
 const IN_ZONE = ["rue ibn khaldoun", "avenue habib bourguiba"];
+const IN_ZONE_TWO_SERVICES = ["rue de marseille"];
 const OUT_OF_ZONE = ["route de sousse"];
+const ALL_SERVICES: ServiceCode[] = ["express", "standard", "scheduled"];
 // Example zone code, shown on the price line "service and zone" (R204). Not a FastGo zone.
 const EXAMPLE_ZONE = "A";
 
@@ -25,8 +29,11 @@ function normalize(address: string): string {
 export async function checkZone(address: string): Promise<ZoneResult> {
   await mockDelay();
   const text = normalize(address);
-  if (IN_ZONE.some((known) => text.includes(known))) {
+  if (IN_ZONE_TWO_SERVICES.some((known) => text.includes(known))) {
     return { status: "in-zone", services: ["express", "standard"], zone: EXAMPLE_ZONE };
+  }
+  if (IN_ZONE.some((known) => text.includes(known))) {
+    return { status: "in-zone", services: ALL_SERVICES, zone: EXAMPLE_ZONE };
   }
   if (OUT_OF_ZONE.some((known) => text.includes(known))) return { status: "out-of-zone" };
   return { status: "unknown" };
@@ -40,7 +47,7 @@ export async function checkPoint(point: { x: number; y: number }): Promise<ZoneR
   await mockDelay();
   const distance = Math.hypot(point.x - 0.5, point.y - 0.5);
   if (distance <= 0.35) {
-    return { status: "in-zone", services: ["express", "standard"], zone: EXAMPLE_ZONE };
+    return { status: "in-zone", services: ALL_SERVICES, zone: EXAMPLE_ZONE };
   }
   return { status: "out-of-zone" };
 }

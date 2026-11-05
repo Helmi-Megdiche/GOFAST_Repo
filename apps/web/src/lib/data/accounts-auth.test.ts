@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
 import { useMemoryStorage } from "../storage";
 import {
+  claimOrderPhone,
   createAccount,
   createLightAccount,
   isVerifiedPhoneForSession,
@@ -133,5 +134,28 @@ describe("Google (R103)", () => {
     const result = await googleSignIn("google-known");
     expect(result).toMatchObject({ status: "knownEmail", maskedEmail: "s•••@example.tn" });
     expect(pendingGoogle()).toMatchObject({ known: true, emailVerified: false });
+  });
+});
+
+describe("after the order code (CMD-03)", () => {
+  it("a guest gets a light account and is signed in", () => {
+    expect(claimOrderPhone({ name: "Yasmine K.", phone: "+216 20 000 000" })).toBe("ok");
+    expect(getSession()?.kind).toBe("customer");
+    expect(isVerifiedPhoneForSession("+216 20 000 000")).toBe(true);
+  });
+
+  it("a signed-in merchant who checks another phone keeps the session (R104)", () => {
+    setSession(sessionFor({ ...merchantOk, google: false }));
+    expect(claimOrderPhone({ name: "Yasmine K.", phone: "+216 20 000 000" })).toBe("ok");
+    expect(getSession()?.accountId).toBe(merchantOk.id);
+    expect(canPayOnAccount(getSession())).toBe(true);
+    expect(createLightAccount({ name: "Other", phone: "+216 20 000 000" }).status).toBe("created");
+  });
+
+  it("a phone of another account is refused after the right code (R101)", () => {
+    expect(claimOrderPhone({ name: "Yasmine K.", phone: customer.phone })).toBe("accountExists");
+    expect(getSession()).toBeNull();
+    setSession(sessionFor({ ...customer, google: false }));
+    expect(claimOrderPhone({ name: "Sami T.", phone: customer.phone })).toBe("ok");
   });
 });

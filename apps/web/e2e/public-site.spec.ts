@@ -310,10 +310,18 @@ test("zones: in zone, out of zone, unknown address, too short", async ({ page })
   const field = page.getByLabel("Votre adresse");
   const submit = page.getByRole("button", { name: "Vérifier" });
 
-  await field.fill("Rue Ibn Khaldoun");
+  // The W05 mockup's answer, "Express et Standard", is the two-service fixture address. The
+  // addresses of the order mockups offer the three services of W14 (lib/data/zones.ts).
+  await field.fill("Rue de Marseille");
   await submit.click();
   await expect(page.getByText("Cette adresse est desservie.")).toBeVisible();
   await expect(page.getByText("Services disponibles : Express et Standard.")).toBeVisible();
+
+  await field.fill("Rue Ibn Khaldoun");
+  await submit.click();
+  await expect(
+    page.getByText("Services disponibles : Express, Standard et Programmée."),
+  ).toBeVisible();
   await expect(page.getByRole("link", { name: "Commander" }).last()).toHaveAttribute(
     "href",
     "/fr/commander",

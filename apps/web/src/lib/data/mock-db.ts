@@ -18,3 +18,6 @@ export function writeRow<T>(key: string, id: string, row: T): void {
 
 /** Test helper: fails the next order answer once, after the order was created (decision 12). */
 export const FAIL_NEXT_ORDER_RESPONSE_KEY = "fg.mock.failNextOrderResponse";
+
+/** Test helper: loses the next order request once, before it reaches the server (no order). */
+export const FAIL_NEXT_ORDER_REQUEST_KEY = "fg.mock.failNextOrderRequest";

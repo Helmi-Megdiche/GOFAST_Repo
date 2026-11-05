@@ -59,12 +59,14 @@ export function AddressField({
     onChange({ ...latest.current, text, confirmed: true, pin: null, zone });
   }
 
+  // The pin is the address now: its label replaces the typed text, which may name another place.
   async function placePin(pin: MapPoint) {
-    onChange({ ...latest.current, confirmed: true, pin, zone: null });
+    const text = t("pinText");
+    onChange({ ...latest.current, text, confirmed: true, pin, zone: null });
     setChecking(true);
     const zone = await checkPoint(pin);
     setChecking(false);
-    onChange({ ...latest.current, confirmed: true, pin, zone });
+    onChange({ ...latest.current, text, confirmed: true, pin, zone });
   }
 
   const status = checking

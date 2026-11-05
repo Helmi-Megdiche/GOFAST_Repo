@@ -643,6 +643,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.service.surcharge` | رسوم إضافية ({name}) بقيمة <amount></amount> مشمولة، بحد أقصى <ceiling></ceiling>. نعرضها الآن حتى لا يتغير السعر في النهاية. | Majoration {name} de <amount></amount> incluse, plafonnée à <ceiling></ceiling>. Elle est affichée pour que le prix ne change pas à la fin. | [ ] |
 | `order.service.title` | متى يجب أن يصل؟ | Quand doit-il arriver ? | [ ] |
 | `order.service.unavailable` | غير متاح بعد لهذين العنوانين. | Pas encore disponible pour ces adresses. | [ ] |
+| `order.slot.onDate` | يوم {date}، من {start} إلى {end} | Le {date}, de {start} à {end} | [ ] |
 | `order.slot.today` | اليوم، من {start} إلى {end} | Aujourd'hui, de {start} à {end} | [ ] |
 | `order.slot.tomorrow` | غدًا، من {start} إلى {end} | Demain, de {start} à {end} | [ ] |
 | `placeholders.address` | [العنوان] | [ADRESSE] | [ ] |

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { parseMillimes } from "./money-input";
+import { millimesInputText, parseMillimes } from "./money-input";
 
 const ok = (millimes: number | null) => ({ ok: true, millimes });
 const bad = { ok: false, error: "declaredValueInvalid" };
@@ -60,8 +60,33 @@ describe("parseMillimes", () => {
     expect(parseMillimes(input, "fr")).toEqual(bad);
   });
 
-  it.each(["1,15", "1,152,5", "48,5", "1 152.5", "-1", "1.2345"])("en refuses %s", (input) => {
-    expect(parseMillimes(input, "en")).toEqual(bad);
+  it.each(["1,15", "1,152,5", "48,5", "1 152.5", "-1", "1.2345", "0,500", "00,500"])(
+    "en refuses %s",
+    (input) => {
+      expect(parseMillimes(input, "en")).toEqual(bad);
+    },
+  );
+
+  it.each(["0,500", "٠,٥٠٠"])("ar refuses %s (a comma only groups thousands)", (input) => {
+    expect(parseMillimes(input, "ar")).toEqual(bad);
+  });
+
+  it.each([
+    [48_500, "fr", "48,500"],
+    [1_152_500, "fr", "1\u00a0152,500"],
+    [48_500, "en", "48.500"],
+    [1_152_500, "en", "1,152.500"],
+    [1_152_500, "ar", "1,152.500"],
+  ] as const)(
+    "shows %i millimes in the field as %s in %s, and reads it back",
+    (millimes, locale, text) => {
+      expect(millimesInputText(millimes, locale)).toBe(text);
+      expect(parseMillimes(text, locale)).toEqual(ok(millimes));
+    },
+  );
+
+  it("shows an empty field for no declared value", () => {
+    expect(millimesInputText(null, "fr")).toBe("");
   });
 
   it("refuses an amount above the safe integer range, and never uses floats", () => {

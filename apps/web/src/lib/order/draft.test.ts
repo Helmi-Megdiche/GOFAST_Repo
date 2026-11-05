@@ -4,6 +4,7 @@ import { DRAFT_RETENTION_MS } from "./constants";
 import {
   clearDraft,
   DRAFT_KEY,
+  editDraft,
   emptyDraft,
   loadDraft,
   saveDraft,
@@ -118,5 +119,38 @@ describe("verified phone", () => {
     const draft = { ...emptyDraft(T0), verifiedPhone: "+21620000000" };
     expect(withSenderPhone(draft, "+216 20 000 000").verifiedPhone).toBe("+21620000000");
     expect(withSenderPhone(draft, "+21620000001").verifiedPhone).toBeNull();
+  });
+});
+
+describe("a step's edit (two tabs, R202)", () => {
+  it("applies to the latest saved draft, not to the copy this tab loaded", () => {
+    const shown = saveDraft(emptyDraft(T0), T0);
+    updateDraft((draft) => ({ ...draft, termsAccepted: true }), T0 + 1);
+    const next = editDraft(shown.idempotencyKey, (draft) => ({ ...draft, payment: "cashPickup" }));
+    expect(next).toMatchObject({ termsAccepted: true, payment: "cashPickup" });
+    expect(loadDraft()).toMatchObject({ termsAccepted: true, payment: "cashPickup" });
+  });
+
+  it("refuses a draft that was cleared or replaced elsewhere, and never restores it", () => {
+    const shown = saveDraft(emptyDraft(T0), T0);
+    clearDraft();
+    expect(
+      editDraft(shown.idempotencyKey, (draft) => ({ ...draft, payment: "cashPickup" })),
+    ).toBeNull();
+    expect(loadDraft()).toBeNull();
+    saveDraft(emptyDraft(T0), T0);
+    expect(editDraft(shown.idempotencyKey, (draft) => draft)).toBeNull();
+  });
+
+  it("refuses edits while an answer is pending, so the expiry freeze stays", () => {
+    const pending = saveDraft(
+      { ...emptyDraft(T0), submitAttemptedAt: T0, pendingSubmit: { fingerprint: "x" } },
+      T0,
+    );
+    const later = T0 + 3_600_000;
+    expect(
+      editDraft(pending.idempotencyKey, (draft) => ({ ...draft, pendingSubmit: null }), later),
+    ).toBeNull();
+    expect(loadDraft(later)).toEqual(pending);
   });
 });

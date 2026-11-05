@@ -2,7 +2,7 @@ import { DISPLAY_TIME_ZONE } from "@fastgo/i18n";
 import { PICKUP_WINDOWS } from "../data/fixtures/slots";
 
 /** A pickup window, stored as UTC instants (CLAUDE.md: store UTC, show Africa/Tunis). */
-export type Slot = { id: string; startUtc: string; endUtc: string; dayOffset: 0 | 1 };
+export type Slot = { id: string; startUtc: string; endUtc: string };
 
 /** Calendar date (year, month 1-12, day) of an instant in Africa/Tunis. */
 function tunisDate(at: number): { year: number; month: number; day: number } {
@@ -49,7 +49,6 @@ export function availableSlots(at: number): Slot[] {
       id: new Date(start).toISOString(),
       startUtc: new Date(start).toISOString(),
       endUtc: new Date(end).toISOString(),
-      dayOffset: window.dayOffset,
     };
   }).filter((slot) => Date.parse(slot.startUtc) > at);
 }
@@ -60,4 +59,17 @@ export function isSlotInFuture(
   at: number,
 ): boolean {
   return slot != null && Date.parse(slot.startUtc) > at;
+}
+
+/**
+ * "today" or "tomorrow" for the label of a slot, from its start instant and the Tunis date of
+ * `at` (never a stored offset: a slot picked for tomorrow reads today on the next day).
+ */
+export function slotDay(slot: Pick<Slot, "startUtc">, at: number): "today" | "tomorrow" | "other" {
+  const day = (instant: number) => {
+    const { year, month, day } = tunisDate(instant);
+    return Date.UTC(year, month - 1, day) / 86_400_000;
+  };
+  const offset = day(Date.parse(slot.startUtc)) - day(at);
+  return offset === 0 ? "today" : offset === 1 ? "tomorrow" : "other";
 }

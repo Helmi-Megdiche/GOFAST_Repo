@@ -1,4 +1,3 @@
-import type { Locale } from "@fastgo/i18n";
 import { consumeVerification } from "../data/otp";
 import { createOrder, findOrderByKey, NetworkError, type OrderError } from "../data/orders";
 import { now } from "./clock";
@@ -11,22 +10,38 @@ export type SubmitResult =
   | { status: "lost" }
   | { status: "incomplete" };
 
+/** An order exists for this key (placed here or in another tab): the draft is done. */
+async function existingOrder(idempotencyKey: string): Promise<SubmitResult | null> {
+  const code = await findOrderByKey(idempotencyKey);
+  if (!code) return null;
+  clearDraft();
+  return { status: "created", code };
+}
+
 /**
  * Sends the order once (R202). The idempotency key comes from the draft; before the call the draft
  * records the attempt and the request fingerprint, so after a lost answer (even after a reload)
  * only a retry of the same payload is offered. The draft is cleared once the order exists.
+ * A tab whose draft was cleared or replaced elsewhere never writes it back: it looks the order up.
  */
-export async function submitOrder(draft: OrderDraft, locale: Locale): Promise<SubmitResult> {
-  const request = buildOrderRequest(draft, draft.termsAccepted, locale);
+export async function submitOrder(draft: OrderDraft): Promise<SubmitResult> {
+  const stored = loadDraft();
+  if (!stored || stored.idempotencyKey !== draft.idempotencyKey) {
+    return (await existingOrder(draft.idempotencyKey)) ?? { status: "incomplete" };
+  }
+
+  const request = buildOrderRequest(draft, draft.termsAccepted);
   if (!request) return { status: "incomplete" };
   const print = fingerprint(request);
-  if (draft.pendingSubmit && draft.pendingSubmit.fingerprint !== print) {
+  const pending = stored.pendingSubmit ?? draft.pendingSubmit;
+  if (pending && pending.fingerprint !== print) {
     return { status: "refused", error: "idempotencyConflict" };
   }
 
   saveDraft({
     ...draft,
-    submitAttemptedAt: draft.submitAttemptedAt ?? now(),
+    submitAttemptedAt: stored.submitAttemptedAt ?? draft.submitAttemptedAt ?? now(),
+    expiresAt: stored.expiresAt,
     pendingSubmit: { fingerprint: print },
   });
 
@@ -44,6 +59,12 @@ export async function submitOrder(draft: OrderDraft, locale: Locale): Promise<Su
     return { status: "created", code: result.code };
   }
 
+  // The key is already used with another payload: the order exists, show it.
+  if (result.error === "idempotencyConflict") {
+    const found = await existingOrder(draft.idempotencyKey);
+    if (found) return found;
+  }
+
   // Refused: no order exists for this key, so the customer may change the draft again.
   const latest = loadDraft() ?? draft;
   saveDraft({ ...latest, pendingSubmit: null });
@@ -52,14 +73,33 @@ export async function submitOrder(draft: OrderDraft, locale: Locale): Promise<Su
 
 /**
  * After a lost answer, a new idempotency key is allowed only when the server proves that no order
- * exists for the old one. Returns the order code if it does exist.
+ * exists for the old one. Returns the order code if it does exist (the draft is then cleared).
  */
 export async function resolveLostSubmit(
   draft: OrderDraft,
 ): Promise<{ code: string } | { draft: OrderDraft }> {
   const code = await findOrderByKey(draft.idempotencyKey);
-  if (code) return { code };
+  if (code) {
+    clearDraft();
+    return { code };
+  }
   return {
     draft: saveDraft({ ...draft, idempotencyKey: crypto.randomUUID(), pendingSubmit: null }),
   };
+}
+
+// A refusal from the order code step (W20), shown by W15 after the client-side navigation. Kept in
+// memory only: a reload shows W15 without it, as after any other answer.
+let handedOff: OrderError | null = null;
+
+export function handOffRefusal(error: OrderError): void {
+  handedOff = error;
+}
+
+export function peekRefusal(): OrderError | null {
+  return handedOff;
+}
+
+export function clearRefusal(): void {
+  handedOff = null;
 }

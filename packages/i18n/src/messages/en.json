@@ -776,7 +776,8 @@
     },
     "slot": {
       "today": "Today, from {start} to {end}",
-      "tomorrow": "Tomorrow, from {start} to {end}"
+      "tomorrow": "Tomorrow, from {start} to {end}",
+      "onDate": "On {date}, from {start} to {end}"
     },
     "recipient": {
       "title": "Where is it going?",

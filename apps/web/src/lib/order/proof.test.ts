@@ -18,13 +18,13 @@ describe("proof of delivery", () => {
     expect(result.aboveValueThreshold).toBe(false);
   });
 
-  it("would flag a value at or above a threshold once FastGo gives one (injected)", () => {
+  it("would flag a value above a threshold once FastGo gives one (injected, cahier: above)", () => {
     const parcel = { fragile: false, cod: false };
     expect(
-      proofFor({ ...parcel, declaredValueMillimes: 500_000 }, 500_000).aboveValueThreshold,
+      proofFor({ ...parcel, declaredValueMillimes: 500_001 }, 500_000).aboveValueThreshold,
     ).toBe(true);
     expect(
-      proofFor({ ...parcel, declaredValueMillimes: 499_999 }, 500_000).aboveValueThreshold,
+      proofFor({ ...parcel, declaredValueMillimes: 500_000 }, 500_000).aboveValueThreshold,
     ).toBe(false);
     expect(proofFor({ ...parcel, declaredValueMillimes: null }, 500_000).aboveValueThreshold).toBe(
       false,

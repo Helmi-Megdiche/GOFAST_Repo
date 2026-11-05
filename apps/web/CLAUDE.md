@@ -74,7 +74,11 @@ apps/web/
   and `+216 71 000 002` (pending); SMS / e-mail codes `482615`, then `731904`, then `590286`;
   Google chooser: Amel B. (new e-mail) and Sami T. (known e-mail).
 - `localStorage["fg.mock.failNextOrderResponse"] = "true"` makes the next order answer get lost
-  after the order was created (tests of the network cut, R202).
+  after the order was created, and `fg.mock.failNextOrderRequest` loses the next request before
+  any order exists (tests of the network cut, R202).
+- Zones (`lib/data/zones.ts`): Avenue Habib Bourguiba, Rue Ibn Khaldoun and an in-zone pin offer
+  Express, Standard and Programmée (W14); Rue de Marseille offers Express and Standard only (W05's
+  answer, and the disabled Programmée card); Route de Sousse is out of zone.
 - Unsourced values (code length, validity, resend delay, attempts, password length, draft
   retention) live in `lib/order/constants.ts` only. Prices are example fixtures
   (`lib/data/fixtures/pricing.ts`), labelled "Montants d'exemple".

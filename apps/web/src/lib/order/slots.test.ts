@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { availableSlots, isSlotInFuture, tunisTimeToUtc } from "./slots";
+import { availableSlots, isSlotInFuture, slotDay, tunisTimeToUtc } from "./slots";
 
 // 4 November 2026, 09:30 in Tunis (UTC+1).
 const MORNING = Date.parse("2026-11-04T08:30:00Z");
@@ -27,7 +27,7 @@ describe("pickup slots", () => {
     expect(morning).toHaveLength(7);
 
     const evening = availableSlots(Date.parse("2026-11-04T17:30:00Z")); // 18:30 in Tunis
-    expect(evening.every((slot) => slot.dayOffset === 1)).toBe(true);
+    expect(evening.every((slot) => slot.startUtc.startsWith("2026-11-05"))).toBe(true);
     expect(evening).toHaveLength(4);
   });
 
@@ -36,5 +36,18 @@ describe("pickup slots", () => {
     expect(isSlotInFuture(slot, MORNING)).toBe(true);
     expect(isSlotInFuture(slot, Date.parse(slot!.startUtc))).toBe(false);
     expect(isSlotInFuture(null, MORNING)).toBe(false);
+  });
+});
+
+describe("slot day label", () => {
+  it("is computed from the instant in Tunis, so tomorrow's slot reads today the next day", () => {
+    const tomorrow = availableSlots(MORNING).find((slot) =>
+      slot.startUtc.startsWith("2026-11-05"),
+    )!;
+    expect(slotDay(tomorrow, MORNING)).toBe("tomorrow");
+    expect(slotDay(tomorrow, Date.parse("2026-11-05T07:00:00Z"))).toBe("today");
+    // 5 Nov 00:30 in Tunis is still 4 Nov in UTC.
+    expect(slotDay(tomorrow, Date.parse("2026-11-04T23:30:00Z"))).toBe("today");
+    expect(slotDay(tomorrow, Date.parse("2026-11-03T08:30:00Z"))).toBe("other");
   });
 });
