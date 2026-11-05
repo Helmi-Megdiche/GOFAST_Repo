@@ -166,19 +166,22 @@ const illegal = (from: string, to: string): TransitionResult => ({
 
 /**
  * Pure: the order outcome from its parcels' states. Canceled parcels are ignored (H3). The set that
- * counts is never empty after pickup; an empty set is a bug and throws.
+ * counts is never empty after pickup; an empty set is a bug and throws. A derived state never moves
+ * backward: once the order is `in_transit` (`current`), it stays there until a final state.
  */
-export function deriveOrderOutcome(parcels: ParcelStatus[]): DerivedOutcome {
+export function deriveOrderOutcome(parcels: ParcelStatus[], current?: OrderStatus): DerivedOutcome {
   const counted = parcels.filter((s) => s !== "canceled");
   if (counted.length === 0) throw new Error("deriveOrderOutcome: no counted parcel");
   const allFinal = counted.every((s) => FINAL_PARCEL_STATES.includes(s));
   // `to_collect` and `lost` do not count as "moved on": while every other parcel is still taken, the
   // order stays picked_up, so a loss never shows a delivery that did not happen (ruling of 5 Nov:
   // picked_up -> lost directly). `to_collect` parcels are canceled at the normal finish.
-  if (!allFinal)
+  if (!allFinal) {
+    if (current === "in_transit") return "in_transit";
     return counted.every((s) => s === "taken" || s === "to_collect" || s === "lost")
       ? "picked_up"
       : "in_transit";
+  }
   const handed = counted.filter((s) => s === "handed_over").length;
   if (handed === counted.length) return "delivered";
   if (handed > 0) return "partially_delivered";
@@ -278,7 +281,10 @@ function recomputeOrder(orderCode: string, at: number): void {
   const pickedUp =
     DERIVED_ORDER_STATES.includes(order.status) ||
     (order.status === "assigned" && statuses.some((s) => s !== "to_collect" && s !== "canceled"));
-  if (!final && pickedUp) status = deriveOrderOutcome(statuses);
+  if (!final && pickedUp) status = deriveOrderOutcome(statuses, order.status);
+  // A derived move the table does not list is a bug in the derivation or a bad fixture: fail loudly.
+  if (status !== order.status && !ORDER_NEXT[order.status].includes(status))
+    throw new Error(`recomputeOrder: ${order.status} -> ${status} is not in ORDER_NEXT`);
   writeRow(ACCOUNT_ORDERS, orderCode, { ...order, lossReported, status });
   if (status !== order.status) {
     writeEvent("order", orderCode, order.status, status, SYSTEM, at);

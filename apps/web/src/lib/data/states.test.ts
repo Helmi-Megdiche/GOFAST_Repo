@@ -18,6 +18,7 @@ import {
   createMission,
   DERIVED_ORDER_STATES,
   deriveOrderOutcome,
+  FINAL_ORDER_STATES,
   FINAL_PARCEL_STATES,
   MISSION_NEXT,
   ORDER_NEXT,
@@ -151,7 +152,11 @@ describe("parcel table", () => {
     for (const to of PARCEL_STATES) {
       const allowed = PARCEL_NEXT[from].includes(to);
       it(`${from} → ${to}: ${allowed ? "ok" : "illegalTransition"}`, () => {
-        setOrderStatus("assigned"); // the scan precondition
+        // The order must match the parcel it holds (a derived move outside ORDER_NEXT throws):
+        // assigned before the scan, picked_up while the parcel is taken, in_transit afterwards.
+        setOrderStatus(
+          from === "to_collect" ? "assigned" : from === "taken" ? "picked_up" : "in_transit",
+        );
         setParcelStatus(1, from);
         const result = transition(P(1), to, "driver-1");
         if (allowed) {
@@ -448,6 +453,18 @@ describe("pickup mission finish", () => {
       expect(order().status).toBe("in_transit");
     });
 
+    it("P1 in_transit after the finish, then P1 lost: the order stays in_transit, no backward event", () => {
+      const m = arrivedMission();
+      for (const i of [1, 2, 3]) ok(transition(P(i), "taken", "driver-1"));
+      ok(transition(M(m.id), "finished", "driver-1"));
+      ok(transition(P(1), "in_transit", "driver-1"));
+      expect(order().status).toBe("in_transit");
+      ok(transition(P(1), "lost", "staff-1"));
+      expect(order()).toMatchObject({ status: "in_transit", lossReported: true });
+      const pairs = eventsOf("order", CODE).map((e) => `${e.fromStatus} -> ${e.toStatus}`);
+      expect(pairs).not.toContain("in_transit -> picked_up");
+    });
+
     it("P1 handed over: passes, cancels P2 and P3, the order reaches delivered with one event", () => {
       const m = arrivedMission();
       ok(transition(P(1), "taken", "driver-1"));
@@ -723,4 +740,80 @@ describe("event log", () => {
       ["canceled", "handed_over", "lost", "returned"].sort(),
     );
   });
+});
+
+describe("recomputeOrder refuses a derived move the order table does not list", () => {
+  it("an assigned order whose parcel is at_depot throws instead of writing assigned -> in_transit", () => {
+    setOrderStatus("assigned");
+    setParcelStatus(1, "at_depot");
+    expect(() => transition(P(1), "in_transit", "driver-1")).toThrow(/not in ORDER_NEXT/);
+  });
+});
+
+// ---- walk test (RV-03): every order event is a pair of the order table ----
+
+function mulberry32(seed: number) {
+  let a = seed;
+  return () => {
+    a = (a + 0x6d2b79f5) | 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+describe("walk: random legal parcel moves keep every order event in ORDER_NEXT", () => {
+  const SEEDS = Array.from({ length: 150 }, (_, i) => 1000 + i);
+  for (const n of [2, 3]) {
+    it(`${n} parcels, ${SEEDS.length} seeded sequences (seeds ${SEEDS[0]}..${SEEDS.at(-1)})`, () => {
+      for (const seed of SEEDS) {
+        useMemoryStorage();
+        setClock(() => T0);
+        makeOrder(n);
+        const rnd = mulberry32(seed);
+        const log: string[] = [];
+        const fail = (msg: string) => {
+          throw new Error(`seed ${seed}, ${n} parcels: ${msg}
+steps: ${log.join(" | ")}`);
+        };
+        const m = toAssigned();
+        ok(transition(M(m.id), "accepted", "driver-1"));
+        ok(transition(M(m.id), "arrived", "driver-1"));
+        let finished = false;
+        for (let step = 0; step < 40; step++) {
+          const moves: { label: string; run: () => unknown }[] = [];
+          for (let i = 1; i <= n; i++) {
+            for (const to of PARCEL_NEXT[parcel(i).status])
+              moves.push({
+                label: `p${i}:${parcel(i).status}->${to}`,
+                run: () => transition(P(i), to, "driver-1"),
+              });
+          }
+          if (!finished)
+            moves.push({ label: "finish", run: () => transition(M(m.id), "finished", "driver-1") });
+          if (moves.length === 0) break;
+          const pick = moves[Math.floor(rnd() * moves.length)]!;
+          log.push(pick.label);
+          let result: unknown;
+          try {
+            result = pick.run();
+          } catch (e) {
+            fail(`threw ${(e as Error).message}`);
+          }
+          if (pick.label === "finish" && (result as { ok?: true }).ok) finished = true;
+          let last: string | null = null;
+          for (const e of eventsOf("order", CODE)) {
+            if (
+              !e.fromStatus ||
+              !ORDER_NEXT[e.fromStatus as OrderStatus].includes(e.toStatus as OrderStatus)
+            )
+              fail(`order event ${e.fromStatus} -> ${e.toStatus} is not in ORDER_NEXT`);
+            if (last !== null && FINAL_ORDER_STATES.includes(last as OrderStatus))
+              fail(`order left the final state ${last}`);
+            last = e.toStatus;
+          }
+        }
+      }
+    });
+  }
 });
