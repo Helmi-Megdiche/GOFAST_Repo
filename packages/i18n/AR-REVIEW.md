@@ -72,7 +72,6 @@ native-speaker review before release (CLAUDE.md).
 | `auth.signUp.email` | البريد الإلكتروني (اختياري) | E-mail (facultatif) | [ ] |
 | `auth.signUp.emailLater` | تم إنشاء الحساب. لم تتم إضافة بريدك الإلكتروني بعد: يمكنك تأكيده لاحقًا برمز يُرسل إلى هذا العنوان. | Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse. | [ ] |
 | `auth.signUp.emailLaterContinue` | متابعة | Continuer | [ ] |
-| `auth.signUp.emailTaken` | لهذا البريد الإلكتروني حساب بالفعل. سجّل الدخول. | Cet e-mail a déjà un compte. Connectez-vous. | [ ] |
 | `auth.signUp.kindLegend` | نوع الحساب | Type de compte | [ ] |
 | `auth.signUp.kinds.customer.text` | شحنات عرضية | Envois ponctuels | [ ] |
 | `auth.signUp.kinds.customer.title` | فرد | Particulier | [ ] |

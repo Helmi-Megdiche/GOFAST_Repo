@@ -1002,7 +1002,6 @@
       "passwordHint": "At least {count} characters",
       "terms": "I accept the <cgv>terms of sale</cgv> and the <privacy>privacy policy</privacy>.",
       "submit": "Continue",
-      "emailTaken": "This email already has an account. Sign in.",
       "created": "Account created.",
       "emailLater": "Account created. Your e-mail is not added yet: you can confirm it later, with a code sent to that address.",
       "emailLaterContinue": "Continue"

@@ -1002,7 +1002,6 @@
       "passwordHint": "{count} caractères au minimum",
       "terms": "J'accepte les <cgv>CGV</cgv> et la <privacy>politique de confidentialité</privacy>.",
       "submit": "Continuer",
-      "emailTaken": "Cet e-mail a déjà un compte. Connectez-vous.",
       "created": "Compte créé.",
       "emailLater": "Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse.",
       "emailLaterContinue": "Continuer"
