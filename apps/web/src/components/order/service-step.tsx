@@ -12,7 +12,7 @@ import { now } from "@/lib/order/clock";
 import type { OrderDraft } from "@/lib/order/draft";
 import { priceLines, sumLines } from "@/lib/order/pricing";
 import { availableSlots, isSlotInFuture } from "@/lib/order/slots";
-import { priceInputOf, quoteMatches } from "@/lib/order/steps";
+import { offeredServices, priceInputOf, quoteMatches } from "@/lib/order/steps";
 import { StepBusy } from "./busy";
 import { PricePending, PriceTotal } from "./price-aside";
 import { useSlotLabel } from "./slot-label";
@@ -65,16 +65,7 @@ function ServiceForm({
     if (focusTarget) document.querySelector<HTMLElement>(focusTarget.selector)?.focus();
   }, [focusTarget]);
 
-  const zone = draft.recipient.address.zone;
-  const available = new Set(
-    zone?.status === "in-zone" && draft.sender.address.zone?.status === "in-zone"
-      ? zone.services.filter(
-          (code) =>
-            draft.sender.address.zone?.status === "in-zone" &&
-            draft.sender.address.zone.services.includes(code),
-        )
-      : [],
-  );
+  const available = new Set(offeredServices(draft));
   const inputFor = (service: ServiceCode) =>
     priceInputOf({ ...draft, service: { ...draft.service, code: service } });
   const totalFor = (service: ServiceCode) => {
@@ -106,10 +97,19 @@ function ServiceForm({
     }));
   }
 
-  // A priced field changed since the quote (e.g. the weight on W13): take a new quote.
+  // A priced field changed since the quote (e.g. the weight on W13): take a new quote. A service
+  // an address no longer offers (changed on W11 or W12) is cleared instead, and never priced.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- a stale quote is replaced once, on open
-    if (draft.service.code && !quoteMatches(draft)) void choose(draft.service.code);
+    const code = draft.service.code;
+    if (code && !available.has(code)) {
+      save((current) => ({
+        ...current,
+        service: { code: null, slot: null },
+        quote: null,
+        acceptedQuoteId: null,
+      }));
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- a stale quote is replaced once, on open
+    } else if (code && !quoteMatches(draft)) void choose(code);
     // Only when the step opens.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

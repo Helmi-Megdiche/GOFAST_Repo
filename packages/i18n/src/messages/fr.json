@@ -921,7 +921,8 @@
         "slotPast": "Le créneau choisi est passé. Choisissez-en un autre.",
         "termsRequired": "Acceptez les CGV pour valider.",
         "network": "La connexion a été coupée. Réessayez.",
-        "draftChanged": "Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez."
+        "draftChanged": "Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez.",
+        "serviceUnavailable": "Ce service n'est plus disponible pour ces adresses. Choisissez-en un autre."
       },
       "serviceLines": {
         "express": "{service}, en moins de 1 h",

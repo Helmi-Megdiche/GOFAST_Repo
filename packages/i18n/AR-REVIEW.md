@@ -601,6 +601,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.errors.phoneNotVerified` | يجب التحقق من هاتفك برسالة نصية. | Votre téléphone doit être vérifié par SMS. | [ ] |
 | `order.review.errors.quoteExpired` | انتهت صلاحية السعر. أُعيد حسابه. | Le prix a expiré. Il a été recalculé. | [ ] |
 | `order.review.errors.quoteNotAccepted` | اقبل السعر الجديد للمتابعة. | Acceptez le nouveau prix pour continuer. | [ ] |
+| `order.review.errors.serviceUnavailable` | هذه الخدمة لم تعد متاحة لهذين العنوانين. اختر خدمة أخرى. | Ce service n'est plus disponible pour ces adresses. Choisissez-en un autre. | [ ] |
 | `order.review.errors.slotPast` | انقضى الموعد المختار. اختر موعدًا آخر. | Le créneau choisi est passé. Choisissez-en un autre. | [ ] |
 | `order.review.errors.termsRequired` | وافق على شروط البيع للتأكيد. | Acceptez les CGV pour valider. | [ ] |
 | `order.review.lost.editBlocked` | التعديلات معطّلة إلى أن يصل رد على هذا الطلب. | Les modifications sont bloquées tant que cette commande n'a pas de réponse. | [ ] |

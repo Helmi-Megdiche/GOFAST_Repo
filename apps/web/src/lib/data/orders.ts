@@ -2,6 +2,7 @@ import { now } from "../order/clock";
 import { addressPriceKey, isQuoteValid, priceKey } from "../order/pricing";
 import { fingerprint, type OrderRequest } from "../order/request";
 import { isSlotInFuture } from "../order/slots";
+import { servicesOffered } from "../order/steps";
 import {
   isValidTrackingCode,
   normalizeTrackingCode,
@@ -29,6 +30,7 @@ export type OrderError =
   | "phoneNotVerified"
   | "quoteExpired"
   | "quoteNotAccepted"
+  | "serviceUnavailable"
   | "paymentNotAllowed"
   | "slotPast"
   | "termsRequired";
@@ -80,6 +82,8 @@ function check(request: OrderRequest, at: number): OrderError | null {
   ) {
     return "phoneNotVerified";
   }
+  if (!servicesOffered(request.sender.zone, request.recipient.zone).includes(request.service.code))
+    return "serviceUnavailable";
   if (!isQuoteValid(request.quote, at)) return "quoteExpired";
   const zone = request.recipient.zone;
   const current = priceKey({

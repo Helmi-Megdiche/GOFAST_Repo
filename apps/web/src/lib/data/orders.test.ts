@@ -204,6 +204,28 @@ describe("createOrder: checks at creation", () => {
     });
   });
 
+  it("refuses a service the departure or the arrival zone does not offer (CMD-04)", async () => {
+    await verifyPhone();
+    const two = {
+      status: "in-zone" as const,
+      services: ["express" as const, "standard" as const],
+      zone: "A",
+    };
+    const slots = availableSlots(T0);
+    for (const side of ["sender", "recipient"] as const) {
+      const draft = readyDraft();
+      draft.sender.slot = slots[slots.length - 1]!;
+      draft.service = { code: "scheduled", slot: slots[0]! };
+      draft[side].address.zone = two;
+      draft.quote = makeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
+      draft.acceptedQuoteId = draft.quote.id;
+      expect(await createOrder(request(draft), `k-${side}`)).toEqual({
+        status: "refused",
+        error: "serviceUnavailable",
+      });
+    }
+  });
+
   it("refuses without the CGV box", async () => {
     await verifyPhone();
     expect(await createOrder(request(readyDraft(), false), "k")).toEqual({

@@ -2,6 +2,8 @@ import { isTargetVerified } from "../data/otp";
 import { isSlotInFuture } from "./slots";
 import { addressPriceKey, isQuoteValid, priceKey, type PriceInput, type Quote } from "./pricing";
 import { normalizePhone } from "../phone";
+import type { ServiceCode } from "../data/services";
+import type { ZoneResult } from "../data/zones";
 import type { AddressDraft, OrderDraft } from "./draft";
 import { parseCount, parseWeightKg, personSchema, requiredText } from "./schemas";
 
@@ -60,9 +62,24 @@ function parcelDone(draft: OrderDraft): boolean {
   );
 }
 
+/** The services both the departure and the arrival zones offer (W14, the guard and createOrder). */
+export function servicesOffered(
+  departure: ZoneResult | null | undefined,
+  arrival: ZoneResult | null | undefined,
+): ServiceCode[] {
+  if (departure?.status !== "in-zone" || arrival?.status !== "in-zone") return [];
+  return arrival.services.filter((code) => departure.services.includes(code));
+}
+
+export function offeredServices(draft: OrderDraft): ServiceCode[] {
+  return servicesOffered(draft.sender.address.zone, draft.recipient.address.zone);
+}
+
 function serviceDone(draft: OrderDraft, at: number): boolean {
   // A priced field changed since the quote (e.g. the weight on W13): W14 prices it again (R205).
   if (draft.service.code == null || !quoteMatches(draft)) return false;
+  // An address changed since W14 to a zone without this service (e.g. Programmée).
+  if (!offeredServices(draft).includes(draft.service.code)) return false;
   if (draft.service.code === "scheduled" && !isSlotInFuture(draft.service.slot, at)) return false;
   return true;
 }

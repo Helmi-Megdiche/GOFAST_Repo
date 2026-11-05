@@ -1,7 +1,16 @@
 import { describe, expect, it } from "vitest";
+import type { ZoneResult } from "../data/zones";
 import { makeQuote } from "./pricing";
 import { buildOrderRequest } from "./request";
-import { priceInputOf, quoteMatches, redirectFor, STEPS, withNewQuote } from "./steps";
+import {
+  offeredServices,
+  priceInputOf,
+  quoteMatches,
+  redirectFor,
+  STEPS,
+  withNewQuote,
+} from "./steps";
+import { availableSlots } from "./slots";
 import { readyDraft } from "./test-draft";
 
 const T0 = Date.parse("2026-11-04T08:30:00Z"); // 09:30 in Tunis
@@ -87,5 +96,44 @@ describe("a pending answer (R202)", () => {
     const outOfZone = structuredClone(draft);
     outOfZone.recipient.address.zone = { status: "out-of-zone" };
     expect(redirectFor(outOfZone, "sender", T0)).toBe("review");
+  });
+});
+
+describe("services offered by both addresses (CMD-04)", () => {
+  const TWO: ZoneResult = { status: "in-zone", services: ["express", "standard"], zone: "A" };
+
+  /** Programmée accepted at W14, then one address changed to a zone without it. */
+  function scheduledThenTwoServices(side: "sender" | "recipient") {
+    const draft = readyDraft(T0);
+    const slots = availableSlots(T0);
+    draft.sender.slot = slots[slots.length - 1]!;
+    draft.service = { code: "scheduled", slot: slots[0]! };
+    draft[side].address = { ...draft[side].address, zone: TWO };
+    // Priced again with the new address, as the old W14 did: the quote matches the draft.
+    draft.quote = makeQuote(priceInputOf(draft)!, T0);
+    draft.acceptedQuoteId = draft.quote.id;
+    return draft;
+  }
+
+  it("are the services both the departure and the arrival zones offer", () => {
+    const draft = readyDraft(T0);
+    expect(offeredServices(draft)).toEqual(["express", "standard", "scheduled"]);
+    draft.recipient.address = { ...draft.recipient.address, zone: TWO };
+    expect(offeredServices(draft)).toEqual(["express", "standard"]);
+    const sender = readyDraft(T0);
+    sender.sender.address = { ...sender.sender.address, zone: TWO };
+    expect(offeredServices(sender)).toEqual(["express", "standard"]);
+    const unknown = readyDraft(T0);
+    unknown.recipient.address = { ...unknown.recipient.address, zone: { status: "unknown" } };
+    expect(offeredServices(unknown)).toEqual([]);
+  });
+
+  it("a service one address no longer offers sends W15 back to W14", () => {
+    for (const side of ["sender", "recipient"] as const) {
+      const draft = scheduledThenTwoServices(side);
+      expect(quoteMatches(draft)).toBe(true);
+      expect(redirectFor(draft, "review", T0)).toBe("service");
+      expect(redirectFor(draft, "service", T0)).toBeNull();
+    }
   });
 });
