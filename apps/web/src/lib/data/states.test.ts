@@ -304,6 +304,104 @@ describe("pickup mission finish", () => {
     expect(order().status).toBe("assigned");
   });
 
+  // Ruling (5 Nov 2026): a normal finish passes once at least one parcel was scanned, i.e. its status
+  // is neither to_collect nor canceled. Checking `taken` alone left pickups stuck as soon as the
+  // scanned parcel had moved on.
+  describe("a normal finish needs a scanned parcel, not a taken one", () => {
+    function arrivedMission(): Mission {
+      const m = toAssigned();
+      ok(transition(M(m.id), "accepted", "driver-1"));
+      ok(transition(M(m.id), "arrived", "driver-1"));
+      return m;
+    }
+    const orderEventCount = () => eventsOf("order", CODE).length;
+
+    it("P1 taken then in_transit: passes, cancels P2 and P3, order stays in_transit", () => {
+      const m = arrivedMission();
+      ok(transition(P(1), "taken", "driver-1"));
+      ok(transition(P(1), "in_transit", "driver-1"));
+      const before = orderEventCount();
+      ok(transition(M(m.id), "finished", "driver-1"));
+      expect(mission(m.id).status).toBe("finished");
+      expect(parcel(1).status).toBe("in_transit");
+      expect(parcel(2).status).toBe("canceled");
+      expect(parcel(3).status).toBe("canceled");
+      expect(order().status).toBe("in_transit");
+      expect(orderEventCount()).toBe(before);
+    });
+
+    it("P1 taken then lost: passes, cancels P2 and P3, the order reaches lost with one event", () => {
+      const m = arrivedMission();
+      ok(transition(P(1), "taken", "driver-1"));
+      ok(transition(P(1), "lost", "staff-1"));
+      expect(order().status).toBe("in_transit");
+      const before = orderEventCount();
+      ok(transition(M(m.id), "finished", "driver-1"));
+      expect(parcel(2).status).toBe("canceled");
+      expect(parcel(3).status).toBe("canceled");
+      expect(order()).toMatchObject({ status: "lost", lossReported: true });
+      expect(orderEventCount()).toBe(before + 1);
+      expect(eventsOf("order", CODE).at(-1)).toMatchObject({
+        fromStatus: "in_transit",
+        toStatus: "lost",
+        actorId: "system",
+      });
+    });
+
+    it("P1 handed over: passes, cancels P2 and P3, the order reaches delivered with one event", () => {
+      const m = arrivedMission();
+      ok(transition(P(1), "taken", "driver-1"));
+      ok(transition(P(1), "at_depot", "driver-1"));
+      ok(transition(P(1), "in_transit", "driver-1"));
+      ok(transition(P(1), "handed_over", "driver-1"));
+      expect(order().status).toBe("in_transit");
+      const before = orderEventCount();
+      ok(transition(M(m.id), "finished", "driver-1"));
+      expect(parcel(2).status).toBe("canceled");
+      expect(parcel(3).status).toBe("canceled");
+      expect(order().status).toBe("delivered");
+      expect(orderEventCount()).toBe(before + 1);
+      expect(eventsOf("order", CODE).at(-1)).toMatchObject({
+        fromStatus: "in_transit",
+        toStatus: "delivered",
+        actorId: "system",
+      });
+    });
+
+    it("P1, P2 and P3 taken then at_depot: passes, nothing to cancel, order stays in_transit", () => {
+      const m = arrivedMission();
+      for (const i of [1, 2, 3]) ok(transition(P(i), "taken", "driver-1"));
+      for (const i of [1, 2, 3]) ok(transition(P(i), "at_depot", "driver-1"));
+      const before = orderEventCount();
+      ok(transition(M(m.id), "finished", "driver-1"));
+      expect(mission(m.id).status).toBe("finished");
+      for (const i of [1, 2, 3]) expect(parcel(i).status).toBe("at_depot");
+      expect(order().status).toBe("in_transit");
+      expect(orderEventCount()).toBe(before);
+    });
+
+    it("still refused when no parcel was scanned: parcels, order and mission unchanged", () => {
+      const m = arrivedMission();
+      const eventsBefore = events().length;
+      expect(transition(M(m.id), "finished", "driver-1")).toMatchObject({
+        refused: "noParcelTaken",
+      });
+      expect(mission(m.id).status).toBe("arrived");
+      for (const i of [1, 2, 3]) expect(parcel(i).status).toBe("to_collect");
+      expect(order().status).toBe("assigned");
+      expect(events()).toHaveLength(eventsBefore);
+    });
+
+    it("still refused when the only non-to_collect parcels are canceled", () => {
+      const m = arrivedMission();
+      setParcelStatus(1, "canceled");
+      expect(transition(M(m.id), "finished", "driver-1")).toMatchObject({
+        refused: "noParcelTaken",
+      });
+      expect(mission(m.id).status).toBe("arrived");
+    });
+  });
+
   it("retry after driver removed", () => {
     const first = toAssigned();
     ok(transition(M(first.id), "accepted", "driver-1"));

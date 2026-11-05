@@ -102,7 +102,7 @@ Prompt 3 also left these for Prompt 4:
   - the order reaches `picked_up` on the first parcel `to_collect → taken` ("Le livreur scanne au moins un colis");
   - **a scan checks the order first:** `transition(parcel, "taken")` reads the order before the parcel table, and refuses with `{refused: "orderNotAssigned"}` unless the order is `assigned` (first scan) or already `picked_up` or later (the other parcels of the same pickup). So a scan in `received`, `confirmed` or `pickup_failed`, or after a cancel (parcel already `canceled`), always returns `orderNotAssigned`, never `illegalTransition`;
   - **only a normal pickup finish** (`arrived → finished` with `endReason: null`) moves the parcels still `to_collect` to `canceled` ("colis jamais remis au livreur"), actor `system`;
-  - **a normal finish needs a taken parcel:** `arrived → finished` with `endReason: null` is refused with `{refused: "noParcelTaken"}` unless at least one parcel of the order is `taken`. So a normal finish can never cancel every parcel while the order stays `assigned`;
+  - **a normal finish needs a scanned parcel** (ruling by Helmi, 5 Nov 2026): `arrived → finished` with `endReason: null` is refused with `{refused: "noParcelTaken"}` unless at least one parcel of the order has been scanned, meaning its status is neither `to_collect` nor `canceled` (`taken`, `at_depot`, `in_transit`, `delivery_failed`, `returning`, `handed_over`, `returned` or `lost`). The old wording tested `taken` only and left pickups stuck once the scanned parcel had moved on. So a normal finish can never cancel every parcel while the order stays `assigned`. On a pass, the parcels still `to_collect` go `canceled` and the order is recomputed: if every counted parcel is then final, the order reaches its outcome in the same call, with exactly one order event. **Later PRs follow this rule, not the old wording;**
   - an early end with `driverRemoved` or `pickupFailed` **does not touch the parcels**: they stay `to_collect` for the next mission. With `orderCanceled`, `cancelOrder` cancels them itself (part A);
   - **a final order stays final** (H4, decided). If a `lost` parcel turns up (`lost → at_depot`), the parcel's state changes and `lossReported` is recomputed, but no order event is written and the order outcome does not change.
 
@@ -126,7 +126,7 @@ Prompt 3 also left these for Prompt 4:
   - While any parcel is not final:
     - `in_transit` once any counted parcel is `in_transit`, `at_depot`, `delivery_failed`, `returning` or final;
     - otherwise (every counted parcel `taken`) `picked_up`.
-  - `canceled` parcels are **ignored** (H3, decided). After pickup at least one parcel is `taken`, so the set that counts is never empty.
+  - `canceled` parcels are **ignored** (H3, decided). After pickup at least one parcel is scanned (not `to_collect`, not `canceled`), so the set that counts is never empty.
   - When every counted parcel is final:
     - all `handed_over`: `delivered`;
     - at least one `handed_over` and the others `returned` or `lost`: `partially_delivered`. T19 (2 handed over and 1 returned) is sourced; `handed_over + lost` is my reading, accepted as H3;
@@ -291,7 +291,7 @@ This section is unchanged from the first plan.
   - **retry after driver removed:** `assigned → confirmed` ends the mission with `driverRemoved`; the parcels stay `to_collect`; a new mission, then `confirmed → assigned`, and every parcel can be scanned `to_collect → taken`;
   - **retry after failed pickup:** `assigned → pickup_failed` ends the mission with `pickupFailed`; the parcels stay `to_collect`; `pickup_failed → confirmed` (new slot), a new mission, `assigned`, and every parcel can be scanned;
   - a scan in `received`, `confirmed` or `pickup_failed` is refused with `orderNotAssigned`; **after a cancel** (parcel `canceled`) the scan returns `orderNotAssigned`, not `illegalTransition`;
-  - **`noParcelTaken`:** `arrived → finished` with `endReason: null` and no parcel `taken` is refused, the parcels stay `to_collect` and the order stays `assigned`; with one parcel `taken` it passes and cancels the rest;
+  - **`noParcelTaken`:** `arrived → finished` with `endReason: null` and no scanned parcel (every parcel `to_collect` or `canceled`) is refused, the parcels stay `to_collect`, the mission stays `arrived`, the order stays `assigned` and no event is written; with one scanned parcel it passes and cancels the rest. Pinned on a 3-parcel order: P1 `taken` then `in_transit` (order stays `in_transit`); P1 `taken` then `lost` (P2 and P3 canceled, order reaches `lost` with one order event); P1 `taken`, `at_depot`, `in_transit`, `handed_over` (order reaches `delivered` with one order event); P1, P2 and P3 `taken` then `at_depot` (nothing to cancel);
   - `kgTextToGrams`: `"0.1"` = 100, `"1.005"` = 1005, `"2"` = 2000; `"1.0005"` is refused with `tooManyDecimals`;
   - **threshold on the order total** (test threshold injected): a 3-parcel order whose total declared value is above it while each share is below gives every parcel the strongest level; COD on one parcel raises only that parcel;
   - **`freightPayer`:** `createOrder` with `cashDelivery` stores `recipient`, with `cashPickup` stores `sender`, with `account` stores `sender`;
@@ -865,7 +865,7 @@ No open questions for Helmi remain. H9 is removed (correction 7).
 | EX02 | 0 | `/suivi` stays public |
 | EX03, EX04 | F | link only, with no account |
 | EX06–EX12 | A–E | another account's record gives not-found; merchant-only pages refuse a customer |
-| States: order, parcel, mission | 0 | the transition matrix, derived order states refused directly, the scan checks the order first (`orderNotAssigned`, also after a cancel), a normal finish with no parcel taken refused (`noParcelTaken`), `in_transit`/`picked_up` derivation, both retry paths keep parcels `to_collect`, a final order stays final, the event log |
+| States: order, parcel, mission | 0 | the transition matrix, derived order states refused directly, the scan checks the order first (`orderNotAssigned`, also after a cancel), a normal finish with no scanned parcel refused (`noParcelTaken`), a normal finish after the scanned parcel moved on (`in_transit`, `lost`, `handed_over`, `at_depot`) accepted, `in_transit`/`picked_up` derivation, both retry paths keep parcels `to_collect`, a final order stays final, the event log |
 
 **Left out, with the reason:**
 - **R205, R207:** order flow, done in Prompt 3.
@@ -997,7 +997,9 @@ A second review, on the sections changed by Helmi's corrections, is in section 1
 12. **Import.** Add a payment mode (per file or per row) and the column list to the import contract; the P02 columns have none.
 13. **W13 split.** State how a whole-order weight and declared value are split across parcels (the mock: equal parts, last takes the remainder).
 14. **Language from the site switcher (R902).** State that a signed-in user's choice in the switcher saves `accounts.locale`.
-15. **Prise en charge → Perdue.** The order table lists only Prise en charge → En route, but a parcel may go Pris → Perdu. When the only counted parcel is lost right after the scan, the derived order goes Prise en charge → Perdue directly. The mock writes that derived event (pinned in `states.test.ts`); add the pair to the order table, or state that the order passes through En route.
+15. **Prise en charge → Perdue (decision to confirm).** Helmi's ruling (5 Nov 2026): the order may go Prise en charge → Perdue directly, because passing through En route would show the customer a delivery that never happened. A parcel may go Pris → Perdu, so when the only counted parcel is lost right after the scan the derived order goes there. Add `lost` to the allowed next states of Prise en charge in the order table. A direct order transition to Perdue stays refused (`derivedState`); the move comes only from the parcels. The mock does this and pins it in `states.test.ts`.
+16. **Normal pickup finish (ruling by Helmi, 5 Nov 2026).** "Le livreur termine la collecte" passes once at least one parcel has been scanned, meaning its status is neither À prendre nor Annulé. Testing only Pris left pickups stuck as soon as the scanned parcel was En route, Perdu or Remis. The parcels still À prendre are then Annulé, and the order takes its outcome in the same step when every counted parcel is final.
+17. **Mission end reasons.** The three end reasons (`driverRemoved`, `pickupFailed`, `orderCanceled`) are the result of an order change, never set on their own: a mission cannot be ended early without its order changing too, or an Attribuée order would be left with no mission.
 
 ## 19. Second review (fresh subagent, engineering:code-review, changed sections only)
 

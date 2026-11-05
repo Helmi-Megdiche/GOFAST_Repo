@@ -311,9 +311,11 @@ function transitionMission(
   const normalFinish = to === "finished" && endReason === null;
   if (normalFinish) {
     if (from !== "arrived") return illegal(from, to);
+    // Ruling: "scanned" means the parcel left to_collect and was not canceled. Testing for `taken`
+    // alone refused the finish once the scanned parcel had moved on (in_transit, lost, handed_over...).
     if (
       mission.kind === "pickup" &&
-      !parcelsOf(mission.orderCode).some((p) => p.status === "taken")
+      !parcelsOf(mission.orderCode).some((p) => p.status !== "to_collect" && p.status !== "canceled")
     ) {
       return { refused: "noParcelTaken", from, to };
     }
