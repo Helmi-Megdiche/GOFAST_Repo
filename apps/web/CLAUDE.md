@@ -59,7 +59,7 @@ apps/web/
 ## Mock data rules
 
 - Functions in `lib/data` return codes, keys, ISO UTC dates and millimes. **Never display text.** Words come from the catalogs.
-- Values FastGo has not given yet (prices, hours, limits, fees, cities) are `null`: the page prints the
+- Values GOFAST has not given yet (prices, hours, limits, fees, cities) are `null`: the page prints the
   placeholder in the active language (`placeholders.*`: `[PRIX]`, `[HEURE]`, `[LIMITE]`, `[TARIF]`, `[VILLE]`...).
 - `NEXT_PUBLIC_SITE_URL` (see `.env.example`) feeds the canonical and hreflang links.
 - `pnpm --filter @fastgo/web test` runs the unit tests of the data layer and the form schemas.
@@ -111,7 +111,7 @@ apps/web/
 
 - Logical classes only: `ms-* me-* ps-* pe-* start-* end-* text-start text-end`. Never `ml-* mr-* left-* right-*`.
 - No hex values here. Use the token classes (`bg-orange`, `text-ink`, `border-line`...). The Tailwind
-  palette is replaced by the FastGo tokens, so default colors such as `bg-blue-500` do not exist.
+  palette is replaced by the GOFAST tokens, so default colors such as `bg-blue-500` do not exist.
 - Dark mode is L2: tokens are ready (`[data-theme="dark"]`), there is no toggle.
 
 ## /dev/ui

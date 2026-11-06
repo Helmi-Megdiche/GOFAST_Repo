@@ -1,6 +1,6 @@
-# FastGo
+# GOFAST
 
-Starter files for the FastGo repository.
+Starter files for the GOFAST repository.
 
 1. Create an empty folder `fastgo`, unzip this kit into it, then `git init` and make a first commit.
 2. Push it to the team's private repository so the other two engineers get the same `CLAUDE.md`.

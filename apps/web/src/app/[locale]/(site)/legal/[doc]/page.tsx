@@ -35,7 +35,7 @@ export async function generateMetadata({ params }: Props) {
 
 const CGV_SECTIONS = ["purpose", "cancellation", "liability", "data"] as const;
 
-/** Legal documents (FE-05, W09-Legal). Every text is [TEXTE] until FastGo's legal adviser provides it. */
+/** Legal documents (FE-05, W09-Legal). Every text is [TEXTE] until GOFAST's legal adviser provides it. */
 export default async function LegalDocPage({ params }: Props) {
   await resolveLocale(params);
   const { doc: slug } = await params;

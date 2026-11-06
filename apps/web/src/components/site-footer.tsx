@@ -21,7 +21,7 @@ function Column({ title, links }: { title: string; links: FooterLink[] }) {
   );
 }
 
-/** Logo and tagline, three link columns, then the contact line (placeholders until FastGo sends them). */
+/** Logo and tagline, three link columns, then the contact line (placeholders until GOFAST sends them). */
 export function SiteFooter() {
   const t = useTranslations("footer");
   const p = useTranslations("placeholders");

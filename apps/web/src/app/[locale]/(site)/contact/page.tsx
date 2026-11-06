@@ -8,7 +8,7 @@ import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 export const generateMetadata = ({ params }: PageParams) =>
   localizedMetadata(params, "/contact", "contact");
 
-/** Contact (FE-06, W07-Contact). Details stay as placeholders until FastGo sends them. */
+/** Contact (FE-06, W07-Contact). Details stay as placeholders until GOFAST sends them. */
 export default async function ContactPage({ params }: PageParams) {
   await resolveLocale(params);
   const t = await getTranslations("contact");

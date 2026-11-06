@@ -1,123 +1,123 @@
 {
   "meta": {
-    "title": "FastGo",
+    "title": "GOFAST",
     "description": "توصيل سريع للوثائق والطرود.",
     "pages": {
       "home": {
-        "title": "FastGo: توصيل سريع للوثائق والطرود",
+        "title": "GOFAST: توصيل سريع للوثائق والطرود",
         "description": "اطلب توصيلًا داخل المدينة، واطّلع على السعر قبل التأكيد، وتتبع طردك حتى التسليم مع إثبات."
       },
       "services": {
-        "title": "الخدمات والأسعار | FastGo",
-        "description": "سريع أو عادي أو مجدول: قارن عروض FastGo وأنواع الشحنات والخيارات."
+        "title": "الخدمات والأسعار | GOFAST",
+        "description": "سريع أو عادي أو مجدول: قارن عروض GOFAST وأنواع الشحنات والخيارات."
       },
       "merchants": {
-        "title": "عرض التجار | FastGo",
-        "description": "استورد طلباتك وتتبع كل طرد وكل مبلغ مدفوع عند الاستلام مع FastGo."
+        "title": "عرض التجار | GOFAST",
+        "description": "استورد طلباتك وتتبع كل طرد وكل مبلغ مدفوع عند الاستلام مع GOFAST."
       },
       "tracking": {
-        "title": "تتبع طرد | FastGo",
-        "description": "أدخل رقم تتبع FastGo لمعرفة حالة الطرد ووقت الوصول المقدّر."
+        "title": "تتبع طرد | GOFAST",
+        "description": "أدخل رقم تتبع GOFAST لمعرفة حالة الطرد ووقت الوصول المقدّر."
       },
       "zones": {
-        "title": "المناطق المشمولة | FastGo",
-        "description": "تحقق في ثوانٍ مما إذا كان عنوانك ضمن مناطق خدمة FastGo."
+        "title": "المناطق المشمولة | GOFAST",
+        "description": "تحقق في ثوانٍ مما إذا كان عنوانك ضمن مناطق خدمة GOFAST."
       },
       "help": {
-        "title": "المساعدة | FastGo",
+        "title": "المساعدة | GOFAST",
         "description": "أجوبة عن الأسئلة الشائعة حول الطلب والتتبع والدفع والشكاوى."
       },
       "contact": {
-        "title": "اتصل بنا | FastGo",
-        "description": "سؤال أو عرض سعر أو شكوى: اكتب إلى FastGo، برقم تتبع أو بدونه."
+        "title": "اتصل بنا | GOFAST",
+        "description": "سؤال أو عرض سعر أو شكوى: اكتب إلى GOFAST، برقم تتبع أو بدونه."
       },
       "driver": {
-        "title": "كن عامل توصيل | FastGo",
-        "description": "اطّلع على شروط التوصيل مع FastGo وأرسل ترشحك."
+        "title": "كن عامل توصيل | GOFAST",
+        "description": "اطّلع على شروط التوصيل مع GOFAST وأرسل ترشحك."
       },
       "cgv": {
-        "title": "شروط البيع | FastGo",
-        "description": "شروط البيع الخاصة بـ FastGo."
+        "title": "شروط البيع | GOFAST",
+        "description": "شروط البيع الخاصة بـ GOFAST."
       },
       "privacy": {
-        "title": "الخصوصية | FastGo",
-        "description": "سياسة الخصوصية الخاصة بـ FastGo."
+        "title": "الخصوصية | GOFAST",
+        "description": "سياسة الخصوصية الخاصة بـ GOFAST."
       },
       "notice": {
-        "title": "البيانات القانونية | FastGo",
-        "description": "البيانات القانونية الخاصة بـ FastGo."
+        "title": "البيانات القانونية | GOFAST",
+        "description": "البيانات القانونية الخاصة بـ GOFAST."
       },
       "cookies": {
-        "title": "ملفات تعريف الارتباط | FastGo",
-        "description": "معلومات حول ملفات تعريف الارتباط في موقع FastGo."
+        "title": "ملفات تعريف الارتباط | GOFAST",
+        "description": "معلومات حول ملفات تعريف الارتباط في موقع GOFAST."
       },
       "order": {
-        "title": "اطلب الآن | FastGo",
+        "title": "اطلب الآن | GOFAST",
         "description": "الطلب عبر الإنترنت قريبًا."
       },
       "signIn": {
-        "title": "تسجيل الدخول | FastGo",
+        "title": "تسجيل الدخول | GOFAST",
         "description": "تسجيل الدخول إلى حسابك قريبًا."
       },
       "signUp": {
-        "title": "إنشاء حساب | FastGo",
+        "title": "إنشاء حساب | GOFAST",
         "description": "إنشاء الحساب قريبًا."
       },
       "orderSender": {
-        "title": "الطلب: المرسل | FastGo",
+        "title": "الطلب: المرسل | GOFAST",
         "description": "أدخل عنوان استلام طردك."
       },
       "orderRecipient": {
-        "title": "الطلب: المستلم | FastGo",
+        "title": "الطلب: المستلم | GOFAST",
         "description": "أدخل عنوان التسليم والمستلم."
       },
       "orderParcel": {
-        "title": "الطلب: الطرد | FastGo",
+        "title": "الطلب: الطرد | GOFAST",
         "description": "صف ما سنوصله."
       },
       "orderService": {
-        "title": "الطلب: الخدمة | FastGo",
+        "title": "الطلب: الخدمة | GOFAST",
         "description": "اختر متى يجب أن يصل الطرد."
       },
       "orderReview": {
-        "title": "الطلب: المراجعة | FastGo",
+        "title": "الطلب: المراجعة | GOFAST",
         "description": "راجع تفاصيل السعر وأكّد طلبك."
       },
       "orderCode": {
-        "title": "الطلب: رمز التحقق | FastGo",
+        "title": "الطلب: رمز التحقق | GOFAST",
         "description": "أدخل الرمز الذي وصلك برسالة نصية لتأكيد الطلب."
       },
       "orderConfirmation": {
-        "title": "تم تسجيل الطلب | FastGo",
+        "title": "تم تسجيل الطلب | GOFAST",
         "description": "رقم التتبع والخطوات التالية لتوصيلك."
       },
       "orderOutOfZone": {
-        "title": "عنوان خارج مناطق الخدمة | FastGo",
+        "title": "عنوان خارج مناطق الخدمة | GOFAST",
         "description": "لا نوصل إلى هذا العنوان بعد."
       },
       "code": {
-        "title": "رمز التحقق | FastGo",
+        "title": "رمز التحقق | GOFAST",
         "description": "أدخل الرمز الذي وصلك."
       },
       "passwordForgot": {
-        "title": "نسيت كلمة المرور | FastGo",
+        "title": "نسيت كلمة المرور | GOFAST",
         "description": "احصل على رمز لاختيار كلمة مرور جديدة."
       },
       "passwordNew": {
-        "title": "كلمة مرور جديدة | FastGo",
+        "title": "كلمة مرور جديدة | GOFAST",
         "description": "اختر كلمة المرور الجديدة."
       },
       "googlePhone": {
-        "title": "الخطوة الأخيرة | FastGo",
+        "title": "الخطوة الأخيرة | GOFAST",
         "description": "أضف هاتفك بعد تسجيل الدخول عبر Google."
       },
       "account": {
-        "title": "حسابي | FastGo",
-        "description": "مساحة عميل FastGo الخاصة بك."
+        "title": "حسابي | GOFAST",
+        "description": "مساحة عميل GOFAST الخاصة بك."
       },
       "pro": {
-        "title": "مساحة التاجر | FastGo",
-        "description": "مساحة التاجر الخاصة بك في FastGo."
+        "title": "مساحة التاجر | GOFAST",
+        "description": "مساحة التاجر الخاصة بك في GOFAST."
       }
     }
   },
@@ -170,7 +170,7 @@
       "h4": "رقم التتبع",
       "eyebrow": "تتبع",
       "lead": "توصيل سريع للوثائق والطرود.",
-      "body": "تستلم FastGo وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل أن تطلب."
+      "body": "تستلم GOFAST وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل أن تطلب."
     },
     "buttons": {
       "primary": "اطلب الآن",
@@ -305,7 +305,7 @@
     "time": "[الساعة]",
     "limit": "[الحد]",
     "fee": "[التعرفة]",
-    "list": "[قائمة يعتمدها FastGo]",
+    "list": "[قائمة يعتمدها GOFAST]",
     "text": "[النص]",
     "answer": "[الجواب]",
     "vehicle": "[المركبة]",
@@ -450,7 +450,7 @@
     "historyLabel": "سجل الطرد",
     "notFound": {
       "title": "الرقم غير موجود",
-      "text": "لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع FastGo."
+      "text": "لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع GOFAST."
     },
     "yourParcel": {
       "title": "هل هذا طردك؟",
@@ -458,7 +458,7 @@
     },
     "problem": {
       "title": "هل من مشكلة؟",
-      "cta": "تواصل مع FastGo"
+      "cta": "تواصل مع GOFAST"
     },
     "parcelLine": "الطرد <n></n>: {status}"
   },
@@ -554,8 +554,8 @@
     }
   },
   "driver": {
-    "eyebrow": "انضم إلى FastGo",
-    "title": "وصّل مع FastGo.",
+    "eyebrow": "انضم إلى GOFAST",
+    "title": "وصّل مع GOFAST.",
     "needs": {
       "title": "ما تحتاج إليه",
       "licence": "رخصة سياقة سارية، إذا كانت مركبتك تتطلبها",
@@ -603,7 +603,7 @@
       "notice": "البيانات القانونية",
       "cookies": "ملفات تعريف الارتباط"
     },
-    "note": "نص يقدمه المستشار القانوني لـ FastGo ويعتمده.",
+    "note": "نص يقدمه المستشار القانوني لـ GOFAST ويعتمده.",
     "cgvSections": {
       "purpose": "الموضوع",
       "cancellation": "الإلغاء والرسوم",
@@ -652,7 +652,7 @@
   "home": {
     "hero": {
       "title": "طردك ينطلق اليوم، وتعرف أين هو.",
-      "subtitle": "تستلم FastGo وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل الطلب.",
+      "subtitle": "تستلم GOFAST وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل الطلب.",
       "departure": "من",
       "arrival": "إلى",
       "addressPlaceholder": "الشارع أو الحي أو المدينة",
@@ -733,7 +733,7 @@
     "track": "تتبع طرد"
   },
   "cmd": {
-    "homeLabel": "FastGo، الرئيسية",
+    "homeLabel": "GOFAST، الرئيسية",
     "saveAndQuit": "حفظ والخروج",
     "stepperLabel": "مراحل الطلب",
     "stepStates": {
@@ -1065,10 +1065,10 @@
       "text": "يحتاجه السائق والتتبع. نتحقق منه مرة واحدة برسالة نصية.",
       "phone": "الهاتف",
       "submit": "احصل على الرمز",
-      "knownEmail": "لهذا البريد الإلكتروني حساب FastGo. أكّده بالرمز المرسل بالبريد الإلكتروني، ثم أضف هاتفك.",
+      "knownEmail": "لهذا البريد الإلكتروني حساب GOFAST. أكّده بالرمز المرسل بالبريد الإلكتروني، ثم أضف هاتفك.",
       "emailSubmit": "احصل على الرمز بالبريد الإلكتروني",
       "missing": "لا يوجد تسجيل دخول جارٍ عبر Google.",
-      "phoneMismatch": "هذا الرقم ليس رقم حسابك. أدخل الهاتف المسجّل في حسابك على FastGo.",
+      "phoneMismatch": "هذا الرقم ليس رقم حسابك. أدخل الهاتف المسجّل في حسابك على GOFAST.",
       "changePhone": "تغيير الرقم"
     },
     "noJs": "تحتاج هذه الصفحة إلى JavaScript. فعّله في متصفحك."

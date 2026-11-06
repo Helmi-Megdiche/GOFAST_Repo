@@ -23,6 +23,14 @@ describe("message catalogs", () => {
     }
   });
 
+  it("never shows the old brand name FastGo (the brand is GOFAST)", () => {
+    for (const [locale, entries] of Object.entries(flat)) {
+      for (const [key, value] of Object.entries(entries)) {
+        expect(value.toLowerCase(), `${locale}:${key}`).not.toContain("fastgo");
+      }
+    }
+  });
+
   it("uses the same {placeholders} in every language", () => {
     for (const [key, value] of Object.entries(flat.fr)) {
       expect(placeholders(flat.en[key] ?? ""), `en:${key}`).toEqual(placeholders(value));

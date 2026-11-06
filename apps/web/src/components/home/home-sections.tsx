@@ -35,7 +35,7 @@ export function PromiseStrip() {
   );
 }
 
-/** Express, Standard, Programmée with the starting price (placeholder until FastGo sets it). */
+/** Express, Standard, Programmée with the starting price (placeholder until GOFAST sets it). */
 export function OffersSection({ offers }: { offers: ServiceCatalog["offers"] }) {
   const t = useTranslations("home.offers");
   const o = useTranslations("offers");

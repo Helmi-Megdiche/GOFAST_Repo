@@ -1,123 +1,123 @@
 {
   "meta": {
-    "title": "FastGo",
+    "title": "GOFAST",
     "description": "Express delivery of documents and parcels.",
     "pages": {
       "home": {
-        "title": "FastGo: express delivery of documents and parcels",
+        "title": "GOFAST: express delivery of documents and parcels",
         "description": "Order a delivery across the city, see the price before you confirm and follow your parcel until delivery with proof."
       },
       "services": {
-        "title": "Services and prices | FastGo",
-        "description": "Express, Standard or Scheduled: compare FastGo services, shipment types and options."
+        "title": "Services and prices | GOFAST",
+        "description": "Express, Standard or Scheduled: compare GOFAST services, shipment types and options."
       },
       "merchants": {
-        "title": "Merchant offer | FastGo",
-        "description": "Import your orders and track every parcel and every cash-on-delivery payout with FastGo."
+        "title": "Merchant offer | GOFAST",
+        "description": "Import your orders and track every parcel and every cash-on-delivery payout with GOFAST."
       },
       "tracking": {
-        "title": "Track a parcel | FastGo",
-        "description": "Enter your FastGo tracking number to see the status and the estimated arrival time."
+        "title": "Track a parcel | GOFAST",
+        "description": "Enter your GOFAST tracking number to see the status and the estimated arrival time."
       },
       "zones": {
-        "title": "Areas served | FastGo",
-        "description": "Check in seconds whether FastGo serves your address."
+        "title": "Areas served | GOFAST",
+        "description": "Check in seconds whether GOFAST serves your address."
       },
       "help": {
-        "title": "Help | FastGo",
+        "title": "Help | GOFAST",
         "description": "Answers to common questions about ordering, tracking, payment and claims."
       },
       "contact": {
-        "title": "Contact | FastGo",
-        "description": "A question, a quote or a claim: write to FastGo, with or without a tracking number."
+        "title": "Contact | GOFAST",
+        "description": "A question, a quote or a claim: write to GOFAST, with or without a tracking number."
       },
       "driver": {
-        "title": "Become a driver | FastGo",
-        "description": "See what you need to deliver with FastGo and send your application."
+        "title": "Become a driver | GOFAST",
+        "description": "See what you need to deliver with GOFAST and send your application."
       },
       "cgv": {
-        "title": "Terms of sale | FastGo",
-        "description": "FastGo terms of sale."
+        "title": "Terms of sale | GOFAST",
+        "description": "GOFAST terms of sale."
       },
       "privacy": {
-        "title": "Privacy | FastGo",
-        "description": "FastGo privacy policy."
+        "title": "Privacy | GOFAST",
+        "description": "GOFAST privacy policy."
       },
       "notice": {
-        "title": "Legal notice | FastGo",
-        "description": "FastGo legal notice."
+        "title": "Legal notice | GOFAST",
+        "description": "GOFAST legal notice."
       },
       "cookies": {
-        "title": "Cookies | FastGo",
-        "description": "Information about cookies on the FastGo site."
+        "title": "Cookies | GOFAST",
+        "description": "Information about cookies on the GOFAST site."
       },
       "order": {
-        "title": "Order | FastGo",
+        "title": "Order | GOFAST",
         "description": "Online ordering is coming soon."
       },
       "signIn": {
-        "title": "Sign in | FastGo",
+        "title": "Sign in | GOFAST",
         "description": "Signing in to your account is coming soon."
       },
       "signUp": {
-        "title": "Create an account | FastGo",
+        "title": "Create an account | GOFAST",
         "description": "Account creation is coming soon."
       },
       "orderSender": {
-        "title": "Order: sender | FastGo",
+        "title": "Order: sender | GOFAST",
         "description": "Enter the pickup address of your parcel."
       },
       "orderRecipient": {
-        "title": "Order: recipient | FastGo",
+        "title": "Order: recipient | GOFAST",
         "description": "Enter the delivery address and the recipient."
       },
       "orderParcel": {
-        "title": "Order: parcel | FastGo",
+        "title": "Order: parcel | GOFAST",
         "description": "Describe what we deliver."
       },
       "orderService": {
-        "title": "Order: service | FastGo",
+        "title": "Order: service | GOFAST",
         "description": "Choose when the parcel must arrive."
       },
       "orderReview": {
-        "title": "Order: review | FastGo",
+        "title": "Order: review | GOFAST",
         "description": "Check the price breakdown and confirm your order."
       },
       "orderCode": {
-        "title": "Order: verification code | FastGo",
+        "title": "Order: verification code | GOFAST",
         "description": "Enter the code received by SMS to confirm the order."
       },
       "orderConfirmation": {
-        "title": "Order placed | FastGo",
+        "title": "Order placed | GOFAST",
         "description": "Your tracking number and the next steps of your delivery."
       },
       "orderOutOfZone": {
-        "title": "Address outside our areas | FastGo",
+        "title": "Address outside our areas | GOFAST",
         "description": "We don't deliver to this address yet."
       },
       "code": {
-        "title": "Verification code | FastGo",
+        "title": "Verification code | GOFAST",
         "description": "Enter the code you received."
       },
       "passwordForgot": {
-        "title": "Forgotten password | FastGo",
+        "title": "Forgotten password | GOFAST",
         "description": "Get a code to choose a new password."
       },
       "passwordNew": {
-        "title": "New password | FastGo",
+        "title": "New password | GOFAST",
         "description": "Choose your new password."
       },
       "googlePhone": {
-        "title": "Last step | FastGo",
+        "title": "Last step | GOFAST",
         "description": "Add your phone after signing in with Google."
       },
       "account": {
-        "title": "My account | FastGo",
-        "description": "Your FastGo customer space."
+        "title": "My account | GOFAST",
+        "description": "Your GOFAST customer space."
       },
       "pro": {
-        "title": "Merchant space | FastGo",
-        "description": "Your FastGo merchant space."
+        "title": "Merchant space | GOFAST",
+        "description": "Your GOFAST merchant space."
       }
     }
   },
@@ -170,7 +170,7 @@
       "h4": "Tracking number",
       "eyebrow": "Track",
       "lead": "Express delivery of documents and parcels.",
-      "body": "FastGo picks up and delivers your documents and parcels across the city. The price is shown before you order."
+      "body": "GOFAST picks up and delivers your documents and parcels across the city. The price is shown before you order."
     },
     "buttons": {
       "primary": "Order",
@@ -305,7 +305,7 @@
     "time": "[TIME]",
     "limit": "[LIMIT]",
     "fee": "[FEE]",
-    "list": "[LIST TO BE VALIDATED BY FASTGO]",
+    "list": "[LIST TO BE VALIDATED BY GOFAST]",
     "text": "[TEXT]",
     "answer": "[ANSWER]",
     "vehicle": "[VEHICLE]",
@@ -450,7 +450,7 @@
     "historyLabel": "Parcel history",
     "notFound": {
       "title": "Number not found",
-      "text": "No parcel matches this number. Check it or contact FastGo."
+      "text": "No parcel matches this number. Check it or contact GOFAST."
     },
     "yourParcel": {
       "title": "Is this your parcel?",
@@ -458,7 +458,7 @@
     },
     "problem": {
       "title": "A problem?",
-      "cta": "Contact FastGo"
+      "cta": "Contact GOFAST"
     },
     "parcelLine": "Parcel <n></n>: {status}"
   },
@@ -554,8 +554,8 @@
     }
   },
   "driver": {
-    "eyebrow": "Join FastGo",
-    "title": "Deliver with FastGo.",
+    "eyebrow": "Join GOFAST",
+    "title": "Deliver with GOFAST.",
     "needs": {
       "title": "What you need",
       "licence": "A valid licence, if your vehicle requires one",
@@ -603,7 +603,7 @@
       "notice": "Legal notice",
       "cookies": "Cookies"
     },
-    "note": "Text to be provided and validated by FastGo's legal adviser.",
+    "note": "Text to be provided and validated by GOFAST's legal adviser.",
     "cgvSections": {
       "purpose": "Purpose",
       "cancellation": "Cancellation and fees",
@@ -652,7 +652,7 @@
   "home": {
     "hero": {
       "title": "Your parcel leaves today. You know where it is.",
-      "subtitle": "FastGo picks up and delivers your documents and parcels across the city. You see the price before you order.",
+      "subtitle": "GOFAST picks up and delivers your documents and parcels across the city. You see the price before you order.",
       "departure": "From",
       "arrival": "To",
       "addressPlaceholder": "Street, area or city",
@@ -733,7 +733,7 @@
     "track": "Track a parcel"
   },
   "cmd": {
-    "homeLabel": "FastGo, home",
+    "homeLabel": "GOFAST, home",
     "saveAndQuit": "Save and quit",
     "stepperLabel": "Order steps",
     "stepStates": {
@@ -1065,10 +1065,10 @@
       "text": "The driver and the tracking need it. We check it once by SMS.",
       "phone": "Phone",
       "submit": "Get the code",
-      "knownEmail": "This email already has a FastGo account. Confirm it with the code sent by email, then add your phone.",
+      "knownEmail": "This email already has a GOFAST account. Confirm it with the code sent by email, then add your phone.",
       "emailSubmit": "Get the code by email",
       "missing": "No Google sign-in in progress.",
-      "phoneMismatch": "This number is not the one on your account. Enter the phone saved on your FastGo account.",
+      "phoneMismatch": "This number is not the one on your account. Enter the phone saved on your GOFAST account.",
       "changePhone": "Change number"
     },
     "noJs": "This page needs JavaScript. Turn it on in your browser."

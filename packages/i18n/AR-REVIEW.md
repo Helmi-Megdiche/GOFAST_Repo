@@ -70,10 +70,10 @@ native-speaker review before release (CLAUDE.md).
 | `auth.google.continue` | المتابعة عبر Google | Continuer avec Google | [ ] |
 | `auth.googlePhone.changePhone` | تغيير الرقم | Changer de numéro | [ ] |
 | `auth.googlePhone.emailSubmit` | احصل على الرمز بالبريد الإلكتروني | Recevoir le code par e-mail | [ ] |
-| `auth.googlePhone.knownEmail` | لهذا البريد الإلكتروني حساب FastGo. أكّده بالرمز المرسل بالبريد الإلكتروني، ثم أضف هاتفك. | Cet e-mail a déjà un compte FastGo. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone. | [ ] |
+| `auth.googlePhone.knownEmail` | لهذا البريد الإلكتروني حساب GOFAST. أكّده بالرمز المرسل بالبريد الإلكتروني، ثم أضف هاتفك. | Cet e-mail a déjà un compte GOFAST. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone. | [ ] |
 | `auth.googlePhone.missing` | لا يوجد تسجيل دخول جارٍ عبر Google. | Aucune connexion Google en cours. | [ ] |
 | `auth.googlePhone.phone` | الهاتف | Téléphone | [ ] |
-| `auth.googlePhone.phoneMismatch` | هذا الرقم ليس رقم حسابك. أدخل الهاتف المسجّل في حسابك على FastGo. | Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte FastGo. | [ ] |
+| `auth.googlePhone.phoneMismatch` | هذا الرقم ليس رقم حسابك. أدخل الهاتف المسجّل في حسابك على GOFAST. | Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte GOFAST. | [ ] |
 | `auth.googlePhone.submit` | احصل على الرمز | Recevoir le code | [ ] |
 | `auth.googlePhone.text` | يحتاجه السائق والتتبع. نتحقق منه مرة واحدة برسالة نصية. | Le livreur et le suivi en ont besoin. Nous le vérifions une seule fois par SMS. | [ ] |
 | `auth.googlePhone.title` | الخطوة الأخيرة: هاتفك | Dernière étape : votre téléphone | [ ] |
@@ -119,7 +119,7 @@ native-speaker review before release (CLAUDE.md).
 | `cmd.cancelConfirm.text` | ستُحذف المعلومات التي أدخلتها من هذا الجهاز. | Les informations saisies seront effacées de cet appareil. | [ ] |
 | `cmd.cancelConfirm.title` | إلغاء هذا الطلب؟ | Annuler cette commande ? | [ ] |
 | `cmd.continue` | متابعة | Continuer | [ ] |
-| `cmd.homeLabel` | FastGo، الرئيسية | FastGo, accueil | [ ] |
+| `cmd.homeLabel` | GOFAST، الرئيسية | GOFAST, accueil | [ ] |
 | `cmd.loading` | جارٍ تحميل طلبك… | Chargement de votre commande… | [ ] |
 | `cmd.noJs` | للطلب، فعّل JavaScript في متصفحك. | Pour commander, activez JavaScript dans votre navigateur. | [ ] |
 | `cmd.saveAndQuit` | حفظ والخروج | Enregistrer et quitter | [ ] |
@@ -281,14 +281,14 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.tabs.panel` | محتوى تبويب «{name}» | Contenu de l'onglet « {name} » | [ ] |
 | `devUi.tabs.team` | الفريق | Équipe | [ ] |
 | `devUi.title` | مكتبة المكوّنات | Bibliothèque de composants | [ ] |
-| `devUi.typography.body` | تستلم FastGo وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل أن تطلب. | FastGo récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander. | [ ] |
+| `devUi.typography.body` | تستلم GOFAST وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل أن تطلب. | GOFAST récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander. | [ ] |
 | `devUi.typography.d1` | طردك ينطلق اليوم، وتعرف أين هو. | Votre colis part aujourd'hui. Vous savez où il est. | [ ] |
 | `devUi.typography.d2` | السعر مفصل قبل التأكيد | Prix détaillé avant de valider | [ ] |
 | `devUi.typography.d3` | إرسال طرد | Envoyer un colis | [ ] |
 | `devUi.typography.eyebrow` | تتبع | Suivre | [ ] |
 | `devUi.typography.h4` | رقم التتبع | Numéro de suivi | [ ] |
 | `devUi.typography.lead` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
-| `driver.eyebrow` | انضم إلى FastGo | Rejoindre FastGo | [ ] |
+| `driver.eyebrow` | انضم إلى GOFAST | Rejoindre GOFAST | [ ] |
 | `driver.form.attach` | الرخصة والتأمين (5 ميغابايت) | Permis et assurance (5 Mo) | [ ] |
 | `driver.form.fullName` | الاسم الكامل | Nom complet | [ ] |
 | `driver.form.phone` | الهاتف | Téléphone | [ ] |
@@ -311,7 +311,7 @@ native-speaker review before release (CLAUDE.md).
 | `driver.success.reference` | المرجع | Référence | [ ] |
 | `driver.success.text` | سنتحقق من وثائقك. | Nous vérifions vos documents. | [ ] |
 | `driver.success.title` | تم إرسال الترشح. | Candidature envoyée. | [ ] |
-| `driver.title` | وصّل مع FastGo. | Livrez avec FastGo. | [ ] |
+| `driver.title` | وصّل مع GOFAST. | Livrez avec GOFAST. | [ ] |
 | `footer.contact` | اتصل بنا | Contact | [ ] |
 | `footer.driver` | كن عامل توصيل | Devenir livreur | [ ] |
 | `footer.faq` | الأسئلة الشائعة | Questions fréquentes | [ ] |
@@ -383,7 +383,7 @@ native-speaker review before release (CLAUDE.md).
 | `home.hero.cta` | عرض السعر | Voir le prix | [ ] |
 | `home.hero.departure` | من | Départ | [ ] |
 | `home.hero.note` | لا تؤكد الطلب إلا بعد رؤية السعر. | Vous validez seulement après avoir vu le prix. | [ ] |
-| `home.hero.subtitle` | تستلم FastGo وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل الطلب. | FastGo récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander. | [ ] |
+| `home.hero.subtitle` | تستلم GOFAST وثائقك وطرودك وتوصلها داخل المدينة. يظهر السعر قبل الطلب. | GOFAST récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander. | [ ] |
 | `home.hero.title` | طردك ينطلق اليوم، وتعرف أين هو. | Votre colis part aujourd'hui. Vous savez où il est. | [ ] |
 | `home.hero.trackingButton` | تتبع | Suivre | [ ] |
 | `home.hero.trackingLabel` | هل لديك رقم تتبع؟ | Déjà un numéro de suivi ? | [ ] |
@@ -426,7 +426,7 @@ native-speaker review before release (CLAUDE.md).
 | `legal.docs.notice` | البيانات القانونية | Mentions légales | [ ] |
 | `legal.docs.privacy` | الخصوصية | Confidentialité | [ ] |
 | `legal.nav` | المستندات | Documents | [ ] |
-| `legal.note` | نص يقدمه المستشار القانوني لـ FastGo ويعتمده. | Texte à fournir et à valider par le conseil juridique de FastGo. | [ ] |
+| `legal.note` | نص يقدمه المستشار القانوني لـ GOFAST ويعتمده. | Texte à fournir et à valider par le conseil juridique de GOFAST. | [ ] |
 | `legal.titles.cgv` | شروط البيع العامة | Conditions générales de vente | [ ] |
 | `legal.titles.cookies` | ملفات تعريف الارتباط | Cookies | [ ] |
 | `legal.titles.notice` | البيانات القانونية | Mentions légales | [ ] |
@@ -460,65 +460,65 @@ native-speaker review before release (CLAUDE.md).
 | `merchants.talk.title` | لنتحدث عن حجم طلباتك | Parlons de vos volumes | [ ] |
 | `merchants.title` | بع بطمأنينة أكبر. كل طرد وكل دينار يتم تتبعه. | Vendez plus sereinement. Chaque colis et chaque dinar sont suivis. | [ ] |
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
-| `meta.pages.account.description` | مساحة عميل FastGo الخاصة بك. | Votre espace client FastGo. | [ ] |
-| `meta.pages.account.title` | حسابي \| FastGo | Mon compte \| FastGo | [ ] |
-| `meta.pages.cgv.description` | شروط البيع الخاصة بـ FastGo. | Conditions générales de vente de FastGo. | [ ] |
-| `meta.pages.cgv.title` | شروط البيع \| FastGo | Conditions générales de vente \| FastGo | [ ] |
+| `meta.pages.account.description` | مساحة عميل GOFAST الخاصة بك. | Votre espace client GOFAST. | [ ] |
+| `meta.pages.account.title` | حسابي \| GOFAST | Mon compte \| GOFAST | [ ] |
+| `meta.pages.cgv.description` | شروط البيع الخاصة بـ GOFAST. | Conditions générales de vente de GOFAST. | [ ] |
+| `meta.pages.cgv.title` | شروط البيع \| GOFAST | Conditions générales de vente \| GOFAST | [ ] |
 | `meta.pages.code.description` | أدخل الرمز الذي وصلك. | Saisissez le code reçu. | [ ] |
-| `meta.pages.code.title` | رمز التحقق \| FastGo | Code de vérification \| FastGo | [ ] |
-| `meta.pages.contact.description` | سؤال أو عرض سعر أو شكوى: اكتب إلى FastGo، برقم تتبع أو بدونه. | Une question, un devis ou une réclamation : écrivez à FastGo, avec ou sans numéro de suivi. | [ ] |
-| `meta.pages.contact.title` | اتصل بنا \| FastGo | Contact \| FastGo | [ ] |
-| `meta.pages.cookies.description` | معلومات حول ملفات تعريف الارتباط في موقع FastGo. | Informations sur les cookies sur le site FastGo. | [ ] |
-| `meta.pages.cookies.title` | ملفات تعريف الارتباط \| FastGo | Cookies \| FastGo | [ ] |
-| `meta.pages.driver.description` | اطّلع على شروط التوصيل مع FastGo وأرسل ترشحك. | Découvrez ce qu'il faut pour livrer avec FastGo et envoyez votre candidature. | [ ] |
-| `meta.pages.driver.title` | كن عامل توصيل \| FastGo | Devenir livreur \| FastGo | [ ] |
+| `meta.pages.code.title` | رمز التحقق \| GOFAST | Code de vérification \| GOFAST | [ ] |
+| `meta.pages.contact.description` | سؤال أو عرض سعر أو شكوى: اكتب إلى GOFAST، برقم تتبع أو بدونه. | Une question, un devis ou une réclamation : écrivez à GOFAST, avec ou sans numéro de suivi. | [ ] |
+| `meta.pages.contact.title` | اتصل بنا \| GOFAST | Contact \| GOFAST | [ ] |
+| `meta.pages.cookies.description` | معلومات حول ملفات تعريف الارتباط في موقع GOFAST. | Informations sur les cookies sur le site GOFAST. | [ ] |
+| `meta.pages.cookies.title` | ملفات تعريف الارتباط \| GOFAST | Cookies \| GOFAST | [ ] |
+| `meta.pages.driver.description` | اطّلع على شروط التوصيل مع GOFAST وأرسل ترشحك. | Découvrez ce qu'il faut pour livrer avec GOFAST et envoyez votre candidature. | [ ] |
+| `meta.pages.driver.title` | كن عامل توصيل \| GOFAST | Devenir livreur \| GOFAST | [ ] |
 | `meta.pages.googlePhone.description` | أضف هاتفك بعد تسجيل الدخول عبر Google. | Ajoutez votre téléphone après la connexion avec Google. | [ ] |
-| `meta.pages.googlePhone.title` | الخطوة الأخيرة \| FastGo | Dernière étape \| FastGo | [ ] |
+| `meta.pages.googlePhone.title` | الخطوة الأخيرة \| GOFAST | Dernière étape \| GOFAST | [ ] |
 | `meta.pages.help.description` | أجوبة عن الأسئلة الشائعة حول الطلب والتتبع والدفع والشكاوى. | Réponses aux questions fréquentes sur la commande, le suivi, le paiement et les réclamations. | [ ] |
-| `meta.pages.help.title` | المساعدة \| FastGo | Aide \| FastGo | [ ] |
+| `meta.pages.help.title` | المساعدة \| GOFAST | Aide \| GOFAST | [ ] |
 | `meta.pages.home.description` | اطلب توصيلًا داخل المدينة، واطّلع على السعر قبل التأكيد، وتتبع طردك حتى التسليم مع إثبات. | Commandez une livraison en ville, voyez le prix avant de valider et suivez votre colis jusqu'à la remise avec preuve. | [ ] |
-| `meta.pages.home.title` | FastGo: توصيل سريع للوثائق والطرود | FastGo : livraison express de plis et de colis | [ ] |
-| `meta.pages.merchants.description` | استورد طلباتك وتتبع كل طرد وكل مبلغ مدفوع عند الاستلام مع FastGo. | Importez vos commandes, suivez chaque colis et chaque contre-remboursement avec FastGo. | [ ] |
-| `meta.pages.merchants.title` | عرض التجار \| FastGo | Offre commerçants \| FastGo | [ ] |
-| `meta.pages.notice.description` | البيانات القانونية الخاصة بـ FastGo. | Mentions légales de FastGo. | [ ] |
-| `meta.pages.notice.title` | البيانات القانونية \| FastGo | Mentions légales \| FastGo | [ ] |
+| `meta.pages.home.title` | GOFAST: توصيل سريع للوثائق والطرود | GOFAST : livraison express de plis et de colis | [ ] |
+| `meta.pages.merchants.description` | استورد طلباتك وتتبع كل طرد وكل مبلغ مدفوع عند الاستلام مع GOFAST. | Importez vos commandes, suivez chaque colis et chaque contre-remboursement avec GOFAST. | [ ] |
+| `meta.pages.merchants.title` | عرض التجار \| GOFAST | Offre commerçants \| GOFAST | [ ] |
+| `meta.pages.notice.description` | البيانات القانونية الخاصة بـ GOFAST. | Mentions légales de GOFAST. | [ ] |
+| `meta.pages.notice.title` | البيانات القانونية \| GOFAST | Mentions légales \| GOFAST | [ ] |
 | `meta.pages.order.description` | الطلب عبر الإنترنت قريبًا. | La commande en ligne arrive bientôt. | [ ] |
-| `meta.pages.order.title` | اطلب الآن \| FastGo | Commander \| FastGo | [ ] |
+| `meta.pages.order.title` | اطلب الآن \| GOFAST | Commander \| GOFAST | [ ] |
 | `meta.pages.orderCode.description` | أدخل الرمز الذي وصلك برسالة نصية لتأكيد الطلب. | Saisissez le code reçu par SMS pour valider la commande. | [ ] |
-| `meta.pages.orderCode.title` | الطلب: رمز التحقق \| FastGo | Commander : code de vérification \| FastGo | [ ] |
+| `meta.pages.orderCode.title` | الطلب: رمز التحقق \| GOFAST | Commander : code de vérification \| GOFAST | [ ] |
 | `meta.pages.orderConfirmation.description` | رقم التتبع والخطوات التالية لتوصيلك. | Votre numéro de suivi et la suite de votre livraison. | [ ] |
-| `meta.pages.orderConfirmation.title` | تم تسجيل الطلب \| FastGo | Commande enregistrée \| FastGo | [ ] |
+| `meta.pages.orderConfirmation.title` | تم تسجيل الطلب \| GOFAST | Commande enregistrée \| GOFAST | [ ] |
 | `meta.pages.orderOutOfZone.description` | لا نوصل إلى هذا العنوان بعد. | Nous ne livrons pas encore à cette adresse. | [ ] |
-| `meta.pages.orderOutOfZone.title` | عنوان خارج مناطق الخدمة \| FastGo | Adresse hors zone \| FastGo | [ ] |
+| `meta.pages.orderOutOfZone.title` | عنوان خارج مناطق الخدمة \| GOFAST | Adresse hors zone \| GOFAST | [ ] |
 | `meta.pages.orderParcel.description` | صف ما سنوصله. | Décrivez ce que nous livrons. | [ ] |
-| `meta.pages.orderParcel.title` | الطلب: الطرد \| FastGo | Commander : colis \| FastGo | [ ] |
+| `meta.pages.orderParcel.title` | الطلب: الطرد \| GOFAST | Commander : colis \| GOFAST | [ ] |
 | `meta.pages.orderRecipient.description` | أدخل عنوان التسليم والمستلم. | Indiquez l'adresse de livraison et le destinataire. | [ ] |
-| `meta.pages.orderRecipient.title` | الطلب: المستلم \| FastGo | Commander : destinataire \| FastGo | [ ] |
+| `meta.pages.orderRecipient.title` | الطلب: المستلم \| GOFAST | Commander : destinataire \| GOFAST | [ ] |
 | `meta.pages.orderReview.description` | راجع تفاصيل السعر وأكّد طلبك. | Vérifiez le détail du prix et validez votre commande. | [ ] |
-| `meta.pages.orderReview.title` | الطلب: المراجعة \| FastGo | Commander : vérification \| FastGo | [ ] |
+| `meta.pages.orderReview.title` | الطلب: المراجعة \| GOFAST | Commander : vérification \| GOFAST | [ ] |
 | `meta.pages.orderSender.description` | أدخل عنوان استلام طردك. | Indiquez l'adresse de collecte de votre colis. | [ ] |
-| `meta.pages.orderSender.title` | الطلب: المرسل \| FastGo | Commander : expéditeur \| FastGo | [ ] |
+| `meta.pages.orderSender.title` | الطلب: المرسل \| GOFAST | Commander : expéditeur \| GOFAST | [ ] |
 | `meta.pages.orderService.description` | اختر متى يجب أن يصل الطرد. | Choisissez quand le colis doit arriver. | [ ] |
-| `meta.pages.orderService.title` | الطلب: الخدمة \| FastGo | Commander : service \| FastGo | [ ] |
+| `meta.pages.orderService.title` | الطلب: الخدمة \| GOFAST | Commander : service \| GOFAST | [ ] |
 | `meta.pages.passwordForgot.description` | احصل على رمز لاختيار كلمة مرور جديدة. | Recevez un code pour choisir un nouveau mot de passe. | [ ] |
-| `meta.pages.passwordForgot.title` | نسيت كلمة المرور \| FastGo | Mot de passe oublié \| FastGo | [ ] |
+| `meta.pages.passwordForgot.title` | نسيت كلمة المرور \| GOFAST | Mot de passe oublié \| GOFAST | [ ] |
 | `meta.pages.passwordNew.description` | اختر كلمة المرور الجديدة. | Choisissez votre nouveau mot de passe. | [ ] |
-| `meta.pages.passwordNew.title` | كلمة مرور جديدة \| FastGo | Nouveau mot de passe \| FastGo | [ ] |
-| `meta.pages.privacy.description` | سياسة الخصوصية الخاصة بـ FastGo. | Politique de confidentialité de FastGo. | [ ] |
-| `meta.pages.privacy.title` | الخصوصية \| FastGo | Confidentialité \| FastGo | [ ] |
-| `meta.pages.pro.description` | مساحة التاجر الخاصة بك في FastGo. | Votre espace commerçant FastGo. | [ ] |
-| `meta.pages.pro.title` | مساحة التاجر \| FastGo | Espace commerçant \| FastGo | [ ] |
-| `meta.pages.services.description` | سريع أو عادي أو مجدول: قارن عروض FastGo وأنواع الشحنات والخيارات. | Express, Standard ou Programmée : comparez les offres FastGo, les types d'envoi et les options. | [ ] |
-| `meta.pages.services.title` | الخدمات والأسعار \| FastGo | Services et tarifs \| FastGo | [ ] |
+| `meta.pages.passwordNew.title` | كلمة مرور جديدة \| GOFAST | Nouveau mot de passe \| GOFAST | [ ] |
+| `meta.pages.privacy.description` | سياسة الخصوصية الخاصة بـ GOFAST. | Politique de confidentialité de GOFAST. | [ ] |
+| `meta.pages.privacy.title` | الخصوصية \| GOFAST | Confidentialité \| GOFAST | [ ] |
+| `meta.pages.pro.description` | مساحة التاجر الخاصة بك في GOFAST. | Votre espace commerçant GOFAST. | [ ] |
+| `meta.pages.pro.title` | مساحة التاجر \| GOFAST | Espace commerçant \| GOFAST | [ ] |
+| `meta.pages.services.description` | سريع أو عادي أو مجدول: قارن عروض GOFAST وأنواع الشحنات والخيارات. | Express, Standard ou Programmée : comparez les offres GOFAST, les types d'envoi et les options. | [ ] |
+| `meta.pages.services.title` | الخدمات والأسعار \| GOFAST | Services et tarifs \| GOFAST | [ ] |
 | `meta.pages.signIn.description` | تسجيل الدخول إلى حسابك قريبًا. | La connexion à votre compte arrive bientôt. | [ ] |
-| `meta.pages.signIn.title` | تسجيل الدخول \| FastGo | Connexion \| FastGo | [ ] |
+| `meta.pages.signIn.title` | تسجيل الدخول \| GOFAST | Connexion \| GOFAST | [ ] |
 | `meta.pages.signUp.description` | إنشاء الحساب قريبًا. | La création de compte arrive bientôt. | [ ] |
-| `meta.pages.signUp.title` | إنشاء حساب \| FastGo | Créer un compte \| FastGo | [ ] |
-| `meta.pages.tracking.description` | أدخل رقم تتبع FastGo لمعرفة حالة الطرد ووقت الوصول المقدّر. | Saisissez votre numéro de suivi FastGo pour voir le statut et l'heure d'arrivée estimée. | [ ] |
-| `meta.pages.tracking.title` | تتبع طرد \| FastGo | Suivre un colis \| FastGo | [ ] |
-| `meta.pages.zones.description` | تحقق في ثوانٍ مما إذا كان عنوانك ضمن مناطق خدمة FastGo. | Vérifiez en quelques secondes si votre adresse est desservie par FastGo. | [ ] |
-| `meta.pages.zones.title` | المناطق المشمولة \| FastGo | Zones desservies \| FastGo | [ ] |
-| `meta.title` | FastGo | FastGo | [ ] |
+| `meta.pages.signUp.title` | إنشاء حساب \| GOFAST | Créer un compte \| GOFAST | [ ] |
+| `meta.pages.tracking.description` | أدخل رقم تتبع GOFAST لمعرفة حالة الطرد ووقت الوصول المقدّر. | Saisissez votre numéro de suivi GOFAST pour voir le statut et l'heure d'arrivée estimée. | [ ] |
+| `meta.pages.tracking.title` | تتبع طرد \| GOFAST | Suivre un colis \| GOFAST | [ ] |
+| `meta.pages.zones.description` | تحقق في ثوانٍ مما إذا كان عنوانك ضمن مناطق خدمة GOFAST. | Vérifiez en quelques secondes si votre adresse est desservie par GOFAST. | [ ] |
+| `meta.pages.zones.title` | المناطق المشمولة \| GOFAST | Zones desservies \| GOFAST | [ ] |
+| `meta.title` | GOFAST | GOFAST | [ ] |
 | `nav.closeMenu` | إغلاق القائمة | Fermer le menu | [ ] |
 | `nav.help` | المساعدة | Aide | [ ] |
 | `nav.home` | الرئيسية | Accueil | [ ] |
@@ -731,7 +731,7 @@ native-speaker review before release (CLAUDE.md).
 | `placeholders.email` | [البريد الإلكتروني] | [E-MAIL] | [ ] |
 | `placeholders.fee` | [التعرفة] | [TARIF] | [ ] |
 | `placeholders.limit` | [الحد] | [LIMITE] | [ ] |
-| `placeholders.list` | [قائمة يعتمدها FastGo] | [LISTE À VALIDER PAR FASTGO] | [ ] |
+| `placeholders.list` | [قائمة يعتمدها GOFAST] | [LISTE À VALIDER PAR GOFAST] | [ ] |
 | `placeholders.phone` | [الهاتف] | [TÉLÉPHONE] | [ ] |
 | `placeholders.price` | [السعر] | [PRIX] | [ ] |
 | `placeholders.priceTnd` | [السعر] د.ت | [PRIX] TND | [ ] |
@@ -766,10 +766,10 @@ native-speaker review before release (CLAUDE.md).
 | `tracking.empty.title` | أين طردك؟ | Où est votre colis ? | [ ] |
 | `tracking.historyLabel` | سجل الطرد | Historique du colis | [ ] |
 | `tracking.label` | رقم التتبع | Numéro de suivi | [ ] |
-| `tracking.notFound.text` | لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع FastGo. | Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo. | [ ] |
+| `tracking.notFound.text` | لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع GOFAST. | Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez GOFAST. | [ ] |
 | `tracking.notFound.title` | الرقم غير موجود | Numéro introuvable | [ ] |
 | `tracking.parcelLine` | الطرد <n></n>: {status} | Colis <n></n> : {status} | [ ] |
-| `tracking.problem.cta` | تواصل مع FastGo | Contacter FastGo | [ ] |
+| `tracking.problem.cta` | تواصل مع GOFAST | Contacter GOFAST | [ ] |
 | `tracking.problem.title` | هل من مشكلة؟ | Un problème ? | [ ] |
 | `tracking.route` | من {from} إلى {to} | De {from} vers {to} | [ ] |
 | `tracking.searching` | جارٍ البحث… | Recherche… | [ ] |

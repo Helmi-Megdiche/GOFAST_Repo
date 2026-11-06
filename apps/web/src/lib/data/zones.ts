@@ -13,7 +13,7 @@ const IN_ZONE = ["rue ibn khaldoun", "avenue habib bourguiba"];
 const IN_ZONE_TWO_SERVICES = ["rue de marseille"];
 const OUT_OF_ZONE = ["route de sousse"];
 const ALL_SERVICES: ServiceCode[] = ["express", "standard", "scheduled"];
-// Example zone code, shown on the price line "service and zone" (R204). Not a FastGo zone.
+// Example zone code, shown on the price line "service and zone" (R204). Not a GOFAST zone.
 const EXAMPLE_ZONE = "A";
 
 function normalize(address: string): string {

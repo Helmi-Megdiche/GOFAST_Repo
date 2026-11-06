@@ -1,7 +1,7 @@
 /**
  * Every order and sign-in value in one place. Only the 15-minute price guarantee comes from the
  * cahier (CMD-04, R205). Everything marked "unsourced" comes from the mockup or is a proposal: it is
- * listed in the PR for FastGo to confirm. Values marked "Provisional" come from GOFAST's answers of
+ * listed in the PR for GOFAST to confirm. Values marked "Provisional" come from GOFAST's answers of
  * 6 Nov 2026 (docs/spec/reponses-gofast.md). Do not copy these numbers anywhere else.
  */
 
@@ -56,7 +56,7 @@ export const PASSWORD_MIN_LENGTH = 10;
 export const DELIVERY_CODE_DIGITS = 4;
 
 /**
- * Declared value above which a stronger proof would apply. FastGo has not fixed it: null means the
+ * Declared value above which a stronger proof would apply. GOFAST has not fixed it: null means the
  * rule never triggers (see proof.ts). Do not put a number here without the cahier.
  */
 export const PROOF_VALUE_THRESHOLD_MILLIMES: number | null = null;

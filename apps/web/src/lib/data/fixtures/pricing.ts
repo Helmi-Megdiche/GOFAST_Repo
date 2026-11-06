@@ -1,7 +1,7 @@
 import type { ParcelTypeCode, ServiceCode } from "../services";
 
 /**
- * EXAMPLE amounts in millimes ("Montants d'exemple", decision 5). Not FastGo prices: the real price
+ * EXAMPLE amounts in millimes ("Montants d'exemple", decision 5). Not GOFAST prices: the real price
  * comes from the pricing API. The small-parcel rows reproduce the mockup (W14, W15): Standard
  * 6,000 + 2,500 + 1,000 + VAT 1,805 = 11,305 TND. VAT and fiscal stamp are fixed example amounts per
  * row: no rate is calculated here, so they do not follow the weight line.
@@ -36,7 +36,7 @@ export const EXAMPLE_DISTANCE = 2_500;
 /** Example weight line: nothing up to 2 kg, then 500 millimes per started kilogram. */
 export const EXAMPLE_WEIGHT = { includedKg: 2, perKg: 500 };
 
-/** Fragile has no fee from FastGo yet (services catalog: null), so the options line is 0. */
+/** Fragile has no fee from GOFAST yet (services catalog: null), so the options line is 0. */
 export const EXAMPLE_OPTIONS_FRAGILE = 0;
 
 /** Example surcharge (mockup W14: rain, 1,000 TND). Its ceiling is unknown: [PLAFOND] (R207). */
@@ -45,5 +45,5 @@ export const EXAMPLE_SURCHARGE = { code: "rain" as const, amount: 1_000, ceiling
 /** No promo code in L1 (CMD-10 is L2): the discount line is always 0. */
 export const EXAMPLE_DISCOUNT = 0;
 
-/** Fiscal stamp: example amount 0 until FastGo gives the rule. */
+/** Fiscal stamp: example amount 0 until GOFAST gives the rule. */
 export const EXAMPLE_STAMP = 0;

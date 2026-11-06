@@ -1,10 +1,10 @@
-# FastGo platform
+# GOFAST platform
 
-Delivery platform for FastGo (documents and parcels, Tunisia). Three engineers build it, each working with Claude Code. This file is shared: keep it short, change it only through a pull request, and tell the team when you do.
+Delivery platform for GOFAST (documents and parcels, Tunisia). Three engineers build it, each working with Claude Code. This file is shared: keep it short, change it only through a pull request, and tell the team when you do.
 
 ## Product in one paragraph
 
-Customers order a delivery on the website (or the installable web app on iPhone and Android), a driver picks it up and delivers it with proof, the recipient follows it through a personal link without an account, and FastGo staff run orders, dispatch, cash, invoices (El Fatoora / TTN) and COD payouts from a back-office. Payment is cash or merchant account. Online payment is L3.
+Customers order a delivery on the website (or the installable web app on iPhone and Android), a driver picks it up and delivers it with proof, the recipient follows it through a personal link without an account, and GOFAST staff run orders, dispatch, cash, invoices (El Fatoora / TTN) and COD payouts from a back-office. Payment is cash or merchant account. Online payment is L3.
 
 - Spec: `docs/spec/fonctionnalites.md` (feature IDs such as FE-01, CMD-03, BO-06). The full cahier des charges is the online doc; ask Helmi for anything not in this repo.
 - Business rules: `docs/spec/regles.md` (rules R101–R904, order and parcel states, data model, API routes and the acceptance scenarios for these screens). It is the binding extract of the cahier; when it and a mockup disagree, it wins.

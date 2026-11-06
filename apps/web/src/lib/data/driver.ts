@@ -2,7 +2,7 @@ import { MAX_ATTACHMENT_BYTES } from "../limits";
 import { mockDelay } from "./delay";
 import { FIXTURE_APPLICATION_ID } from "./fixtures/contact";
 
-/** Moto is the only vehicle in the mockup; the real list is a question for FastGo ("other" = [VÉHICULE]). */
+/** Moto is the only vehicle in the mockup; the real list is a question for GOFAST ("other" = [VÉHICULE]). */
 export type VehicleCode = "moto" | "other";
 export type DriverZoneCode = "city";
 
