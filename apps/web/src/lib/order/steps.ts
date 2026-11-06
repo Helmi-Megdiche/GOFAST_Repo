@@ -111,6 +111,8 @@ export function withNewQuote(draft: OrderDraft, quote: Quote): OrderDraft {
   return {
     ...draft,
     quote,
+    // R607: the box names the freight amount, which is the old quote's: it has to be ticked again.
+    freightPayerAccepted: false,
     previousTotalMillimes: replacedAccepted
       ? (draft.quote?.totalMillimes ?? null)
       : draft.previousTotalMillimes,

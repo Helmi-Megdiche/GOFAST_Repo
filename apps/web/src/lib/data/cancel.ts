@@ -33,7 +33,7 @@ export type CancelResult =
 export async function cancelOrder(
   session: Session,
   code: string,
-  { acceptedFee }: { acceptedFee: boolean },
+  { acceptedFee }: { acceptedFee: CancelFee },
 ): Promise<CancelResult> {
   await mockDelay();
   if (consumeFailNext("cancelOrder")) throw new NetworkError();
@@ -44,10 +44,10 @@ export async function cancelOrder(
   const option = cancelOption(order, activePickupMission(order.code));
   if (option === "claimOnly") return { status: "claimOnly" };
   if (option === "none") return { status: "notCancellable" };
-  if (option !== "free" && !acceptedFee) {
-    return { status: "feeRequired", fee: cancelFeeOf(option) as "applies" | "backOfficeDecides" };
-  }
   const fee = cancelFeeOf(option);
+  // The client accepts the fee line the dialog showed: a different fee now (a "may apply" that
+  // became a certain fee, or the other way round) needs a new consent (RV-05).
+  if (fee !== "none" && acceptedFee !== fee) return { status: "feeRequired", fee };
   const result = cancelOrderWithFee(order.code, fee, session.userId);
   return "ok" in result ? { status: "canceled", fee } : { status: "notCancellable" };
 }

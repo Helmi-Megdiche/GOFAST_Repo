@@ -307,6 +307,7 @@ test("a phone that already has an account is asked to sign in after the right co
 
   await page.getByRole("link", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/\/fr\/connexion\?next=%2Fcommander%2Fverification$/);
+  await page.waitForLoadState("networkidle"); // hydrated: an earlier click would submit the form natively
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(KNOWN_PHONE);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();

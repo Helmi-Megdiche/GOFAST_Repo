@@ -137,3 +137,16 @@ describe("services offered by both addresses (CMD-04)", () => {
     }
   });
 });
+
+describe("R607 acceptance and a new quote (RV-05)", () => {
+  it("a new quote resets the port dû acceptance: its text names the old freight amount", () => {
+    const draft = {
+      ...readyDraft(T0),
+      payment: "cashDelivery" as const,
+      freightPayerAccepted: true,
+    };
+    const next = withNewQuote(draft, makeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
+    expect(next.freightPayerAccepted).toBe(false);
+    expect(next.payment).toBe("cashDelivery");
+  });
+});

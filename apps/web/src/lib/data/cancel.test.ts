@@ -127,7 +127,7 @@ describe("cancelOption (CMD-08, R212)", () => {
 
 describe("cancelOrder", () => {
   it("cancels for free before the driver arrives: fee none", async () => {
-    expect(await cancelOrder(customer, CONFIRMED, { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(customer, CONFIRMED, { acceptedFee: "none" })).toEqual({
       status: "canceled",
       fee: "none",
     });
@@ -137,13 +137,13 @@ describe("cancelOrder", () => {
   });
 
   it("after arrival: feeRequired, nothing written, then canceled with the fee once accepted", async () => {
-    expect(await cancelOrder(customer, ARRIVED, { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(customer, ARRIVED, { acceptedFee: "none" })).toEqual({
       status: "feeRequired",
       fee: "applies",
     });
     expect(statusOf(ARRIVED)).toBe("assigned");
     expect(orderEvents(ARRIVED, "canceled")).toHaveLength(0);
-    expect(await cancelOrder(customer, ARRIVED, { acceptedFee: true })).toEqual({
+    expect(await cancelOrder(customer, ARRIVED, { acceptedFee: "applies" })).toEqual({
       status: "canceled",
       fee: "applies",
     });
@@ -151,11 +151,13 @@ describe("cancelOrder", () => {
   });
 
   it("from pickup_failed: feeRequired, then canceled with backOfficeDecides", async () => {
-    expect(await cancelOrder(customer, PICKUP_FAILED, { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(customer, PICKUP_FAILED, { acceptedFee: "none" })).toEqual({
       status: "feeRequired",
       fee: "backOfficeDecides",
     });
-    expect(await cancelOrder(customer, PICKUP_FAILED, { acceptedFee: true })).toEqual({
+    expect(
+      await cancelOrder(customer, PICKUP_FAILED, { acceptedFee: "backOfficeDecides" }),
+    ).toEqual({
       status: "canceled",
       fee: "backOfficeDecides",
     });
@@ -164,7 +166,7 @@ describe("cancelOrder", () => {
   });
 
   it("accepting a fee that does not apply is harmless: a free cancel records none", async () => {
-    expect(await cancelOrder(customer, RECEIVED, { acceptedFee: true })).toEqual({
+    expect(await cancelOrder(customer, RECEIVED, { acceptedFee: "applies" })).toEqual({
       status: "canceled",
       fee: "none",
     });
@@ -172,11 +174,11 @@ describe("cancelOrder", () => {
 
   it("from pickup on it is a claim, and a finished order cannot be canceled", async () => {
     for (const code of [PICKED_UP, IN_TRANSIT]) {
-      expect(await cancelOrder(customer, code, { acceptedFee: true })).toEqual({
+      expect(await cancelOrder(customer, code, { acceptedFee: "applies" })).toEqual({
         status: "claimOnly",
       });
     }
-    expect(await cancelOrder(customer, DELIVERED, { acceptedFee: true })).toEqual({
+    expect(await cancelOrder(customer, DELIVERED, { acceptedFee: "applies" })).toEqual({
       status: "notCancellable",
     });
     expect(statusOf(PICKED_UP)).toBe("picked_up");
@@ -184,7 +186,7 @@ describe("cancelOrder", () => {
   });
 
   it("cascades in one call: parcels canceled, pickup mission finished with orderCanceled, one event", async () => {
-    await cancelOrder(customer, ARRIVED, { acceptedFee: true });
+    await cancelOrder(customer, ARRIVED, { acceptedFee: "applies" });
     expect(parcelsOf(ARRIVED).map((p) => p.status)).toEqual(["canceled"]);
     const missions = Object.values(readTable<Mission>(MISSIONS)).filter(
       (m) => m.orderCode === ARRIVED,
@@ -199,13 +201,13 @@ describe("cancelOrder", () => {
   });
 
   it("replays by state: a canceled order answers canceled again, with no new event", async () => {
-    await cancelOrder(customer, ARRIVED, { acceptedFee: true });
+    await cancelOrder(customer, ARRIVED, { acceptedFee: "applies" });
     const before = Object.keys(readTable<StatusEvent>(STATUS_EVENTS)).length;
-    expect(await cancelOrder(customer, ARRIVED, { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(customer, ARRIVED, { acceptedFee: "none" })).toEqual({
       status: "canceled",
       fee: "applies",
     });
-    expect(await cancelOrder(customer, CANCELED, { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(customer, CANCELED, { acceptedFee: "none" })).toEqual({
       status: "canceled",
       fee: "none",
     });
@@ -214,8 +216,8 @@ describe("cancelOrder", () => {
 
   it("two cancels at once give one event", async () => {
     const [a, b] = await Promise.all([
-      cancelOrder(customer, CONFIRMED, { acceptedFee: false }),
-      cancelOrder(customer, CONFIRMED, { acceptedFee: false }),
+      cancelOrder(customer, CONFIRMED, { acceptedFee: "none" }),
+      cancelOrder(customer, CONFIRMED, { acceptedFee: "none" }),
     ]);
     expect(a).toEqual({ status: "canceled", fee: "none" });
     expect(b).toEqual({ status: "canceled", fee: "none" });
@@ -223,10 +225,10 @@ describe("cancelOrder", () => {
   });
 
   it("another account's order is not found, and nothing changes", async () => {
-    expect(await cancelOrder(customer, OTHER_ACCOUNT, { acceptedFee: true })).toEqual({
+    expect(await cancelOrder(customer, OTHER_ACCOUNT, { acceptedFee: "applies" })).toEqual({
       status: "notFound",
     });
-    expect(await cancelOrder(customer, "FG-NOPE-0000", { acceptedFee: true })).toEqual({
+    expect(await cancelOrder(customer, "FG-NOPE-0000", { acceptedFee: "applies" })).toEqual({
       status: "notFound",
     });
     expect(orderEvents(OTHER_ACCOUNT, "canceled")).toHaveLength(0);
@@ -237,18 +239,18 @@ describe("cancelOrder", () => {
   it("an admin and a user of the company can both cancel a company order", async () => {
     const admin = session("acc-merchant-validated", "admin", "usr-yasmine-admin");
     const user = session("acc-merchant-validated", "user", "usr-walid-user");
-    expect(await cancelOrder(admin, "FG-5C3B-0002", { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(admin, "FG-5C3B-0002", { acceptedFee: "none" })).toEqual({
       status: "canceled",
       fee: "none",
     });
     useMemoryStorage();
-    expect(await cancelOrder(user, "FG-5C3B-0002", { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(user, "FG-5C3B-0002", { acceptedFee: "none" })).toEqual({
       status: "canceled",
       fee: "none",
     });
     // Another company's customer cannot.
     useMemoryStorage();
-    expect(await cancelOrder(customer, "FG-5C3B-0002", { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(customer, "FG-5C3B-0002", { acceptedFee: "none" })).toEqual({
       status: "notFound",
     });
   });
@@ -263,8 +265,8 @@ describe("cancelOrder", () => {
     ).toEqual({
       ok: true,
     });
-    // The page still believed "free" and sent acceptedFee: false.
-    expect(await cancelOrder(customer, ASSIGNED, { acceptedFee: false })).toEqual({
+    // The page still believed "free" and sent acceptedFee: "none".
+    expect(await cancelOrder(customer, ASSIGNED, { acceptedFee: "none" })).toEqual({
       status: "feeRequired",
       fee: "applies",
     });
@@ -278,7 +280,7 @@ describe("cancelOrder", () => {
     transition({ type: "parcel", id: `${ASSIGNED}-p1` }, "taken", "driver", { at: T0 });
     transition({ type: "mission", id: mission.id }, "finished", "driver", { at: T0 });
     expect(statusOf(ASSIGNED)).toBe("picked_up");
-    expect(await cancelOrder(customer, ASSIGNED, { acceptedFee: false })).toEqual({
+    expect(await cancelOrder(customer, ASSIGNED, { acceptedFee: "none" })).toEqual({
       status: "claimOnly",
     });
     expect(statusOf(ASSIGNED)).toBe("picked_up");
@@ -286,12 +288,59 @@ describe("cancelOrder", () => {
 
   it("a cut connection throws NetworkError before any write, once", async () => {
     writeJson("fg.mock.failNext:cancelOrder", true);
-    await expect(cancelOrder(customer, CONFIRMED, { acceptedFee: false })).rejects.toBeInstanceOf(
+    await expect(cancelOrder(customer, CONFIRMED, { acceptedFee: "none" })).rejects.toBeInstanceOf(
       NetworkError,
     );
     expect(statusOf(CONFIRMED)).toBe("confirmed");
-    expect(await cancelOrder(customer, CONFIRMED, { acceptedFee: false })).toMatchObject({
+    expect(await cancelOrder(customer, CONFIRMED, { acceptedFee: "none" })).toMatchObject({
       status: "canceled",
+    });
+  });
+});
+
+describe("cancelOrder: the consent carries the fee the client saw (RV-05)", () => {
+  it("a may-apply consent does not become a certain fee after the driver arrived", async () => {
+    const read = await getOrderDetail(customer, PICKUP_FAILED);
+    if (read.status !== "found") throw new Error();
+    expect(read.order.cancelOption).toBe("mayHaveFee");
+    // Back-office: new slot, new mission, assigned, then the driver arrives.
+    const step = (type: "order" | "mission", id: string, to: string) =>
+      expect(transition({ type, id }, to, "bo", { at: T0 })).toEqual({ ok: true });
+    step("order", PICKUP_FAILED, "confirmed");
+    const mission = createMission(PICKUP_FAILED, "pickup", T0);
+    step("order", PICKUP_FAILED, "assigned");
+    step("mission", mission.id, "accepted");
+    step("mission", mission.id, "arrived");
+    expect(
+      await cancelOrder(customer, PICKUP_FAILED, { acceptedFee: "backOfficeDecides" }),
+    ).toEqual({
+      status: "feeRequired",
+      fee: "applies",
+    });
+    expect(statusOf(PICKUP_FAILED)).toBe("assigned");
+    expect(orderEvents(PICKUP_FAILED, "canceled")).toHaveLength(0);
+    expect(await cancelOrder(customer, PICKUP_FAILED, { acceptedFee: "applies" })).toEqual({
+      status: "canceled",
+      fee: "applies",
+    });
+  });
+
+  it("a certain-fee consent is refused when the order goes back to a failed pickup", async () => {
+    await getOrderDetail(customer, ARRIVED);
+    expect(transition({ type: "order", id: ARRIVED }, "pickup_failed", "bo", { at: T0 })).toEqual({
+      ok: true,
+    });
+    expect(await cancelOrder(customer, ARRIVED, { acceptedFee: "applies" })).toEqual({
+      status: "feeRequired",
+      fee: "backOfficeDecides",
+    });
+    expect(statusOf(ARRIVED)).toBe("pickup_failed");
+  });
+
+  it("a free cancel needs no consent whatever the client sends", async () => {
+    expect(await cancelOrder(customer, RECEIVED, { acceptedFee: "applies" })).toEqual({
+      status: "canceled",
+      fee: "none",
     });
   });
 });

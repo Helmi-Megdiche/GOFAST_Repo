@@ -15,11 +15,18 @@ import {
   parcelsOf,
 } from "./account-orders";
 import { FIXTURE_ORDER_CODES, seedOrderFixtures } from "./fixtures/orders";
-import { readTable } from "./mock-db";
-import { ACCOUNT_ORDERS, type AccountOrder } from "./order-model";
+import { readTable, writeRow } from "./mock-db";
+import {
+  ACCOUNT_ORDERS,
+  PARCELS,
+  type AccountOrder,
+  type FailureReason,
+  type Parcel,
+} from "./order-model";
 import { createOrder, NetworkError } from "./orders";
 import { mockCodeFor, sendCode, verifyCode } from "./otp";
 import { setSession, type Session } from "./session";
+import { transition } from "./states";
 
 const T0 = Date.parse("2026-11-04T08:30:00Z");
 const session = (accountId: string): Session => ({
@@ -270,5 +277,76 @@ describe("getOrderDetail (C03)", () => {
     writeJson("fg.mock.failNext:getOrder", true);
     await expect(getOrderDetail(mine, "FG-5A1C-0002")).rejects.toBeInstanceOf(NetworkError);
     expect((await getOrderDetail(mine, "FG-5A1C-0002")).status).toBe("found");
+  });
+});
+
+describe("C01 and C02 place every state (RV-14)", () => {
+  const ALL_STATES = [
+    "received",
+    "confirmed",
+    "assigned",
+    "pickup_failed",
+    "picked_up",
+    "in_transit",
+    "delivered",
+    "partially_delivered",
+    "returned",
+    "lost",
+    "canceled",
+  ] as const;
+
+  it("C01 lists every order that is not final as in progress, a failed pickup included", async () => {
+    const dash = await getDashboard(session("acc-customer"));
+    const open = listAccountOrders(session("acc-customer")).filter(
+      (o) =>
+        !["delivered", "partially_delivered", "returned", "lost", "canceled"].includes(o.status),
+    );
+    expect(open.some((o) => o.status === "pickup_failed")).toBe(true);
+    expect(dash.inProgress.map((o) => o.code).sort()).toEqual(open.map((o) => o.code).sort());
+  });
+
+  it("C02: every state is under 'all', and under one chip at most; 'canceled' under none", async () => {
+    const mine = session("acc-customer");
+    const seen = new Map<string, number>();
+    for (const filter of ["inProgress", "delivered", "failed"] as const) {
+      for (let page = 1; page <= 2; page++) {
+        for (const row of (await listOrders(mine, { filter, month: null, q: "", page })).rows) {
+          seen.set(row.status, (seen.get(row.status) ?? 0) + 1);
+        }
+      }
+    }
+    // The states a fixture order has: each is in exactly one chip, except canceled.
+    const present = new Set(listAccountOrders(mine).map((o) => o.status));
+    for (const status of ALL_STATES) {
+      if (!present.has(status)) continue;
+      expect(seen.has(status), status).toBe(status !== "canceled");
+    }
+  });
+});
+
+describe("R502: the reason of each failure stays with its event", () => {
+  it("a parcel that fails twice shows both reasons in the timeline", async () => {
+    const mine = session("acc-customer");
+    await getOrderDetail(mine, "FG-5A1Z-0012"); // seeds
+    const parcelId = "FG-5A1Z-0012-p1";
+    const patch = (reason: FailureReason) =>
+      writeRow<Parcel>(PARCELS, parcelId, {
+        ...readTable<Parcel>(PARCELS)[parcelId]!,
+        attempts: 2,
+        failure: { reason, photo: "p" },
+      });
+    const step = (to: string) =>
+      expect(transition({ type: "parcel", id: parcelId }, to, "driver", { at: T0 })).toEqual({
+        ok: true,
+      });
+    step("in_transit");
+    patch("addressIncorrect");
+    step("delivery_failed");
+    const result = await getOrderDetail(mine, "FG-5A1Z-0012");
+    if (result.status !== "found") throw new Error();
+    const reasons = result.order.timeline.flatMap((e) =>
+      e.kind === "deliveryFailed" && e.parcelIndex === 1 ? [e.reason] : [],
+    );
+    expect(reasons).toEqual(["recipientAbsent", "addressIncorrect"]);
   });
 });

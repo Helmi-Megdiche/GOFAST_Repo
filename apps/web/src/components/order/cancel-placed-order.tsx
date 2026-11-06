@@ -6,7 +6,7 @@ import { Alert, Button, Dialog } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
 import type { CancelOption } from "@/lib/data/cancel-option";
-import { cancelOrder } from "@/lib/data/cancel";
+import { cancelFeeOf, cancelOrder } from "@/lib/data/cancel";
 import { NetworkError } from "@/lib/data/orders";
 import { getSession } from "@/lib/data/session";
 import { CANCEL_FEE_MILLIMES } from "@/lib/order/constants";
@@ -17,8 +17,8 @@ type Problem = "claimOnly" | "notCancellable" | "network" | null;
 /**
  * CMD-08 (R212, T06): cancel a placed order, on C03 and on W16. `option` is what the page read;
  * the server decides again at confirm time, so a stale page is corrected, never trusted:
- * - the dialog shows the fee line **before** the client confirms, and `acceptedFee` is true only
- *   when the dialog the client saw had that line;
+ * - the dialog shows the fee line **before** the client confirms, and `acceptedFee` is the fee
+ *   that dialog showed (none, applies, backOfficeDecides), so a different fee now is refused;
  * - a fee that appeared since (the driver arrived) re-opens the dialog with the fee line;
  * - after the pickup there is no cancel button, only a claim.
  * `onChanged` asks the page to read the order again.
@@ -75,7 +75,7 @@ export function CancelPlacedOrder({
     setBusy(true);
     setProblem(null);
     try {
-      const result = await cancelOrder(session, code, { acceptedFee: shown !== "free" });
+      const result = await cancelOrder(session, code, { acceptedFee: cancelFeeOf(shown) });
       if (result.status === "feeRequired") {
         // The order changed since the page was read: show the fee, ask again.
         setShown(result.fee === "applies" ? "withFee" : "mayHaveFee");

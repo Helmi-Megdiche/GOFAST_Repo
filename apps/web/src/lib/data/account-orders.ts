@@ -66,6 +66,9 @@ export function orderHistory(orderCode: string): { status: OrderStatus; atUtc: s
 /** Chips of C02: "en cours", "livrées", "échecs et retours". A canceled order shows under "all" only. */
 export type OrderFilter = "all" | "inProgress" | "delivered" | "failed";
 
+/** What C01 calls "en cours": every order that is not over, including a failed pickup the client may still act on. */
+const isOpen = (status: OrderStatus) => !FINAL_ORDER_STATES.includes(status);
+
 const IN_PROGRESS: readonly OrderStatus[] = [
   "received",
   "confirmed",
@@ -188,7 +191,7 @@ export async function getDashboard(session: Session): Promise<Dashboard> {
   return {
     firstName: (findById(session.accountId)?.name ?? "").split(" ")[0] ?? "",
     inProgress: all
-      .filter((order) => IN_PROGRESS.includes(order.status))
+      .filter((order) => isOpen(order.status))
       .map((order) => ({
         ...rowOf(order),
         etaUtc: order.etaUtc,
@@ -265,7 +268,7 @@ export async function getOrderDetail(session: Session, code: string): Promise<Or
       return {
         kind: "deliveryFailed",
         parcelIndex: parcel.index,
-        reason: parcel.failure?.reason ?? null,
+        reason: event.reason ?? null,
         atUtc: event.occurredAt,
       };
     }),

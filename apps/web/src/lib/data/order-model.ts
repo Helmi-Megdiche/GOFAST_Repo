@@ -90,6 +90,8 @@ export type StatusEvent = {
   actorId: string;
   occurredAt: string;
   endReason?: EndReason;
+  /** R502: the reason of a `delivery_failed` parcel event, kept with the event (one per attempt). */
+  reason?: FailureReason;
 };
 
 /** Handover code of a parcel (4 digits), keyed by the parcel id. */

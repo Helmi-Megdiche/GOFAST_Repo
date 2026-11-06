@@ -6,6 +6,7 @@ import {
   PARCELS,
   STATUS_EVENTS,
   type AccountOrder,
+  type FailureReason,
   type Mission,
   type Parcel,
   type StatusEvent,
@@ -145,6 +146,7 @@ function writeEvent(
   actorId: string,
   at: number,
   endReason?: EndReason,
+  reason?: FailureReason,
 ): void {
   const id = crypto.randomUUID();
   const event: StatusEvent = {
@@ -156,6 +158,7 @@ function writeEvent(
     actorId,
     occurredAt: iso(at),
     ...(endReason ? { endReason } : {}),
+    ...(reason ? { reason } : {}),
   };
   writeRow(STATUS_EVENTS, id, event);
 }
@@ -314,7 +317,17 @@ function transitionParcel(
   if (!PARCEL_NEXT[from]?.includes(to)) return illegal(from, to);
 
   writeRow(PARCELS, id, { ...parcel, status: to });
-  writeEvent("parcel", id, from, to, actorId, at);
+  // R502: the reason of this failure stays with its event, so a second attempt cannot rewrite it.
+  writeEvent(
+    "parcel",
+    id,
+    from,
+    to,
+    actorId,
+    at,
+    undefined,
+    to === "delivery_failed" ? parcel.failure?.reason : undefined,
+  );
   recomputeOrder(parcel.orderCode, at);
   return { ok: true };
 }

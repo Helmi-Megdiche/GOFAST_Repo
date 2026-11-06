@@ -599,6 +599,25 @@ test.describe("W15: R504, R605, R607 and R903", () => {
     expect(stored[code]).toMatchObject({ freightPayer: "recipient", freightPayerAccepted: true });
   });
 
+  test("R607: a recalculated price unticks the box, whose text names the old amount", async ({
+    page,
+  }) => {
+    await reviewAs(page, CUSTOMER);
+    await page.getByRole("radio", { name: /Espèces à la livraison/ }).click();
+    const box = page.getByRole("checkbox", { name: /destinataire refuse le colis/ });
+    await box.check();
+    await page.getByRole("checkbox", { name: /CGV/ }).check();
+    await page.clock.fastForward("15:05");
+    await expect(page.getByText("Le prix a été recalculé.")).toBeVisible();
+    await expect(box).not.toBeChecked();
+    await page.getByRole("button", { name: "Accepter le nouveau prix" }).click();
+    await page.getByRole("button", { name: "Valider la commande" }).click();
+    await expect(
+      page.getByText("Acceptez ces conditions pour payer à la livraison."),
+    ).toBeVisible();
+    await expect(page).toHaveURL(/\/commander\/verification$/);
+  });
+
   test("R605: the balance is shown with cash on pickup and with cash on delivery, and blocks the order", async ({
     page,
   }) => {
