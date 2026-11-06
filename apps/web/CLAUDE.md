@@ -33,14 +33,14 @@ apps/web/
    │     │  ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
    │     │  ├─ connexion, inscription, code, mot-de-passe(/nouveau), google-telephone   W18 to W22, noindex
    │     │     │  └─ dev/ui/page.tsx  component showcase (see below)
-   │     ├─ (account)/      client space chrome (header, SpaceNav, sign-out, footer): compte (C01), compte/commandes (C02), compte/commandes/[code] (C03), noindex
+   │     ├─ (account)/      client space chrome (header, SpaceNav, sign-out, footer): compte (C01), compte/commandes (C02), compte/commandes/[code] (C03), compte/factures(/[number]) (C04, C05), compte/reclamations (C06), reclamations/nouvelle and reclamations/[ref] (C07), noindex
    │     ├─ (pro)/          merchant space chrome, same parts: pro (P01 skeleton), noindex
    │     └─ (cmd)/          order chrome: logo, language, "Enregistrer et quitter", no nav or footer
    │        └─ commander/   entry (first incomplete step), expediteur, destinataire, colis, service,
    │                        verification, code, confirmation, hors-zone (W11 to W17), all noindex
    ├─ components/           app-level components (site-header/footer, mobile-menu, money, page-hero...)
    │  ├─ home/, tracking/, zones/, help/, contact/, driver/   one folder per page that has client forms
-   │  ├─ account/           C01 to C03 views, use-loader (loading/error/retry), order status badge, guard, nav
+   │  ├─ account/           C01 to C07 views (orders, invoices, claims), use-loader (loading/error/retry), order status badge, guard, nav
    │  ├─ order/             cmd header, cancel-placed-order (CMD-08, on C03 and W16), step frame, one component per step, price aside, address field
    │  ├─ auth/              W18 to W22 forms, the shared code step (W20), mock Google chooser
    │  └─ dev/ui-showcase.tsx
@@ -70,7 +70,7 @@ apps/web/
 - The mock "server" keeps its tables in localStorage on this device (`lib/data/mock-db.ts`):
   `fg.mock.accounts`, `fg.mock.codes` (no code is stored: the n-th code sent is a fixture),
   `fg.mock.orders`, `fg.mock.idempotency`, and since ESP-00 the order model: `fg.mock.accountOrders`,
-  `parcels`, `missions`, `statusEvents`, `deliveryCodes`, `recipientLinks`, `outbox`, plus `fg.mock.seed`
+  `parcels`, `missions`, `statusEvents`, `deliveryCodes`, `recipientLinks`, `outbox`, since ESP-05/06 `invoices`, `invoiceLines`, `creditNotes` (readers only: no writer of an issued invoice, R602), `tickets`, `ticketMessages`, `ticketKeys` (seed `fg.mock.seed.billing`), plus `fg.mock.seed`
   ("orders-v1": the fixture orders are built once through `transition`) and `fg.mock.failNext:<op>`.
   The session is `fg.mock.session` (account id, user id, role, kind, contract,
   verified flag, masked phone only); sign-out never touches the `fg.mock.*` tables. The draft is `fg.order.draft.v1`. Nothing else.

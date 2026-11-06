@@ -126,6 +126,26 @@
       "accountOrder": {
         "title": "My order | GOFAST",
         "description": "The details of a GOFAST order: tracking, parcels, price and proof of delivery."
+      },
+      "accountInvoices": {
+        "title": "Invoices and receipts | GOFAST",
+        "description": "Your GOFAST invoices, receipts and credit notes, with their payment status."
+      },
+      "accountInvoice": {
+        "title": "Invoice | GOFAST",
+        "description": "The detail of a GOFAST invoice or credit note."
+      },
+      "accountClaims": {
+        "title": "Claims | GOFAST",
+        "description": "Your GOFAST claims and their follow-up."
+      },
+      "accountClaimNew": {
+        "title": "New claim | GOFAST",
+        "description": "Open a claim about a GOFAST order."
+      },
+      "accountClaim": {
+        "title": "Claim | GOFAST",
+        "description": "The follow-up of a GOFAST claim and the exchanges with customer service."
       }
     }
   },
@@ -317,7 +337,9 @@
     "text": "[TEXT]",
     "answer": "[ANSWER]",
     "vehicle": "[VEHICLE]",
-    "ceiling": "[CEILING]"
+    "ceiling": "[CEILING]",
+    "vat": "[VAT]",
+    "taxId": "[TAX ID]"
   },
   "nav": {
     "label": "Main navigation",
@@ -1314,5 +1336,222 @@
       "noscript": "This page needs JavaScript to show your space."
     },
     "signOut": "Sign out"
+  },
+  "invoices": {
+    "status": {
+      "paid": "Paid",
+      "partial": "Partly paid",
+      "unpaid": "To pay"
+    },
+    "example": "Example amounts.",
+    "list": {
+      "title": "Invoices and receipts",
+      "caption": "Your invoices and credit notes",
+      "loading": "Loading invoices…",
+      "error": {
+        "title": "The invoices could not be loaded.",
+        "retry": "Try again"
+      },
+      "emptyTitle": "No invoice yet",
+      "emptyText": "Your invoices appear here once your deliveries are done.",
+      "dueLabel": "To pay",
+      "dueNone": "No invoice to pay",
+      "dueSome": "Amount still due on your invoices",
+      "columns": {
+        "number": "Number",
+        "date": "Date",
+        "orders": "Orders",
+        "status": "Status",
+        "amount": "Amount",
+        "action": "Action"
+      },
+      "creditNote": "Credit note",
+      "creditNoteOf": "On invoice <num></num>",
+      "view": "View",
+      "viewOf": "View {number}"
+    },
+    "detail": {
+      "title": "Invoice",
+      "back": "Invoices and receipts",
+      "loading": "Loading the invoice…",
+      "error": {
+        "title": "The invoice could not be loaded.",
+        "retry": "Try again"
+      },
+      "notFound": {
+        "title": "Invoice not found",
+        "text": "This invoice does not exist in your account."
+      },
+      "heading": "Invoice <num></num>",
+      "issuedOn": "Issue date",
+      "issuer": "Issued by",
+      "issuerName": "GOFAST",
+      "issuerTaxId": "Tax ID {value}",
+      "buyer": "Customer",
+      "buyerTaxId": "Tax ID <num></num>",
+      "orders": "Billed orders",
+      "lines": {
+        "caption": "Billed services",
+        "service": "Service",
+        "amount": "Amount",
+        "freight": "{service} delivery",
+        "freightParcel": "{service} delivery, parcel {index}",
+        "returnFee": "Return fee, parcel {index}",
+        "cancelFee": "Cancellation fee"
+      },
+      "totals": {
+        "subtotal": "Subtotal",
+        "vat": "VAT",
+        "stamp": "Stamp duty",
+        "total": "Total"
+      },
+      "status": "Status",
+      "paidOn": "Paid on",
+      "due": "Still to pay",
+      "receipt": "Receipt available.",
+      "ttn": {
+        "registered": "Invoice registered on El Fatoora.",
+        "id": "TTN identifier <num></num>",
+        "qr": "El Fatoora QR code"
+      },
+      "creditNotes": {
+        "title": "Credit notes linked to this invoice",
+        "item": "Corrected by credit note <num></num>",
+        "amount": "Credit note amount"
+      },
+      "downloadInvoice": "Download the invoice",
+      "downloadReceipt": "Download the receipt",
+      "exampleFiles": "The PDF files are examples, marked EXEMPLE.",
+      "contest": "Dispute this invoice"
+    },
+    "creditNote": {
+      "heading": "Credit note <num></num>",
+      "of": "This credit note corrects invoice <num></num>",
+      "amount": "Credit note amount",
+      "issuedOn": "Issue date",
+      "download": "Download the credit note"
+    }
+  },
+  "claims": {
+    "category": {
+      "damage": "Damaged parcel",
+      "loss": "Lost parcel",
+      "delay": "Late delivery",
+      "billing": "Invoice dispute",
+      "other": "Other request"
+    },
+    "state": {
+      "open": "Open",
+      "toComplete": "To complete",
+      "resolved": "Resolved",
+      "archived": "Archived"
+    },
+    "list": {
+      "title": "Claims",
+      "caption": "Your claims",
+      "new": "New request",
+      "loading": "Loading claims…",
+      "error": {
+        "title": "The claims could not be loaded.",
+        "retry": "Try again"
+      },
+      "emptyTitle": "No claim",
+      "emptyText": "A problem with a delivery or an invoice? Open a request and customer service will answer.",
+      "columns": {
+        "ref": "Reference",
+        "subject": "Subject",
+        "order": "Order",
+        "status": "Status",
+        "updated": "Updated",
+        "action": "Action"
+      },
+      "open": "Open",
+      "openOf": "Open {ref}"
+    },
+    "new": {
+      "title": "New claim",
+      "back": "Claims",
+      "loading": "Loading…",
+      "error": {
+        "title": "The page could not be loaded.",
+        "retry": "Try again"
+      },
+      "notFound": {
+        "title": "Order or invoice not found",
+        "text": "This order or invoice does not exist in your account."
+      },
+      "contesting": "You are disputing invoice <num></num>.",
+      "pick": {
+        "title": "Choose the order concerned",
+        "text": "This invoice covers several orders. Tell us which one has a problem.",
+        "continue": "Continue"
+      },
+      "order": "Order concerned",
+      "orderPlaceholder": "Choose an order",
+      "orderOption": "{code}, {service}",
+      "category": "Subject",
+      "message": "Your message",
+      "attach": "Add attachments",
+      "attachHelp": "Images and PDF, up to {size} MB per file, up to {count} files.",
+      "removeAttachment": "Remove {name}",
+      "submit": "Send the claim",
+      "sending": "Sending…",
+      "errors": {
+        "orderRequired": "Choose the order concerned.",
+        "messageRequired": "Write your message.",
+        "attachmentTooLarge": "A file is larger than {size} MB.",
+        "attachmentBadType": "Only images and PDF files are accepted.",
+        "attachmentTooMany": "{count} files at most.",
+        "network": "The request could not be sent. You can safely try again: it will be saved only once.",
+        "refused": "The request was refused. Check the fields and try again.",
+        "categoryRequired": "Choose a subject."
+      },
+      "categoryPlaceholder": "Choose a subject"
+    },
+    "rules": {
+      "title": "Good to know",
+      "reportDelay": "Report damage or a loss within {hours} h of delivery or of the finding.",
+      "declaredValue": "Declared value of the order",
+      "cap": "Compensation never exceeds the declared value.",
+      "noDeclared": "Without a declared value, the flat amount of the terms applies",
+      "replyTime": "Expected reply",
+      "replyWithin": "Within {hours} h"
+    },
+    "detail": {
+      "title": "Claim",
+      "back": "Claims",
+      "loading": "Loading the claim…",
+      "error": {
+        "title": "The claim could not be loaded.",
+        "retry": "Try again"
+      },
+      "notFound": {
+        "title": "Claim not found",
+        "text": "This claim does not exist in your account."
+      },
+      "ref": "Reference",
+      "thread": "Messages",
+      "you": "You",
+      "staff": "GOFAST customer service",
+      "attachments": "Attachments",
+      "linkedOrder": "Linked order",
+      "viewOrder": "View the order",
+      "deliveredOn": "Delivered on",
+      "noDeclaredValue": "No declared value",
+      "invoice": "Disputed invoice",
+      "reply": {
+        "label": "Your reply",
+        "submit": "Send"
+      },
+      "reopen": {
+        "text": "This claim is closed. You can reopen it if the problem continues.",
+        "until": "Possible until",
+        "button": "Reopen the claim",
+        "notClosed": "This claim is no longer closed. The page was updated."
+      },
+      "archived": "This claim is archived: you can still read it, but it can no longer be reopened. Open a new request if needed.",
+      "toComplete": "Customer service is waiting for your reply.",
+      "closedNow": "This claim has just been closed. The page was updated."
+    }
   }
 }

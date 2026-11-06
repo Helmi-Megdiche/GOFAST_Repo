@@ -86,7 +86,7 @@ test("sign-out clears the session and the order draft, and keeps the mock tables
 test("the nav has no dead link: only the entries whose page exists", async ({ page }) => {
   await signInAs(page, CUSTOMER);
   const nav = page.getByRole("navigation", { name: "Mon espace" });
-  await expect(nav.getByRole("link")).toHaveCount(2); // Accueil and Commandes (PR A)
+  await expect(nav.getByRole("link")).toHaveCount(4); // Accueil, Commandes (PR A), Factures, Réclamations (PR C)
   await expect(nav.getByRole("link", { name: "Commandes" })).toHaveAttribute(
     "href",
     "/fr/compte/commandes",
@@ -433,6 +433,11 @@ test.describe("CMD-08 cancel (R212, T06)", () => {
       "href",
       "/fr/compte/reclamations/nouvelle?commande=FG-5A1P-0006",
     );
+    // The claim link opens C07 pre-filled with that order (ESP-06).
+    await page.getByRole("link", { name: "Ouvrir une réclamation" }).click();
+    await expect(page).toHaveURL(/\/fr\/compte\/reclamations\/nouvelle\?commande=FG-5A1P-0006$/);
+    await expect(page.getByLabel("Votre message")).toBeVisible();
+    await expect(page.locator("main").getByText("FG-5A1P-0006")).toBeVisible();
   });
 
   test("R505: after a failed pickup the dialog says a fee may apply, with the amount", async ({
