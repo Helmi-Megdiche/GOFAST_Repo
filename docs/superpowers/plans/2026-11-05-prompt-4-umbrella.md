@@ -729,7 +729,7 @@ The manual Lighthouse and device checks stay.
 | Claim reopening window | C07 | U ("délai fixé", R804) | `CLAIM_REOPEN_WINDOW_MS = 30 days`, listed |
 | Recipient reply time before the return starts | D4 | U ("délai fixé", R503) | `[DÉLAI]` |
 | How long an undelivered parcel is kept | D4 | U (D2, "à fixer") | not shown |
-| Cancellation fee after arrival, return fee, retry fee | CMD-08, W15 | U (D7, amounts to fix) | `[FRAIS]` |
+| Cancellation fee after arrival, return fee, retry fee | CMD-08, W15 | Provisional, GOFAST answers 6 Nov 2026 (D7, R212, R504): cancel 5 000 millimes, new attempt 0, return 5 000 | `CANCEL_FEE_MILLIMES`, `NEW_ATTEMPT_FEE_MILLIMES`, `RETURN_FEE_MILLIMES` |
 | Fee for cancelling after a failed pickup | `pickup_failed` cancel | U (R212, R505, CGV) | "peuvent s'appliquer : [FRAIS]", back-office decides (H6) |
 | Claim reporting delay, flat-rate indemnity | C07 | U (R801, R802, CGV) | `[DÉLAI CGV]`, `[FORFAIT]` |
 | Credit limit, payment terms | P01, W15 | U, per contract | contract fixture, "Exemple de contrat" |
@@ -745,10 +745,10 @@ The manual Lighthouse and device checks stay.
 | Import row limit | P02 | U | `IMPORT_MAX_ROWS = 1000` |
 | Import columns and number format | P02 | U (P02 mockup columns; fr format default, H19) | parser config |
 | Claim attachments: 5 MB per file, images and PDF, at most 5 files | C07 | U (H12) | `CLAIM_ATTACHMENT_MAX_BYTES`, `CLAIM_ATTACHMENT_MAX_FILES`, accepted types |
-| Failure reasons (the mockup's three) | D4, C03 | U (R502 gives no list, H17) | fixture list |
+| Failure reasons (the 5 of R502) | D4, C03 | Provisional, GOFAST answers 6 Nov 2026 | `FAILURE_REASONS` |
 | Handover code length (4 in D1) | D1 | U | fixture, length not enforced |
 | Slots offered to the recipient | D3 | U | fixtures |
-| Weight tolerance | C03 (R208) | U, "à fixer" | `WEIGHT_TOLERANCE_G = null`: both weights shown, no notice |
+| Weight tolerance | C03 (R208) | Provisional, GOFAST answers 6 Nov 2026: 500 g up to 5 kg declared, 10 % above | `WEIGHT_TOLERANCE_*`, `weightToleranceG`: notice when measured > declared + tolerance |
 | Auto-confirmation amount, response time, cash ceiling per driver | none | P or U, back-office or driver | out of scope |
 | PWA icons, name | manifest | U | generated from `public/brand` |
 

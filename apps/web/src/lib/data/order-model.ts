@@ -39,6 +39,16 @@ export type AccountOrder = {
   etaUtc: string | null;
 };
 
+/** R502: the reasons a driver picks from when a delivery fails (GOFAST answers, 6 Nov 2026). */
+export const FAILURE_REASONS = [
+  "recipientAbsent",
+  "phoneUnreachable",
+  "recipientRefused",
+  "addressIncorrect",
+  "other",
+] as const;
+export type FailureReason = (typeof FAILURE_REASONS)[number];
+
 export type Parcel = {
   id: string;
   orderCode: string;
@@ -53,7 +63,7 @@ export type Parcel = {
   proofLevel: ProofLevel;
   attempts: number;
   status: ParcelStatus;
-  failure: { reason: string; photo: string } | null;
+  failure: { reason: FailureReason; photo: string } | null;
   proof: { kind: ProofLevel; capturedAt: string } | null;
 };
 

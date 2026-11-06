@@ -13,7 +13,7 @@ import {
 } from "../tracking-code";
 import { splitWhole, kgTextToGrams } from "../order/split";
 import { readJson, removeKey } from "../storage";
-import { isVerifiedPhoneForSession } from "./accounts";
+import { isVerifiedPhoneForSession, returnBalanceMillimes } from "./accounts";
 import { mockDelay } from "./delay";
 import { FIXTURE_ORDER_CODES } from "./fixtures/orders";
 import {
@@ -47,6 +47,8 @@ export type OrderError =
   | "quoteNotAccepted"
   | "serviceUnavailable"
   | "paymentNotAllowed"
+  | "returnBalanceDue"
+  | "freightPayerNotAccepted"
   | "slotPast"
   | "termsRequired";
 
@@ -113,6 +115,12 @@ function check(request: OrderRequest, at: number): OrderError | null {
   if (current !== priceKey(request.quote.input)) return "quoteExpired";
   if (request.acceptedQuoteId !== request.quote.id) return "quoteNotAccepted";
   if (request.payment === "account" && !canPayOnAccount(getSession())) return "paymentNotAllowed";
+  // R605: a balance for returned parcels blocks the next orders paid in cash.
+  if (request.payment !== "account" && returnBalanceMillimes(getSession()?.accountId ?? null) > 0)
+    return "returnBalanceDue";
+  // R607: a port dû order needs the sender's acceptance of the terms (W15).
+  if (FREIGHT_PAYER[request.payment] === "recipient" && !request.freightPayerAccepted)
+    return "freightPayerNotAccepted";
   if (!isSlotInFuture(request.sender.slot, at)) return "slotPast";
   if (request.service.code === "scheduled" && !isSlotInFuture(request.service.slot, at))
     return "slotPast";
@@ -191,10 +199,10 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
       millimes,
     })),
     paymentMode: request.payment,
-    // R607: the recipient pays the freight on delivery only for "cashDelivery"; the W15 checkbox
-    // (and the refusal when it is missing) is PR A's, so it stays false here.
+    // R607: the recipient pays the freight on delivery only for "cashDelivery", and the sender
+    // accepted the port dû terms on W15 (createOrder refuses the order without it).
     freightPayer: FREIGHT_PAYER[request.payment],
-    freightPayerAccepted: false,
+    freightPayerAccepted: request.freightPayerAccepted,
     strongerProofRequested,
     cancel: null,
     etaUtc: null,

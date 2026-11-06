@@ -33,14 +33,15 @@ apps/web/
    │     │  ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
    │     │  ├─ connexion, inscription, code, mot-de-passe(/nouveau), google-telephone   W18 to W22, noindex
    │     │     │  └─ dev/ui/page.tsx  component showcase (see below)
-   │     ├─ (account)/      client space chrome (header, SpaceNav, sign-out, footer): compte (C01 skeleton), noindex
+   │     ├─ (account)/      client space chrome (header, SpaceNav, sign-out, footer): compte (C01), compte/commandes (C02), compte/commandes/[code] (C03), noindex
    │     ├─ (pro)/          merchant space chrome, same parts: pro (P01 skeleton), noindex
    │     └─ (cmd)/          order chrome: logo, language, "Enregistrer et quitter", no nav or footer
    │        └─ commander/   entry (first incomplete step), expediteur, destinataire, colis, service,
    │                        verification, code, confirmation, hors-zone (W11 to W17), all noindex
    ├─ components/           app-level components (site-header/footer, mobile-menu, money, page-hero...)
    │  ├─ home/, tracking/, zones/, help/, contact/, driver/   one folder per page that has client forms
-   │  ├─ order/             cmd header, step frame, one component per step, price aside, address field
+   │  ├─ account/           C01 to C03 views, use-loader (loading/error/retry), order status badge, guard, nav
+   │  ├─ order/             cmd header, cancel-placed-order (CMD-08, on C03 and W16), step frame, one component per step, price aside, address field
    │  ├─ auth/              W18 to W22 forms, the shared code step (W20), mock Google chooser
    │  └─ dev/ui-showcase.tsx
    └─ lib/

@@ -31,6 +31,13 @@ describe("formatDate", () => {
     expect(formatDate("2026-11-04T10:00:00Z", "ar", "dateTime")).not.toMatch(/[٠-٩]/);
   });
 
+  it("shows a month and year, in the Tunis time zone", () => {
+    // 23:30 UTC on 31 October is 00:30 on 1 November in Tunis.
+    expect(formatDate("2026-10-31T23:30:00Z", "fr", "month")).toBe("novembre 2026");
+    expect(formatDate("2026-10-15T10:00:00Z", "en", "month")).toBe("October 2026");
+    expect(formatDate("2026-10-15T10:00:00Z", "ar", "month")).toMatch(/2026/);
+  });
+
   it("accepts Date and epoch milliseconds", () => {
     const ms = Date.UTC(2026, 10, 4, 10, 0, 0);
     expect(formatDate(new Date(ms), "fr", "time")).toBe("11\u00a0h\u00a000");

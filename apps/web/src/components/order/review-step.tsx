@@ -2,13 +2,14 @@
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useTranslations } from "next-intl";
-import { Alert, Button, Card, Checkbox, RadioCard } from "@fastgo/ui";
+import { Alert, Button, Card, Checkbox, KeyValue, RadioCard } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { Link, useRouter } from "@/i18n/navigation";
-import { isVerifiedPhoneForSession } from "@/lib/data/accounts";
+import { isVerifiedPhoneForSession, returnBalanceMillimes } from "@/lib/data/accounts";
 import { getQuote } from "@/lib/data/pricing";
 import { canPayOnAccount, getSession } from "@/lib/data/session";
 import { now } from "@/lib/order/clock";
+import { NEW_ATTEMPT_FEE_MILLIMES, RETURN_FEE_MILLIMES } from "@/lib/order/constants";
 import type { OrderDraft, PaymentCode } from "@/lib/order/draft";
 import { isQuoteValid, msLeft } from "@/lib/order/pricing";
 import { proofFor } from "@/lib/order/proof";
@@ -70,7 +71,11 @@ function Review({
     return refusal ? { kind: "error", code: refusal } : null;
   });
   useEffect(() => clearRefusal(), []);
-  const [fieldErrors, setFieldErrors] = useState<{ payment?: string; terms?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{
+    payment?: string;
+    terms?: string;
+    freight?: string;
+  }>({});
   // Moved once the new errors (or the accepted price) are on screen, so they are read with the control.
   const [focusTarget, setFocusTarget] = useState<{ selector: string } | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -81,6 +86,8 @@ function Review({
 
   const session = getSession();
   const allowAccount = canPayOnAccount(session);
+  // R605: what the account owes for returned parcels, shown before it blocks the order.
+  const returnBalance = returnBalanceMillimes(session?.accountId ?? null);
   // "Compte client" chosen before a sign-out (or by another account) is not offered any more.
   const accountRefused = draft.payment === "account" && !allowAccount;
   useEffect(() => {
@@ -130,12 +137,21 @@ function Review({
 
   async function onValidate() {
     if (busyRef.current || locked) return; // double click: one order attempt at a time (R202)
-    const errors: { payment?: string; terms?: string } = {};
+    const errors: { payment?: string; terms?: string; freight?: string } = {};
     if (!draft.payment || accountRefused) errors.payment = "paymentRequired";
+    // R607: paying on delivery means accepting that the freight and the return are the sender's if refused.
+    if (draft.payment === "cashDelivery" && draft.freightPayerAccepted !== true)
+      errors.freight = "freightPayerRequired";
     if (!draft.termsAccepted) errors.terms = "termsRequired";
     setFieldErrors(errors);
-    if (errors.payment || errors.terms) {
-      setFocusTarget({ selector: errors.payment ? `#payment-${payments[0]}` : "#order-terms" });
+    if (errors.payment || errors.freight || errors.terms) {
+      setFocusTarget({
+        selector: errors.payment
+          ? `#payment-${payments[0]}`
+          : errors.freight
+            ? "#order-freight"
+            : "#order-terms",
+      });
       return;
     }
     if (!isQuoteValid(quote, now())) {
@@ -317,8 +333,9 @@ function Review({
               value={code}
               checked={!accountRefused && draft.payment === code}
               onChange={() => {
-                setFieldErrors((errors) => ({ ...errors, payment: undefined }));
-                save((latest) => ({ ...latest, payment: code }));
+                setFieldErrors((errors) => ({ ...errors, payment: undefined, freight: undefined }));
+                // Each way of paying is accepted on its own: a box ticked for port dû does not carry over.
+                save((latest) => ({ ...latest, payment: code, freightPayerAccepted: false }));
               }}
               title={t(`payments.${code}.title`)}
               description={t(`payments.${code}.text`)}
@@ -330,6 +347,59 @@ function Review({
             </p>
           ) : null}
         </fieldset>
+
+        {draft.payment === "cashDelivery" && quote ? (
+          <Checkbox
+            id="order-freight"
+            checked={draft.freightPayerAccepted === true}
+            disabled={locked}
+            error={
+              fieldErrors.freight
+                ? formErrors(fieldErrors.freight as "freightPayerRequired")
+                : undefined
+            }
+            onChange={(event) => {
+              const checked = event.target.checked;
+              setFieldErrors((errors) => ({ ...errors, freight: undefined }));
+              save((latest) => ({ ...latest, freightPayerAccepted: checked }));
+            }}
+            label={t.rich("freight.accept", {
+              freight: () => <Money millimes={quote.totalMillimes} />,
+              fee: () => <Money millimes={RETURN_FEE_MILLIMES} />,
+            })}
+          />
+        ) : null}
+
+        {returnBalance > 0 ? (
+          <Alert tone="warning">
+            <div className="flex flex-col gap-1">
+              <b>{t("returnBalance.title")}</b>
+              <span>
+                {t.rich("returnBalance.text", { amount: () => <Money millimes={returnBalance} /> })}
+              </span>
+            </div>
+          </Alert>
+        ) : null}
+
+        <Card as="section" aria-labelledby="attempts-title" className="flex flex-col gap-3">
+          <h2 id="attempts-title" className="text-h4">
+            {t("attempts.title")}
+          </h2>
+          <KeyValue
+            items={[
+              {
+                term: t("attempts.newAttempt"),
+                value:
+                  NEW_ATTEMPT_FEE_MILLIMES === 0 ? (
+                    t("attempts.free")
+                  ) : (
+                    <Money millimes={NEW_ATTEMPT_FEE_MILLIMES} />
+                  ),
+              },
+              { term: t("attempts.return"), value: <Money millimes={RETURN_FEE_MILLIMES} /> },
+            ]}
+          />
+        </Card>
       </div>
 
       <Card

@@ -23,7 +23,7 @@ export type NavEntry = {
 export const SPACE_NAV: Record<"customer" | "merchant", NavEntry[]> = {
   customer: [
     { key: "home", href: "/compte", ready: true },
-    { key: "orders", href: "/compte/commandes", ready: false },
+    { key: "orders", href: "/compte/commandes", ready: true },
     { key: "invoices", href: "/compte/factures", ready: false },
     { key: "claims", href: "/compte/reclamations", ready: false },
     { key: "addresses", href: "/compte/adresses", ready: false },

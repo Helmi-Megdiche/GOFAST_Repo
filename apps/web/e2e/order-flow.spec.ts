@@ -1,79 +1,31 @@
 import { expect, test, type Page } from "@playwright/test";
 import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage, shot } from "./helpers";
+import {
+  SENDER_PHONE,
+  chooseStandard,
+  fillParcel,
+  fillRecipient,
+  fillSender,
+  payAndAccept,
+  start,
+  textbox,
+  toReview,
+} from "./flow";
 
 /**
  * Order flow (W11 to W17, CMD-01 to CMD-07) on mock data. Fake names and phones only.
  * The mock "server" lives in this browser's localStorage, so every test starts empty.
  */
 
-const SENDER_PHONE = "+216 20 000 000";
 const KNOWN_PHONE = "+216 98 000 001"; // fixture account Sami T. (lib/data/fixtures/accounts.ts)
 const PASSWORD = "fastgo-demo-2026"; // fixture password, mock only
 
-const textbox = (page: Page, name: string) => page.getByRole("textbox", { name, exact: true });
 const orders = (page: Page) =>
   page.evaluate(
     () => Object.keys(JSON.parse(localStorage.getItem("fg.mock.orders") ?? "{}")).length,
   );
 const draft = (page: Page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("fg.order.draft.v1") ?? "null"));
-
-async function start(page: Page, locale = "fr") {
-  await page.clock.install({ time: MORNING });
-  await page.goto(`/${locale}/commander`);
-  await expect(page).toHaveURL(new RegExp(`/${locale}/commander/expediteur$`));
-}
-
-async function fillSender(page: Page, phone = SENDER_PHONE, address = "Avenue Habib Bourguiba") {
-  await textbox(page, "Adresse de collecte").fill(address.slice(0, 6));
-  await page.getByRole("button", { name: address }).click();
-  await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
-  await textbox(page, "Votre nom").fill("Yasmine K.");
-  await textbox(page, "Téléphone").fill(phone);
-  await page.getByLabel("Créneau de collecte").selectOption({ index: 1 });
-  await page.getByRole("button", { name: "Continuer" }).click();
-}
-
-async function fillRecipient(page: Page, address = "Rue Ibn Khaldoun") {
-  await expect(page).toHaveURL(/\/commander\/destinataire$/);
-  await textbox(page, "Adresse de livraison").fill(address.slice(0, 6));
-  await page.getByRole("button", { name: address }).click();
-  await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
-  await textbox(page, "Nom du destinataire").fill("Amel B.");
-  await textbox(page, "Téléphone").fill("+216 50 000 000");
-  await page.getByRole("button", { name: "Continuer" }).click();
-}
-
-async function fillParcel(page: Page) {
-  await expect(page).toHaveURL(/\/commander\/colis$/);
-  await page.getByRole("radio", { name: /Petit colis/ }).check();
-  await textbox(page, "Poids estimé (kg)").fill("2");
-  await textbox(page, "Contenu").fill("Vêtements");
-  await textbox(page, "Valeur déclarée (TND, facultatif)").fill("48,500");
-  await page.getByRole("checkbox", { name: "Colis fragile" }).check();
-  await page.getByRole("button", { name: "Continuer" }).click();
-}
-
-async function chooseStandard(page: Page) {
-  await expect(page).toHaveURL(/\/commander\/service$/);
-  await page.getByRole("radio", { name: /Standard/ }).click();
-  await expect(page.getByRole("radio", { name: /Standard/ })).toBeChecked();
-}
-
-async function toReview(page: Page, phone = SENDER_PHONE) {
-  await fillSender(page, phone);
-  await fillRecipient(page);
-  await fillParcel(page);
-  await chooseStandard(page);
-  await page.getByRole("button", { name: "Vérifier ma commande" }).click();
-  await expect(page).toHaveURL(/\/commander\/verification$/);
-}
-
-async function payAndAccept(page: Page) {
-  await page.getByRole("radio", { name: /Espèces à l'enlèvement/ }).click();
-  await expect(page.getByRole("radio", { name: /Espèces à l'enlèvement/ })).toBeChecked();
-  await page.getByRole("checkbox", { name: /CGV/ }).check();
-}
 
 async function signInAs(page: Page, phone: string) {
   await page.goto("/fr/connexion");
@@ -714,6 +666,7 @@ test.describe("order logic", () => {
     await expect(stale.getByRole("checkbox", { name: /CGV/ })).toBeChecked();
 
     await page.getByRole("radio", { name: /Espèces à la livraison/ }).click();
+    await page.getByRole("checkbox", { name: /destinataire refuse le colis/ }).check(); // R607
     await page.getByRole("button", { name: "Valider la commande" }).click();
     await expect(page).toHaveURL(/\/commander\/confirmation\?n=FG-/);
     const code = new URL(page.url()).searchParams.get("n");

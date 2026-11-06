@@ -44,6 +44,8 @@ export type OrderRequest = {
   acceptedQuoteId: string | null;
   payment: PaymentCode;
   termsAccepted: boolean;
+  /** R607: true only when the sender accepted the port dû terms (payment "cashDelivery"). */
+  freightPayerAccepted: boolean;
 };
 
 /** Builds the request, or null when a field the server needs is missing. */
@@ -104,6 +106,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
     acceptedQuoteId: draft.acceptedQuoteId,
     payment: draft.payment,
     termsAccepted,
+    freightPayerAccepted: draft.payment === "cashDelivery" && draft.freightPayerAccepted === true,
   };
 }
 

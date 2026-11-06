@@ -9,7 +9,7 @@ import { availableSlots } from "../order/slots";
 import { readyDraft as readyTestDraft } from "../order/test-draft";
 import { isValidTrackingCode } from "../tracking-code";
 import { readJson, useMemoryStorage, writeJson } from "../storage";
-import { createAccount, sessionFor } from "./accounts";
+import { createAccount, returnBalanceMillimes, sessionFor } from "./accounts";
 import { signIn } from "./auth";
 import { FIXTURE_ACCOUNTS, FIXTURE_PASSWORD, FIXTURE_TEAM_MEMBERS } from "./fixtures/accounts";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
@@ -386,9 +386,14 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
       if (created.status !== "created") throw new Error(JSON.stringify(created));
       return readTable<AccountOrder>(ACCOUNT_ORDERS)[created.code]!;
     };
-    expect((await orderOf({ ...readyDraft(), payment: "cashDelivery" }, "p1")).freightPayer).toBe(
-      "recipient",
-    );
+    expect(
+      (
+        await orderOf(
+          { ...readyDraft(), payment: "cashDelivery", freightPayerAccepted: true },
+          "p1",
+        )
+      ).freightPayer,
+    ).toBe("recipient");
     expect((await orderOf({ ...readyDraft(), payment: "cashPickup" }, "p2")).freightPayer).toBe(
       "sender",
     );
@@ -499,5 +504,74 @@ describe("createOrder: failNext", () => {
     writeJson(FAIL_NEXT_ORDER_RESPONSE_KEY, true);
     await expect(createOrder(request(), "k-d")).rejects.toBeInstanceOf(NetworkError);
     expect(readJson(FAIL_NEXT_ORDER_RESPONSE_KEY)).toBeNull();
+  });
+});
+
+describe("createOrder: R605 return balance and R607 port dû", () => {
+  const returnDue = FIXTURE_ACCOUNTS.find((a) => a.id === "acc-customer-return-due")!;
+  const settled = FIXTURE_ACCOUNTS.find((a) => a.id === "acc-customer")!;
+  const asAccount = (account: typeof returnDue) =>
+    setSession(sessionFor({ ...account, google: false }));
+
+  it("R605: a balance for returned parcels refuses cashPickup and cashDelivery", async () => {
+    await verifyPhone();
+    asAccount(returnDue);
+    const pickup = await createOrder(request({ ...readyDraft(), payment: "cashPickup" }), "r605-a");
+    expect(pickup).toEqual({ status: "refused", error: "returnBalanceDue" });
+    const delivery = await createOrder(
+      request({ ...readyDraft(), payment: "cashDelivery", freightPayerAccepted: true }),
+      "r605-b",
+    );
+    expect(delivery).toEqual({ status: "refused", error: "returnBalanceDue" });
+    expect(Object.keys(readTable<AccountOrder>(ACCOUNT_ORDERS))).toHaveLength(0);
+  });
+
+  it("R605: with a zero balance both cash modes pass", async () => {
+    await verifyPhone();
+    asAccount(settled);
+    const pickup = await createOrder(request({ ...readyDraft(), payment: "cashPickup" }), "r605-c");
+    expect(pickup.status).toBe("created");
+    const delivery = await createOrder(
+      request({ ...readyDraft(), payment: "cashDelivery", freightPayerAccepted: true }),
+      "r605-d",
+    );
+    expect(delivery.status).toBe("created");
+  });
+
+  it("R605: the amount owed is in millimes, and an account with none owes nothing", () => {
+    expect(returnBalanceMillimes(returnDue.id)).toBe(7000);
+    expect(returnBalanceMillimes("acc-customer")).toBe(0);
+    expect(returnBalanceMillimes(null)).toBe(0);
+  });
+
+  it("R607: cashDelivery without the acceptance is refused, with it the order stores it", async () => {
+    await verifyPhone();
+    const refused = await createOrder(
+      request({ ...readyDraft(), payment: "cashDelivery", freightPayerAccepted: false }),
+      "r607-a",
+    );
+    expect(refused).toEqual({ status: "refused", error: "freightPayerNotAccepted" });
+    expect(Object.keys(readTable<AccountOrder>(ACCOUNT_ORDERS))).toHaveLength(0);
+
+    const accepted = await createOrder(
+      request({ ...readyDraft(), payment: "cashDelivery", freightPayerAccepted: true }),
+      "r607-b",
+    );
+    if (accepted.status !== "created") throw new Error(JSON.stringify(accepted));
+    expect(readTable<AccountOrder>(ACCOUNT_ORDERS)[accepted.code]).toMatchObject({
+      freightPayer: "recipient",
+      freightPayerAccepted: true,
+    });
+  });
+
+  it("R607: a box ticked and then a switch to cashPickup is not carried into the request", () => {
+    const draft = { ...readyDraft(), payment: "cashPickup" as const, freightPayerAccepted: true };
+    expect(request(draft).freightPayerAccepted).toBe(false);
+  });
+
+  it("R607: cashPickup needs no acceptance", async () => {
+    await verifyPhone();
+    const result = await createOrder(request({ ...readyDraft(), payment: "cashPickup" }), "r607-c");
+    expect(result.status).toBe("created");
   });
 });

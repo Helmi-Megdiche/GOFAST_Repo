@@ -1,21 +1,14 @@
 import { useTranslations } from "next-intl";
+import { AccountHomeView } from "@/components/account/account-home";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
 export const generateMetadata = ({ params }: PageParams) =>
   localizedMetadata(params, "/compte", "account", { noindex: true });
 
-const SLOTS = [
-  "inProgress",
-  "lastDeliveries",
-  "toSettle",
-  "frequentRecipients",
-  "installBanner",
-] as const;
-
 /**
- * C01 skeleton (ESP-02): the h1 and the named slots that parts A, B and G fill. Default
- * destination after sign-in for a customer (decision 17).
+ * C01 (ESP-03). The server HTML is the h1 and a busy placeholder; the session lives in the browser,
+ * so the guard and the data come after mount. Default destination after sign-in for a customer.
  */
 export default async function AccountPage({ params }: PageParams) {
   await resolveLocale(params);
@@ -28,9 +21,7 @@ function AccountHome() {
     <>
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
-        {SLOTS.map((slot) => (
-          <section key={slot} aria-label={t(`slots.${slot}`)} data-slot={slot} />
-        ))}
+        <AccountHomeView />
       </RequireSession>
     </>
   );

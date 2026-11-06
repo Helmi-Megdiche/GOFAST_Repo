@@ -13,10 +13,11 @@ const INTL_LOCALE: Record<Locale, string> = {
 /** Non-breaking space: "14 h 20" never wraps inside the time. */
 const NBSP = "\u00a0";
 
-export type DateStyle = "date" | "time" | "dateTime";
+export type DateStyle = "date" | "time" | "dateTime" | "month";
 
 const OPTIONS: Record<DateStyle, Intl.DateTimeFormatOptions> = {
   date: { day: "numeric", month: "long", year: "numeric" },
+  month: { month: "long", year: "numeric" },
   time: { hour: "2-digit", minute: "2-digit", hourCycle: "h23" },
   dateTime: {
     day: "numeric",
