@@ -158,3 +158,8 @@ export function isVerifiedPhoneForSession(phone: string): boolean {
     account != null && normalized != null && account.phoneVerified && account.phone === normalized
   );
 }
+
+/** R605: what the account owes for returned parcels, in millimes (0 when nothing is due). */
+export function returnBalanceMillimes(accountId: string | null): number {
+  return (accountId && findById(accountId)?.returnBalanceMillimes) || 0;
+}

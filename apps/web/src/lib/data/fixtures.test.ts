@@ -67,9 +67,9 @@ describe("order fixtures are built through the transition tables", () => {
     }
   });
 
-  it("uses fixed Nov 2026 times only", () => {
+  it("uses fixed Oct and Nov 2026 times only", () => {
     for (const event of events()) {
-      expect(event.occurredAt >= "2026-11-01" && event.occurredAt < "2026-11-05", event.id).toBe(
+      expect(event.occurredAt >= "2026-10-01" && event.occurredAt < "2026-11-05", event.id).toBe(
         true,
       );
     }
@@ -89,7 +89,7 @@ describe("order fixtures are built through the transition tables", () => {
           if (parcel.status !== "handed_over") continue;
           handed += 1;
           expect(parcel.proof?.kind, parcel.id).toBe(parcel.proofLevel);
-          expect(parcel.proof?.capturedAt, parcel.id).toMatch(/^2026-11-0\dT.*Z$/);
+          expect(parcel.proof?.capturedAt, parcel.id).toMatch(/^2026-1[01]-\d\dT.*Z$/);
         }
       }
     }

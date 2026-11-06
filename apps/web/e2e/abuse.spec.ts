@@ -225,6 +225,7 @@ test.describe("abuse", () => {
     ).toBeVisible();
     await expect(page.getByRole("radio", { name: /Espèces à la livraison/ })).toBeChecked();
     expect(await orders(page)).toBe(0);
+    await page.getByRole("checkbox", { name: /destinataire refuse le colis/ }).check(); // R607
     await page.getByRole("button", { name: "Valider la commande" }).click();
     await expect(page).toHaveURL(CONFIRMED);
     expect(await orders(page)).toBe(1);

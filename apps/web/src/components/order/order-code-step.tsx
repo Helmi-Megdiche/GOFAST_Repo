@@ -34,6 +34,7 @@ export function OrderCodeStep({ heading }: { heading: ReactNode }) {
     phone != null &&
     draft.payment != null &&
     draft.termsAccepted &&
+    (draft.payment !== "cashDelivery" || draft.freightPayerAccepted === true) &&
     draft.pendingSubmit == null &&
     !draftPhoneProven(draft) &&
     !isVerifiedPhoneForSession(draft.sender.phone);

@@ -5,7 +5,10 @@ import { useSearchParams } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Button, Card, Icon, Ltr, Timeline, TimelineItem } from "@fastgo/ui";
 import { DateTime } from "@/components/money";
+import { useLoader } from "@/components/account/use-loader";
+import { CancelPlacedOrder, CanceledNotice } from "@/components/order/cancel-placed-order";
 import { Link } from "@/i18n/navigation";
+import { getOrderDetail } from "@/lib/data/account-orders";
 import { getOrderConfirmation, getOrderSlip } from "@/lib/data/orders";
 import { StepBusy } from "./busy";
 
@@ -92,6 +95,16 @@ export function Confirmation({ heading }: { heading: ReactNode }) {
           {t("newOrder")}
         </Button>
       </div>
+      <PlacedOrderCancel code={order.code} />
     </Card>
   );
+}
+
+/** CMD-08 on W16: the same cancel as on C03, for a signed-in sender (an order placed as a guest has no account page). */
+function PlacedOrderCancel({ code }: { code: string }) {
+  const { state, reload } = useLoader((session) => getOrderDetail(session, code), code);
+  if (state.status !== "ready" || state.data.status !== "found") return null;
+  const { order } = state.data;
+  if (order.status === "canceled") return <CanceledNotice fee={order.cancel?.fee ?? null} />;
+  return <CancelPlacedOrder code={code} option={order.cancelOption} onChanged={reload} />;
 }

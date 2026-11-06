@@ -29,9 +29,15 @@ import { FOUND_TRACKING_CODE } from "./tracking";
  * `to_collect`) and a parcel's `proof` are written directly. Fake names, phones and addresses.
  */
 export const SEED_KEY = "fg.mock.seed";
-export const SEED_VERSION = "orders-v1";
+export const SEED_VERSION = "orders-v2";
 
-type ParcelSpec = { codMillimes?: number; fragile?: boolean; size?: ParcelTypeCode };
+type ParcelSpec = {
+  codMillimes?: number;
+  fragile?: boolean;
+  size?: ParcelTypeCode;
+  weightDeclaredG?: number;
+  weightMeasuredG?: number;
+};
 
 type OrderSpec = {
   code: string;
@@ -76,6 +82,10 @@ const parcelStep = (id: string, to: ParcelStatus, next: Next, proof = false) => 
   }
   must(transition({ type: "parcel", id }, to, DRIVER, { at }), `${id} -> ${to}`);
 };
+
+/** Writes fields of a parcel row directly (a failure reason, an attempt count): they are not states. */
+const patchParcel = (id: string, patch: Partial<Parcel>) =>
+  writeRow<Parcel>(PARCELS, id, { ...readTable<Parcel>(PARCELS)[id]!, ...patch });
 
 const missionStep = (code: string, to: "accepted" | "arrived" | "finished", next: Next) => {
   const mission = activePickupMission(code);
@@ -133,8 +143,8 @@ function createFixtureOrder(spec: OrderSpec): { ids: string[]; next: Next } {
       index: i + 1,
       barcode: `${spec.code}-${i + 1}`,
       size: p.size ?? "small",
-      weightDeclaredG: 1500,
-      weightMeasuredG: null,
+      weightDeclaredG: p.weightDeclaredG ?? 1500,
+      weightMeasuredG: p.weightMeasuredG ?? null,
       declaredValueMillimes: null,
       codMillimes,
       fragile,
@@ -330,6 +340,48 @@ const BUILDERS: [string, Builder][] = [
     },
   ],
   [
+    "FG-5A1W-0013",
+    (code) => {
+      // R208: measured weights. P1 is above declared + 500 g, P2 is inside the tolerance.
+      const { ids, next } = customerOrder(code, DAY(1, 8, 0), RECIPIENTS.c, [
+        { weightMeasuredG: 2300 },
+        { weightMeasuredG: 1900 },
+      ]);
+      pickUp(code, ids, next);
+      for (const id of ids) parcelStep(id, "in_transit", next);
+      for (const id of ids) parcelStep(id, "handed_over", next, true);
+    },
+  ],
+  [
+    "FG-5A1Z-0012",
+    (code) => {
+      // R502: both parcels failed their first attempt, with a reason each. The order stays in transit.
+      const { ids, next } = customerOrder(code, DAY(3, 6, 0), RECIPIENTS.b, [{}, {}]);
+      pickUp(code, ids, next);
+      for (const id of ids) parcelStep(id, "in_transit", next);
+      patchParcel(ids[0]!, {
+        attempts: 1,
+        failure: { reason: "recipientAbsent", photo: "fixture-photo-1" },
+      });
+      parcelStep(ids[0]!, "delivery_failed", next);
+      patchParcel(ids[1]!, {
+        attempts: 1,
+        failure: { reason: "phoneUnreachable", photo: "fixture-photo-2" },
+      });
+      parcelStep(ids[1]!, "delivery_failed", next);
+    },
+  ],
+  [
+    "FG-5A1M-0014",
+    (code) => {
+      // An October order, for the month filter.
+      const { ids, next } = customerOrder(code, Date.UTC(2026, 9, 28, 10, 0), RECIPIENTS.a);
+      pickUp(code, ids, next);
+      parcelStep(ids[0]!, "in_transit", next);
+      parcelStep(ids[0]!, "handed_over", next, true);
+    },
+  ],
+  [
     "FG-5B2A-0001",
     (code) => {
       const { next } = createFixtureOrder({
@@ -378,12 +430,15 @@ const BUILDERS: [string, Builder][] = [
 export const FIXTURE_ORDER_CODES: readonly string[] = BUILDERS.map(([code]) => code);
 
 /**
- * Writes the fixture orders once per device: runs only when `fg.mock.seed` is not "orders-v1", then
+ * Writes the fixture orders once per device: runs only when `fg.mock.seed` is not "orders-v2", then
  * sets it. It writes only rows of its own codes, so orders created later are never touched. Every
  * reader in account-orders.ts and tracking.ts calls it first.
  */
 export function seedOrderFixtures(): void {
   if (readJson(SEED_KEY) === SEED_VERSION) return;
-  for (const [code, build] of BUILDERS) build(code);
+  // A device seeded by an older version keeps its orders (they may have been changed since): only
+  // the missing fixture orders are built.
+  const existing = readTable<AccountOrder>(ACCOUNT_ORDERS);
+  for (const [code, build] of BUILDERS) if (!existing[code]) build(code);
   writeJson(SEED_KEY, SEED_VERSION);
 }

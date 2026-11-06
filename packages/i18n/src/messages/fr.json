@@ -118,6 +118,14 @@
       "pro": {
         "title": "Espace commerçant | GOFAST",
         "description": "Votre espace commerçant GOFAST."
+      },
+      "accountOrders": {
+        "title": "Mes commandes | GOFAST",
+        "description": "Vos commandes GOFAST : recherche, filtres et détail."
+      },
+      "accountOrder": {
+        "title": "Ma commande | GOFAST",
+        "description": "Le détail d'une commande GOFAST : suivi, colis, prix et preuve de remise."
       }
     }
   },
@@ -641,7 +649,8 @@
       "paymentRequired": "Choisissez un mode de paiement.",
       "termsRequired": "Acceptez les conditions pour continuer.",
       "passwordTooShort": "10 caractères au minimum.",
-      "codeIncomplete": "Saisissez le code complet."
+      "codeIncomplete": "Saisissez le code complet.",
+      "freightPayerRequired": "Acceptez ces conditions pour payer à la livraison."
     },
     "serverErrors": {
       "attachmentTooLarge": "Le fichier dépasse 5 Mo.",
@@ -932,12 +941,27 @@
         "termsRequired": "Acceptez les CGV pour valider.",
         "network": "La connexion a été coupée. Réessayez.",
         "draftChanged": "Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez.",
-        "serviceUnavailable": "Ce service n'est plus disponible pour ces adresses. Choisissez-en un autre."
+        "serviceUnavailable": "Ce service n'est plus disponible pour ces adresses. Choisissez-en un autre.",
+        "returnBalanceDue": "Un solde de frais de retour doit être réglé avant une nouvelle commande en espèces.",
+        "freightPayerNotAccepted": "Acceptez les conditions du paiement à la livraison pour valider."
       },
       "serviceLines": {
         "express": "{service}, en moins de 1 h",
         "standard": "{service}, avant {time}",
         "scheduled": "{service}, {slot}"
+      },
+      "attempts": {
+        "title": "Si la livraison échoue",
+        "newAttempt": "Frais d'un nouvel essai",
+        "return": "Frais de retour",
+        "free": "Gratuit"
+      },
+      "freight": {
+        "accept": "J'accepte que, si le destinataire refuse le colis, le port (<freight></freight>) et le retour (<fee></fee>) soient à ma charge."
+      },
+      "returnBalance": {
+        "title": "Frais de retour à régler",
+        "text": "Vous devez <amount></amount> pour des colis retournés. Ce solde doit être réglé avant une nouvelle commande en espèces."
       }
     },
     "code": {
@@ -1099,6 +1123,119 @@
       "returned": "Issue de la livraison : {outcome}. Le détail par colis suit.",
       "lost": "Issue de la livraison : {outcome}. Le détail par colis suit.",
       "canceled": "Votre commande est annulée"
+    },
+    "list": {
+      "title": "Mes commandes",
+      "caption": "Liste de vos commandes",
+      "searchLabel": "Numéro ou destinataire",
+      "searchSubmit": "Rechercher",
+      "filtersLabel": "Filtrer les commandes",
+      "filters": {
+        "all": "Toutes",
+        "inProgress": "En cours ({count})",
+        "delivered": "Livrées",
+        "failed": "Échecs et retours"
+      },
+      "monthLabel": "Mois",
+      "allMonths": "Tous les mois",
+      "columns": {
+        "code": "Numéro",
+        "recipient": "Destinataire",
+        "offer": "Offre",
+        "status": "Statut",
+        "date": "Date",
+        "price": "Prix",
+        "action": "Action"
+      },
+      "view": "Détail",
+      "track": "Suivre",
+      "count": "Affichage de {shown, plural, one {# commande} other {# commandes}} sur {total}",
+      "pagination": "Pages des commandes",
+      "previous": "Page précédente",
+      "next": "Page suivante",
+      "page": "Page {page} sur {pages}",
+      "emptyTitle": "Aucune commande pour le moment.",
+      "emptyText": "Vos commandes apparaîtront ici.",
+      "order": "Commander",
+      "noResults": "Aucune commande ne correspond à votre recherche.",
+      "error": {
+        "title": "Impossible de charger vos commandes.",
+        "retry": "Réessayer"
+      },
+      "loading": "Chargement de vos commandes…",
+      "viewOf": "Détail de la commande {code}",
+      "trackOf": "Suivre la commande {code}"
+    },
+    "detail": {
+      "title": "Ma commande",
+      "back": "Mes commandes",
+      "slip": "Bon de commande",
+      "summary": "{service}, {count, plural, one {# colis} other {# colis}}",
+      "eta": "Arrivée estimée",
+      "history": "Historique de la commande",
+      "lossReported": "Un colis de cette commande a été déclaré perdu.",
+      "route": "Trajet",
+      "from": "De {name}, {address}",
+      "to": "À {name}, {address}",
+      "price": "Prix et règlement",
+      "priceLines": {
+        "base": "Service et zone",
+        "distance": "Distance",
+        "weight": "Poids",
+        "options": "Options",
+        "surcharge": "Majoration",
+        "discount": "Remise",
+        "vat": "TVA",
+        "stamp": "Timbre fiscal"
+      },
+      "total": "Total TTC",
+      "payment": "Règlement",
+      "parcels": "Colis",
+      "parcel": "Colis <n></n>",
+      "barcode": "Numéro du colis",
+      "status": "État",
+      "attempts": "Tentatives de livraison",
+      "weightDeclared": "Poids déclaré",
+      "weightMeasured": "Poids mesuré",
+      "weightKg": "{kg} kg",
+      "weightOver": "Le poids mesuré dépasse le poids déclaré de plus de {tolerance} kg. Vous serez prévenu avant la facture.",
+      "failureReason": "Motif de l'échec",
+      "proof": "Preuve de remise",
+      "proofAt": "Enregistrée le <date></date>",
+      "timeline": {
+        "deliveryFailed": "Colis <n></n> : remise ratée, {reason}",
+        "deliveryFailedNoReason": "Colis <n></n> : remise ratée"
+      },
+      "notFound": {
+        "title": "Commande introuvable",
+        "text": "Cette commande n'existe pas dans votre compte."
+      },
+      "error": {
+        "title": "Impossible de charger cette commande.",
+        "retry": "Réessayer"
+      },
+      "loading": "Chargement de la commande…"
+    },
+    "cancel": {
+      "button": "Annuler la commande",
+      "title": "Annuler cette commande ?",
+      "free": "L'annulation est gratuite : le livreur n'est pas encore arrivé.",
+      "withFee": "Le livreur est arrivé. Des frais d'annulation s'appliquent selon les CGV : <fee></fee>.",
+      "mayHaveFee": "La collecte n'a pas pu se faire. Des frais d'annulation peuvent s'appliquer selon les CGV : <fee></fee>. C'est GOFAST qui décide.",
+      "changed": "La situation de votre commande a changé. Relisez avant de confirmer.",
+      "keep": "Garder la commande",
+      "confirm": "Oui, annuler",
+      "canceling": "Annulation…",
+      "claimOnly": "Votre colis est pris en charge : l'annulation n'est plus possible. Passez par une réclamation.",
+      "claim": "Ouvrir une réclamation",
+      "notCancellable": "Cette commande ne peut plus être annulée.",
+      "network": "La connexion a été coupée. Réessayez.",
+      "canceled": {
+        "title": "Commande annulée",
+        "none": "Annulation sans frais.",
+        "applies": "Frais d'annulation : <fee></fee>.",
+        "backOfficeDecides": "Des frais peuvent s'appliquer : GOFAST vous le confirmera."
+      }
     }
   },
   "parcels": {
@@ -1113,6 +1250,13 @@
       "returned": "Rendu",
       "lost": "Perdu",
       "canceled": "Annulé"
+    },
+    "failure": {
+      "recipientAbsent": "Destinataire absent",
+      "phoneUnreachable": "Téléphone injoignable",
+      "recipientRefused": "Le destinataire refuse le colis",
+      "addressIncorrect": "Adresse incorrecte ou introuvable",
+      "other": "Autre"
     }
   },
   "account": {
@@ -1137,7 +1281,23 @@
         "toSettle": "À régler",
         "frequentRecipients": "Destinataires fréquents",
         "installBanner": "Installer l'application"
-      }
+      },
+      "greeting": "Bonjour {name}",
+      "newDelivery": "Nouvelle livraison",
+      "eta": "Arrivée estimée",
+      "seeDetail": "Voir le détail",
+      "noneInProgress": "Aucune commande en cours.",
+      "noneDelivered": "Aucune livraison terminée pour le moment.",
+      "seeAll": "Tout voir",
+      "settled": "Vous êtes à jour.",
+      "owed": "Frais de retour à régler avant votre prochaine commande en espèces.",
+      "error": {
+        "title": "Impossible de charger votre espace.",
+        "retry": "Réessayer"
+      },
+      "loading": "Chargement de vos commandes…",
+      "orderLine": "{count, plural, one {# colis} other {# colis}} · {service}",
+      "seeDetailOf": "Voir le détail de la commande {code}"
     },
     "pro": {
       "title": "Espace commerçant",

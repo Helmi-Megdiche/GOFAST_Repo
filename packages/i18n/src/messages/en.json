@@ -118,6 +118,14 @@
       "pro": {
         "title": "Merchant space | GOFAST",
         "description": "Your GOFAST merchant space."
+      },
+      "accountOrders": {
+        "title": "My orders | GOFAST",
+        "description": "Your GOFAST orders: search, filters and details."
+      },
+      "accountOrder": {
+        "title": "My order | GOFAST",
+        "description": "The details of a GOFAST order: tracking, parcels, price and proof of delivery."
       }
     }
   },
@@ -641,7 +649,8 @@
       "paymentRequired": "Choose a payment method.",
       "termsRequired": "Accept the terms to continue.",
       "passwordTooShort": "At least 10 characters.",
-      "codeIncomplete": "Enter the full code."
+      "codeIncomplete": "Enter the full code.",
+      "freightPayerRequired": "Accept these terms to pay on delivery."
     },
     "serverErrors": {
       "attachmentTooLarge": "The file is larger than 5 MB.",
@@ -932,12 +941,27 @@
         "termsRequired": "Accept the terms of sale to confirm.",
         "network": "The connection was lost. Try again.",
         "draftChanged": "Your order was changed in another tab. Check it, then confirm.",
-        "serviceUnavailable": "This service is no longer available for these addresses. Choose another one."
+        "serviceUnavailable": "This service is no longer available for these addresses. Choose another one.",
+        "returnBalanceDue": "A return fee balance must be settled before a new cash order.",
+        "freightPayerNotAccepted": "Accept the pay-on-delivery terms to confirm."
       },
       "serviceLines": {
         "express": "{service}, in under 1 hour",
         "standard": "{service}, before {time}",
         "scheduled": "{service}, {slot}"
+      },
+      "attempts": {
+        "title": "If the delivery fails",
+        "newAttempt": "New attempt fee",
+        "return": "Return fee",
+        "free": "Free"
+      },
+      "freight": {
+        "accept": "I accept that if the recipient refuses the parcel, the freight (<freight></freight>) and the return (<fee></fee>) are mine to pay."
+      },
+      "returnBalance": {
+        "title": "Return fees to settle",
+        "text": "You owe <amount></amount> for returned parcels. This balance must be settled before a new cash order."
       }
     },
     "code": {
@@ -1099,6 +1123,119 @@
       "returned": "Delivery outcome: {outcome}. Details per parcel follow.",
       "lost": "Delivery outcome: {outcome}. Details per parcel follow.",
       "canceled": "Your order is canceled"
+    },
+    "list": {
+      "title": "My orders",
+      "caption": "List of your orders",
+      "searchLabel": "Number or recipient",
+      "searchSubmit": "Search",
+      "filtersLabel": "Filter orders",
+      "filters": {
+        "all": "All",
+        "inProgress": "In progress ({count})",
+        "delivered": "Delivered",
+        "failed": "Failures and returns"
+      },
+      "monthLabel": "Month",
+      "allMonths": "All months",
+      "columns": {
+        "code": "Number",
+        "recipient": "Recipient",
+        "offer": "Offer",
+        "status": "Status",
+        "date": "Date",
+        "price": "Price",
+        "action": "Action"
+      },
+      "view": "Details",
+      "track": "Track",
+      "count": "Showing {shown, plural, one {# order} other {# orders}} of {total}",
+      "pagination": "Order pages",
+      "previous": "Previous page",
+      "next": "Next page",
+      "page": "Page {page} of {pages}",
+      "emptyTitle": "No order yet.",
+      "emptyText": "Your orders will show here.",
+      "order": "Order a delivery",
+      "noResults": "No order matches your search.",
+      "error": {
+        "title": "We could not load your orders.",
+        "retry": "Try again"
+      },
+      "loading": "Loading your orders…",
+      "viewOf": "Details of order {code}",
+      "trackOf": "Track order {code}"
+    },
+    "detail": {
+      "title": "My order",
+      "back": "My orders",
+      "slip": "Order slip",
+      "summary": "{service}, {count, plural, one {# parcel} other {# parcels}}",
+      "eta": "Estimated arrival",
+      "history": "Order history",
+      "lossReported": "A parcel of this order was reported lost.",
+      "route": "Route",
+      "from": "From {name}, {address}",
+      "to": "To {name}, {address}",
+      "price": "Price and payment",
+      "priceLines": {
+        "base": "Service and zone",
+        "distance": "Distance",
+        "weight": "Weight",
+        "options": "Options",
+        "surcharge": "Surcharge",
+        "discount": "Discount",
+        "vat": "VAT",
+        "stamp": "Fiscal stamp"
+      },
+      "total": "Total incl. tax",
+      "payment": "Payment",
+      "parcels": "Parcels",
+      "parcel": "Parcel <n></n>",
+      "barcode": "Parcel number",
+      "status": "State",
+      "attempts": "Delivery attempts",
+      "weightDeclared": "Declared weight",
+      "weightMeasured": "Measured weight",
+      "weightKg": "{kg} kg",
+      "weightOver": "The measured weight is more than {tolerance} kg above the declared weight. You will be told before the invoice.",
+      "failureReason": "Reason for the failure",
+      "proof": "Proof of delivery",
+      "proofAt": "Recorded on <date></date>",
+      "timeline": {
+        "deliveryFailed": "Parcel <n></n>: delivery failed, {reason}",
+        "deliveryFailedNoReason": "Parcel <n></n>: delivery failed"
+      },
+      "notFound": {
+        "title": "Order not found",
+        "text": "This order does not exist in your account."
+      },
+      "error": {
+        "title": "We could not load this order.",
+        "retry": "Try again"
+      },
+      "loading": "Loading the order…"
+    },
+    "cancel": {
+      "button": "Cancel the order",
+      "title": "Cancel this order?",
+      "free": "Cancelling is free: the driver has not arrived yet.",
+      "withFee": "The driver has arrived. A cancellation fee applies under the terms of sale: <fee></fee>.",
+      "mayHaveFee": "The pickup could not take place. A cancellation fee may apply under the terms of sale: <fee></fee>. GOFAST decides.",
+      "changed": "Your order has changed. Read this again before you confirm.",
+      "keep": "Keep the order",
+      "confirm": "Yes, cancel",
+      "canceling": "Cancelling…",
+      "claimOnly": "Your parcel has been collected: cancelling is no longer possible. Open a claim instead.",
+      "claim": "Open a claim",
+      "notCancellable": "This order can no longer be cancelled.",
+      "network": "The connection was cut. Try again.",
+      "canceled": {
+        "title": "Order cancelled",
+        "none": "Cancelled at no cost.",
+        "applies": "Cancellation fee: <fee></fee>.",
+        "backOfficeDecides": "A fee may apply: GOFAST will confirm it to you."
+      }
     }
   },
   "parcels": {
@@ -1113,6 +1250,13 @@
       "returned": "Returned",
       "lost": "Lost",
       "canceled": "Canceled"
+    },
+    "failure": {
+      "recipientAbsent": "Recipient absent",
+      "phoneUnreachable": "Phone unreachable",
+      "recipientRefused": "The recipient refuses the parcel",
+      "addressIncorrect": "Incorrect or unfindable address",
+      "other": "Other"
     }
   },
   "account": {
@@ -1137,7 +1281,23 @@
         "toSettle": "To settle",
         "frequentRecipients": "Frequent recipients",
         "installBanner": "Install the app"
-      }
+      },
+      "greeting": "Hello {name}",
+      "newDelivery": "New delivery",
+      "eta": "Estimated arrival",
+      "seeDetail": "See details",
+      "noneInProgress": "No order in progress.",
+      "noneDelivered": "No finished delivery yet.",
+      "seeAll": "See all",
+      "settled": "You are up to date.",
+      "owed": "Return fees to settle before your next cash order.",
+      "error": {
+        "title": "We could not load your space.",
+        "retry": "Try again"
+      },
+      "loading": "Loading your orders…",
+      "orderLine": "{count, plural, one {# parcel} other {# parcels}} · {service}",
+      "seeDetailOf": "See the details of order {code}"
     },
     "pro": {
       "title": "Merchant space",

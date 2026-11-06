@@ -69,6 +69,11 @@ export type OrderDraft = {
   payment: PaymentCode | null;
   /** The CGV and forbidden-items box on W15 (decision 11). */
   termsAccepted: boolean;
+  /**
+   * R607: the sender accepts that the freight and the return are theirs if the recipient refuses
+   * (W15, only with "cashDelivery"). Absent in a draft saved before this field: read as false.
+   */
+  freightPayerAccepted?: boolean;
   /** Full phone (+216XXXXXXXX) whose SMS code was verified. Cleared when the sender phone changes. */
   verifiedPhone: string | null;
 };
@@ -194,6 +199,7 @@ const draftShape = z.object({
   previousTotalMillimes: millimes.nullable(),
   payment: z.enum(["cashPickup", "cashDelivery", "account"]).nullable(),
   termsAccepted: z.boolean(),
+  freightPayerAccepted: z.boolean().optional(),
   verifiedPhone: z.string().nullable(),
 });
 

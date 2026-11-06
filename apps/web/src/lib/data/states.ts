@@ -6,6 +6,7 @@ import {
   PARCELS,
   STATUS_EVENTS,
   type AccountOrder,
+  type FailureReason,
   type Mission,
   type Parcel,
   type StatusEvent,
@@ -122,6 +123,8 @@ export type Refusal =
   | "endReasonInternal"
   | "notFound";
 
+export type CancelFee = NonNullable<AccountOrder["cancel"]>["fee"];
+
 export type TransitionResult = { ok: true } | { refused: Refusal; from?: string; to?: string };
 
 type Subject = { type: "order" | "parcel" | "mission"; id: string };
@@ -143,6 +146,7 @@ function writeEvent(
   actorId: string,
   at: number,
   endReason?: EndReason,
+  reason?: FailureReason,
 ): void {
   const id = crypto.randomUUID();
   const event: StatusEvent = {
@@ -154,6 +158,7 @@ function writeEvent(
     actorId,
     occurredAt: iso(at),
     ...(endReason ? { endReason } : {}),
+    ...(reason ? { reason } : {}),
   };
   writeRow(STATUS_EVENTS, id, event);
 }
@@ -249,6 +254,7 @@ function transitionOrder(
   to: OrderStatus,
   actorId: string,
   at: number,
+  cancelFee?: CancelFee,
 ): TransitionResult {
   const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[id];
   if (!order) return { refused: "notFound" };
@@ -256,7 +262,9 @@ function transitionOrder(
   if (DERIVED_ORDER_STATES.includes(to)) return { refused: "derivedState", from, to };
   if (!ORDER_NEXT[from]?.includes(to)) return illegal(from, to);
 
-  writeRow(ACCOUNT_ORDERS, id, { ...order, status: to });
+  // CMD-08: a client cancel records its fee in the same write as the state.
+  const cancel = to === "canceled" && cancelFee ? { at: iso(at), fee: cancelFee } : order.cancel;
+  writeRow(ACCOUNT_ORDERS, id, { ...order, status: to, cancel });
   writeEvent("order", id, from, to, actorId, at);
 
   if (from === "assigned" && to === "confirmed") endActivePickupMission(id, "driverRemoved", at);
@@ -309,7 +317,17 @@ function transitionParcel(
   if (!PARCEL_NEXT[from]?.includes(to)) return illegal(from, to);
 
   writeRow(PARCELS, id, { ...parcel, status: to });
-  writeEvent("parcel", id, from, to, actorId, at);
+  // R502: the reason of this failure stays with its event, so a second attempt cannot rewrite it.
+  writeEvent(
+    "parcel",
+    id,
+    from,
+    to,
+    actorId,
+    at,
+    undefined,
+    to === "delivery_failed" ? parcel.failure?.reason : undefined,
+  );
   recomputeOrder(parcel.orderCode, at);
   return { ok: true };
 }
@@ -379,4 +397,18 @@ export function transition(
     case "mission":
       return transitionMission(subject.id, to as MissionStatus, actorId, null, at);
   }
+}
+
+/**
+ * The client cancel (CMD-08): the order goes to `canceled` and its fee is recorded in the same
+ * write; the mission end, the parcel cancel and the link expiry cascade as for any cancel. The
+ * caller (cancel.ts) has already checked the state and the pickup mission.
+ */
+export function cancelOrderWithFee(
+  orderCode: string,
+  fee: CancelFee,
+  actorId: string,
+  at: number = now(),
+): TransitionResult {
+  return transitionOrder(orderCode, "canceled", actorId, at, fee);
 }

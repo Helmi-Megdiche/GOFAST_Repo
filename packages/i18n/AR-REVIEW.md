@@ -13,6 +13,20 @@ native-speaker review before release (CLAUDE.md).
 | `account.guard.busy` | جارٍ تحميل مساحتك… | Chargement de votre espace… | [ ] |
 | `account.guard.noscript` | تحتاج هذه الصفحة إلى JavaScript لعرض مساحتك. | Cette page a besoin de JavaScript pour afficher votre espace. | [ ] |
 | `account.guard.notAllowed` | ليس لديك صلاحية الوصول إلى هذه الصفحة. | Vous n'avez pas accès à cette page. | [ ] |
+| `account.home.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `account.home.error.title` | تعذّر تحميل فضائك. | Impossible de charger votre espace. | [ ] |
+| `account.home.eta` | الوصول المتوقع | Arrivée estimée | [ ] |
+| `account.home.greeting` | مرحبًا {name} | Bonjour {name} | [ ] |
+| `account.home.loading` | جارٍ تحميل طلباتك… | Chargement de vos commandes… | [ ] |
+| `account.home.newDelivery` | توصيلة جديدة | Nouvelle livraison | [ ] |
+| `account.home.noneDelivered` | لا توجد توصيلات منتهية حتى الآن. | Aucune livraison terminée pour le moment. | [ ] |
+| `account.home.noneInProgress` | لا توجد طلبات قيد التنفيذ. | Aucune commande en cours. | [ ] |
+| `account.home.orderLine` | {count, plural, zero {لا طرود} one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} · {service} | {count, plural, one {# colis} other {# colis}} · {service} | [ ] |
+| `account.home.owed` | رسوم إرجاع يجب تسويتها قبل طلبك النقدي القادم. | Frais de retour à régler avant votre prochaine commande en espèces. | [ ] |
+| `account.home.seeAll` | عرض الكل | Tout voir | [ ] |
+| `account.home.seeDetail` | عرض التفاصيل | Voir le détail | [ ] |
+| `account.home.seeDetailOf` | عرض تفاصيل الطلب {code} | Voir le détail de la commande {code} | [ ] |
+| `account.home.settled` | لا مبالغ مستحقة عليك. | Vous êtes à jour. | [ ] |
 | `account.home.slots.frequentRecipients` | المستلمون المتكررون | Destinataires fréquents | [ ] |
 | `account.home.slots.inProgress` | الطلبات الجارية | Commandes en cours | [ ] |
 | `account.home.slots.installBanner` | تثبيت التطبيق | Installer l'application | [ ] |
@@ -333,6 +347,7 @@ native-speaker review before release (CLAUDE.md).
 | `forms.errors.countInvalid` | أدخل عددًا صحيحًا، 1 على الأقل. | Indiquez un nombre entier, 1 au minimum. | [ ] |
 | `forms.errors.declaredValueInvalid` | مبلغ غير صالح. مثال: 48.500 أو 1,152.000. | Montant invalide. Exemple : 48,500 ou 48.5. | [ ] |
 | `forms.errors.emailInvalid` | عنوان البريد الإلكتروني غير صالح. | Adresse e-mail invalide. | [ ] |
+| `forms.errors.freightPayerRequired` | اقبل هذه الشروط للدفع عند التسليم. | Acceptez ces conditions pour payer à la livraison. | [ ] |
 | `forms.errors.parcelTypeRequired` | اختر نوع الشحنة. | Choisissez un type d'envoi. | [ ] |
 | `forms.errors.passwordTooShort` | 10 أحرف على الأقل. | 10 caractères au minimum. | [ ] |
 | `forms.errors.paymentRequired` | اختر طريقة الدفع. | Choisissez un mode de paiement. | [ ] |
@@ -462,6 +477,10 @@ native-speaker review before release (CLAUDE.md).
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
 | `meta.pages.account.description` | مساحة عميل GOFAST الخاصة بك. | Votre espace client GOFAST. | [ ] |
 | `meta.pages.account.title` | حسابي \| GOFAST | Mon compte \| GOFAST | [ ] |
+| `meta.pages.accountOrder.description` | تفاصيل طلب GOFAST: التتبع والطرود والسعر وإثبات التسليم. | Le détail d'une commande GOFAST : suivi, colis, prix et preuve de remise. | [ ] |
+| `meta.pages.accountOrder.title` | طلبي \| GOFAST | Ma commande \| GOFAST | [ ] |
+| `meta.pages.accountOrders.description` | طلباتك لدى GOFAST: بحث وتصفية وتفاصيل. | Vos commandes GOFAST : recherche, filtres et détail. | [ ] |
+| `meta.pages.accountOrders.title` | طلباتي \| GOFAST | Mes commandes \| GOFAST | [ ] |
 | `meta.pages.cgv.description` | شروط البيع الخاصة بـ GOFAST. | Conditions générales de vente de GOFAST. | [ ] |
 | `meta.pages.cgv.title` | شروط البيع \| GOFAST | Conditions générales de vente \| GOFAST | [ ] |
 | `meta.pages.code.description` | أدخل الرمز الذي وصلك. | Saisissez le code reçu. | [ ] |
@@ -627,11 +646,16 @@ native-speaker review before release (CLAUDE.md).
 | `order.recipient.save` | حفظ هذا المستلم | Enregistrer ce destinataire | [ ] |
 | `order.recipient.smsLanguage` | لغة الرسالة والرابط | Langue du SMS et du lien | [ ] |
 | `order.recipient.title` | إلى أين يذهب؟ | Où va-t-il ? | [ ] |
+| `order.review.attempts.free` | مجاني | Gratuit | [ ] |
+| `order.review.attempts.newAttempt` | رسوم محاولة جديدة | Frais d'un nouvel essai | [ ] |
+| `order.review.attempts.return` | رسوم الإرجاع | Frais de retour | [ ] |
+| `order.review.attempts.title` | إذا فشل التسليم | Si la livraison échoue | [ ] |
 | `order.review.delivery` | توصيلك | Votre livraison | [ ] |
 | `order.review.dropoff` | التسليم | Livraison | [ ] |
 | `order.review.edit` | تعديل | Modifier | [ ] |
 | `order.review.editSection` | تعديل: {section} | Modifier : {section} | [ ] |
 | `order.review.errors.draftChanged` | تم تعديل طلبك في علامة تبويب أخرى. راجعه ثم أكّده. | Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez. | [ ] |
+| `order.review.errors.freightPayerNotAccepted` | اقبل شروط الدفع عند التسليم للتأكيد. | Acceptez les conditions du paiement à la livraison pour valider. | [ ] |
 | `order.review.errors.idempotencyConflict` | أُرسل هذا الطلب سابقًا بمعلومات مختلفة. أعد تحميل الصفحة. | Cette commande a déjà été envoyée avec d'autres informations. Rechargez la page. | [ ] |
 | `order.review.errors.network` | انقطع الاتصال. أعد المحاولة. | La connexion a été coupée. Réessayez. | [ ] |
 | `order.review.errors.outOfZone` | أحد العنوانين غير مشمول بالخدمة. | Une des adresses n'est pas desservie. | [ ] |
@@ -639,9 +663,11 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.errors.phoneNotVerified` | يجب التحقق من هاتفك برسالة نصية. | Votre téléphone doit être vérifié par SMS. | [ ] |
 | `order.review.errors.quoteExpired` | انتهت صلاحية السعر. أُعيد حسابه. | Le prix a expiré. Il a été recalculé. | [ ] |
 | `order.review.errors.quoteNotAccepted` | اقبل السعر الجديد للمتابعة. | Acceptez le nouveau prix pour continuer. | [ ] |
+| `order.review.errors.returnBalanceDue` | يجب تسوية رصيد رسوم الإرجاع قبل أي طلب نقدي جديد. | Un solde de frais de retour doit être réglé avant une nouvelle commande en espèces. | [ ] |
 | `order.review.errors.serviceUnavailable` | هذه الخدمة لم تعد متاحة لهذين العنوانين. اختر خدمة أخرى. | Ce service n'est plus disponible pour ces adresses. Choisissez-en un autre. | [ ] |
 | `order.review.errors.slotPast` | انقضى الموعد المختار. اختر موعدًا آخر. | Le créneau choisi est passé. Choisissez-en un autre. | [ ] |
 | `order.review.errors.termsRequired` | وافق على شروط البيع للتأكيد. | Acceptez les CGV pour valider. | [ ] |
+| `order.review.freight.accept` | أقبل أنه إذا رفض المستلم الطرد، يكون الشحن (<freight></freight>) والإرجاع (<fee></fee>) على عاتقي. | J'accepte que, si le destinataire refuse le colis, le port (<freight></freight>) et le retour (<fee></fee>) soient à ma charge. | [ ] |
 | `order.review.lost.editBlocked` | التعديلات معطّلة إلى أن يصل رد على هذا الطلب. | Les modifications sont bloquées tant que cette commande n'a pas de réponse. | [ ] |
 | `order.review.lost.retry` | أعد المحاولة | Réessayer | [ ] |
 | `order.review.lost.text` | لا نعرف إن وصل الطلب. أعد المحاولة: لن يُنشأ مرتين. | Nous ne savons pas si la commande est arrivée. Réessayez : elle ne sera pas créée deux fois. | [ ] |
@@ -662,6 +688,8 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.proofs.codeElseAgentPhone` | رمز يُرسل إلى المستلم؛ وإن تعذّر، يتحقق موظف عبر الهاتف مع توقيع وصورة | Code envoyé au destinataire ; à défaut, validation par un agent au téléphone, avec signature et photo | [ ] |
 | `order.review.proofs.codeOrPhotoPosition` | رمز يُرسل إلى المستلم، أو صورة مع الموقع | Code envoyé au destinataire, ou photo avec position | [ ] |
 | `order.review.proofs.codeOrSignaturePhoto` | رمز يُرسل إلى المستلم، أو توقيع وصورة | Code envoyé au destinataire, ou signature et photo | [ ] |
+| `order.review.returnBalance.text` | عليك <amount></amount> مقابل طرود مُرجَعة. يجب تسوية هذا الرصيد قبل أي طلب نقدي جديد. | Vous devez <amount></amount> pour des colis retournés. Ce solde doit être réglé avant une nouvelle commande en espèces. | [ ] |
+| `order.review.returnBalance.title` | رسوم إرجاع يجب تسويتها | Frais de retour à régler | [ ] |
 | `order.review.serviceLines.express` | {service}، في أقل من ساعة | {service}, en moins de 1 h | [ ] |
 | `order.review.serviceLines.scheduled` | {service}، {slot} | {service}, {slot} | [ ] |
 | `order.review.serviceLines.standard` | {service}، قبل {time} | {service}, avant {time} | [ ] |
@@ -690,6 +718,23 @@ native-speaker review before release (CLAUDE.md).
 | `order.slot.onDate` | يوم {date}، من {start} إلى {end} | Le {date}, de {start} à {end} | [ ] |
 | `order.slot.today` | اليوم، من {start} إلى {end} | Aujourd'hui, de {start} à {end} | [ ] |
 | `order.slot.tomorrow` | غدًا، من {start} إلى {end} | Demain, de {start} à {end} | [ ] |
+| `orders.cancel.button` | إلغاء الطلب | Annuler la commande | [ ] |
+| `orders.cancel.canceled.applies` | رسوم الإلغاء: <fee></fee>. | Frais d'annulation : <fee></fee>. | [ ] |
+| `orders.cancel.canceled.backOfficeDecides` | قد تُطبَّق رسوم: ستؤكد لك GOFAST ذلك. | Des frais peuvent s'appliquer : GOFAST vous le confirmera. | [ ] |
+| `orders.cancel.canceled.none` | تم الإلغاء دون رسوم. | Annulation sans frais. | [ ] |
+| `orders.cancel.canceled.title` | تم إلغاء الطلب | Commande annulée | [ ] |
+| `orders.cancel.canceling` | جارٍ الإلغاء… | Annulation… | [ ] |
+| `orders.cancel.changed` | تغيّرت حالة طلبك. أعد القراءة قبل التأكيد. | La situation de votre commande a changé. Relisez avant de confirmer. | [ ] |
+| `orders.cancel.claim` | فتح شكوى | Ouvrir une réclamation | [ ] |
+| `orders.cancel.claimOnly` | تم استلام طردك: لم يعد الإلغاء ممكنًا. استخدم شكوى بدلًا من ذلك. | Votre colis est pris en charge : l'annulation n'est plus possible. Passez par une réclamation. | [ ] |
+| `orders.cancel.confirm` | نعم، ألغِ | Oui, annuler | [ ] |
+| `orders.cancel.free` | الإلغاء مجاني: لم يصل السائق بعد. | L'annulation est gratuite : le livreur n'est pas encore arrivé. | [ ] |
+| `orders.cancel.keep` | الاحتفاظ بالطلب | Garder la commande | [ ] |
+| `orders.cancel.mayHaveFee` | تعذّر الاستلام. قد تُطبَّق رسوم إلغاء حسب الشروط العامة للبيع: <fee></fee>. وتقرّر GOFAST ذلك. | La collecte n'a pas pu se faire. Des frais d'annulation peuvent s'appliquer selon les CGV : <fee></fee>. C'est GOFAST qui décide. | [ ] |
+| `orders.cancel.network` | انقطع الاتصال. أعد المحاولة. | La connexion a été coupée. Réessayez. | [ ] |
+| `orders.cancel.notCancellable` | لم يعد بالإمكان إلغاء هذا الطلب. | Cette commande ne peut plus être annulée. | [ ] |
+| `orders.cancel.title` | هل تريد إلغاء هذا الطلب؟ | Annuler cette commande ? | [ ] |
+| `orders.cancel.withFee` | وصل السائق. تُطبَّق رسوم إلغاء حسب الشروط العامة للبيع: <fee></fee>. | Le livreur est arrivé. Des frais d'annulation s'appliquent selon les CGV : <fee></fee>. | [ ] |
 | `orders.client.assigned` | سيأتي سائق لاستلام طردك | Un livreur vient chercher votre colis | [ ] |
 | `orders.client.canceled` | تم إلغاء طلبك | Votre commande est annulée | [ ] |
 | `orders.client.confirmed` | تم تأكيد طلبك | Votre commande est confirmée | [ ] |
@@ -701,6 +746,80 @@ native-speaker review before release (CLAUDE.md).
 | `orders.client.pickup_failed` | تعذّر الاستلام | La collecte n'a pas pu se faire | [ ] |
 | `orders.client.received` | لقد استلمنا طلبك | Nous avons reçu votre commande | [ ] |
 | `orders.client.returned` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.detail.attempts` | محاولات التسليم | Tentatives de livraison | [ ] |
+| `orders.detail.back` | طلباتي | Mes commandes | [ ] |
+| `orders.detail.barcode` | رقم الطرد | Numéro du colis | [ ] |
+| `orders.detail.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `orders.detail.error.title` | تعذّر تحميل هذا الطلب. | Impossible de charger cette commande. | [ ] |
+| `orders.detail.eta` | الوصول المتوقع | Arrivée estimée | [ ] |
+| `orders.detail.failureReason` | سبب الإخفاق | Motif de l'échec | [ ] |
+| `orders.detail.from` | من {name}، {address} | De {name}, {address} | [ ] |
+| `orders.detail.history` | سجل الطلب | Historique de la commande | [ ] |
+| `orders.detail.loading` | جارٍ تحميل الطلب… | Chargement de la commande… | [ ] |
+| `orders.detail.lossReported` | تم التبليغ عن فقدان طرد من هذا الطلب. | Un colis de cette commande a été déclaré perdu. | [ ] |
+| `orders.detail.notFound.text` | هذا الطلب غير موجود في حسابك. | Cette commande n'existe pas dans votre compte. | [ ] |
+| `orders.detail.notFound.title` | الطلب غير موجود | Commande introuvable | [ ] |
+| `orders.detail.parcel` | الطرد <n></n> | Colis <n></n> | [ ] |
+| `orders.detail.parcels` | الطرود | Colis | [ ] |
+| `orders.detail.payment` | الدفع | Règlement | [ ] |
+| `orders.detail.price` | السعر والدفع | Prix et règlement | [ ] |
+| `orders.detail.priceLines.base` | الخدمة والمنطقة | Service et zone | [ ] |
+| `orders.detail.priceLines.discount` | خصم | Remise | [ ] |
+| `orders.detail.priceLines.distance` | المسافة | Distance | [ ] |
+| `orders.detail.priceLines.options` | خيارات | Options | [ ] |
+| `orders.detail.priceLines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
+| `orders.detail.priceLines.surcharge` | زيادة | Majoration | [ ] |
+| `orders.detail.priceLines.vat` | الأداء على القيمة المضافة | TVA | [ ] |
+| `orders.detail.priceLines.weight` | الوزن | Poids | [ ] |
+| `orders.detail.proof` | إثبات التسليم | Preuve de remise | [ ] |
+| `orders.detail.proofAt` | سُجّل في <date></date> | Enregistrée le <date></date> | [ ] |
+| `orders.detail.route` | المسار | Trajet | [ ] |
+| `orders.detail.slip` | وصل الطلب | Bon de commande | [ ] |
+| `orders.detail.status` | الحالة | État | [ ] |
+| `orders.detail.summary` | {service}، {count, plural, zero {لا طرود} one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} | {service}, {count, plural, one {# colis} other {# colis}} | [ ] |
+| `orders.detail.timeline.deliveryFailed` | الطرد <n></n>: فشل التسليم، {reason} | Colis <n></n> : remise ratée, {reason} | [ ] |
+| `orders.detail.timeline.deliveryFailedNoReason` | الطرد <n></n>: فشل التسليم | Colis <n></n> : remise ratée | [ ] |
+| `orders.detail.title` | طلبي | Ma commande | [ ] |
+| `orders.detail.to` | إلى {name}، {address} | À {name}, {address} | [ ] |
+| `orders.detail.total` | المجموع مع احتساب الأداءات | Total TTC | [ ] |
+| `orders.detail.weightDeclared` | الوزن المصرَّح به | Poids déclaré | [ ] |
+| `orders.detail.weightKg` | {kg} كغ | {kg} kg | [ ] |
+| `orders.detail.weightMeasured` | الوزن المقاس | Poids mesuré | [ ] |
+| `orders.detail.weightOver` | الوزن المقاس يتجاوز الوزن المصرَّح به بأكثر من {tolerance} كغ. سيتم إعلامك قبل الفاتورة. | Le poids mesuré dépasse le poids déclaré de plus de {tolerance} kg. Vous serez prévenu avant la facture. | [ ] |
+| `orders.list.allMonths` | كل الأشهر | Tous les mois | [ ] |
+| `orders.list.caption` | قائمة طلباتك | Liste de vos commandes | [ ] |
+| `orders.list.columns.action` | إجراء | Action | [ ] |
+| `orders.list.columns.code` | الرقم | Numéro | [ ] |
+| `orders.list.columns.date` | التاريخ | Date | [ ] |
+| `orders.list.columns.offer` | العرض | Offre | [ ] |
+| `orders.list.columns.price` | السعر | Prix | [ ] |
+| `orders.list.columns.recipient` | المستلم | Destinataire | [ ] |
+| `orders.list.columns.status` | الحالة | Statut | [ ] |
+| `orders.list.count` | عرض {shown, plural, zero {0 طلب} one {طلب واحد} two {طلبين} few {# طلبات} many {# طلبًا} other {# طلب}} من أصل {total} | Affichage de {shown, plural, one {# commande} other {# commandes}} sur {total} | [ ] |
+| `orders.list.emptyText` | ستظهر طلباتك هنا. | Vos commandes apparaîtront ici. | [ ] |
+| `orders.list.emptyTitle` | لا توجد طلبات حتى الآن. | Aucune commande pour le moment. | [ ] |
+| `orders.list.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `orders.list.error.title` | تعذّر تحميل طلباتك. | Impossible de charger vos commandes. | [ ] |
+| `orders.list.filters.all` | الكل | Toutes | [ ] |
+| `orders.list.filters.delivered` | تم تسليمها | Livrées | [ ] |
+| `orders.list.filters.failed` | إخفاقات وإرجاعات | Échecs et retours | [ ] |
+| `orders.list.filters.inProgress` | قيد التنفيذ ({count}) | En cours ({count}) | [ ] |
+| `orders.list.filtersLabel` | تصفية الطلبات | Filtrer les commandes | [ ] |
+| `orders.list.loading` | جارٍ تحميل طلباتك… | Chargement de vos commandes… | [ ] |
+| `orders.list.monthLabel` | الشهر | Mois | [ ] |
+| `orders.list.next` | الصفحة التالية | Page suivante | [ ] |
+| `orders.list.noResults` | لا يوجد طلب يطابق بحثك. | Aucune commande ne correspond à votre recherche. | [ ] |
+| `orders.list.order` | اطلب توصيلة | Commander | [ ] |
+| `orders.list.page` | الصفحة {page} من {pages} | Page {page} sur {pages} | [ ] |
+| `orders.list.pagination` | صفحات الطلبات | Pages des commandes | [ ] |
+| `orders.list.previous` | الصفحة السابقة | Page précédente | [ ] |
+| `orders.list.searchLabel` | الرقم أو المستلم | Numéro ou destinataire | [ ] |
+| `orders.list.searchSubmit` | بحث | Rechercher | [ ] |
+| `orders.list.title` | طلباتي | Mes commandes | [ ] |
+| `orders.list.track` | تتبّع | Suivre | [ ] |
+| `orders.list.trackOf` | تتبّع الطلب {code} | Suivre la commande {code} | [ ] |
+| `orders.list.view` | التفاصيل | Détail | [ ] |
+| `orders.list.viewOf` | تفاصيل الطلب {code} | Détail de la commande {code} | [ ] |
 | `orders.status.assigned` | تم الإسناد | Attribuée | [ ] |
 | `orders.status.canceled` | ملغى | Annulée | [ ] |
 | `orders.status.confirmed` | مؤكَّد | Confirmée | [ ] |
@@ -712,6 +831,11 @@ native-speaker review before release (CLAUDE.md).
 | `orders.status.pickup_failed` | تعذّر الاستلام | Collecte ratée | [ ] |
 | `orders.status.received` | تم الاستلام | Reçue | [ ] |
 | `orders.status.returned` | تمت الإعادة | Rendue | [ ] |
+| `parcels.failure.addressIncorrect` | العنوان غير صحيح أو يتعذّر إيجاده | Adresse incorrecte ou introuvable | [ ] |
+| `parcels.failure.other` | سبب آخر | Autre | [ ] |
+| `parcels.failure.phoneUnreachable` | تعذّر الاتصال بالهاتف | Téléphone injoignable | [ ] |
+| `parcels.failure.recipientAbsent` | المستلم غائب | Destinataire absent | [ ] |
+| `parcels.failure.recipientRefused` | المستلم يرفض الطرد | Le destinataire refuse le colis | [ ] |
 | `parcels.status.at_depot` | في المستودع | Au dépôt | [ ] |
 | `parcels.status.canceled` | ملغى | Annulé | [ ] |
 | `parcels.status.delivery_failed` | تعذّر التسليم | Remise ratée | [ ] |

@@ -14,7 +14,10 @@ export const QUOTE_VALIDITY_MS = 15 * MINUTE;
 /** Unsourced (proposal): a draft is kept 24 h after its last edit, then deleted on read. */
 export const DRAFT_RETENTION_MS = 24 * HOUR;
 
-/** Provisional: GOFAST answers, 6 Nov 2026 (docs/spec/reponses-gofast.md). R406: the recipient link stops working 24 h after the order is final. */
+/**
+ * Provisional: GOFAST answers, 6 Nov 2026 (docs/spec/reponses-gofast.md).
+ * R406: the recipient link stops working 24 h after the order is final.
+ */
 export const RECIPIENT_LINK_AFTER_DELIVERY_MS = 24 * HOUR;
 
 /** Unsourced (mockup W20): the SMS code has 6 digits. */
@@ -60,3 +63,24 @@ export const DELIVERY_CODE_DIGITS = 4;
  * rule never triggers (see proof.ts). Do not put a number here without the cahier.
  */
 export const PROOF_VALUE_THRESHOLD_MILLIMES: number | null = null;
+
+/**
+ * Fee when the client cancels once the driver has arrived (CMD-08, R212, D7). Millimes.
+ * Provisional: GOFAST answers, 6 Nov 2026 (docs/spec/reponses-gofast.md). Also the amount that may
+ * apply after a failed pickup (R505): the back-office decides.
+ */
+export const CANCEL_FEE_MILLIMES = 5000;
+
+/** Fee of a new delivery attempt (R504, D7), millimes. Provisional: GOFAST answers, 6 Nov 2026: free. */
+export const NEW_ATTEMPT_FEE_MILLIMES = 0;
+
+/** Fee of the return to the sender after a failure (R504, R607, D7), millimes. Provisional: GOFAST answers, 6 Nov 2026. */
+export const RETURN_FEE_MILLIMES = 5000;
+
+/**
+ * Weight gap tolerated between the declared and the measured weight (R208), in grams. Provisional:
+ * GOFAST answers, 6 Nov 2026: 500 g while the declared weight is up to 5 kg, 10 % of it above.
+ */
+export const WEIGHT_TOLERANCE_FLAT_G = 500;
+export const WEIGHT_TOLERANCE_FLAT_UP_TO_G = 5000;
+export const WEIGHT_TOLERANCE_PERCENT = 10;

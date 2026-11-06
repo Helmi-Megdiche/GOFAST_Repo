@@ -51,7 +51,7 @@ Source: PR 0, `noParcelTaken` tested `status === "taken"`. A parcel that was sca
 
 **RV-02. Code that matches the plan can still be wrong.**
 Test each plan rule and each ruling against the purpose it serves, with real sequences of actions: one parcel, then several parcels at different steps. Read every event written, not only the final state. A test that asserts the result the code gives today proves nothing about the ruling. If the plan is wrong, correct the plan and send the change to Helmi.
-Source: PR 0, the `noParcelTaken` bug came from the plan's own wording, and the code followed it. PR 0 round 1: `picked_up → lost` held for one parcel, but with 3 parcels, P1 taken then lost while P2 and P3 were still `to_collect` wrote `picked_up → in_transit → lost`, and the test asserted the `in_transit` event.
+Source: PR 0, the `noParcelTaken` bug came from the plan's own wording, and the code followed it. PR 0 round 1: `picked_up → lost` held for one parcel, but with 3 parcels, P1 taken then lost while P2 and P3 were still `to_collect` wrote `picked_up → in_transit → lost`, and the test asserted the `in_transit` event. PR A round 1: the timeline read each failure's reason from the parcel row, so a parcel that failed twice showed the second reason twice. Data shown per event is read from the event.
 
 **RV-03. Declared tables must list every move the code can make.**
 Compare the transition tables with the moves that derivation and cascades can produce, and report any pair the table does not list. A derived state must never move backward. Keep a test that walks the parcel table through many sequences on a 2 or 3 parcel order and checks every order event against the order table.
@@ -62,8 +62,12 @@ For each public function, try the inputs that only a cascade should send. They m
 Source: PR 0, a direct mission end with `endReason` left the order `assigned` with no active mission. PR 0 round 3 check: `recomputeOrder` throws on an unlisted move after the parcel row and its event were already written. Every refusal or throw comes before the first write.
 
 **RV-05. Recheck every earlier choice when its inputs change, and again on submit.**
-Change an earlier step, then try to continue and to submit with the old choice.
-Source: PR #5, a service the address no longer offered could still be ordered, end to end.
+Change an earlier step, then try to continue and to submit with the old choice. An acceptance (a fee, a price, a box whose text names an amount) carries what was shown, and the server compares it with what applies now; a boolean "accepted" is not enough when more than one thing can be accepted.
+Source: PR #5, a service the address no longer offered could still be ordered, end to end. PR A round 1: `acceptedFee: true` sent from a "may apply" dialog cancelled with a certain fee after the driver arrived; the R607 box stayed ticked after the quote, and so its amount, changed.
+
+**RV-14. Every state has a place on each screen that groups states.**
+For each list, tile or filter built from a set of states, list the states and check that each one lands where the user expects it, and that none is in no group at all.
+Source: PR A round 1, C01 showed "in progress" and "last deliveries" from two state lists, and `pickup_failed` was in neither.
 
 ### Money and values
 

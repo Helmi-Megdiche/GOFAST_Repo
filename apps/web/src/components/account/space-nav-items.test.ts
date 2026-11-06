@@ -2,8 +2,11 @@ import { describe, expect, it } from "vitest";
 import { SPACE_NAV, visibleNav } from "./space-nav-items";
 
 describe("space nav", () => {
-  it("PR 0 shows only the home entry of each space: no dead link", () => {
-    expect(visibleNav("customer", null).map((e) => e.href)).toEqual(["/compte"]);
+  it("shows only the entries whose page exists (home and orders for a customer): no dead link", () => {
+    expect(visibleNav("customer", null).map((e) => e.href)).toEqual([
+      "/compte",
+      "/compte/commandes",
+    ]);
     expect(visibleNav("merchant", "admin").map((e) => e.href)).toEqual(["/pro"]);
   });
 

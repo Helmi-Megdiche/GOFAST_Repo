@@ -118,6 +118,14 @@
       "pro": {
         "title": "مساحة التاجر | GOFAST",
         "description": "مساحة التاجر الخاصة بك في GOFAST."
+      },
+      "accountOrders": {
+        "title": "طلباتي | GOFAST",
+        "description": "طلباتك لدى GOFAST: بحث وتصفية وتفاصيل."
+      },
+      "accountOrder": {
+        "title": "طلبي | GOFAST",
+        "description": "تفاصيل طلب GOFAST: التتبع والطرود والسعر وإثبات التسليم."
       }
     }
   },
@@ -641,7 +649,8 @@
       "paymentRequired": "اختر طريقة الدفع.",
       "termsRequired": "وافق على الشروط للمتابعة.",
       "passwordTooShort": "10 أحرف على الأقل.",
-      "codeIncomplete": "أدخل الرمز كاملًا."
+      "codeIncomplete": "أدخل الرمز كاملًا.",
+      "freightPayerRequired": "اقبل هذه الشروط للدفع عند التسليم."
     },
     "serverErrors": {
       "attachmentTooLarge": "حجم الملف يتجاوز 5 ميغابايت.",
@@ -932,12 +941,27 @@
         "termsRequired": "وافق على شروط البيع للتأكيد.",
         "network": "انقطع الاتصال. أعد المحاولة.",
         "draftChanged": "تم تعديل طلبك في علامة تبويب أخرى. راجعه ثم أكّده.",
-        "serviceUnavailable": "هذه الخدمة لم تعد متاحة لهذين العنوانين. اختر خدمة أخرى."
+        "serviceUnavailable": "هذه الخدمة لم تعد متاحة لهذين العنوانين. اختر خدمة أخرى.",
+        "returnBalanceDue": "يجب تسوية رصيد رسوم الإرجاع قبل أي طلب نقدي جديد.",
+        "freightPayerNotAccepted": "اقبل شروط الدفع عند التسليم للتأكيد."
       },
       "serviceLines": {
         "express": "{service}، في أقل من ساعة",
         "standard": "{service}، قبل {time}",
         "scheduled": "{service}، {slot}"
+      },
+      "attempts": {
+        "title": "إذا فشل التسليم",
+        "newAttempt": "رسوم محاولة جديدة",
+        "return": "رسوم الإرجاع",
+        "free": "مجاني"
+      },
+      "freight": {
+        "accept": "أقبل أنه إذا رفض المستلم الطرد، يكون الشحن (<freight></freight>) والإرجاع (<fee></fee>) على عاتقي."
+      },
+      "returnBalance": {
+        "title": "رسوم إرجاع يجب تسويتها",
+        "text": "عليك <amount></amount> مقابل طرود مُرجَعة. يجب تسوية هذا الرصيد قبل أي طلب نقدي جديد."
       }
     },
     "code": {
@@ -1099,6 +1123,119 @@
       "returned": "نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه.",
       "lost": "نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه.",
       "canceled": "تم إلغاء طلبك"
+    },
+    "list": {
+      "title": "طلباتي",
+      "caption": "قائمة طلباتك",
+      "searchLabel": "الرقم أو المستلم",
+      "searchSubmit": "بحث",
+      "filtersLabel": "تصفية الطلبات",
+      "filters": {
+        "all": "الكل",
+        "inProgress": "قيد التنفيذ ({count})",
+        "delivered": "تم تسليمها",
+        "failed": "إخفاقات وإرجاعات"
+      },
+      "monthLabel": "الشهر",
+      "allMonths": "كل الأشهر",
+      "columns": {
+        "code": "الرقم",
+        "recipient": "المستلم",
+        "offer": "العرض",
+        "status": "الحالة",
+        "date": "التاريخ",
+        "price": "السعر",
+        "action": "إجراء"
+      },
+      "view": "التفاصيل",
+      "track": "تتبّع",
+      "count": "عرض {shown, plural, zero {0 طلب} one {طلب واحد} two {طلبين} few {# طلبات} many {# طلبًا} other {# طلب}} من أصل {total}",
+      "pagination": "صفحات الطلبات",
+      "previous": "الصفحة السابقة",
+      "next": "الصفحة التالية",
+      "page": "الصفحة {page} من {pages}",
+      "emptyTitle": "لا توجد طلبات حتى الآن.",
+      "emptyText": "ستظهر طلباتك هنا.",
+      "order": "اطلب توصيلة",
+      "noResults": "لا يوجد طلب يطابق بحثك.",
+      "error": {
+        "title": "تعذّر تحميل طلباتك.",
+        "retry": "إعادة المحاولة"
+      },
+      "loading": "جارٍ تحميل طلباتك…",
+      "viewOf": "تفاصيل الطلب {code}",
+      "trackOf": "تتبّع الطلب {code}"
+    },
+    "detail": {
+      "title": "طلبي",
+      "back": "طلباتي",
+      "slip": "وصل الطلب",
+      "summary": "{service}، {count, plural, zero {لا طرود} one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}",
+      "eta": "الوصول المتوقع",
+      "history": "سجل الطلب",
+      "lossReported": "تم التبليغ عن فقدان طرد من هذا الطلب.",
+      "route": "المسار",
+      "from": "من {name}، {address}",
+      "to": "إلى {name}، {address}",
+      "price": "السعر والدفع",
+      "priceLines": {
+        "base": "الخدمة والمنطقة",
+        "distance": "المسافة",
+        "weight": "الوزن",
+        "options": "خيارات",
+        "surcharge": "زيادة",
+        "discount": "خصم",
+        "vat": "الأداء على القيمة المضافة",
+        "stamp": "الطابع الجبائي"
+      },
+      "total": "المجموع مع احتساب الأداءات",
+      "payment": "الدفع",
+      "parcels": "الطرود",
+      "parcel": "الطرد <n></n>",
+      "barcode": "رقم الطرد",
+      "status": "الحالة",
+      "attempts": "محاولات التسليم",
+      "weightDeclared": "الوزن المصرَّح به",
+      "weightMeasured": "الوزن المقاس",
+      "weightKg": "{kg} كغ",
+      "weightOver": "الوزن المقاس يتجاوز الوزن المصرَّح به بأكثر من {tolerance} كغ. سيتم إعلامك قبل الفاتورة.",
+      "failureReason": "سبب الإخفاق",
+      "proof": "إثبات التسليم",
+      "proofAt": "سُجّل في <date></date>",
+      "timeline": {
+        "deliveryFailed": "الطرد <n></n>: فشل التسليم، {reason}",
+        "deliveryFailedNoReason": "الطرد <n></n>: فشل التسليم"
+      },
+      "notFound": {
+        "title": "الطلب غير موجود",
+        "text": "هذا الطلب غير موجود في حسابك."
+      },
+      "error": {
+        "title": "تعذّر تحميل هذا الطلب.",
+        "retry": "إعادة المحاولة"
+      },
+      "loading": "جارٍ تحميل الطلب…"
+    },
+    "cancel": {
+      "button": "إلغاء الطلب",
+      "title": "هل تريد إلغاء هذا الطلب؟",
+      "free": "الإلغاء مجاني: لم يصل السائق بعد.",
+      "withFee": "وصل السائق. تُطبَّق رسوم إلغاء حسب الشروط العامة للبيع: <fee></fee>.",
+      "mayHaveFee": "تعذّر الاستلام. قد تُطبَّق رسوم إلغاء حسب الشروط العامة للبيع: <fee></fee>. وتقرّر GOFAST ذلك.",
+      "changed": "تغيّرت حالة طلبك. أعد القراءة قبل التأكيد.",
+      "keep": "الاحتفاظ بالطلب",
+      "confirm": "نعم، ألغِ",
+      "canceling": "جارٍ الإلغاء…",
+      "claimOnly": "تم استلام طردك: لم يعد الإلغاء ممكنًا. استخدم شكوى بدلًا من ذلك.",
+      "claim": "فتح شكوى",
+      "notCancellable": "لم يعد بالإمكان إلغاء هذا الطلب.",
+      "network": "انقطع الاتصال. أعد المحاولة.",
+      "canceled": {
+        "title": "تم إلغاء الطلب",
+        "none": "تم الإلغاء دون رسوم.",
+        "applies": "رسوم الإلغاء: <fee></fee>.",
+        "backOfficeDecides": "قد تُطبَّق رسوم: ستؤكد لك GOFAST ذلك."
+      }
     }
   },
   "parcels": {
@@ -1113,6 +1250,13 @@
       "returned": "تمت الإعادة",
       "lost": "مفقود",
       "canceled": "ملغى"
+    },
+    "failure": {
+      "recipientAbsent": "المستلم غائب",
+      "phoneUnreachable": "تعذّر الاتصال بالهاتف",
+      "recipientRefused": "المستلم يرفض الطرد",
+      "addressIncorrect": "العنوان غير صحيح أو يتعذّر إيجاده",
+      "other": "سبب آخر"
     }
   },
   "account": {
@@ -1137,7 +1281,23 @@
         "toSettle": "المبالغ المستحقة",
         "frequentRecipients": "المستلمون المتكررون",
         "installBanner": "تثبيت التطبيق"
-      }
+      },
+      "greeting": "مرحبًا {name}",
+      "newDelivery": "توصيلة جديدة",
+      "eta": "الوصول المتوقع",
+      "seeDetail": "عرض التفاصيل",
+      "noneInProgress": "لا توجد طلبات قيد التنفيذ.",
+      "noneDelivered": "لا توجد توصيلات منتهية حتى الآن.",
+      "seeAll": "عرض الكل",
+      "settled": "لا مبالغ مستحقة عليك.",
+      "owed": "رسوم إرجاع يجب تسويتها قبل طلبك النقدي القادم.",
+      "error": {
+        "title": "تعذّر تحميل فضائك.",
+        "retry": "إعادة المحاولة"
+      },
+      "loading": "جارٍ تحميل طلباتك…",
+      "orderLine": "{count, plural, zero {لا طرود} one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} · {service}",
+      "seeDetailOf": "عرض تفاصيل الطلب {code}"
     },
     "pro": {
       "title": "مساحة التاجر",
