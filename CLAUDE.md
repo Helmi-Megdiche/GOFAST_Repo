@@ -8,6 +8,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 
 - Spec: `docs/spec/fonctionnalites.md` (feature IDs such as FE-01, CMD-03, BO-06). The full cahier des charges is the online doc; ask Helmi for anything not in this repo.
 - Business rules: `docs/spec/regles.md` (rules R101–R904, order and parcel states, data model, API routes and the acceptance scenarios for these screens). It is the binding extract of the cahier; when it and a mockup disagree, it wins.
+- GOFAST's answers (6 Nov 2026, provisional values, admin-editable): `docs/spec/reponses-gofast.md`.
 - UI reference: `docs/ui/` (152 screens). Read `docs/ui/README.md` before any UI work.
 - Lots: L1 = launch (end of week 8), L2 = after launch, L3 = later. Do not build L2 or L3 items unless the ticket says so.
 
