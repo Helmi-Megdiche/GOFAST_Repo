@@ -6,6 +6,8 @@ Extrait du cahier en ligne, 5 novembre 2026 : Règles de gestion, Rôles et droi
 
 Un administrateur peut les changer sans développement. Une valeur « proposée » n'est pas encore validée.
 
+Valeurs reçues de GOFAST le 6 novembre 2026, provisoires : voir `reponses-gofast.md`.
+
 | Paramètre | Proposition |
 |---|---|
 | Confirmation automatique | Montant à fixer |
