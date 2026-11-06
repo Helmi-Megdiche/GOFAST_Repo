@@ -113,7 +113,11 @@
       },
       "account": {
         "title": "Mon compte | FastGo",
-        "description": "Votre espace client arrive bientôt."
+        "description": "Votre espace client FastGo."
+      },
+      "pro": {
+        "title": "Espace commerçant | FastGo",
+        "description": "Votre espace commerçant FastGo."
       }
     }
   },
@@ -155,7 +159,9 @@
       "radioCard": "Choix en carte",
       "codeInput": "Code de vérification",
       "map": "Carte (provisoire)",
-      "google": "Bouton Google"
+      "google": "Bouton Google",
+      "dialog": "Boîte de dialogue",
+      "stackedTable": "Tableau empilé"
     },
     "typography": {
       "d1": "Votre colis part aujourd'hui. Vous savez où il est.",
@@ -209,7 +215,9 @@
       "label": "Exemple de tableau",
       "number": "Numéro",
       "status": "Statut",
-      "amount": "Montant"
+      "amount": "Montant",
+      "stackedLabel": "Exemple de tableau empilé",
+      "stackedHint": "Sous 600 px de large, chaque ligne devient une carte."
     },
     "kpi": {
       "collected": "Collecté cette semaine",
@@ -273,6 +281,15 @@
       "mapLabel": "Carte de démonstration",
       "mapInstructions": "Cliquez sur la carte, ou utilisez les flèches puis Entrée.",
       "pinAt": "Repère : {x} %, {y} %"
+    },
+    "dialog": {
+      "open": "Ouvrir la boîte de dialogue",
+      "title": "Annuler cette commande ?",
+      "text": "Exemple de boîte de dialogue. Rien n'est enregistré.",
+      "keep": "Non, garder",
+      "confirm": "Oui, annuler",
+      "stateClosed": "État : fermé",
+      "stateOpen": "État : ouvert"
     }
   },
   "placeholders": {
@@ -431,13 +448,6 @@
     "arrival": "Arrivée estimée",
     "route": "De {from} vers {to}",
     "historyLabel": "Historique du colis",
-    "steps": {
-      "created": "Commande créée",
-      "confirmed": "Commande confirmée",
-      "picked_up": "Colis récupéré",
-      "out_for_delivery": "En cours de livraison",
-      "delivered": "Livré"
-    },
     "notFound": {
       "title": "Numéro introuvable",
       "text": "Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo."
@@ -449,7 +459,8 @@
     "problem": {
       "title": "Un problème ?",
       "cta": "Contacter FastGo"
-    }
+    },
+    "parcelLine": "Colis <n></n> : {status}"
   },
   "zones": {
     "title": "Zones desservies",
@@ -607,8 +618,7 @@
     "pages": {
       "order": "Commander",
       "signIn": "Connexion",
-      "signUp": "Créer un compte",
-      "account": "Mon compte"
+      "signUp": "Créer un compte"
     }
   },
   "forms": {
@@ -1062,5 +1072,87 @@
       "changePhone": "Changer de numéro"
     },
     "noJs": "Cette page a besoin de JavaScript. Activez-le dans votre navigateur."
+  },
+  "orders": {
+    "status": {
+      "received": "Reçue",
+      "confirmed": "Confirmée",
+      "assigned": "Attribuée",
+      "pickup_failed": "Collecte ratée",
+      "picked_up": "Prise en charge",
+      "in_transit": "En route",
+      "delivered": "Livrée",
+      "partially_delivered": "Livrée en partie",
+      "returned": "Rendue",
+      "lost": "Perdue",
+      "canceled": "Annulée"
+    },
+    "client": {
+      "received": "Nous avons reçu votre commande",
+      "confirmed": "Votre commande est confirmée",
+      "assigned": "Un livreur vient chercher votre colis",
+      "pickup_failed": "La collecte n'a pas pu se faire",
+      "picked_up": "{count, plural, one {Votre colis est récupéré} other {Vos # colis sont récupérés}}",
+      "in_transit": "Votre livraison est en cours",
+      "delivered": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "partially_delivered": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "returned": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "lost": "Issue de la livraison : {outcome}. Le détail par colis suit.",
+      "canceled": "Votre commande est annulée"
+    }
+  },
+  "parcels": {
+    "status": {
+      "to_collect": "À prendre",
+      "taken": "Pris",
+      "at_depot": "Au dépôt",
+      "in_transit": "En route",
+      "delivery_failed": "Remise ratée",
+      "returning": "Retour",
+      "handed_over": "Remis",
+      "returned": "Rendu",
+      "lost": "Perdu",
+      "canceled": "Annulé"
+    }
+  },
+  "account": {
+    "nav": {
+      "label": "Mon espace",
+      "home": "Accueil",
+      "orders": "Commandes",
+      "invoices": "Factures",
+      "claims": "Réclamations",
+      "addresses": "Adresses",
+      "profile": "Profil",
+      "import": "Import",
+      "cod": "Paiements à la livraison",
+      "statements": "Relevés",
+      "company": "Entreprise"
+    },
+    "home": {
+      "title": "Mon compte",
+      "slots": {
+        "inProgress": "Commandes en cours",
+        "lastDeliveries": "Dernières livraisons",
+        "toSettle": "À régler",
+        "frequentRecipients": "Destinataires fréquents",
+        "installBanner": "Installer l'application"
+      }
+    },
+    "pro": {
+      "title": "Espace commerçant",
+      "slots": {
+        "inProgress": "Commandes en cours",
+        "lastDeliveries": "Dernières livraisons",
+        "cod": "Paiements à la livraison",
+        "chart": "Livraisons de la semaine"
+      }
+    },
+    "guard": {
+      "busy": "Chargement de votre espace…",
+      "notAllowed": "Vous n'avez pas accès à cette page.",
+      "noscript": "Cette page a besoin de JavaScript pour afficher votre espace."
+    },
+    "signOut": "Se déconnecter"
   }
 }

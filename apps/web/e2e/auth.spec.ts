@@ -117,13 +117,17 @@ test("sign-in goes to /compte by default, to a path of this site, never to an ex
   }
 });
 
-test("/compte is a noindex coming-soon page", async ({ page }) => {
-  await page.goto("/fr/compte");
-  await expect(page.getByText("Bientôt disponible")).toBeVisible();
+test("/compte is a noindex page", async ({ page }) => {
+  await page.goto("/fr/connexion");
+  await input(page, "identifier").fill(KNOWN_PHONE);
+  await input(page, "password").fill(PASSWORD);
+  await submit(page).click();
+  await expect(page).toHaveURL(/\/fr\/compte$/);
+  await expect(page.getByRole("heading", { level: 1, name: "Mon compte" })).toBeVisible();
   await expect(page.locator('meta[name="robots"]')).toHaveAttribute("content", /noindex/);
 });
 
-test("the session keeps only id, kind, contract, verified flag and the masked phone", async ({
+test("the session keeps only id, user, role, kind, contract, verified flag and the masked phone", async ({
   page,
 }) => {
   await page.goto("/fr/connexion");
@@ -138,6 +142,8 @@ test("the session keeps only id, kind, contract, verified flag and the masked ph
     "kind",
     "maskedPhone",
     "phoneVerified",
+    "role",
+    "userId",
   ]);
   expect(stored.maskedPhone).toBe("+216 98 ••• 001");
   const everything = await page.evaluate(() => JSON.stringify({ ...localStorage }));

@@ -58,7 +58,7 @@ describe("accounts (R101)", () => {
 });
 
 describe("session", () => {
-  it("keeps only id, kind, contract, verified flag and masked phone", () => {
+  it("keeps only id, user, role, kind, contract, verified flag and masked phone", () => {
     setSession(sessionFor({ ...customer, google: false }));
     expect(Object.keys(JSON.parse(store.get(SESSION_KEY)!)).sort()).toEqual([
       "accountId",
@@ -66,6 +66,8 @@ describe("session", () => {
       "kind",
       "maskedPhone",
       "phoneVerified",
+      "role",
+      "userId",
     ]);
     expect(store.get(SESSION_KEY)).not.toContain(customer.phone);
   });

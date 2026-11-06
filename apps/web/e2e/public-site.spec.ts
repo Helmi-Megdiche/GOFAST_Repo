@@ -18,8 +18,7 @@ const PAGES = [
   { path: "/livreur", ref: "W08-Livreur" },
   { path: "/legal/cgv", ref: "W09-Legal" },
   { path: "/page-inconnue", ref: "W10-Introuvable", status: 404 },
-  // The order flow and sign-in pages are covered by order-flow.spec.ts and auth.spec.ts.
-  { path: "/compte", ref: "coming-soon-compte" },
+  // The order flow, sign-in and account pages are covered by order-flow.spec.ts, auth.spec.ts and account.spec.ts.
 ] as const;
 
 const LOCALES = [
@@ -232,11 +231,12 @@ test("tracking: a found parcel shows status, ETA, history and no personal data",
   await expect(page.getByText("Arrivée estimée")).toBeVisible();
   const main = page.locator("main");
   await expect(main).toContainText(/14\u00a0h\u00a020/);
-  await expect(main.getByText("En cours de livraison").first()).toBeVisible();
-  await expect(main).toContainText("Commande créée");
+  await expect(main.getByText("Votre livraison est en cours")).toBeVisible();
+  await expect(main.getByText("En route").first()).toBeVisible();
+  await expect(main).toContainText("Confirmée");
   await expect(main).toContainText("[VILLE DE DÉPART]");
   await expect(main).toContainText("[VILLE D'ARRIVÉE]");
-  for (const secret of ["Sami", "Yasmine", "48,500", "4827"]) {
+  for (const secret of ["Sami", "Nadia", "Yasmine", "98000001", "48,500", "4827"]) {
     await expect(main, secret).not.toContainText(secret);
   }
   expect(await axe(page), "axe violations").toEqual([]);
@@ -260,9 +260,9 @@ test("tracking: /suivi?n=FG-7K4M-2QXP looks the parcel up on load, in every lang
   page,
 }) => {
   for (const [code, text] of [
-    ["fr", "En cours de livraison"],
-    ["en", "Out for delivery"],
-    ["ar", "قيد التوصيل"],
+    ["fr", "Votre livraison est en cours"],
+    ["en", "Your delivery is on its way"],
+    ["ar", "طلبك قيد التوصيل"],
   ] as const) {
     await page.goto(`/${code}/suivi?n=FG-7K4M-2QXP`);
     await expect(page.locator("main").getByText(text).first()).toBeVisible();
@@ -619,6 +619,7 @@ test("order, sign-in and coming-soon pages are noindex, public pages are not", a
     "/fr/mot-de-passe/nouveau",
     "/fr/google-telephone",
     "/fr/compte",
+    "/fr/pro",
   ]) {
     await page.goto(url);
     // A client redirect (e.g. /commander to its first step) can briefly leave the old page's tag
@@ -729,6 +730,29 @@ test("tracking: the nav link Suivre un colis clears the result and the field", a
   await expect(page.getByText("Arrivée estimée")).toHaveCount(0);
   await expect(page.getByLabel("Numéro de suivi")).toHaveValue("");
   await expect(page.getByText("Où est votre colis ?")).toBeVisible();
+});
+
+test("tracking: an outcome order shows its client wording and the detail per parcel", async ({
+  page,
+}) => {
+  // FG-5A1Y-0011 is the T19 fixture: 2 parcels handed over, 1 returned.
+  for (const [lang, wording, handed, line] of [
+    ["fr", "Issue de la livraison : Livrée en partie", "Remis", "Colis 1 : Remis"],
+    ["en", "Delivery outcome: Partially delivered", "Handed over", "Parcel 1: Handed over"],
+    ["ar", "نتيجة التوصيل: تم التسليم جزئيًا", "تم التسليم", "الطرد 1: تم التسليم"],
+  ] as const) {
+    await page.goto(`/${lang}/suivi?n=FG-5A1Y-0011`);
+    const main = page.locator("main");
+    await expect(main.getByText(wording)).toBeVisible();
+    await expect(main.getByText(handed, { exact: false }).first()).toBeVisible();
+    await expect(main.locator("ul li")).toHaveCount(3);
+    // the punctuation belongs to the language: no French " :" in en or ar
+    await expect(main.locator("ul li").first()).toHaveText(line);
+    for (const secret of ["Omar", "Sami", "98000001", "20000012", "Sousse"]) {
+      await expect(main, secret).not.toContainText(secret);
+    }
+    expect(await axe(page), `axe ${lang}`).toEqual([]);
+  }
 });
 
 test("contact: the captcha keeps the keyboard focus while it checks", async ({ page }) => {

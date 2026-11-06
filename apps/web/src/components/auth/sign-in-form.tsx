@@ -8,8 +8,7 @@ import { Alert, Button, Checkbox, Field, Input } from "@fastgo/ui";
 import { Link, useRouter } from "@/i18n/navigation";
 import { signIn } from "@/lib/data/auth";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
-import { withNext } from "@/lib/auth/next";
-import { safeNext } from "@/lib/auth/safe-next";
+import { afterSignInPath, withNext } from "@/lib/auth/next";
 import { signInSchema } from "@/lib/order/schemas";
 import { GoogleSignIn, OrDivider } from "./google-sign-in";
 
@@ -45,7 +44,7 @@ export function SignInForm({ next }: { next: string | null }) {
         const result = await signIn(values.identifier, values.password);
         if (result.status === "ok") {
           signedIn = true;
-          router.push(safeNext(next));
+          router.push(afterSignInPath(next, result.session));
           return;
         }
         setFailures((count) => count + 1);

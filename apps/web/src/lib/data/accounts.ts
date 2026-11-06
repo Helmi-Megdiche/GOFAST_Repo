@@ -1,5 +1,10 @@
 import { maskPhone, normalizePhone } from "../phone";
-import { FIXTURE_ACCOUNTS, type FixtureAccount } from "./fixtures/accounts";
+import {
+  FIXTURE_ACCOUNTS,
+  FIXTURE_TEAM_MEMBERS,
+  type FixtureAccount,
+  type FixtureTeamMember,
+} from "./fixtures/accounts";
 import { readTable, writeRow } from "./mock-db";
 import { getSession, setSession, type Session } from "./session";
 
@@ -116,11 +121,27 @@ export function attachPhone(accountId: string, phone: string): CreateResult {
 export function sessionFor(account: Account): Session {
   return {
     accountId: account.id,
+    userId: account.id,
+    role: account.kind === "merchant" ? "admin" : null,
     kind: account.kind,
     contract: account.contract,
     phoneVerified: account.phoneVerified,
     maskedPhone: maskPhone(account.phone),
   };
+}
+
+export function findTeamMemberByPhone(phone: string): FixtureTeamMember | null {
+  const normalized = normalizePhone(phone);
+  return normalized
+    ? (FIXTURE_TEAM_MEMBERS.find((member) => member.phone === normalized) ?? null)
+    : null;
+}
+
+/** The session of a team member: the merchant account, with the member's user and role. */
+export function sessionForMember(member: FixtureTeamMember): Session | null {
+  const account = findById(member.accountId);
+  if (!account) return null;
+  return { ...sessionFor(account), userId: member.userId, role: member.role };
 }
 
 /**

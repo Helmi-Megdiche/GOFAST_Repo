@@ -1,7 +1,9 @@
 import { now } from "../order/clock";
-import { addressPriceKey, isQuoteValid, priceKey } from "../order/pricing";
+import { DELIVERY_CODE_DIGITS } from "../order/constants";
+import { addressPriceKey, isQuoteValid, priceKey, type PriceLine } from "../order/pricing";
 import { fingerprint, type OrderRequest } from "../order/request";
 import { isSlotInFuture } from "../order/slots";
+import { proofLevelFor } from "../order/proof";
 import { servicesOffered } from "../order/steps";
 import {
   isValidTrackingCode,
@@ -9,19 +11,32 @@ import {
   randomTrackingCode,
   type RandomBytes,
 } from "../tracking-code";
+import { splitWhole, kgTextToGrams } from "../order/split";
 import { readJson, removeKey } from "../storage";
 import { isVerifiedPhoneForSession } from "./accounts";
 import { mockDelay } from "./delay";
-import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
+import { FIXTURE_ORDER_CODES } from "./fixtures/orders";
 import {
+  consumeFailNext,
   FAIL_NEXT_ORDER_REQUEST_KEY,
   FAIL_NEXT_ORDER_RESPONSE_KEY,
   readTable,
   writeRow,
 } from "./mock-db";
+import {
+  ACCOUNT_ORDERS,
+  DELIVERY_CODES,
+  PARCELS,
+  STATUS_EVENTS,
+  type AccountOrder,
+  type DeliveryCode,
+  type Parcel,
+  type StatusEvent,
+} from "./order-model";
 import { isTargetVerified } from "./otp";
+import { writeOutbox } from "./outbox";
+import { mintRecipientLink } from "./recipient-links";
 import { canPayOnAccount, getSession } from "./session";
-import type { PublicParcel } from "./tracking";
 
 /** Mock of POST /v1/orders with an Idempotency-Key header (R202, R203). */
 export type OrderError =
@@ -61,7 +76,7 @@ const KEYS = "fg.mock.idempotency";
 
 /** Codes already used, including the fixtures: a code is never given twice (R203). */
 function issuedCodes(): Set<string> {
-  return new Set([FOUND_TRACKING_CODE, ...Object.keys(readTable<StoredOrder>(ORDERS))]);
+  return new Set([...FIXTURE_ORDER_CODES, ...Object.keys(readTable<StoredOrder>(ORDERS))]);
 }
 
 export function uniqueTrackingCode(randomBytes?: RandomBytes): string {
@@ -105,24 +120,194 @@ function check(request: OrderRequest, at: number): OrderError | null {
   return null;
 }
 
+/** The Prompt 3 alias key and the generic failNext key both work; both are consumed. */
+function consumeFailNextWithAlias(op: string, aliasKey: string): boolean {
+  const alias = readJson(aliasKey) === true;
+  if (alias) removeKey(aliasKey);
+  return consumeFailNext(op) || alias;
+}
+
+/** DELIVERY_CODE_DIGITS random digits, rejection-sampled so every code is equally likely. */
+function randomDeliveryCode(): string {
+  const modulus = 10 ** DELIVERY_CODE_DIGITS;
+  const limit = Math.floor(2 ** 32 / modulus) * modulus; // the largest multiple of modulus in a Uint32
+  for (;;) {
+    const [n] = crypto.getRandomValues(new Uint32Array(1));
+    if (n! < limit) return String(n! % modulus).padStart(DELIVERY_CODE_DIGITS, "0");
+  }
+}
+
+const FREIGHT_PAYER = {
+  cashDelivery: "recipient",
+  cashPickup: "sender",
+  account: "sender",
+} as const;
+
+/**
+ * Writes the account order, its parcels with their delivery codes, the first status events, the
+ * recipient link and the "trackingLink" SMS in the outbox (ESP-00, R203 R406 R903 R607).
+ */
+function writeAccountOrder(code: string, request: OrderRequest, at: number): void {
+  const session = getSession();
+  const iso = new Date(at).toISOString();
+  // The person who orders (a team member for a merchant), not the account that owns the order.
+  const actor = session?.userId ?? "guest";
+  const recipientLocale = request.recipient.smsLanguage;
+  const { count, declaredValueMillimes } = request.parcel;
+  const grams = kgTextToGrams(request.parcel.weightText);
+  if (typeof grams !== "number") throw new Error("createOrder: weightText was validated before");
+  const weights = splitWhole(grams, count);
+  const values =
+    declaredValueMillimes == null
+      ? Array.from({ length: count }, () => null)
+      : splitWhole(declaredValueMillimes, count);
+  const strongerProofRequested = false;
+
+  const order: AccountOrder = {
+    code,
+    ownerAccountId: session?.accountId ?? null,
+    createdByUserId: session?.userId ?? null,
+    createdAt: iso,
+    service: request.service.code,
+    sender: {
+      name: request.sender.name,
+      phone: request.sender.phone,
+      address: request.sender.address,
+      city: null,
+    },
+    recipient: {
+      name: request.recipient.name,
+      phone: request.recipient.phone,
+      address: request.recipient.address,
+      city: null,
+    },
+    pickupPointId: null,
+    recipientLocale,
+    status: "received",
+    lossReported: false,
+    totalMillimes: request.quote.totalMillimes,
+    priceLines: Object.entries(request.quote.lines).map(([kind, millimes]) => ({
+      kind: kind as PriceLine,
+      millimes,
+    })),
+    paymentMode: request.payment,
+    // R607: the recipient pays the freight on delivery only for "cashDelivery"; the W15 checkbox
+    // (and the refusal when it is missing) is PR A's, so it stays false here.
+    freightPayer: FREIGHT_PAYER[request.payment],
+    freightPayerAccepted: false,
+    strongerProofRequested,
+    cancel: null,
+    etaUtc: null,
+  };
+  writeRow(ACCOUNT_ORDERS, code, order);
+  writeEvent("order", code, null, "received", actor, iso);
+
+  for (let i = 0; i < count; i++) {
+    const parcel: Parcel = {
+      id: `${code}-p${i + 1}`,
+      orderCode: code,
+      index: i + 1,
+      barcode: `${code}-${i + 1}`,
+      size: request.parcel.type,
+      weightDeclaredG: weights[i]!,
+      weightMeasuredG: null,
+      declaredValueMillimes: values[i]!,
+      codMillimes: null,
+      fragile: request.parcel.fragile,
+      proofLevel: proofLevelFor(
+        { fragile: request.parcel.fragile, codMillimes: null },
+        { totalDeclaredValueMillimes: declaredValueMillimes, strongerProofRequested },
+      ),
+      attempts: 0,
+      status: "to_collect",
+      failure: null,
+      proof: null,
+    };
+    writeRow(PARCELS, parcel.id, parcel);
+    writeEvent("parcel", parcel.id, null, "to_collect", actor, iso);
+    writeRow<DeliveryCode>(DELIVERY_CODES, parcel.id, {
+      parcelId: parcel.id,
+      code: randomDeliveryCode(),
+      failedAttempts: 0,
+      expiresAt: null,
+    });
+  }
+
+  const linkToken = mintRecipientLink(code, recipientLocale);
+  writeOutbox({
+    ownerAccountId: session?.accountId ?? null,
+    orderCode: code,
+    channel: "sms",
+    template: "trackingLink",
+    params: {
+      senderName: request.sender.name,
+      senderPhone: request.sender.phone,
+      trackingCode: code,
+      linkToken,
+    },
+    locale: recipientLocale,
+  });
+}
+
+function writeEvent(
+  subjectType: StatusEvent["subjectType"],
+  subjectId: string,
+  fromStatus: string | null,
+  toStatus: string,
+  actorId: string,
+  occurredAt: string,
+): void {
+  const id = crypto.randomUUID();
+  writeRow<StatusEvent>(STATUS_EVENTS, id, {
+    id,
+    subjectType,
+    subjectId,
+    fromStatus,
+    toStatus,
+    actorId,
+    occurredAt,
+  });
+}
+
+/** The answer for a key already stored: the same order again, or a conflict if the request differs. */
+function replayOf(idempotencyKey: string, print: string): CreateOrderResult | null {
+  const known = readTable<{ fingerprint: string; code: string }>(KEYS)[idempotencyKey];
+  if (!known) return null;
+  if (known.fingerprint !== print) return { status: "refused", error: "idempotencyConflict" };
+  return { status: "created", code: known.code, replay: true };
+}
+
 export async function createOrder(
   request: OrderRequest,
   idempotencyKey: string,
   randomBytes?: RandomBytes,
 ): Promise<CreateOrderResult> {
   await mockDelay();
-  if (readJson(FAIL_NEXT_ORDER_REQUEST_KEY) === true) {
-    removeKey(FAIL_NEXT_ORDER_REQUEST_KEY);
+  if (consumeFailNextWithAlias("createOrder.request", FAIL_NEXT_ORDER_REQUEST_KEY)) {
     throw new NetworkError();
   }
+  return withOrderLock(() => createOrderNow(request, idempotencyKey, randomBytes));
+}
+
+/**
+ * The real server serialises two requests with the same key in its database. The mock does it with
+ * a Web Lock shared by every tab of the browser, so two tabs pressing Valider at once give one order.
+ */
+async function withOrderLock<T>(work: () => T): Promise<T> {
+  const locks = typeof window === "undefined" ? undefined : window.navigator.locks;
+  return locks ? locks.request("fg.mock.createOrder", () => work()) : work();
+}
+
+function createOrderNow(
+  request: OrderRequest,
+  idempotencyKey: string,
+  randomBytes?: RandomBytes,
+): CreateOrderResult {
   const at = now();
   const print = fingerprint(request);
 
-  const known = readTable<{ fingerprint: string; code: string }>(KEYS)[idempotencyKey];
-  if (known) {
-    if (known.fingerprint !== print) return { status: "refused", error: "idempotencyConflict" };
-    return { status: "created", code: known.code, replay: true };
-  }
+  const known = replayOf(idempotencyKey, print);
+  if (known) return known;
 
   const error = check(request, at);
   if (error) return { status: "refused", error };
@@ -138,9 +323,9 @@ export async function createOrder(
   };
   writeRow(ORDERS, code, order);
   writeRow(KEYS, idempotencyKey, { fingerprint: print, code });
+  writeAccountOrder(code, request, at);
 
-  if (readJson(FAIL_NEXT_ORDER_RESPONSE_KEY) === true) {
-    removeKey(FAIL_NEXT_ORDER_RESPONSE_KEY);
+  if (consumeFailNextWithAlias("createOrder.response", FAIL_NEXT_ORDER_RESPONSE_KEY)) {
     throw new NetworkError();
   }
   return { status: "created", code, replay: false };
@@ -167,19 +352,6 @@ export async function getOrderConfirmation(code: string): Promise<{
   return order
     ? { code: order.code, recipientName: order.recipientName, pickup: order.pickup }
     : null;
-}
-
-/** Public tracking of a new order: status, dates and cities only (SUI-01), no name or address. */
-export function publicParcelOf(code: string): PublicParcel | null {
-  const order = readTable<StoredOrder>(ORDERS)[normalizeTrackingCode(code)];
-  if (!order) return null;
-  return {
-    currentStep: "created",
-    etaUtc: null,
-    fromCity: null,
-    toCity: null,
-    history: [{ step: "created", atUtc: order.createdAt }],
-  };
 }
 
 /** "Bon de commande" (W16): a small static sample PDF marked as an example (decision 20). */

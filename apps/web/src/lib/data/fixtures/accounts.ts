@@ -11,7 +11,38 @@ export type FixtureAccount = {
   /** Merchants only (R104): "Compte client" needs a validated contract. */
   contract: "validated" | "pending" | null;
   phoneVerified: boolean;
+  /**
+   * Mock field, not in the cahier's data model: what a customer owes FastGo for returned parcels
+   * (millimes), for the screens that show a balance to settle. Absent means nothing is due.
+   */
+  returnBalanceMillimes?: number;
 };
+
+/** A person of a merchant's team (ADR-2). Signs in with their own phone and the fixture password. */
+export type FixtureTeamMember = {
+  userId: string;
+  accountId: string;
+  name: string;
+  phone: string;
+  role: "admin" | "user";
+};
+
+export const FIXTURE_TEAM_MEMBERS: FixtureTeamMember[] = [
+  {
+    userId: "usr-yasmine-admin",
+    accountId: "acc-merchant-validated",
+    name: "Yasmine K.",
+    phone: "+21671000011",
+    role: "admin",
+  },
+  {
+    userId: "usr-walid-user",
+    accountId: "acc-merchant-validated",
+    name: "Walid H.",
+    phone: "+21671000012",
+    role: "user",
+  },
+];
 
 export const FIXTURE_PASSWORD = "fastgo-demo-2026";
 
@@ -42,6 +73,34 @@ export const FIXTURE_ACCOUNTS: FixtureAccount[] = [
     email: "atelier.nour@example.tn",
     contract: "pending",
     phoneVerified: true,
+  },
+  {
+    id: "acc-customer-empty",
+    kind: "customer",
+    name: "Lina M.",
+    phone: "+21698000003",
+    email: "lina.m@example.tn",
+    contract: null,
+    phoneVerified: true,
+  },
+  {
+    id: "acc-customer-other",
+    kind: "customer",
+    name: "Karim S.",
+    phone: "+21698000004",
+    email: "karim.s@example.tn",
+    contract: null,
+    phoneVerified: true,
+  },
+  {
+    id: "acc-customer-return-due",
+    kind: "customer",
+    name: "Hana R.",
+    phone: "+21698000005",
+    email: "hana.r@example.tn",
+    contract: null,
+    phoneVerified: true,
+    returnBalanceMillimes: 7000,
   },
 ];
 

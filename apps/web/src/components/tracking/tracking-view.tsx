@@ -20,10 +20,22 @@ import { DateTime } from "@/components/money";
 import { PageHero } from "@/components/page-hero";
 import { Link, useRouter } from "@/i18n/navigation";
 import { FOUND_TRACKING_CODE } from "@/lib/data/fixtures/tracking";
-import { lookupTracking, type TrackingResult } from "@/lib/data/tracking";
+import { FINAL_ORDER_STATES, type OrderStatus } from "@/lib/data/states";
+import { lookupTracking, type PublicTracking, type TrackingResult } from "@/lib/data/tracking";
 import { trackingFormSchema, type TrackingFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { normalizeTrackingCode } from "@/lib/tracking-code";
+
+const OUTCOMES: readonly OrderStatus[] = ["delivered", "partially_delivered", "returned", "lost"];
+
+const BADGE_TONE = {
+  delivered: "success",
+  partially_delivered: "warning",
+  pickup_failed: "warning",
+  returned: "warning",
+  lost: "danger",
+  canceled: "danger",
+} as const;
 
 /**
  * Public tracking (SUI-01): a form, then status, estimated time and history. No personal data.
@@ -34,6 +46,8 @@ import { normalizeTrackingCode } from "@/lib/tracking-code";
  */
 export function TrackingView({ code }: { code: string }) {
   const t = useTranslations("tracking");
+  const o = useTranslations("orders");
+  const parcels = useTranslations("parcels");
   const p = useTranslations("placeholders");
   const message = useErrorMessage();
   const router = useRouter();
@@ -77,6 +91,17 @@ export function TrackingView({ code }: { code: string }) {
       ? message("trackingInvalid")
       : undefined;
   const shown = fieldInvalid || !current ? null : result;
+
+  /** The client wording of the order status (the cahier's "Ce que voit le client"). */
+  const clientText = (tracking: PublicTracking) => {
+    if (tracking.status === "picked_up") {
+      return o("client.picked_up", { count: tracking.parcelCount });
+    }
+    if (OUTCOMES.includes(tracking.status)) {
+      return o(`client.${tracking.status}`, { outcome: o(`status.${tracking.status}`) });
+    }
+    return o(`client.${tracking.status}`);
+  };
 
   const onSubmit = handleSubmit(({ code: typed }) => {
     if (loading) return;
@@ -127,34 +152,51 @@ export function TrackingView({ code }: { code: string }) {
                   <div>
                     <p className="text-sm text-muted">{t("arrival")}</p>
                     <p className="font-display text-[44px] leading-tight font-bold">
-                      {shown.parcel.etaUtc ? (
-                        <DateTime value={shown.parcel.etaUtc} style="time" />
+                      {shown.tracking.etaUtc ? (
+                        <DateTime value={shown.tracking.etaUtc} style="time" />
                       ) : (
                         p("time")
                       )}
                     </p>
                   </div>
                   <Badge
-                    tone={shown.parcel.currentStep === "delivered" ? "success" : "info"}
+                    tone={BADGE_TONE[shown.tracking.status as keyof typeof BADGE_TONE] ?? "info"}
                     icon="truck"
                   >
-                    {t(`steps.${shown.parcel.currentStep}`)}
+                    {o(`status.${shown.tracking.status}`)}
                   </Badge>
                 </div>
+                <p className="font-semibold">{clientText(shown.tracking)}</p>
+                {OUTCOMES.includes(shown.tracking.status) ? (
+                  <ul className="flex flex-col gap-1 text-sm text-muted">
+                    {shown.tracking.parcelOutcomes.map((outcome, index) => (
+                      <li key={index}>
+                        {t.rich("parcelLine", {
+                          n: () => <span dir="ltr">{index + 1}</span>,
+                          status: parcels(`status.${outcome}`),
+                        })}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
                 <p className="text-sm text-muted">
                   {t("route", {
-                    from: shown.parcel.fromCity ?? p("cityFrom"),
-                    to: shown.parcel.toCity ?? p("cityTo"),
+                    from: shown.tracking.fromCity ?? p("cityFrom"),
+                    to: shown.tracking.toCity ?? p("cityTo"),
                   })}
                 </p>
                 <hr className="border-line" />
                 <Timeline aria-label={t("historyLabel")}>
-                  {[...shown.parcel.history].reverse().map((entry, index) => (
+                  {[...shown.tracking.history].reverse().map((entry, index) => (
                     <TimelineItem
-                      key={entry.step}
-                      state={index === 0 && entry.step !== "delivered" ? "current" : "done"}
+                      key={`${entry.atUtc}-${entry.status}`}
+                      state={
+                        index === 0 && !FINAL_ORDER_STATES.includes(entry.status)
+                          ? "current"
+                          : "done"
+                      }
                     >
-                      <b className="font-semibold">{t(`steps.${entry.step}`)}</b>
+                      <b className="font-semibold">{o(`status.${entry.status}`)}</b>
                       <br />
                       <span className="text-muted">
                         <DateTime value={entry.atUtc} />

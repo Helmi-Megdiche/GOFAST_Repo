@@ -10,6 +10,32 @@ native-speaker review before release (CLAUDE.md).
 
 | Key | Arabic | French (source) | Reviewed |
 | --- | --- | --- | --- |
+| `account.guard.busy` | جارٍ تحميل مساحتك… | Chargement de votre espace… | [ ] |
+| `account.guard.noscript` | تحتاج هذه الصفحة إلى JavaScript لعرض مساحتك. | Cette page a besoin de JavaScript pour afficher votre espace. | [ ] |
+| `account.guard.notAllowed` | ليس لديك صلاحية الوصول إلى هذه الصفحة. | Vous n'avez pas accès à cette page. | [ ] |
+| `account.home.slots.frequentRecipients` | المستلمون المتكررون | Destinataires fréquents | [ ] |
+| `account.home.slots.inProgress` | الطلبات الجارية | Commandes en cours | [ ] |
+| `account.home.slots.installBanner` | تثبيت التطبيق | Installer l'application | [ ] |
+| `account.home.slots.lastDeliveries` | آخر عمليات التسليم | Dernières livraisons | [ ] |
+| `account.home.slots.toSettle` | المبالغ المستحقة | À régler | [ ] |
+| `account.home.title` | حسابي | Mon compte | [ ] |
+| `account.nav.addresses` | العناوين | Adresses | [ ] |
+| `account.nav.claims` | الشكاوى | Réclamations | [ ] |
+| `account.nav.cod` | الدفع عند الاستلام | Paiements à la livraison | [ ] |
+| `account.nav.company` | الشركة | Entreprise | [ ] |
+| `account.nav.home` | الرئيسية | Accueil | [ ] |
+| `account.nav.import` | الاستيراد | Import | [ ] |
+| `account.nav.invoices` | الفواتير | Factures | [ ] |
+| `account.nav.label` | مساحتي | Mon espace | [ ] |
+| `account.nav.orders` | الطلبات | Commandes | [ ] |
+| `account.nav.profile` | الملف الشخصي | Profil | [ ] |
+| `account.nav.statements` | كشوف الحساب | Relevés | [ ] |
+| `account.pro.slots.chart` | عمليات التسليم هذا الأسبوع | Livraisons de la semaine | [ ] |
+| `account.pro.slots.cod` | الدفع عند الاستلام | Paiements à la livraison | [ ] |
+| `account.pro.slots.inProgress` | الطلبات الجارية | Commandes en cours | [ ] |
+| `account.pro.slots.lastDeliveries` | آخر عمليات التسليم | Dernières livraisons | [ ] |
+| `account.pro.title` | مساحة التاجر | Espace commerçant | [ ] |
+| `account.signOut` | تسجيل الخروج | Se déconnecter | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
 | `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |
@@ -107,7 +133,6 @@ native-speaker review before release (CLAUDE.md).
 | `cmd.steps.sender` | 1. المرسل | 1. Expéditeur | [ ] |
 | `cmd.steps.service` | 4. الخدمة | 4. Service | [ ] |
 | `comingSoon.home` | العودة إلى الرئيسية | Retour à l'accueil | [ ] |
-| `comingSoon.pages.account` | حسابي | Mon compte | [ ] |
 | `comingSoon.pages.order` | اطلب الآن | Commander | [ ] |
 | `comingSoon.pages.signIn` | تسجيل الدخول | Connexion | [ ] |
 | `comingSoon.pages.signUp` | إنشاء حساب | Créer un compte | [ ] |
@@ -159,6 +184,13 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.buttons.secondary` | تتبع | Suivre | [ ] |
 | `devUi.buttons.small` | صغير | Petit | [ ] |
 | `devUi.cards.title` | الطرد | Colis | [ ] |
+| `devUi.dialog.confirm` | نعم، إلغاء | Oui, annuler | [ ] |
+| `devUi.dialog.keep` | لا، الإبقاء عليه | Non, garder | [ ] |
+| `devUi.dialog.open` | فتح مربع الحوار | Ouvrir la boîte de dialogue | [ ] |
+| `devUi.dialog.stateClosed` | الحالة: مغلق | État : fermé | [ ] |
+| `devUi.dialog.stateOpen` | الحالة: مفتوح | État : ouvert | [ ] |
+| `devUi.dialog.text` | مثال على مربع حوار. لا يتم حفظ أي شيء. | Exemple de boîte de dialogue. Rien n'est enregistré. | [ ] |
+| `devUi.dialog.title` | هل تريد إلغاء هذا الطلب؟ | Annuler cette commande ? | [ ] |
 | `devUi.formats.date` | التاريخ والوقت (Africa/Tunis) | Date et heure (Africa/Tunis) | [ ] |
 | `devUi.formats.money` | المبالغ | Montants | [ ] |
 | `devUi.forms.addressHint` | اكتب اسم الشارع أو معلماً قريباً. | Indiquez la rue ou un point de repère. | [ ] |
@@ -210,6 +242,7 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.sections.chips` | الشرائح | Puces | [ ] |
 | `devUi.sections.codeInput` | رمز التحقق | Code de vérification | [ ] |
 | `devUi.sections.colors` | الألوان | Couleurs | [ ] |
+| `devUi.sections.dialog` | مربع حوار | Boîte de dialogue | [ ] |
 | `devUi.sections.fileAttach` | المرفق | Pièce jointe | [ ] |
 | `devUi.sections.formats` | الصيغ | Formats | [ ] |
 | `devUi.sections.forms` | النماذج | Formulaires | [ ] |
@@ -221,6 +254,7 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.sections.logo` | الشعار | Logo | [ ] |
 | `devUi.sections.map` | خريطة (مؤقتة) | Carte (provisoire) | [ ] |
 | `devUi.sections.radioCard` | اختيار على شكل بطاقة | Choix en carte | [ ] |
+| `devUi.sections.stackedTable` | جدول مكدّس | Tableau empilé | [ ] |
 | `devUi.sections.stepper` | الخطوات | Étapes | [ ] |
 | `devUi.sections.table` | الجدول | Tableau | [ ] |
 | `devUi.sections.tabs` | التبويبات | Onglets | [ ] |
@@ -238,6 +272,8 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.table.amount` | المبلغ | Montant | [ ] |
 | `devUi.table.label` | جدول تجريبي | Exemple de tableau | [ ] |
 | `devUi.table.number` | الرقم | Numéro | [ ] |
+| `devUi.table.stackedHint` | عندما يقل العرض عن 600 بكسل، يصبح كل صف بطاقة. | Sous 600 px de large, chaque ligne devient une carte. | [ ] |
+| `devUi.table.stackedLabel` | مثال على جدول مكدّس | Exemple de tableau empilé | [ ] |
 | `devUi.table.status` | الحالة | Statut | [ ] |
 | `devUi.tabs.invoices` | الفواتير | Factures | [ ] |
 | `devUi.tabs.label` | تبويبات تجريبية | Exemple d'onglets | [ ] |
@@ -424,7 +460,7 @@ native-speaker review before release (CLAUDE.md).
 | `merchants.talk.title` | لنتحدث عن حجم طلباتك | Parlons de vos volumes | [ ] |
 | `merchants.title` | بع بطمأنينة أكبر. كل طرد وكل دينار يتم تتبعه. | Vendez plus sereinement. Chaque colis et chaque dinar sont suivis. | [ ] |
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
-| `meta.pages.account.description` | مساحتك قريبًا. | Votre espace client arrive bientôt. | [ ] |
+| `meta.pages.account.description` | مساحة عميل FastGo الخاصة بك. | Votre espace client FastGo. | [ ] |
 | `meta.pages.account.title` | حسابي \| FastGo | Mon compte \| FastGo | [ ] |
 | `meta.pages.cgv.description` | شروط البيع الخاصة بـ FastGo. | Conditions générales de vente de FastGo. | [ ] |
 | `meta.pages.cgv.title` | شروط البيع \| FastGo | Conditions générales de vente \| FastGo | [ ] |
@@ -470,6 +506,8 @@ native-speaker review before release (CLAUDE.md).
 | `meta.pages.passwordNew.title` | كلمة مرور جديدة \| FastGo | Nouveau mot de passe \| FastGo | [ ] |
 | `meta.pages.privacy.description` | سياسة الخصوصية الخاصة بـ FastGo. | Politique de confidentialité de FastGo. | [ ] |
 | `meta.pages.privacy.title` | الخصوصية \| FastGo | Confidentialité \| FastGo | [ ] |
+| `meta.pages.pro.description` | مساحة التاجر الخاصة بك في FastGo. | Votre espace commerçant FastGo. | [ ] |
+| `meta.pages.pro.title` | مساحة التاجر \| FastGo | Espace commerçant \| FastGo | [ ] |
 | `meta.pages.services.description` | سريع أو عادي أو مجدول: قارن عروض FastGo وأنواع الشحنات والخيارات. | Express, Standard ou Programmée : comparez les offres FastGo, les types d'envoi et les options. | [ ] |
 | `meta.pages.services.title` | الخدمات والأسعار \| FastGo | Services et tarifs \| FastGo | [ ] |
 | `meta.pages.signIn.description` | تسجيل الدخول إلى حسابك قريبًا. | La connexion à votre compte arrive bientôt. | [ ] |
@@ -652,6 +690,38 @@ native-speaker review before release (CLAUDE.md).
 | `order.slot.onDate` | يوم {date}، من {start} إلى {end} | Le {date}, de {start} à {end} | [ ] |
 | `order.slot.today` | اليوم، من {start} إلى {end} | Aujourd'hui, de {start} à {end} | [ ] |
 | `order.slot.tomorrow` | غدًا، من {start} إلى {end} | Demain, de {start} à {end} | [ ] |
+| `orders.client.assigned` | سيأتي سائق لاستلام طردك | Un livreur vient chercher votre colis | [ ] |
+| `orders.client.canceled` | تم إلغاء طلبك | Votre commande est annulée | [ ] |
+| `orders.client.confirmed` | تم تأكيد طلبك | Votre commande est confirmée | [ ] |
+| `orders.client.delivered` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.client.in_transit` | طلبك قيد التوصيل | Votre livraison est en cours | [ ] |
+| `orders.client.lost` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.client.partially_delivered` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.client.picked_up` | {count, plural, one {تم استلام طردك} two {تم استلام طردَيك} few {تم استلام # طرود} many {تم استلام # طردًا} other {تم استلام # طرد}} | {count, plural, one {Votre colis est récupéré} other {Vos # colis sont récupérés}} | [ ] |
+| `orders.client.pickup_failed` | تعذّر الاستلام | La collecte n'a pas pu se faire | [ ] |
+| `orders.client.received` | لقد استلمنا طلبك | Nous avons reçu votre commande | [ ] |
+| `orders.client.returned` | نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه. | Issue de la livraison : {outcome}. Le détail par colis suit. | [ ] |
+| `orders.status.assigned` | تم الإسناد | Attribuée | [ ] |
+| `orders.status.canceled` | ملغى | Annulée | [ ] |
+| `orders.status.confirmed` | مؤكَّد | Confirmée | [ ] |
+| `orders.status.delivered` | تم التسليم | Livrée | [ ] |
+| `orders.status.in_transit` | في الطريق | En route | [ ] |
+| `orders.status.lost` | مفقود | Perdue | [ ] |
+| `orders.status.partially_delivered` | تم التسليم جزئيًا | Livrée en partie | [ ] |
+| `orders.status.picked_up` | تم التكفّل به | Prise en charge | [ ] |
+| `orders.status.pickup_failed` | تعذّر الاستلام | Collecte ratée | [ ] |
+| `orders.status.received` | تم الاستلام | Reçue | [ ] |
+| `orders.status.returned` | تمت الإعادة | Rendue | [ ] |
+| `parcels.status.at_depot` | في المستودع | Au dépôt | [ ] |
+| `parcels.status.canceled` | ملغى | Annulé | [ ] |
+| `parcels.status.delivery_failed` | تعذّر التسليم | Remise ratée | [ ] |
+| `parcels.status.handed_over` | تم التسليم | Remis | [ ] |
+| `parcels.status.in_transit` | في الطريق | En route | [ ] |
+| `parcels.status.lost` | مفقود | Perdu | [ ] |
+| `parcels.status.returned` | تمت الإعادة | Rendu | [ ] |
+| `parcels.status.returning` | قيد الإرجاع | Retour | [ ] |
+| `parcels.status.taken` | تم أخذه | Pris | [ ] |
+| `parcels.status.to_collect` | بانتظار الاستلام | À prendre | [ ] |
 | `placeholders.address` | [العنوان] | [ADRESSE] | [ ] |
 | `placeholders.answer` | [الجواب] | [RÉPONSE] | [ ] |
 | `placeholders.ceiling` | [سقف] | [PLAFOND] | [ ] |
@@ -698,15 +768,11 @@ native-speaker review before release (CLAUDE.md).
 | `tracking.label` | رقم التتبع | Numéro de suivi | [ ] |
 | `tracking.notFound.text` | لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع FastGo. | Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo. | [ ] |
 | `tracking.notFound.title` | الرقم غير موجود | Numéro introuvable | [ ] |
+| `tracking.parcelLine` | الطرد <n></n>: {status} | Colis <n></n> : {status} | [ ] |
 | `tracking.problem.cta` | تواصل مع FastGo | Contacter FastGo | [ ] |
 | `tracking.problem.title` | هل من مشكلة؟ | Un problème ? | [ ] |
 | `tracking.route` | من {from} إلى {to} | De {from} vers {to} | [ ] |
 | `tracking.searching` | جارٍ البحث… | Recherche… | [ ] |
-| `tracking.steps.confirmed` | تم تأكيد الطلب | Commande confirmée | [ ] |
-| `tracking.steps.created` | تم إنشاء الطلب | Commande créée | [ ] |
-| `tracking.steps.delivered` | تم التسليم | Livré | [ ] |
-| `tracking.steps.out_for_delivery` | قيد التوصيل | En cours de livraison | [ ] |
-| `tracking.steps.picked_up` | تم استلام الطرد | Colis récupéré | [ ] |
 | `tracking.submit` | تتبع | Suivre | [ ] |
 | `tracking.title` | تتبع طرد | Suivre un colis | [ ] |
 | `tracking.yourParcel.text` | يعرض الرابط الذي وصلك برسالة نصية المبلغ المطلوب ورمز التسليم، ويتيح تغيير الموعد. | Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau. | [ ] |

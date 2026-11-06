@@ -7,9 +7,9 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { attachPhone, createAccount, findByEmail, sessionFor } from "@/lib/data/accounts";
 import { clearPendingGoogle, markGoogleEmailVerified, pendingGoogle } from "@/lib/data/google";
 import { consumeVerification } from "@/lib/data/otp";
-import { setSession } from "@/lib/data/session";
+import { getSession, setSession } from "@/lib/data/session";
 import { currentFlow, endFlow, type AuthFlow } from "@/lib/auth/flow";
-import { withNext } from "@/lib/auth/next";
+import { afterSignInPath, withNext } from "@/lib/auth/next";
 import { safeNext } from "@/lib/auth/safe-next";
 import { maskEmail, maskPhone, normalizePhone } from "@/lib/phone";
 import { AccountExists, CodeVerification } from "./code-verification";
@@ -48,9 +48,14 @@ export function CodePage({ next }: { next: string | null }) {
   if (!flow) return heading;
 
   const signInHref = `/${locale}/connexion${next ? `?next=${encodeURIComponent(safeNext(next))}` : ""}`;
+  // After the account is created the session exists: no ?next= means the person's home.
+  const destination = () => {
+    const session = getSession();
+    return session ? afterSignInPath(flow.next || next, session) : safeNext(flow.next || next);
+  };
   const finish = () => {
     endFlow();
-    router.push(safeNext(flow.next || next));
+    router.push(destination());
   };
 
   if (flow.kind === "googleEmail") {
@@ -94,7 +99,7 @@ export function CodePage({ next }: { next: string | null }) {
       setSession(sessionFor(created.account));
       if (typedEmail) {
         endFlow();
-        return <EmailLater onContinue={() => router.push(safeNext(flow.next || next))} />;
+        return <EmailLater onContinue={() => router.push(destination())} />;
       }
       finish();
       return;

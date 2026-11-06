@@ -39,6 +39,7 @@ import {
   type IconName,
 } from "@fastgo/ui";
 import { DateTime, Money } from "@/components/money";
+import { DialogDemo } from "./dialog-demo";
 import { FileAttachDemo } from "./file-attach-demo";
 import { CodeInputDemo, GoogleDemo, MapDemo, RadioCardDemo } from "./order-components-demo";
 import { devUiFixtures as data } from "@/lib/data/fixtures/dev-ui";
@@ -254,6 +255,40 @@ export function UiShowcase() {
             </TBody>
           </Table>
         </Card>
+      </Section>
+
+      <Section id="stacked-table" title={sectionTitle("stackedTable")}>
+        <p className="text-sm text-muted">{t("table.stackedHint")}</p>
+        <Card flush>
+          <Table stacked label={t("table.stackedLabel")} caption={t("table.stackedLabel")}>
+            <THead>
+              <tr>
+                <Th>{t("table.number")}</Th>
+                <Th>{t("table.status")}</Th>
+                <Th alignEnd>{t("table.amount")}</Th>
+              </tr>
+            </THead>
+            <TBody>
+              {data.orders.map((order) => (
+                <Tr key={order.code}>
+                  <Td label={t("table.number")}>
+                    <Ltr mono>{order.code}</Ltr>
+                  </Td>
+                  <Td label={t("table.status")}>
+                    <Badge tone={STATUS_TONE[order.status]}>{t(`badges.${order.status}`)}</Badge>
+                  </Td>
+                  <Td alignEnd label={t("table.amount")}>
+                    <Money millimes={order.amount} />
+                  </Td>
+                </Tr>
+              ))}
+            </TBody>
+          </Table>
+        </Card>
+      </Section>
+
+      <Section id="dialog" title={sectionTitle("dialog")}>
+        <DialogDemo />
       </Section>
 
       <Section id="kpi" title={sectionTitle("kpi")}>

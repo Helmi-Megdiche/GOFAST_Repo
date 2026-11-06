@@ -3,7 +3,7 @@ import { Button, Container, Section } from "@fastgo/ui";
 import { Link } from "@/i18n/navigation";
 
 /** Placeholder for pages that arrive later (/compte until Prompt 4). Never indexed. */
-export function ComingSoon({ page }: { page: "order" | "signIn" | "signUp" | "account" }) {
+export function ComingSoon({ page }: { page: "order" | "signIn" | "signUp" }) {
   const t = useTranslations("comingSoon");
   return (
     <Section compact>

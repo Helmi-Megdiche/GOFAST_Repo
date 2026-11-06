@@ -1,44 +1,81 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { MAX_ATTACHMENT_BYTES } from "../limits";
+import { setClock } from "../order/clock";
+import { useMemoryStorage } from "../storage";
 import { requestCaptchaToken } from "./captcha";
 import { submitContact, type ContactInput } from "./contact";
 import { submitDriverApplication } from "./driver";
 import { getFaq } from "./faq";
+import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
+import { readTable } from "./mock-db";
+import { ACCOUNT_ORDERS, type AccountOrder } from "./order-model";
 import { getServiceOffers } from "./services";
-import { lookupTracking } from "./tracking";
+import { lookupTracking, publicTrackingOf } from "./tracking";
 import { checkZone } from "./zones";
 
 describe("lookupTracking", () => {
-  it("finds FG-7K4M-2QXP, whatever the case and spaces", async () => {
-    for (const code of ["FG-7K4M-2QXP", "  fg-7k4m-2qxp "]) {
-      const result = await lookupTracking(code);
-      expect(result.status).toBe("found");
+  beforeEach(() => {
+    useMemoryStorage();
+    setClock(() => Date.parse("2026-11-04T08:30:00Z"));
+  });
+
+  it("normalizes the code: case and surrounding spaces", async () => {
+    for (const code of ["FG-7K4M-2QXP", "fg-7k4m-2qxp", "  fg-7k4m-2qxp "]) {
+      expect((await lookupTracking(code)).status, code).toBe("found");
     }
   });
 
-  it("returns no personal data and no display text", async () => {
+  it("finds the fixture in_transit with its estimated time and order history", async () => {
     const result = await lookupTracking("FG-7K4M-2QXP");
     if (result.status !== "found") throw new Error("expected found");
-    expect(Object.keys(result.parcel).sort()).toEqual([
-      "currentStep",
+    expect(result.tracking.status).toBe("in_transit");
+    expect(result.tracking.etaUtc).toBe("2026-11-04T13:20:00Z");
+    expect(result.tracking.history.map((entry) => entry.status)).toEqual([
+      "received",
+      "confirmed",
+      "assigned",
+      "picked_up",
+      "in_transit",
+    ]);
+    // Cities stay null until FastGo gives the launch cities: the page prints the placeholder.
+    expect(result.tracking.fromCity).toBeNull();
+    expect(result.tracking.toCity).toBeNull();
+  });
+
+  it("publicTrackingOf keys are exactly the R405 allowlist", async () => {
+    const tracking = publicTrackingOf(FOUND_TRACKING_CODE)!;
+    expect(Object.keys(tracking).sort()).toEqual([
       "etaUtc",
       "fromCity",
       "history",
+      "parcelCount",
+      "parcelOutcomes",
+      "status",
       "toCity",
-    ]);
-    // cities are null: the page prints the placeholder in the active language
-    expect(result.parcel.fromCity).toBeNull();
-    expect(result.parcel.toCity).toBeNull();
-    expect(result.parcel.etaUtc).toMatch(/Z$/);
-    expect(result.parcel.history.map((entry) => entry.step)).toEqual([
-      "created",
-      "confirmed",
-      "picked_up",
-      "out_for_delivery",
     ]);
   });
 
-  it("does not find an unknown code with a valid format", async () => {
+  it("publicTrackingOf leaks no name, phone or address of any fixture order", () => {
+    publicTrackingOf(FOUND_TRACKING_CODE); // seeds
+    const orders = Object.values(readTable<AccountOrder>(ACCOUNT_ORDERS));
+    expect(orders.length).toBeGreaterThan(10);
+    for (const order of orders) {
+      const json = JSON.stringify(publicTrackingOf(order.code));
+      for (const secret of [
+        order.sender.name,
+        order.sender.phone,
+        order.sender.address,
+        order.recipient.name,
+        order.recipient.phone,
+        order.recipient.address,
+      ]) {
+        if (secret) expect(json, `${order.code} ${secret}`).not.toContain(secret);
+      }
+    }
+  });
+
+  it("answers null or not-found for an unknown code with a valid format", async () => {
+    expect(publicTrackingOf("FG-0000-0000")).toBeNull();
     expect(await lookupTracking("FG-0000-0000")).toEqual({ status: "not-found" });
   });
 

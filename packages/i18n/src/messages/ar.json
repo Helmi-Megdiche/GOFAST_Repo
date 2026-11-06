@@ -113,7 +113,11 @@
       },
       "account": {
         "title": "حسابي | FastGo",
-        "description": "مساحتك قريبًا."
+        "description": "مساحة عميل FastGo الخاصة بك."
+      },
+      "pro": {
+        "title": "مساحة التاجر | FastGo",
+        "description": "مساحة التاجر الخاصة بك في FastGo."
       }
     }
   },
@@ -155,7 +159,9 @@
       "radioCard": "اختيار على شكل بطاقة",
       "codeInput": "رمز التحقق",
       "map": "خريطة (مؤقتة)",
-      "google": "زر Google"
+      "google": "زر Google",
+      "dialog": "مربع حوار",
+      "stackedTable": "جدول مكدّس"
     },
     "typography": {
       "d1": "طردك ينطلق اليوم، وتعرف أين هو.",
@@ -209,7 +215,9 @@
       "label": "جدول تجريبي",
       "number": "الرقم",
       "status": "الحالة",
-      "amount": "المبلغ"
+      "amount": "المبلغ",
+      "stackedLabel": "مثال على جدول مكدّس",
+      "stackedHint": "عندما يقل العرض عن 600 بكسل، يصبح كل صف بطاقة."
     },
     "kpi": {
       "collected": "المحصّل هذا الأسبوع",
@@ -273,6 +281,15 @@
       "mapLabel": "خريطة تجريبية",
       "mapInstructions": "انقر على الخريطة، أو استخدم الأسهم ثم Enter.",
       "pinAt": "العلامة: {x}٪، {y}٪"
+    },
+    "dialog": {
+      "open": "فتح مربع الحوار",
+      "title": "هل تريد إلغاء هذا الطلب؟",
+      "text": "مثال على مربع حوار. لا يتم حفظ أي شيء.",
+      "keep": "لا، الإبقاء عليه",
+      "confirm": "نعم، إلغاء",
+      "stateClosed": "الحالة: مغلق",
+      "stateOpen": "الحالة: مفتوح"
     }
   },
   "placeholders": {
@@ -431,13 +448,6 @@
     "arrival": "الوصول المقدّر",
     "route": "من {from} إلى {to}",
     "historyLabel": "سجل الطرد",
-    "steps": {
-      "created": "تم إنشاء الطلب",
-      "confirmed": "تم تأكيد الطلب",
-      "picked_up": "تم استلام الطرد",
-      "out_for_delivery": "قيد التوصيل",
-      "delivered": "تم التسليم"
-    },
     "notFound": {
       "title": "الرقم غير موجود",
       "text": "لا يوجد طرد بهذا الرقم. تحقق منه أو تواصل مع FastGo."
@@ -449,7 +459,8 @@
     "problem": {
       "title": "هل من مشكلة؟",
       "cta": "تواصل مع FastGo"
-    }
+    },
+    "parcelLine": "الطرد <n></n>: {status}"
   },
   "zones": {
     "title": "المناطق المشمولة",
@@ -607,8 +618,7 @@
     "pages": {
       "order": "اطلب الآن",
       "signIn": "تسجيل الدخول",
-      "signUp": "إنشاء حساب",
-      "account": "حسابي"
+      "signUp": "إنشاء حساب"
     }
   },
   "forms": {
@@ -1062,5 +1072,87 @@
       "changePhone": "تغيير الرقم"
     },
     "noJs": "تحتاج هذه الصفحة إلى JavaScript. فعّله في متصفحك."
+  },
+  "orders": {
+    "status": {
+      "received": "تم الاستلام",
+      "confirmed": "مؤكَّد",
+      "assigned": "تم الإسناد",
+      "pickup_failed": "تعذّر الاستلام",
+      "picked_up": "تم التكفّل به",
+      "in_transit": "في الطريق",
+      "delivered": "تم التسليم",
+      "partially_delivered": "تم التسليم جزئيًا",
+      "returned": "تمت الإعادة",
+      "lost": "مفقود",
+      "canceled": "ملغى"
+    },
+    "client": {
+      "received": "لقد استلمنا طلبك",
+      "confirmed": "تم تأكيد طلبك",
+      "assigned": "سيأتي سائق لاستلام طردك",
+      "pickup_failed": "تعذّر الاستلام",
+      "picked_up": "{count, plural, one {تم استلام طردك} two {تم استلام طردَيك} few {تم استلام # طرود} many {تم استلام # طردًا} other {تم استلام # طرد}}",
+      "in_transit": "طلبك قيد التوصيل",
+      "delivered": "نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه.",
+      "partially_delivered": "نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه.",
+      "returned": "نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه.",
+      "lost": "نتيجة التوصيل: {outcome}. تفاصيل كل طرد أدناه.",
+      "canceled": "تم إلغاء طلبك"
+    }
+  },
+  "parcels": {
+    "status": {
+      "to_collect": "بانتظار الاستلام",
+      "taken": "تم أخذه",
+      "at_depot": "في المستودع",
+      "in_transit": "في الطريق",
+      "delivery_failed": "تعذّر التسليم",
+      "returning": "قيد الإرجاع",
+      "handed_over": "تم التسليم",
+      "returned": "تمت الإعادة",
+      "lost": "مفقود",
+      "canceled": "ملغى"
+    }
+  },
+  "account": {
+    "nav": {
+      "label": "مساحتي",
+      "home": "الرئيسية",
+      "orders": "الطلبات",
+      "invoices": "الفواتير",
+      "claims": "الشكاوى",
+      "addresses": "العناوين",
+      "profile": "الملف الشخصي",
+      "import": "الاستيراد",
+      "cod": "الدفع عند الاستلام",
+      "statements": "كشوف الحساب",
+      "company": "الشركة"
+    },
+    "home": {
+      "title": "حسابي",
+      "slots": {
+        "inProgress": "الطلبات الجارية",
+        "lastDeliveries": "آخر عمليات التسليم",
+        "toSettle": "المبالغ المستحقة",
+        "frequentRecipients": "المستلمون المتكررون",
+        "installBanner": "تثبيت التطبيق"
+      }
+    },
+    "pro": {
+      "title": "مساحة التاجر",
+      "slots": {
+        "inProgress": "الطلبات الجارية",
+        "lastDeliveries": "آخر عمليات التسليم",
+        "cod": "الدفع عند الاستلام",
+        "chart": "عمليات التسليم هذا الأسبوع"
+      }
+    },
+    "guard": {
+      "busy": "جارٍ تحميل مساحتك…",
+      "notAllowed": "ليس لديك صلاحية الوصول إلى هذه الصفحة.",
+      "noscript": "تحتاج هذه الصفحة إلى JavaScript لعرض مساحتك."
+    },
+    "signOut": "تسجيل الخروج"
   }
 }

@@ -33,6 +33,8 @@ export type OrderRequest = {
     type: ParcelTypeCode;
     count: number;
     weightKg: number;
+    /** The W13 weight text from the draft ("2,5"): converted to grams without a float. */
+    weightText: string;
     content: string;
     declaredValueMillimes: number | null;
     fragile: boolean;
@@ -92,6 +94,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
       type: parcel.type,
       count,
       weightKg,
+      weightText: parcel.weightKg,
       content: parcel.content.trim(),
       declaredValueMillimes: parcel.declaredValueMillimes,
       fragile: parcel.fragile,

@@ -13,6 +13,9 @@ export const QUOTE_VALIDITY_MS = 15 * MINUTE;
 /** Unsourced (proposal): a draft is kept 24 h after its last edit, then deleted on read. */
 export const DRAFT_RETENTION_MS = 24 * HOUR;
 
+/** Unsourced: "délai fixé", R406. The recipient link stops working 24 h after the order is final. */
+export const RECIPIENT_LINK_AFTER_DELIVERY_MS = 24 * HOUR;
+
 /** Unsourced (mockup W20): the SMS code has 6 digits. */
 export const CODE_LENGTH = 6;
 
@@ -44,6 +47,12 @@ export const CODE_SEND_WINDOW_MS = 15 * MINUTE;
 
 /** Unsourced (mockup W19 "10 caractères au minimum"). */
 export const PASSWORD_MIN_LENGTH = 10;
+
+/**
+ * Digits of a parcel's handover code. Unsourced: it comes from the D1 mockup, the cahier gives no
+ * length (listed for FastGo, F14).
+ */
+export const DELIVERY_CODE_DIGITS = 4;
 
 /**
  * Declared value above which a stronger proof would apply. FastGo has not fixed it: null means the

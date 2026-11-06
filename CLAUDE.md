@@ -7,6 +7,7 @@ Delivery platform for FastGo (documents and parcels, Tunisia). Three engineers b
 Customers order a delivery on the website (or the installable web app on iPhone and Android), a driver picks it up and delivers it with proof, the recipient follows it through a personal link without an account, and FastGo staff run orders, dispatch, cash, invoices (El Fatoora / TTN) and COD payouts from a back-office. Payment is cash or merchant account. Online payment is L3.
 
 - Spec: `docs/spec/fonctionnalites.md` (feature IDs such as FE-01, CMD-03, BO-06). The full cahier des charges is the online doc; ask Helmi for anything not in this repo.
+- Business rules: `docs/spec/regles.md` (rules R101–R904, order and parcel states, data model, API routes and the acceptance scenarios for these screens). It is the binding extract of the cahier; when it and a mockup disagree, it wins.
 - UI reference: `docs/ui/` (152 screens). Read `docs/ui/README.md` before any UI work.
 - Lots: L1 = launch (end of week 8), L2 = after launch, L3 = later. Do not build L2 or L3 items unless the ticket says so.
 
@@ -46,6 +47,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - Do not edit a package owned by another engineer without telling them. Owners: `apps/web` Engineer 1, `apps/backoffice` and finance modules Engineer 2, `apps/driver` and infrastructure Engineer 3. `packages/ui` and `packages/i18n` are shared: changes there need one approval from another owner.
 - If the spec and the mockup disagree, the spec wins. Note the gap in the PR.
 - If Claude is unsure about a business rule, it stops and asks. It does not invent prices, fees, thresholds or legal text. Placeholders stay visible as `[PRIX]`, `[VILLE]`, `[TÉLÉPHONE]`.
+- Read `REVIEW.md` before every push. Reviewer findings are binding; disagree with evidence and wait.
 - Update this file when a team-wide decision changes. Put app-specific notes in `apps/<app>/CLAUDE.md`.
 
 ## Commands

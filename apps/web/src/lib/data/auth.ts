@@ -1,6 +1,12 @@
 import { PASSWORD_MIN_LENGTH } from "../order/constants";
 import { normalizePhone } from "../phone";
-import { findByEmail, findByPhone, sessionFor } from "./accounts";
+import {
+  findByEmail,
+  findByPhone,
+  findTeamMemberByPhone,
+  sessionFor,
+  sessionForMember,
+} from "./accounts";
 import { mockDelay } from "./delay";
 import { FIXTURE_PASSWORD } from "./fixtures/accounts";
 import { consumeVerification, isTargetVerified, sendCode, type SendResult } from "./otp";
@@ -16,9 +22,10 @@ export type SignInResult = { status: "ok"; session: Session } | { status: "inval
  */
 export async function signIn(identifier: string, password: string): Promise<SignInResult> {
   await mockDelay();
+  const member = normalizePhone(identifier) ? findTeamMemberByPhone(identifier) : null;
   const account = normalizePhone(identifier) ? findByPhone(identifier) : findByEmail(identifier);
-  if (!account || password !== FIXTURE_PASSWORD) return { status: "invalidCredentials" };
-  const session = sessionFor(account);
+  const session = member ? sessionForMember(member) : account ? sessionFor(account) : null;
+  if (!session || password !== FIXTURE_PASSWORD) return { status: "invalidCredentials" };
   setSession(session);
   // A Google sign-in left half-way must not finish later on top of this session.
   clearPendingGoogle();
