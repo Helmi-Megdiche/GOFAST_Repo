@@ -5,7 +5,7 @@ export type ParcelTypeCode = "document" | "small" | "medium" | "large";
 export type ExtraCode = "fragile" | "declaredValue" | "retry" | "return";
 
 /**
- * Prices, cut-off times, limits and fees are null until FastGo sets them: the pages show the
+ * Prices, cut-off times, limits and fees are null until GOFAST sets them: the pages show the
  * placeholder ([PRIX], [HEURE], [LIMITE], [TARIF]) in the active language. Nothing is invented.
  */
 export type ServiceCatalog = {

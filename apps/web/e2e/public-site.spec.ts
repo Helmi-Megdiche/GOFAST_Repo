@@ -462,7 +462,7 @@ test("merchants: Demander un devis scrolls to the section and the button leads t
 // ── Driver (W08) ──────────────────────────────────────────────────────────────────────────────
 test("driver: heading, validation, 5 MB rule and confirmation", async ({ page }) => {
   await page.goto("/fr/livreur");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Livrez avec FastGo.");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Livrez avec GOFAST.");
   await expect(page.locator("main")).not.toContainText("gains visibles");
 
   await page.getByRole("button", { name: "Envoyer ma candidature" }).click();
@@ -546,7 +546,7 @@ test("services: no simulator, placeholders for prices, hours, limits and fees", 
   await expect(main.getByText("[HEURE]")).toHaveCount(3);
   await expect(main.getByText("[LIMITE]")).toHaveCount(4);
   await expect(main.getByText("[TARIF]")).toHaveCount(4);
-  await expect(main).toContainText("[LISTE À VALIDER PAR FASTGO]");
+  await expect(main).toContainText("[LISTE À VALIDER PAR GOFAST]");
   await expect(main).not.toContainText("La veille");
   await expect(main).not.toContainText("Estimer un prix");
   await expect(main).not.toContainText("11,305");
@@ -581,7 +581,7 @@ for (const entry of PAGES.filter((item) => !("status" in item))) {
   test(`metadata: title, description and hreflang on ${entry.ref}`, async ({ page }) => {
     for (const code of ["fr", "ar", "en"]) {
       await page.goto(`/${code}${entry.path}`);
-      await expect(page).toHaveTitle(/FastGo/);
+      await expect(page).toHaveTitle(/GOFAST/);
       expect(await page.locator('meta[name="description"]').getAttribute("content")).toBeTruthy();
 
       const links = await page

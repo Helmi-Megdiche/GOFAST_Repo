@@ -1,12 +1,12 @@
 /*
- * Tailwind v4 theme for FastGo. Import after `@import "tailwindcss"`:
+ * Tailwind v4 theme for GOFAST. Import after `@import "tailwindcss"`:
  *
  *   @import "tailwindcss";
  *   @import "@fastgo/ui/styles/theme.css";
  *   @source "<path to>/packages/ui/src";
  *
  * Default Tailwind palette, radii, type scale and breakpoints are removed on purpose:
- * only FastGo tokens exist, so a stray `bg-blue-500` fails to compile.
+ * only GOFAST tokens exist, so a stray `bg-blue-500` fails to compile.
  */
 @import "./tokens.css";
 @import "./base.css";

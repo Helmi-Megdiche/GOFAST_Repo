@@ -1,5 +1,5 @@
 /*
- * FastGo design tokens.
+ * GOFAST design tokens.
  * Source of truth: docs/ui/fg.css (:root for light, .th-d for dark).
  * This is the ONLY place hex values live. App code uses the Tailwind utilities
  * generated from theme.css (bg-orange, text-ink, border-line ...).

@@ -14,7 +14,7 @@ const FILES: Record<LogoVariant, string> = {
 export function Logo({
   variant = "on-light",
   basePath = "/brand",
-  alt = "FastGo",
+  alt = "GOFAST",
   className,
 }: {
   /** on-dark: for navy backgrounds (header, footer). on-light: for light backgrounds. */

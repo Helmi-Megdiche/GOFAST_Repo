@@ -34,7 +34,7 @@ export const orderPhone = z
   .refine((value) => value.trim() !== "", code("required"))
   .refine((value) => normalizePhone(value) != null, code("phoneInvalid"));
 
-/** Number of parcels: a whole number from 1 to 99 (input sanity only; FastGo's limit is [LIMITE]). */
+/** Number of parcels: a whole number from 1 to 99 (input sanity only; GOFAST's limit is [LIMITE]). */
 export function parseCount(input: string): number | null {
   const text = toLatinDigits(input).trim();
   if (!/^\d{1,2}$/.test(text)) return null;

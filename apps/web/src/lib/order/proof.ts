@@ -16,7 +16,7 @@ export type ProofRule = "codeOrPhotoPosition" | "codeOrSignaturePhoto" | "codeEl
 export type ProofResult = {
   rule: ProofRule;
   /**
-   * Above (strictly, as the cahier says) the declared-value threshold a stronger proof may apply. FastGo has not fixed the
+   * Above (strictly, as the cahier says) the declared-value threshold a stronger proof may apply. GOFAST has not fixed the
    * threshold (null), so this stays false and there is no UI for it. Question listed in the PR.
    */
   aboveValueThreshold: boolean;

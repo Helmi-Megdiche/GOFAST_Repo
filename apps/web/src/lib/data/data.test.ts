@@ -37,7 +37,7 @@ describe("lookupTracking", () => {
       "picked_up",
       "in_transit",
     ]);
-    // Cities stay null until FastGo gives the launch cities: the page prints the placeholder.
+    // Cities stay null until GOFAST gives the launch cities: the page prints the placeholder.
     expect(result.tracking.fromCity).toBeNull();
     expect(result.tracking.toCity).toBeNull();
   });

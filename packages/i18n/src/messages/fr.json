@@ -1,123 +1,123 @@
 {
   "meta": {
-    "title": "FastGo",
+    "title": "GOFAST",
     "description": "Livraison express de plis et de colis.",
     "pages": {
       "home": {
-        "title": "FastGo : livraison express de plis et de colis",
+        "title": "GOFAST : livraison express de plis et de colis",
         "description": "Commandez une livraison en ville, voyez le prix avant de valider et suivez votre colis jusqu'à la remise avec preuve."
       },
       "services": {
-        "title": "Services et tarifs | FastGo",
-        "description": "Express, Standard ou Programmée : comparez les offres FastGo, les types d'envoi et les options."
+        "title": "Services et tarifs | GOFAST",
+        "description": "Express, Standard ou Programmée : comparez les offres GOFAST, les types d'envoi et les options."
       },
       "merchants": {
-        "title": "Offre commerçants | FastGo",
-        "description": "Importez vos commandes, suivez chaque colis et chaque contre-remboursement avec FastGo."
+        "title": "Offre commerçants | GOFAST",
+        "description": "Importez vos commandes, suivez chaque colis et chaque contre-remboursement avec GOFAST."
       },
       "tracking": {
-        "title": "Suivre un colis | FastGo",
-        "description": "Saisissez votre numéro de suivi FastGo pour voir le statut et l'heure d'arrivée estimée."
+        "title": "Suivre un colis | GOFAST",
+        "description": "Saisissez votre numéro de suivi GOFAST pour voir le statut et l'heure d'arrivée estimée."
       },
       "zones": {
-        "title": "Zones desservies | FastGo",
-        "description": "Vérifiez en quelques secondes si votre adresse est desservie par FastGo."
+        "title": "Zones desservies | GOFAST",
+        "description": "Vérifiez en quelques secondes si votre adresse est desservie par GOFAST."
       },
       "help": {
-        "title": "Aide | FastGo",
+        "title": "Aide | GOFAST",
         "description": "Réponses aux questions fréquentes sur la commande, le suivi, le paiement et les réclamations."
       },
       "contact": {
-        "title": "Contact | FastGo",
-        "description": "Une question, un devis ou une réclamation : écrivez à FastGo, avec ou sans numéro de suivi."
+        "title": "Contact | GOFAST",
+        "description": "Une question, un devis ou une réclamation : écrivez à GOFAST, avec ou sans numéro de suivi."
       },
       "driver": {
-        "title": "Devenir livreur | FastGo",
-        "description": "Découvrez ce qu'il faut pour livrer avec FastGo et envoyez votre candidature."
+        "title": "Devenir livreur | GOFAST",
+        "description": "Découvrez ce qu'il faut pour livrer avec GOFAST et envoyez votre candidature."
       },
       "cgv": {
-        "title": "Conditions générales de vente | FastGo",
-        "description": "Conditions générales de vente de FastGo."
+        "title": "Conditions générales de vente | GOFAST",
+        "description": "Conditions générales de vente de GOFAST."
       },
       "privacy": {
-        "title": "Confidentialité | FastGo",
-        "description": "Politique de confidentialité de FastGo."
+        "title": "Confidentialité | GOFAST",
+        "description": "Politique de confidentialité de GOFAST."
       },
       "notice": {
-        "title": "Mentions légales | FastGo",
-        "description": "Mentions légales de FastGo."
+        "title": "Mentions légales | GOFAST",
+        "description": "Mentions légales de GOFAST."
       },
       "cookies": {
-        "title": "Cookies | FastGo",
-        "description": "Informations sur les cookies sur le site FastGo."
+        "title": "Cookies | GOFAST",
+        "description": "Informations sur les cookies sur le site GOFAST."
       },
       "order": {
-        "title": "Commander | FastGo",
+        "title": "Commander | GOFAST",
         "description": "La commande en ligne arrive bientôt."
       },
       "signIn": {
-        "title": "Connexion | FastGo",
+        "title": "Connexion | GOFAST",
         "description": "La connexion à votre compte arrive bientôt."
       },
       "signUp": {
-        "title": "Créer un compte | FastGo",
+        "title": "Créer un compte | GOFAST",
         "description": "La création de compte arrive bientôt."
       },
       "orderSender": {
-        "title": "Commander : expéditeur | FastGo",
+        "title": "Commander : expéditeur | GOFAST",
         "description": "Indiquez l'adresse de collecte de votre colis."
       },
       "orderRecipient": {
-        "title": "Commander : destinataire | FastGo",
+        "title": "Commander : destinataire | GOFAST",
         "description": "Indiquez l'adresse de livraison et le destinataire."
       },
       "orderParcel": {
-        "title": "Commander : colis | FastGo",
+        "title": "Commander : colis | GOFAST",
         "description": "Décrivez ce que nous livrons."
       },
       "orderService": {
-        "title": "Commander : service | FastGo",
+        "title": "Commander : service | GOFAST",
         "description": "Choisissez quand le colis doit arriver."
       },
       "orderReview": {
-        "title": "Commander : vérification | FastGo",
+        "title": "Commander : vérification | GOFAST",
         "description": "Vérifiez le détail du prix et validez votre commande."
       },
       "orderCode": {
-        "title": "Commander : code de vérification | FastGo",
+        "title": "Commander : code de vérification | GOFAST",
         "description": "Saisissez le code reçu par SMS pour valider la commande."
       },
       "orderConfirmation": {
-        "title": "Commande enregistrée | FastGo",
+        "title": "Commande enregistrée | GOFAST",
         "description": "Votre numéro de suivi et la suite de votre livraison."
       },
       "orderOutOfZone": {
-        "title": "Adresse hors zone | FastGo",
+        "title": "Adresse hors zone | GOFAST",
         "description": "Nous ne livrons pas encore à cette adresse."
       },
       "code": {
-        "title": "Code de vérification | FastGo",
+        "title": "Code de vérification | GOFAST",
         "description": "Saisissez le code reçu."
       },
       "passwordForgot": {
-        "title": "Mot de passe oublié | FastGo",
+        "title": "Mot de passe oublié | GOFAST",
         "description": "Recevez un code pour choisir un nouveau mot de passe."
       },
       "passwordNew": {
-        "title": "Nouveau mot de passe | FastGo",
+        "title": "Nouveau mot de passe | GOFAST",
         "description": "Choisissez votre nouveau mot de passe."
       },
       "googlePhone": {
-        "title": "Dernière étape | FastGo",
+        "title": "Dernière étape | GOFAST",
         "description": "Ajoutez votre téléphone après la connexion avec Google."
       },
       "account": {
-        "title": "Mon compte | FastGo",
-        "description": "Votre espace client FastGo."
+        "title": "Mon compte | GOFAST",
+        "description": "Votre espace client GOFAST."
       },
       "pro": {
-        "title": "Espace commerçant | FastGo",
-        "description": "Votre espace commerçant FastGo."
+        "title": "Espace commerçant | GOFAST",
+        "description": "Votre espace commerçant GOFAST."
       }
     }
   },
@@ -170,7 +170,7 @@
       "h4": "Numéro de suivi",
       "eyebrow": "Suivre",
       "lead": "Livraison express de plis et de colis.",
-      "body": "FastGo récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander."
+      "body": "GOFAST récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander."
     },
     "buttons": {
       "primary": "Commander",
@@ -305,7 +305,7 @@
     "time": "[HEURE]",
     "limit": "[LIMITE]",
     "fee": "[TARIF]",
-    "list": "[LISTE À VALIDER PAR FASTGO]",
+    "list": "[LISTE À VALIDER PAR GOFAST]",
     "text": "[TEXTE]",
     "answer": "[RÉPONSE]",
     "vehicle": "[VÉHICULE]",
@@ -450,7 +450,7 @@
     "historyLabel": "Historique du colis",
     "notFound": {
       "title": "Numéro introuvable",
-      "text": "Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez FastGo."
+      "text": "Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez GOFAST."
     },
     "yourParcel": {
       "title": "C'est votre colis ?",
@@ -458,7 +458,7 @@
     },
     "problem": {
       "title": "Un problème ?",
-      "cta": "Contacter FastGo"
+      "cta": "Contacter GOFAST"
     },
     "parcelLine": "Colis <n></n> : {status}"
   },
@@ -554,8 +554,8 @@
     }
   },
   "driver": {
-    "eyebrow": "Rejoindre FastGo",
-    "title": "Livrez avec FastGo.",
+    "eyebrow": "Rejoindre GOFAST",
+    "title": "Livrez avec GOFAST.",
     "needs": {
       "title": "Ce qu'il vous faut",
       "licence": "Un permis valide, si votre véhicule en demande un",
@@ -603,7 +603,7 @@
       "notice": "Mentions légales",
       "cookies": "Cookies"
     },
-    "note": "Texte à fournir et à valider par le conseil juridique de FastGo.",
+    "note": "Texte à fournir et à valider par le conseil juridique de GOFAST.",
     "cgvSections": {
       "purpose": "Objet",
       "cancellation": "Annulation et frais",
@@ -652,7 +652,7 @@
   "home": {
     "hero": {
       "title": "Votre colis part aujourd'hui. Vous savez où il est.",
-      "subtitle": "FastGo récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander.",
+      "subtitle": "GOFAST récupère et livre vos plis et colis en ville. Le prix s'affiche avant de commander.",
       "departure": "Départ",
       "arrival": "Arrivée",
       "addressPlaceholder": "Rue, quartier ou ville",
@@ -733,7 +733,7 @@
     "track": "Suivre un colis"
   },
   "cmd": {
-    "homeLabel": "FastGo, accueil",
+    "homeLabel": "GOFAST, accueil",
     "saveAndQuit": "Enregistrer et quitter",
     "stepperLabel": "Étapes de la commande",
     "stepStates": {
@@ -1065,10 +1065,10 @@
       "text": "Le livreur et le suivi en ont besoin. Nous le vérifions une seule fois par SMS.",
       "phone": "Téléphone",
       "submit": "Recevoir le code",
-      "knownEmail": "Cet e-mail a déjà un compte FastGo. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone.",
+      "knownEmail": "Cet e-mail a déjà un compte GOFAST. Confirmez-le avec le code envoyé par e-mail, puis ajoutez votre téléphone.",
       "emailSubmit": "Recevoir le code par e-mail",
       "missing": "Aucune connexion Google en cours.",
-      "phoneMismatch": "Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte FastGo.",
+      "phoneMismatch": "Ce numéro n'est pas celui de votre compte. Saisissez le téléphone enregistré sur votre compte GOFAST.",
       "changePhone": "Changer de numéro"
     },
     "noJs": "Cette page a besoin de JavaScript. Activez-le dans votre navigateur."

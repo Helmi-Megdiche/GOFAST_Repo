@@ -12,7 +12,7 @@ export type FixtureAccount = {
   contract: "validated" | "pending" | null;
   phoneVerified: boolean;
   /**
-   * Mock field, not in the cahier's data model: what a customer owes FastGo for returned parcels
+   * Mock field, not in the cahier's data model: what a customer owes GOFAST for returned parcels
    * (millimes), for the screens that show a balance to settle. Absent means nothing is due.
    */
   returnBalanceMillimes?: number;
