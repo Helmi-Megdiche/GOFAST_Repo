@@ -155,6 +155,15 @@ test.describe("C01 dashboard", () => {
     ).toHaveAttribute("href", "/fr/compte/commandes/FG-5A1R-0001");
     const last = page.locator('[data-slot="lastDeliveries"]');
     await expect(last.getByRole("row")).toHaveCount(4); // header + 3
+    // The unpaid and the partly paid invoice (ESP-05): the same 29 DT as on C04 (RV-15).
+    await expect(page.locator('[data-slot="toSettle"]')).toContainText("29,000 TND");
+    await expect(page.locator('[data-slot="toSettle"]')).toContainText("Montant restant à régler");
+    await page.goto("/fr/compte/factures");
+    await expect(page.locator("main")).toContainText("29,000 TND");
+  });
+
+  test("a customer with nothing to pay sees 0 and is up to date", async ({ page }) => {
+    await signInAs(page, EMPTY_CUSTOMER);
     await expect(page.locator('[data-slot="toSettle"]')).toContainText("0,000 TND");
     await expect(page.locator('[data-slot="toSettle"]')).toContainText("Vous êtes à jour.");
   });
@@ -162,7 +171,7 @@ test.describe("C01 dashboard", () => {
   test("a customer who owes return fees sees the amount to settle", async ({ page }) => {
     await signInAs(page, RETURN_DUE);
     await expect(page.locator('[data-slot="toSettle"]')).toContainText("7,000 TND");
-    await expect(page.locator('[data-slot="toSettle"]')).toContainText("Frais de retour à régler");
+    await expect(page.locator('[data-slot="toSettle"]')).toContainText("Montant restant à régler");
   });
 
   test("an account with no order has empty states", async ({ page }) => {

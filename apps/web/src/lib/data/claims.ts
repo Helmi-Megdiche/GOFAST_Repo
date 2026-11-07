@@ -31,7 +31,8 @@ import type { Session } from "./session";
 /** What the client sees: the three mockup statuses (H13) plus "archived" (R804), which is derived. */
 export type ClaimState = "open" | "toComplete" | "resolved" | "archived";
 
-/** R804: archived once the reopen window after the closing has passed, or when `archivedAt` is set. */
+/** R804: archived once the reopen window after the closing has passed, or when `archivedAt` is set.
+ * A `resolved` ticket must have `closedAt` (the back-office sets both in one write): without it the window never starts and the claim would stay reopenable forever. */
 export function claimStateOf(ticket: Ticket, atMs: number): ClaimState {
   if (ticket.archivedAt) return "archived";
   if (ticket.status === "resolved" && ticket.closedAt) {

@@ -1312,7 +1312,7 @@
       "noneDelivered": "Aucune livraison terminée pour le moment.",
       "seeAll": "Tout voir",
       "settled": "Vous êtes à jour.",
-      "owed": "Frais de retour à régler avant votre prochaine commande en espèces.",
+      "owed": "Montant restant à régler sur votre compte.",
       "error": {
         "title": "Impossible de charger votre espace.",
         "retry": "Réessayer"
@@ -1356,7 +1356,7 @@
       "emptyText": "Vos factures apparaissent ici une fois vos livraisons terminées.",
       "dueLabel": "À régler",
       "dueNone": "Aucune facture à régler",
-      "dueSome": "Montant restant dû sur vos factures",
+      "dueSome": "Montant restant à régler sur votre compte",
       "columns": {
         "number": "Numéro",
         "date": "Date",

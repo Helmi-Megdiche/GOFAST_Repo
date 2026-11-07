@@ -1312,7 +1312,7 @@
       "noneDelivered": "No finished delivery yet.",
       "seeAll": "See all",
       "settled": "You are up to date.",
-      "owed": "Return fees to settle before your next cash order.",
+      "owed": "Amount still to pay on your account.",
       "error": {
         "title": "We could not load your space.",
         "retry": "Try again"
@@ -1356,7 +1356,7 @@
       "emptyText": "Your invoices appear here once your deliveries are done.",
       "dueLabel": "To pay",
       "dueNone": "No invoice to pay",
-      "dueSome": "Amount still due on your invoices",
+      "dueSome": "Amount still to pay on your account",
       "columns": {
         "number": "Number",
         "date": "Date",

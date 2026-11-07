@@ -22,7 +22,7 @@ native-speaker review before release (CLAUDE.md).
 | `account.home.noneDelivered` | لا توجد توصيلات منتهية حتى الآن. | Aucune livraison terminée pour le moment. | [ ] |
 | `account.home.noneInProgress` | لا توجد طلبات قيد التنفيذ. | Aucune commande en cours. | [ ] |
 | `account.home.orderLine` | {count, plural, zero {لا طرود} one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} · {service} | {count, plural, one {# colis} other {# colis}} · {service} | [ ] |
-| `account.home.owed` | رسوم إرجاع يجب تسويتها قبل طلبك النقدي القادم. | Frais de retour à régler avant votre prochaine commande en espèces. | [ ] |
+| `account.home.owed` | المبلغ المتبقي للسداد في حسابك. | Montant restant à régler sur votre compte. | [ ] |
 | `account.home.seeAll` | عرض الكل | Tout voir | [ ] |
 | `account.home.seeDetail` | عرض التفاصيل | Voir le détail | [ ] |
 | `account.home.seeDetailOf` | عرض تفاصيل الطلب {code} | Voir le détail de la commande {code} | [ ] |
@@ -576,7 +576,7 @@ native-speaker review before release (CLAUDE.md).
 | `invoices.list.creditNoteOf` | على الفاتورة <num></num> | Sur la facture <num></num> | [ ] |
 | `invoices.list.dueLabel` | المبلغ المستحق | À régler | [ ] |
 | `invoices.list.dueNone` | لا توجد فواتير مستحقة السداد | Aucune facture à régler | [ ] |
-| `invoices.list.dueSome` | المبلغ المتبقي المستحق على فواتيرك | Montant restant dû sur vos factures | [ ] |
+| `invoices.list.dueSome` | المبلغ المتبقي للسداد في حسابك | Montant restant à régler sur votre compte | [ ] |
 | `invoices.list.emptyText` | تظهر فواتيرك هنا بعد انتهاء عمليات التسليم. | Vos factures apparaissent ici une fois vos livraisons terminées. | [ ] |
 | `invoices.list.emptyTitle` | لا توجد فواتير حاليًا | Aucune facture pour le moment | [ ] |
 | `invoices.list.error.retry` | إعادة المحاولة | Réessayer | [ ] |

@@ -1,4 +1,5 @@
 import type { PaymentCode } from "../order/draft";
+import { amountDueMillimes } from "./amount-due";
 import { mockDelay } from "./delay";
 import { seedBillingFixtures } from "./fixtures/billing";
 import {
@@ -43,7 +44,7 @@ export type InvoiceRow = {
 
 export type InvoicesPage = {
   rows: InvoiceRow[];
-  /** Sum of the amounts the invoices still show as due (stored, not computed from lines). */
+  /** What the account owes (`amountDueMillimes`): the same figure as C01. */
   dueMillimes: number;
 };
 
@@ -105,7 +106,7 @@ export async function listInvoices(session: Session): Promise<InvoicesPage> {
   ].sort((a, b) => b.issuedAt.localeCompare(a.issuedAt) || b.number.localeCompare(a.number));
   return {
     rows,
-    dueMillimes: invoices.reduce((sum, invoice) => sum + invoice.dueMillimes, 0),
+    dueMillimes: amountDueMillimes(session.accountId),
   };
 }
 

@@ -75,6 +75,10 @@ Source: PR A round 1, C01 showed "in progress" and "last deliveries" from two st
 Cover leading zeros, thousands groups and separators in fr, ar and en. Results must be integers in millimes.
 Source: PR #5, `0 500` in fr was read as 500 TND.
 
+**RV-15. An amount shown in more than one place comes from one reader.**
+When two screens show the same total (an amount due, a balance, a count), both call the same function. Search for every place that shows it and compare the values on one fixture account.
+Source: PR C round 1, C01 "À régler" read the return balance only, while C04 summed the unpaid invoices: 0 on C01, 29 DT on C04 for the same account.
+
 **RV-07. A value not in the cahier must be easy to find.**
 It goes in `lib/order/constants.ts` with a comment giving its source or `unsourced`, in section 9 of the plan and in the questions for FastGo. Search the diff for numbers written directly in the code.
 Source: PR 0, the handover code length of 4 digits was hard-coded in `orders.ts`. It comes from the D1 mockup only.
@@ -97,7 +101,7 @@ Source: PR #5, a test read the W14 price without waiting and failed 7 times out 
 
 **RV-11. When behaviour changes, reread what describes it.**
 Search for the changed name in comments, tests and plan text.
-Source: PR 0, the `StatusEvent.fromStatus` comment still described mission creation only after order and parcel creation events were added. PR 0 round 1: the fixture user Walid H. had the id `usr-yasmine-user`.
+Source: PR 0, the `StatusEvent.fromStatus` comment still described mission creation only after order and parcel creation events were added. PR 0 round 1: the fixture user Walid H. had the id `usr-yasmine-user`. PR C round 1: invoices arrived and the C01 "À régler" tile still read only the return balance.
 
 ### The review itself
 
