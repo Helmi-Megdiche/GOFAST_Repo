@@ -164,7 +164,7 @@ function InvoiceView({ invoice }: { invoice: InvoiceDetail }) {
             ]}
           />
 
-          <Table label={l("caption")} caption={l("caption")} stacked>
+          <Table label={l("caption")} caption={l("caption")}>
             <THead>
               <Tr>
                 <Th>{l("service")}</Th>
@@ -174,7 +174,7 @@ function InvoiceView({ invoice }: { invoice: InvoiceDetail }) {
             <TBody>
               {invoice.lines.map((line, index) => (
                 <Tr key={index}>
-                  <Td label={l("service")}>
+                  <Td>
                     <span className="flex flex-col">
                       {lineLabel(line)}
                       <Ltr mono className="text-xs text-muted">
@@ -182,7 +182,7 @@ function InvoiceView({ invoice }: { invoice: InvoiceDetail }) {
                       </Ltr>
                     </span>
                   </Td>
-                  <Td alignEnd label={l("amount")}>
+                  <Td alignEnd>
                     <Money millimes={line.netMillimes} />
                   </Td>
                 </Tr>
