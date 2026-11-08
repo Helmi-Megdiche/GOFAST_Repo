@@ -49,6 +49,7 @@ for login in $TEAM; do
 done
 
 log "SSH: keys only, no root login"
+# sshd keeps the first value it reads, and 10- sorts before the cloud image's 50-cloud-init.conf.
 cat > /etc/ssh/sshd_config.d/10-gofast.conf <<EOF
 PasswordAuthentication no
 KbdInteractiveAuthentication no
@@ -57,7 +58,8 @@ PermitRootLogin no
 AllowGroups $GROUP
 EOF
 sshd -t || die "sshd config invalid, nothing reloaded"
-systemctl reload ssh
+# Ubuntu 24.04 starts sshd from ssh.socket, so ssh.service may be inactive: reload only if running.
+systemctl try-reload-or-restart ssh
 
 log "Firewall: deny incoming except SSH, HTTP, HTTPS"
 ufw default deny incoming
