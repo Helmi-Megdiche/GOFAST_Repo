@@ -1,10 +1,10 @@
 # Last matching pattern wins: general rules first, specific rules last.
-/packages/          @Helmi-Megdiche @AlaaSalem12 @mootazkraiem
-/apps/api/          @AlaaSalem12 @Helmi-Megdiche @mootazkraiem
+/packages/          @Helmi-Megdiche @AlaaSalem12
+/apps/api/          @AlaaSalem12 @Helmi-Megdiche
 /apps/web/          @Helmi-Megdiche
 /apps/backoffice/   @AlaaSalem12
-/apps/driver/       @mootazkraiem
+/apps/driver/     @Helmi-Megdiche
 /infra/             @Helmi-Megdiche
 /.github/           @Helmi-Megdiche
-/e2e/               @mootazkraiem
-/tests/             @mootazkraiem
+/e2e/              @Helmi-Megdiche
+/tests/            @Helmi-Megdiche

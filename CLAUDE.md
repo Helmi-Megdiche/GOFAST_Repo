@@ -45,7 +45,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - For anything bigger than one component, start in plan mode, read the plan, then let Claude build.
 - Before opening a PR, run `pnpm lint && pnpm typecheck && pnpm test` and the Playwright screenshot check for touched pages. Fix failures, do not skip them.
 - Every PR is reviewed by another engineer, a human. Claude can draft the PR description; the author reads the full diff before asking for review.
-- Do not edit a package owned by another engineer without telling them. Owners: `apps/web` Helmi (@Helmi-Megdiche), `apps/backoffice` and finance modules Ala (@AlaaSalem12), `apps/driver` Moataz (@mootazkraiem), infrastructure Helmi, testing Moataz. `packages/ui` and `packages/i18n` are shared: changes there need one approval from another owner.
+- Do not edit a package owned by another engineer without telling them. Owners: `apps/web`, `apps/driver`, e2e and tests, infrastructure: Helmi (@Helmi-Megdiche). `apps/api`, `apps/backoffice`, finance modules and API tests (rights matrix DR/EX, load, TTN outage): Ala (@AlaaSalem12). `packages/ui` and `packages/i18n` are shared: changes there need one approval from the other owner.
 - If the spec and the mockup disagree, the spec wins. Note the gap in the PR.
 - If Claude is unsure about a business rule, it stops and asks. It does not invent prices, fees, thresholds or legal text. Placeholders stay visible as `[PRIX]`, `[VILLE]`, `[TÉLÉPHONE]`.
 - Read `REVIEW.md` before every push. Reviewer findings are binding; disagree with evidence and wait.
