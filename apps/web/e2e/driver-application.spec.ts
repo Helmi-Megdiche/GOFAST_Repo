@@ -14,6 +14,7 @@ const COPY = {
     vehicles: ["Scooter", "Moto", "Voiture", "Utilitaire léger"],
     vehicleLabel: "Véhicule",
     cin: "Carte d'identité nationale (CIN)",
+    requiredWord: "obligatoire",
     remove: /^Retirer le fichier/,
   },
   ar: {
@@ -25,6 +26,7 @@ const COPY = {
     vehicles: ["سكوتر", "دراجة نارية", "سيارة", "مركبة نفعية خفيفة"],
     vehicleLabel: "المركبة",
     cin: "بطاقة التعريف الوطنية",
+    requiredWord: "مطلوب",
     remove: /^إزالة الملف/,
   },
   en: {
@@ -36,6 +38,7 @@ const COPY = {
     vehicles: ["Scooter", "Motorbike", "Car", "Light van"],
     vehicleLabel: "Vehicle",
     cin: "National ID card (CIN)",
+    requiredWord: "required",
     remove: /^Remove the file/,
   },
 } as const;
@@ -69,6 +72,8 @@ for (const code of ["fr", "ar"] as const) {
       await page.setViewportSize(viewport);
       await page.goto(`/${code}/livreur`);
       await expect(files(page)).toHaveCount(6);
+      // RV-16: the required state is heard, from the accessibility tree, not only seen as a star.
+      await expect(page.getByRole("group", { name: copy.requiredWord })).toHaveCount(6);
 
       // A missing document shows its error and takes the focus (the text fields are filled).
       await page.locator('input[autocomplete="name"]').fill("Test Livreur");

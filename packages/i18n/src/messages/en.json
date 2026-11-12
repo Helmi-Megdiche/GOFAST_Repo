@@ -613,7 +613,7 @@
       "submit": "Send my application",
       "sending": "Sending…",
       "documentsTitle": "Your documents",
-      "documentsHint": "Images or PDF, 5 MB at most per file.",
+      "documentsHint": "Images or PDF, {size} MB at most per file.",
       "addFile": "Add a file",
       "removeDocument": "Remove the file: {document}",
       "documents": {
@@ -623,7 +623,8 @@
         "insurance": "Insurance certificate",
         "vehiclePhoto": "Vehicle photo",
         "bankDetails": "Bank or postal details (RIB or postal certificate)"
-      }
+      },
+      "requiredLabel": "required"
     },
     "success": {
       "title": "Application sent.",

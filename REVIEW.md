@@ -81,7 +81,7 @@ Source: PR C round 1, C01 "À régler" read the return balance only, while C04 s
 
 **RV-07. A value not in the cahier must be easy to find.**
 It goes in `lib/order/constants.ts` with a comment giving its source or `unsourced`, in section 9 of the plan and in the questions for FastGo. Search the diff for numbers written directly in the code.
-Source: PR 0, the handover code length of 4 digits was hard-coded in `orders.ts`. It comes from the D1 mockup only.
+Source: PR 0, the handover code length of 4 digits was hard-coded in `orders.ts`. It comes from the D1 mockup only. PR #73 round 1: a limit repeated as a literal in new catalog text.
 
 ### Tests
 
@@ -101,15 +101,19 @@ Source: PR #5, a test read the W14 price without waiting and failed 7 times out 
 
 **RV-11. When behaviour changes, reread what describes it.**
 Search for the changed name in comments, tests and plan text.
-Source: PR 0, the `StatusEvent.fromStatus` comment still described mission creation only after order and parcel creation events were added. PR 0 round 1: the fixture user Walid H. had the id `usr-yasmine-user`. PR C round 1: invoices arrived and the C01 "À régler" tile still read only the return balance.
+Source: PR 0, the `StatusEvent.fromStatus` comment still described mission creation only after order and parcel creation events were added. PR 0 round 1: the fixture user Walid H. had the id `usr-yasmine-user`. PR C round 1: invoices arrived and the C01 "À régler" tile still read only the return balance. PR #73 round 1: comments and the PR text said the spec had no file type rule while reponses-gofast.md line 59 gives it for all attachments.
 
 ### The review itself
 
 **RV-12. A check must be able to fail.**
 Before trusting a command as evidence, run it on a case known to be bad, or read its output line by line.
 When a rule applies to each item of a list, the test loops over the list; one sample item is not a test.
-Source: PR 0 review, a line-ending check with `grep "\r$"` matched lines ending in the letter `r`, so its result meant nothing. It was thrown away and not reported. PR #73 round 1: the driver mock tests checked a wrong type only on `licence` and a missing document only on `cin`, so a loop that stopped early would pass.
+Source: PR 0 review, a line-ending check with `grep "\r$"` matched lines ending in the letter `r`, so its result meant nothing. It was thrown away and not reported. PR #73, found by the author before review: the driver mock tests checked a wrong type only on `licence` and a missing document only on `cin`, so a loop that stopped early would pass.
 
 **RV-13. Text is never assembled from pieces in code.**
 Search the diff for literal words, punctuation or spacing between JSX expressions (`:`, `/`, `-`, ` de `). The whole line is one catalog key with parameters. Render the page in ar and en and read the line.
 Source: PR 0 round 1, the public tracking parcel line wrote `{t("parcel")} 1 :` with a French space and colon, shown as is in ar and en.
+
+**RV-16. A required mark must also be heard.**
+Where the control is not a native input (a file picker, a group), the required state is in the accessible name or in a described text taken from the catalog, and a test reads it from the accessibility tree.
+Source: PR #73, the six document groups showed only an aria-hidden star.

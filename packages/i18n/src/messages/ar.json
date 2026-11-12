@@ -613,7 +613,7 @@
       "submit": "إرسال ترشحي",
       "sending": "جارٍ الإرسال…",
       "documentsTitle": "وثائقك",
-      "documentsHint": "صور أو ملفات PDF، بحد أقصى 5 ميغابايت للملف.",
+      "documentsHint": "صور أو ملفات PDF، بحد أقصى {size} ميغابايت للملف.",
       "addFile": "إضافة ملف",
       "removeDocument": "إزالة الملف: {document}",
       "documents": {
@@ -623,7 +623,8 @@
         "insurance": "شهادة التأمين",
         "vehiclePhoto": "صورة المركبة",
         "bankDetails": "المعطيات البنكية أو البريدية (RIB أو شهادة بريدية)"
-      }
+      },
+      "requiredLabel": "مطلوب"
     },
     "success": {
       "title": "تم إرسال الترشح.",

@@ -4,7 +4,8 @@ import { MAX_ATTACHMENT_BYTES } from "./limits";
  * The one rule for an uploaded file, shared by the claim attachments (H12), the driver documents
  * (FE-05) and their mock servers: images and PDF, at most MAX_ATTACHMENT_BYTES. The contact form
  * (FE-06) has the size rule only. Pure, so a form and its mock server cannot disagree.
- * Provisional: GOFAST answers, 6 Nov 2026 (claims); assumed for the driver documents.
+ * Source: GOFAST answers, 6 Nov 2026, "Pièces jointes" (images and PDF, 5 MB per file), for all
+ * attachments. Provisional.
  */
 export const ATTACHMENT_TYPES = [
   "image/jpeg",

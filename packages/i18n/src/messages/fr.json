@@ -613,7 +613,7 @@
       "submit": "Envoyer ma candidature",
       "sending": "Envoi…",
       "documentsTitle": "Vos documents",
-      "documentsHint": "Images ou PDF, 5 Mo au maximum par fichier.",
+      "documentsHint": "Images ou PDF, {size} Mo au maximum par fichier.",
       "addFile": "Ajouter un fichier",
       "removeDocument": "Retirer le fichier : {document}",
       "documents": {
@@ -623,7 +623,8 @@
         "insurance": "Attestation d'assurance",
         "vehiclePhoto": "Photo du véhicule",
         "bankDetails": "Coordonnées bancaires ou postales (RIB ou attestation postale)"
-      }
+      },
+      "requiredLabel": "obligatoire"
     },
     "success": {
       "title": "Candidature envoyée.",

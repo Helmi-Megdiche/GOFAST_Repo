@@ -398,11 +398,12 @@ native-speaker review before release (CLAUDE.md).
 | `driver.form.documents.licence` | رخصة السياقة المناسبة | Permis de conduire adapté | [ ] |
 | `driver.form.documents.registration` | البطاقة الرمادية | Carte grise | [ ] |
 | `driver.form.documents.vehiclePhoto` | صورة المركبة | Photo du véhicule | [ ] |
-| `driver.form.documentsHint` | صور أو ملفات PDF، بحد أقصى 5 ميغابايت للملف. | Images ou PDF, 5 Mo au maximum par fichier. | [ ] |
+| `driver.form.documentsHint` | صور أو ملفات PDF، بحد أقصى {size} ميغابايت للملف. | Images ou PDF, {size} Mo au maximum par fichier. | [ ] |
 | `driver.form.documentsTitle` | وثائقك | Vos documents | [ ] |
 | `driver.form.fullName` | الاسم الكامل | Nom complet | [ ] |
 | `driver.form.phone` | الهاتف | Téléphone | [ ] |
 | `driver.form.removeDocument` | إزالة الملف: {document} | Retirer le fichier : {document} | [ ] |
+| `driver.form.requiredLabel` | مطلوب | obligatoire | [ ] |
 | `driver.form.sending` | جارٍ الإرسال… | Envoi… | [ ] |
 | `driver.form.submit` | إرسال ترشحي | Envoyer ma candidature | [ ] |
 | `driver.form.title` | الترشح | Candidature | [ ] |

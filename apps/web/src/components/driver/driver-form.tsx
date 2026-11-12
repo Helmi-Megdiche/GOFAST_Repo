@@ -7,6 +7,7 @@ import { useTranslations } from "next-intl";
 import { Alert, Button, Card, Field, FileAttach, Input, Ltr, Select } from "@fastgo/ui";
 import { Confirmation } from "@/components/confirmation";
 import { ATTACHMENT_TYPES } from "@/lib/attachments";
+import { MAX_ATTACHMENT_BYTES } from "@/lib/limits";
 import {
   DRIVER_DOCUMENTS,
   DRIVER_VEHICLES,
@@ -32,8 +33,8 @@ const focusDocument = (code: DriverDocumentCode | undefined) =>
 
 /**
  * Driver application (W08, FE-05). Six required documents (GOFAST's list), each checked here and
- * again by the mock server. Size limit from the contact form (FE-06), types from the claim
- * attachments: the spec gives none for this form. Files stay in memory: never in storage or the URL.
+ * again by the mock server. File rule (images and PDF, 5 MB): GOFAST's answer on attachments,
+ * 6 Nov 2026 (lib/attachments.ts). Files stay in memory: never in storage or the URL.
  */
 export function DriverForm() {
   const t = useTranslations("driver");
@@ -155,7 +156,9 @@ export function DriverForm() {
         </Select>
       </Field>
       <h3 className="mt-2 text-d3">{t("form.documentsTitle")}</h3>
-      <p className="-mt-2 text-2xs text-muted">{t("form.documentsHint")}</p>
+      <p className="-mt-2 text-2xs text-muted">
+        {t("form.documentsHint", { size: MAX_ATTACHMENT_BYTES / (1024 * 1024) })}
+      </p>
       {DRIVER_DOCUMENTS.map((code) => (
         <Controller
           key={code}
@@ -169,7 +172,8 @@ export function DriverForm() {
               className="flex flex-col gap-1.5"
             >
               <span id={`driver-doc-${code}`} className="text-xs font-medium text-ink">
-                {t(`form.documents.${code}`)}
+                {t(`form.documents.${code}`)}{" "}
+                <span className="sr-only">{t("form.requiredLabel")}</span>
                 <span aria-hidden="true" className="ms-0.5 text-danger">
                   *
                 </span>
