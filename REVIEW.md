@@ -69,6 +69,22 @@ Source: PR #5, a service the address no longer offered could still be ordered, e
 For each list, tile or filter built from a set of states, list the states and check that each one lands where the user expects it, and that none is in no group at all.
 Source: PR A round 1, C01 showed "in progress" and "last deliveries" from two state lists, and `pickup_failed` was in neither.
 
+**RV-17. A setting that belongs to a person is keyed by the person, not the account.**
+Test it with two members of the same company: a change by one must not reach the other.
+Source: PR B round 1, a team member's language choice was saved on the company account and changed the admin's language at sign-in (R902).
+
+**RV-18. After an action that erases personal data, search every stored key for the erased values.**
+Use data written through the real flows, not only fixtures, and a scan of every key, never a hand-picked list of tables. Copies kept for technical reasons (fingerprints, idempotency keys, caches, counters) count: either store no readable copy (a hash) or show that they expire.
+Source: PR B round 1, closing an account left the sender's name and phone in the order and idempotency fingerprints, which only fixture-based tests missed.
+
+**RV-19. An authorisation check reads the stored account (kind, role, status), never only the fields the client session carries.**
+Call the function directly with a session whose fields were changed (a merchant row with a customer session) and with a session of another person: it must refuse and write nothing.
+Source: PR B round 1, `closeAccount` closed a merchant row when given a session that said `customer`.
+
+**RV-20. When an account gets a terminal state, every writer scoped by its id refuses it.**
+List the writers (search for `accountId` in lib/data), and test each one against a closed account, with nothing written.
+Source: PR B round 1, an address could still be saved, and an order or claim created, with the session of a closed account.
+
 ### Money and values
 
 **RV-06. Test money parsing at the edges in each language.**
@@ -95,7 +111,7 @@ Source: PR 0, 530 passing was reported in the morning, and 529 of 530 passed on 
 
 **RV-10. E2e tests wait for the state they read.**
 Never read a computed value without waiting for it. Repeat each new or changed spec, up to 20 times for one that was flaky.
-Source: PR #5, a test read the W14 price without waiting and failed 7 times out of 10.
+Source: PR #5, a test read the W14 price without waiting and failed 7 times out of 10. PR B round 1: the contact 5 MB test chose a file on a client form before hydration and went red once the header bundle grew. Every e2e action on a client form waits for hydration first.
 
 ### Code and documents
 

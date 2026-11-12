@@ -49,6 +49,36 @@ function withDefaults(row: Partial<Account> & { id: string }): Account {
   };
 }
 
+/** True when the session's account was closed (R105): its stale session writes nothing. */
+export function isClosedSession(session: { accountId: string } | null): boolean {
+  return session != null && findById(session.accountId)?.status === "closed";
+}
+
+/** R902: a language belongs to the person. A team member's is kept on the person, an individual's on the account. */
+export const MEMBER_LOCALES = "fg.mock.memberLocales";
+
+export function personLocale(session: {
+  accountId: string;
+  userId: string;
+  role: "admin" | "user" | null;
+}): Locale {
+  const account = findById(session.accountId);
+  if (session.role !== null) {
+    const own = readTable<Locale>(MEMBER_LOCALES)[session.userId];
+    if (own) return own;
+  }
+  return account?.locale ?? defaultLocale;
+}
+
+export function savePersonLocale(
+  session: { userId: string; role: "admin" | "user" | null },
+  account: Account,
+  locale: Locale,
+): void {
+  if (session.role !== null) writeRow(MEMBER_LOCALES, session.userId, locale);
+  else saveAccount({ ...account, locale });
+}
+
 export function saveAccount(account: Account): void {
   writeRow(TABLE, account.id, account);
 }

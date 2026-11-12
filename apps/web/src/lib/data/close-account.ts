@@ -20,7 +20,18 @@ export type CloseBlocker = "activeOrder" | "amountDue";
  * individual customer closes an account here (closing a company is back-office work, R105).
  */
 export function closeBlocker(session: Session): CloseBlocker | "notAllowed" | null {
-  if (session.kind !== "customer" || session.role !== null) return "notAllowed";
+  // The stored account decides, never the fields the session carries (RV-19): an individual's active
+  // customer row, called by that person themselves.
+  const stored = findById(session.accountId);
+  if (
+    !stored ||
+    stored.kind !== "customer" ||
+    stored.status !== "active" ||
+    session.userId !== session.accountId ||
+    session.role !== null
+  ) {
+    return "notAllowed";
+  }
   if (listAccountOrders(session).some((order) => !FINAL_ORDER_STATES.includes(order.status))) {
     return "activeOrder";
   }

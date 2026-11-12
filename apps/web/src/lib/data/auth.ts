@@ -1,11 +1,11 @@
-import { defaultLocale, type Locale } from "@fastgo/i18n";
+import type { Locale } from "@fastgo/i18n";
 import { PASSWORD_MIN_LENGTH } from "../order/constants";
 import { normalizePhone } from "../phone";
 import {
   findByEmail,
-  findById,
   findByPhone,
   findTeamMemberByPhone,
+  personLocale,
   sessionFor,
   sessionForMember,
 } from "./accounts";
@@ -36,7 +36,7 @@ export async function signIn(identifier: string, password: string): Promise<Sign
   return {
     status: "ok",
     session,
-    locale: findById(session.accountId)?.locale ?? defaultLocale,
+    locale: personLocale(session),
   };
 }
 

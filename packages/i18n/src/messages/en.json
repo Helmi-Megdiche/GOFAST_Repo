@@ -993,7 +993,8 @@
         "draftChanged": "Your order was changed in another tab. Check it, then confirm.",
         "serviceUnavailable": "This service is no longer available for these addresses. Choose another one.",
         "returnBalanceDue": "A return fee balance must be settled before a new cash order.",
-        "freightPayerNotAccepted": "Accept the pay-on-delivery terms to confirm."
+        "freightPayerNotAccepted": "Accept the pay-on-delivery terms to confirm.",
+        "accountClosed": "This account is closed. Sign in or create an account to order."
       },
       "serviceLines": {
         "express": "{service}, in under 1 hour",

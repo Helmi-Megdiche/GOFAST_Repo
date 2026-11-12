@@ -836,6 +836,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.dropoff` | التسليم | Livraison | [ ] |
 | `order.review.edit` | تعديل | Modifier | [ ] |
 | `order.review.editSection` | تعديل: {section} | Modifier : {section} | [ ] |
+| `order.review.errors.accountClosed` | هذا الحساب مغلق. سجّل الدخول أو أنشئ حسابًا للطلب. | Ce compte est fermé. Connectez-vous ou créez un compte pour commander. | [ ] |
 | `order.review.errors.draftChanged` | تم تعديل طلبك في علامة تبويب أخرى. راجعه ثم أكّده. | Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez. | [ ] |
 | `order.review.errors.freightPayerNotAccepted` | اقبل شروط الدفع عند التسليم للتأكيد. | Acceptez les conditions du paiement à la livraison pour valider. | [ ] |
 | `order.review.errors.idempotencyConflict` | أُرسل هذا الطلب سابقًا بمعلومات مختلفة. أعد تحميل الصفحة. | Cette commande a déjà été envoyée avec d'autres informations. Rechargez la page. | [ ] |

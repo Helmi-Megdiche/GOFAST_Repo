@@ -3,6 +3,7 @@ import {
   findByEmail,
   findById,
   saveAccount,
+  savePersonLocale,
   type Account,
   type NotificationPrefs,
 } from "./accounts";
@@ -83,7 +84,7 @@ export async function setAccountLocale(session: Session, locale: Locale): Promis
   await mockDelay();
   const account = openAccount(session);
   if (!account || !isLocale(locale)) return { status: "notFound" };
-  saveAccount({ ...account, locale });
+  savePersonLocale(session, account, locale);
   return { status: "ok" };
 }
 
@@ -96,7 +97,7 @@ export async function saveLocaleIfSignedIn(locale: Locale): Promise<void> {
   if (!session) return;
   // No mock delay: the page changes language right after the click.
   const account = openAccount(session);
-  if (account && isLocale(locale)) saveAccount({ ...account, locale });
+  if (account && isLocale(locale)) savePersonLocale(session, account, locale);
 }
 
 /** H11: allowed, a password can still be set through the SMS reset. The phone stays (R103). */

@@ -16,6 +16,13 @@ import { checkZone } from "./zones";
 const sami = sessionFor(findById("acc-customer")!);
 const karim = sessionFor(findById("acc-customer-other")!);
 
+/** saveAddress, unwrapped: these tests use an open account. */
+function addAddress(...args: Parameters<typeof saveAddress>) {
+  const result = saveAddress(...args);
+  if (result.status !== "saved") throw new Error("not saved");
+  return result.address;
+}
+
 beforeEach(() => {
   useMemoryStorage();
   setClock(() => Date.parse("2026-11-04T10:00:00Z"));
@@ -23,12 +30,12 @@ beforeEach(() => {
 
 describe("saved addresses (CMD-02)", () => {
   it("saves, lists, edits and removes an address, in the order saved", () => {
-    const home = saveAddress(sami, {
+    const home = addAddress(sami, {
       label: "Domicile",
       text: "Rue Ibn Khaldoun",
       landmark: "Pharmacie",
     });
-    saveAddress(sami, { label: "Bureau", text: "Avenue Habib Bourguiba", landmark: "" });
+    addAddress(sami, { label: "Bureau", text: "Avenue Habib Bourguiba", landmark: "" });
     expect(listAddresses(sami).map((a) => a.label)).toEqual(["Domicile", "Bureau"]);
     expect(updateAddress(sami, home.id, { label: "Maison" })).toMatchObject({ status: "ok" });
     expect(listAddresses(sami)[0]).toMatchObject({ label: "Maison", text: "Rue Ibn Khaldoun" });
@@ -38,12 +45,12 @@ describe("saved addresses (CMD-02)", () => {
 
   it("has no limit on saved items (H8)", () => {
     for (let i = 0; i < 60; i++)
-      saveAddress(sami, { label: `A${i}`, text: "Rue Ibn Khaldoun", landmark: "" });
+      addAddress(sami, { label: `A${i}`, text: "Rue Ibn Khaldoun", landmark: "" });
     expect(listAddresses(sami)).toHaveLength(60);
   });
 
   it("is scoped by account: another account's address answers like a missing one (not found)", () => {
-    const home = saveAddress(sami, { label: "Domicile", text: "Rue Ibn Khaldoun", landmark: "" });
+    const home = addAddress(sami, { label: "Domicile", text: "Rue Ibn Khaldoun", landmark: "" });
     expect(listAddresses(karim)).toEqual([]);
     expect(updateAddress(karim, home.id, { label: "X" })).toEqual({ status: "notFound" });
     expect(removeAddress(karim, home.id)).toEqual({ status: "notFound" });
@@ -52,7 +59,7 @@ describe("saved addresses (CMD-02)", () => {
   });
 
   it("keeps only the text, so the zone is checked again at order time (R201)", async () => {
-    const saved = saveAddress(sami, {
+    const saved = addAddress(sami, {
       label: "Route",
       text: "Route de Sousse km 40",
       landmark: "",

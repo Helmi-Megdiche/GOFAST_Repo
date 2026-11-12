@@ -993,7 +993,8 @@
         "draftChanged": "Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez.",
         "serviceUnavailable": "Ce service n'est plus disponible pour ces adresses. Choisissez-en un autre.",
         "returnBalanceDue": "Un solde de frais de retour doit être réglé avant une nouvelle commande en espèces.",
-        "freightPayerNotAccepted": "Acceptez les conditions du paiement à la livraison pour valider."
+        "freightPayerNotAccepted": "Acceptez les conditions du paiement à la livraison pour valider.",
+        "accountClosed": "Ce compte est fermé. Connectez-vous ou créez un compte pour commander."
       },
       "serviceLines": {
         "express": "{service}, en moins de 1 h",

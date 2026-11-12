@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useMemoryStorage } from "../storage";
 import { setClock } from "./clock";
-import { loadDraft } from "./draft";
-import { addressDraftFromSaved, seedFromSavedRecipient } from "./saved";
+import { checkZone } from "../data/zones";
+import { emptyDraft, loadDraft } from "./draft";
+import { addressDraftFromSaved, confirmedText, seedFromSavedRecipient } from "./saved";
 
 const T0 = Date.parse("2026-11-04T08:30:00Z");
 
@@ -27,6 +28,12 @@ describe("saved addresses in the order flow (CMD-02, R201)", () => {
     const draft = await addressDraftFromSaved("Route de Sousse km 40", "");
     expect(draft.confirmed).toBe(true);
     expect(draft.zone).toEqual({ status: "out-of-zone" });
+  });
+
+  it("a saved address ends in the same state as a typed address whose suggestion was picked", async () => {
+    const zone = await checkZone("Rue Ibn Khaldoun");
+    const picked = { ...emptyDraft(T0).sender.address, ...confirmedText("Rue Ibn Khaldoun", zone) };
+    expect(await addressDraftFromSaved("Rue Ibn Khaldoun", "")).toEqual(picked);
   });
 
   it("'Lui envoyer un colis' fills the recipient of the draft and nothing of the sender", async () => {

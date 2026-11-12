@@ -368,6 +368,7 @@ const tickCaptcha = async (page: Page) => {
 
 test("contact: the ticket is opened once the captcha is ticked", async ({ page }) => {
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await fillContact(page);
   await tickCaptcha(page);
   await page.getByRole("button", { name: "Envoyer ma demande" }).click();
@@ -380,6 +381,7 @@ test("contact: the ticket is opened once the captcha is ticked", async ({ page }
 
 test("contact: refuses to send without the captcha, and shows field errors", async ({ page }) => {
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await page.getByRole("button", { name: "Envoyer ma demande" }).click();
   await expect(page.getByText("Ce champ est obligatoire.").first()).toBeVisible();
   await expect(page.getByText("Confirmez que vous n'êtes pas un robot.")).toBeVisible();
@@ -388,6 +390,7 @@ test("contact: refuses to send without the captcha, and shows field errors", asy
 
 test("contact: an empty tracking number is valid, a wrong one is not", async ({ page }) => {
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await fillContact(page);
   await tickCaptcha(page);
   await page.getByLabel("Numéro de suivi (facultatif)").fill("FG-12");
@@ -403,6 +406,7 @@ test("contact: an attachment of exactly 5 MB is accepted, one byte more is refus
 }) => {
   const FIVE_MB = 5 * 1024 * 1024;
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated: a file chosen before it would never reach the form (RV-10)
   const input = page.locator('input[type="file"]');
 
   await input.setInputFiles({
@@ -435,6 +439,7 @@ test("contact: ?type=devis preselects Devis; the three request types exist", asy
   await expect(select).toHaveValue("quote");
   await expect(select.locator("option")).toHaveText(["Question", "Devis", "Réclamation"]);
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await expect(select).toHaveValue("question");
 });
 

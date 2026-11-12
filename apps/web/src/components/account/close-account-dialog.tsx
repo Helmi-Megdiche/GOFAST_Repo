@@ -51,6 +51,11 @@ export function CloseAccountDialog({
         return;
       }
       if (result.status === "refused") setSeen({ open: true, blocker: result.reason });
+      // Another tab closed the account first: nothing left to confirm, go to sign-in.
+      if (result.status === "notAllowed") {
+        onClose();
+        router.push("/connexion");
+      }
     } catch {
       // A network cut or a storage that failed midway: nothing was changed (one write).
       setNetwork(true);

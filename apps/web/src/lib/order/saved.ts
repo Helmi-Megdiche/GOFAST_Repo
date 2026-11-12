@@ -1,5 +1,5 @@
 import type { SavedRecipient } from "../data/address-book";
-import { checkZone } from "../data/zones";
+import { checkZone, type ZoneResult } from "../data/zones";
 import { updateDraft, type AddressDraft } from "./draft";
 
 /**
@@ -8,8 +8,21 @@ import { updateDraft, type AddressDraft } from "./draft";
  * confirmed: the person chose it themselves.
  */
 export async function addressDraftFromSaved(text: string, landmark: string): Promise<AddressDraft> {
-  return { text, confirmed: true, pin: null, zone: await checkZone(text), landmark };
+  return { ...confirmedText(text, await checkZone(text)), landmark };
 }
+
+/**
+ * The fields of an address the person chose by its text: confirmed, no pin, with its zone result. The
+ * address field uses it when a suggestion is picked and the saved-address pick uses it too, so both
+ * end in the same draft state (the plan's `seedFromHome` path leaves an address unconfirmed, which a
+ * saved address must not be).
+ */
+export const confirmedText = (text: string, zone: ZoneResult | null) => ({
+  text,
+  confirmed: true,
+  pin: null,
+  zone,
+});
 
 /** "Lui envoyer un colis" (C08): the recipient of the draft is this saved recipient; the sender is untouched. */
 export async function seedFromSavedRecipient(recipient: SavedRecipient): Promise<void> {

@@ -13,7 +13,7 @@ import {
 } from "../tracking-code";
 import { splitWhole, kgTextToGrams } from "../order/split";
 import { readJson, removeKey } from "../storage";
-import { isVerifiedPhoneForSession, returnBalanceMillimes } from "./accounts";
+import { isClosedSession, isVerifiedPhoneForSession, returnBalanceMillimes } from "./accounts";
 import { mockDelay } from "./delay";
 import { FIXTURE_ORDER_CODES } from "./fixtures/orders";
 import {
@@ -35,6 +35,7 @@ import {
 } from "./order-model";
 import { isTargetVerified } from "./otp";
 import { writeOutbox } from "./outbox";
+import { digest } from "../hash";
 import { saveRecipient } from "./address-book";
 import { mintRecipientLink } from "./recipient-links";
 import { canPayOnAccount, getSession } from "./session";
@@ -48,6 +49,7 @@ export type OrderError =
   | "quoteNotAccepted"
   | "serviceUnavailable"
   | "paymentNotAllowed"
+  | "accountClosed"
   | "returnBalanceDue"
   | "freightPayerNotAccepted"
   | "slotPast"
@@ -324,7 +326,10 @@ function createOrderNow(
   randomBytes?: RandomBytes,
 ): CreateOrderResult {
   const at = now();
-  const print = fingerprint(request);
+  // A closed account's stale session never creates an order (R105).
+  if (isClosedSession(getSession())) return { status: "refused", error: "accountClosed" };
+  // Only the digest is stored: a request's text holds the sender's name and phone (R105).
+  const print = digest(fingerprint(request));
 
   const known = replayOf(idempotencyKey, print);
   if (known) return known;

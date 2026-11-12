@@ -1,5 +1,6 @@
 import type { Locale } from "@fastgo/i18n";
 import { normalizePhone } from "../phone";
+import { isClosedSession } from "./accounts";
 import { readTable, removeRow, writeRow } from "./mock-db";
 import type { Session } from "./session";
 
@@ -35,7 +36,11 @@ export function listAddresses(session: Session): SavedAddress[] {
     .map(strip);
 }
 
-export function saveAddress(session: Session, input: Omit<SavedAddress, "id">): SavedAddress {
+export type SaveAddressResult = { status: "saved"; address: SavedAddress } | { status: "notFound" };
+
+export function saveAddress(session: Session, input: Omit<SavedAddress, "id">): SaveAddressResult {
+  // R105: a closed account writes nothing. Every writer of this file starts with this check.
+  if (isClosedSession(session)) return { status: "notFound" };
   const row: AddressRow = {
     id: `adr-${crypto.randomUUID()}`,
     accountId: session.accountId,
@@ -44,7 +49,7 @@ export function saveAddress(session: Session, input: Omit<SavedAddress, "id">): 
     landmark: input.landmark.trim(),
   };
   writeRow(ADDRESSES, row.id, row);
-  return strip(row);
+  return { status: "saved", address: strip(row) };
 }
 
 export type BookResult = { status: "ok" } | { status: "notFound" };
@@ -54,6 +59,8 @@ export function updateAddress(
   id: string,
   patch: Partial<Omit<SavedAddress, "id">>,
 ): BookResult {
+  // R105: a closed account writes nothing. Every writer of this file starts with this check.
+  if (isClosedSession(session)) return { status: "notFound" };
   const row = readTable<AddressRow>(ADDRESSES)[id];
   if (!row || row.accountId !== session.accountId) return { status: "notFound" };
   writeRow<AddressRow>(ADDRESSES, id, {
@@ -66,6 +73,8 @@ export function updateAddress(
 }
 
 export function removeAddress(session: Session, id: string): BookResult {
+  // R105: a closed account writes nothing. Every writer of this file starts with this check.
+  if (isClosedSession(session)) return { status: "notFound" };
   const row = readTable<AddressRow>(ADDRESSES)[id];
   if (!row || row.accountId !== session.accountId) return { status: "notFound" };
   removeRow(ADDRESSES, id);
@@ -82,7 +91,12 @@ export function savedRecipients(session: Session): SavedRecipient[] {
 export function saveRecipient(
   session: Session,
   input: Omit<SavedRecipient, "id">,
-): { status: "saved"; recipient: SavedRecipient } | { status: "invalidPhone" } {
+):
+  | { status: "saved"; recipient: SavedRecipient }
+  | { status: "invalidPhone" }
+  | { status: "notFound" } {
+  // R105: a closed account writes nothing. Every writer of this file starts with this check.
+  if (isClosedSession(session)) return { status: "notFound" };
   const phone = normalizePhone(input.phone);
   if (!phone) return { status: "invalidPhone" };
   const existing = Object.values(readTable<RecipientRow>(RECIPIENTS)).find(
@@ -102,6 +116,8 @@ export function saveRecipient(
 }
 
 export function removeRecipient(session: Session, id: string): BookResult {
+  // R105: a closed account writes nothing. Every writer of this file starts with this check.
+  if (isClosedSession(session)) return { status: "notFound" };
   const row = readTable<RecipientRow>(RECIPIENTS)[id];
   if (!row || row.accountId !== session.accountId) return { status: "notFound" };
   removeRow(RECIPIENTS, id);

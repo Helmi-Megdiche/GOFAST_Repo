@@ -1,4 +1,5 @@
 import { cancelOption, type CancelOption } from "./cancel-option";
+import { isClosedSession } from "./accounts";
 import { mockDelay } from "./delay";
 import { getAccountOrder } from "./account-orders";
 import { consumeFailNext } from "./mock-db";
@@ -37,6 +38,7 @@ export async function cancelOrder(
 ): Promise<CancelResult> {
   await mockDelay();
   if (consumeFailNext("cancelOrder")) throw new NetworkError();
+  if (isClosedSession(session)) return { status: "notFound" };
   const order = getAccountOrder(session, code);
   if ("notFound" in order) return { status: "notFound" };
   if (order.status === "canceled") return { status: "canceled", fee: order.cancel?.fee ?? "none" };
