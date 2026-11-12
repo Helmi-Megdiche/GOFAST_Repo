@@ -1,7 +1,8 @@
 import type { ProofLevel } from "../order/proof";
 import { exceedsWeightTolerance } from "../order/weight";
 import { normalizeTrackingCode } from "../tracking-code";
-import { findById, returnBalanceMillimes } from "./accounts";
+import { findById } from "./accounts";
+import { amountDueMillimes } from "./amount-due";
 import { cancelOption, type CancelOption } from "./cancel-option";
 import { mockDelay } from "./delay";
 import { seedOrderFixtures } from "./fixtures/orders";
@@ -179,7 +180,7 @@ export type Dashboard = {
   inProgress: (OrderRow & { etaUtc: string | null; parcelCount: number })[];
   /** The last three orders that ended (not canceled), newest first. */
   lastDeliveries: OrderRow[];
-  /** R605: what the account owes for returned parcels. */
+  /** What the account owes: its unpaid invoices and its return balance (R605), from `amountDueMillimes`. */
   amountDueMillimes: number;
 };
 
@@ -201,7 +202,7 @@ export async function getDashboard(session: Session): Promise<Dashboard> {
       .filter((order) => FINAL_ORDER_STATES.includes(order.status) && order.status !== "canceled")
       .slice(0, 3)
       .map(rowOf),
-    amountDueMillimes: returnBalanceMillimes(session.accountId),
+    amountDueMillimes: amountDueMillimes(session.accountId),
   };
 }
 

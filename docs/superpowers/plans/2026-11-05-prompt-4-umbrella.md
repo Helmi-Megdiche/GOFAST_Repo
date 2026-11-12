@@ -474,7 +474,7 @@ This section is unchanged from the first plan.
 - **R604:** the TTN identifier and QR show only when the invoice has them. Fixtures have none, because TTN membership is not active yet.
 - **R708:** an invoice never contains COD.
 - **ESP-05:** invoices, receipts and credit notes each have their PDF (static example files marked EXEMPLE).
-- **R601 and R606 (T19 fixture).** The invoice for the T19 order bills **every** parcel's freight ("le port reste dû", "y compris pour un retour"), plus a return-fee line shown as `[FRAIS]` for the returned parcel. Who pays a return after a refusal is decided by the back-office; the client-visible R607 acceptance is in part A.
+- **R601 and R606 (T19 fixture).** The invoice for the T19 order bills **every** parcel's freight ("le port reste dû", "y compris pour un retour"), plus a return-fee line for the returned parcel, with `RETURN_FEE_MILLIMES` (5 DT, GOFAST answers, 6 Nov 2026). Who pays a return after a refusal is decided by the back-office; the client-visible R607 acceptance is in part A.
 
 **Claims** (`tickets`, `ticket_messages`).
 - **A claim needs an order.**
@@ -485,13 +485,13 @@ This section is unchanged from the first plan.
   - the constant is in `constants.ts` at **30 days**, marked `// unsourced: "délai fixé", R804`, and listed in section 9;
   - an archived claim is read-only.
 - **T30:** messages with `isInternal: true` are never returned to the client. A fixture has one, and a test checks it is absent from the client's data shape and from the page.
-- **R801:** C07 shows "Délai pour signaler un dommage ou une perte : selon les CGV, [DÉLAI CGV]" (D4 and the CGV).
+- **R801:** C07 shows the report delay of 48 h after the delivery or the finding (`CLAIM_REPORT_DELAY_HOURS`, GOFAST answers, 6 Nov 2026).
 - **Damaged parcel** ("Un colis abîmé garde son état et ouvre une réclamation"): a C07 claim of type damage on a `handed_over` parcel leaves the parcel's state unchanged.
-- **R802:** C07 shows the declared value of the linked order, or "Sans valeur déclarée, le forfait des CGV s'applique : [FORFAIT]". No amount is ever computed.
+- **R802:** C07 shows the declared value of the linked order, or "Sans valeur déclarée, le forfait des CGV s'applique" with the cap of 100 DT (`CLAIM_FLAT_CAP_MILLIMES`, GOFAST answers, 6 Nov 2026). No refund is ever computed.
 - **R803:** the client sees a credit note only once it is issued. The proposal and validation happen in the back-office.
-- **Attachments** (H12, decided): 5 MB per file, images and PDF only, at most 5 files. `CLAIM_ATTACHMENT_MAX_BYTES`, `CLAIM_ATTACHMENT_MAX_FILES` and the accepted types are in `constants.ts`, marked unsourced and listed in section 9.
+- **Attachments** (H12, decided): 5 MB per file, images and PDF only, at most 5 files. `CLAIM_ATTACHMENT_MAX_BYTES`, `CLAIM_ATTACHMENT_MAX_FILES` and the accepted types are in `constants.ts`, sourced from GOFAST's answers of 6 Nov 2026.
 - **Claim status names** (H13, decided): the mockup's names for now. The reopen route goes on the cahier v2 list.
-- **Unsourced in C07:** the reply time "sous 48 h" (F4).
+- **C07 reply time:** "sous 48 h" (`CLAIM_REPLY_DELAY_HOURS`, GOFAST answers, 6 Nov 2026).
 
 **Tests.**
 - **Unit:**
@@ -503,7 +503,7 @@ This section is unchanged from the first plan.
   - an archived claim refuses a message;
   - the internal note is filtered out;
   - a damage claim leaves the parcel's state unchanged;
-  - the T19 invoice bills three parcels' freight and shows the `[FRAIS]` return line;
+  - the T19 invoice bills three parcels' freight and shows the return-fee line (`RETURN_FEE_MILLIMES`);
   - replaying a message key does not duplicate it (ADR-6).
 - **E2e:**
   - "Contester" on a one-order invoice gets that order;
@@ -726,25 +726,25 @@ The manual Lighthouse and device checks stay.
 | COD payout weekly, monthly invoice | P04, statements | **P** (D10) | fixture `codCycle: "weekly"` |
 | COD payout day, minimum, transfer method | P04 | U (D10 leaves them open) | `[JOUR DE REVERSEMENT]` |
 | Recipient link: how long it works after delivery | link | U ("délai fixé", R406) | `RECIPIENT_LINK_AFTER_DELIVERY_MS = 24 h`, listed |
-| Claim reopening window | C07 | U ("délai fixé", R804) | `CLAIM_REOPEN_WINDOW_MS = 30 days`, listed |
+| Claim reopening window | C07 | U ("délai fixé", R804) | `CLAIM_REOPEN_WINDOW_MS = 30 days`, now sourced (GOFAST answers, 6 Nov 2026) |
 | Recipient reply time before the return starts | D4 | U ("délai fixé", R503) | `[DÉLAI]` |
 | How long an undelivered parcel is kept | D4 | U (D2, "à fixer") | not shown |
 | Cancellation fee after arrival, return fee, retry fee | CMD-08, W15 | Provisional, GOFAST answers 6 Nov 2026 (D7, R212, R504): cancel 5 000 millimes, new attempt 0, return 5 000 | `CANCEL_FEE_MILLIMES`, `NEW_ATTEMPT_FEE_MILLIMES`, `RETURN_FEE_MILLIMES` |
 | Fee for cancelling after a failed pickup | `pickup_failed` cancel | U (R212, R505, CGV) | "peuvent s'appliquer : [FRAIS]", back-office decides (H6) |
-| Claim reporting delay, flat-rate indemnity | C07 | U (R801, R802, CGV) | `[DÉLAI CGV]`, `[FORFAIT]` |
+| Claim reporting delay, flat-rate indemnity | C07 | U (R801, R802, CGV) | 48 h and 100 DT (GOFAST answers, 6 Nov 2026): `CLAIM_REPORT_DELAY_HOURS`, `CLAIM_FLAT_CAP_MILLIMES` |
 | Credit limit, payment terms | P01, W15 | U, per contract | contract fixture, "Exemple de contrat" |
 | VAT rate | C05 | U | `[TVA]` |
 | Fiscal stamp amount | C05 | U (FIN-04 "paramétrables") | an amount from the data, example |
 | FastGo address, matricule fiscal, phone | C05, D4 | U (D4) | `[ADRESSE]`, `[MATRICULE]`, `[TÉLÉPHONE]` |
 | Retention of invoices, proofs and positions | C09 | U (D9) | no duration shown |
 | Fees per delivery and per return on COD statements | P05 | U | fixture amounts, "Montants d'exemple" |
-| Claim reply time "sous 48 h" | C07 | U (mockup only) | `[DÉLAI DE RÉPONSE]` |
+| Claim reply time "sous 48 h" | C07 | U (mockup only) | 48 h, sourced (GOFAST answers, 6 Nov 2026): `CLAIM_REPLY_DELAY_HOURS` |
 | Import file size | P02 | U (mockup "10 Mo au maximum"; 1024 × 1024 bytes per MB, as `lib/limits.ts`) | `IMPORT_MAX_BYTES = 10 * 1024 * 1024` |
 | Import on account: after a row is stopped by the limit, a smaller later row that fits still passes | P02, P03 | U, listed default (R211 only stops an order that crosses the limit) | import loop with `pendingMillimes` |
 | Import row price | P03 | U (mock pricing of the order flow, "Montant d'exemple") | `priceLines` |
 | Import row limit | P02 | U | `IMPORT_MAX_ROWS = 1000` |
 | Import columns and number format | P02 | U (P02 mockup columns; fr format default, H19) | parser config |
-| Claim attachments: 5 MB per file, images and PDF, at most 5 files | C07 | U (H12) | `CLAIM_ATTACHMENT_MAX_BYTES`, `CLAIM_ATTACHMENT_MAX_FILES`, accepted types |
+| Claim attachments: 5 MB per file, images and PDF, at most 5 files | C07 | U (H12) | `CLAIM_ATTACHMENT_MAX_BYTES`, `CLAIM_ATTACHMENT_MAX_FILES`, accepted types, now sourced (GOFAST answers, 6 Nov 2026) |
 | Failure reasons (the 5 of R502) | D4, C03 | Provisional, GOFAST answers 6 Nov 2026 | `FAILURE_REASONS` |
 | Handover code length (4 in D1) | D1 | U | fixture, length not enforced |
 | Slots offered to the recipient | D3 | U | fixtures |

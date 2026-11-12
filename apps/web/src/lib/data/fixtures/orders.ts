@@ -33,6 +33,7 @@ export const SEED_VERSION = "orders-v2";
 
 type ParcelSpec = {
   codMillimes?: number;
+  declaredValueMillimes?: number;
   fragile?: boolean;
   size?: ParcelTypeCode;
   weightDeclaredG?: number;
@@ -145,7 +146,7 @@ function createFixtureOrder(spec: OrderSpec): { ids: string[]; next: Next } {
       size: p.size ?? "small",
       weightDeclaredG: p.weightDeclaredG ?? 1500,
       weightMeasuredG: p.weightMeasuredG ?? null,
-      declaredValueMillimes: null,
+      declaredValueMillimes: p.declaredValueMillimes ?? null,
       codMillimes,
       fragile,
       proofLevel: proofLevelFor(
@@ -293,7 +294,10 @@ const BUILDERS: [string, Builder][] = [
   [
     "FG-5A1D-0008",
     (code) => {
-      const { ids, next } = customerOrder(code, DAY(2, 10, 0), RECIPIENTS.b);
+      // Declared value 120 DT (ESP-06: C07 shows it, R802).
+      const { ids, next } = customerOrder(code, DAY(2, 10, 0), RECIPIENTS.b, [
+        { declaredValueMillimes: 120_000 },
+      ]);
       pickUp(code, ids, next);
       parcelStep(ids[0]!, "in_transit", next);
       parcelStep(ids[0]!, "handed_over", next, true);

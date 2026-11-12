@@ -84,3 +84,31 @@ export const RETURN_FEE_MILLIMES = 5000;
 export const WEIGHT_TOLERANCE_FLAT_G = 500;
 export const WEIGHT_TOLERANCE_FLAT_UP_TO_G = 5000;
 export const WEIGHT_TOLERANCE_PERCENT = 10;
+
+/** R801: a damage or a loss is reported within 48 h of the delivery or of the finding. Provisional: GOFAST answers, 6 Nov 2026 (docs/spec/reponses-gofast.md). */
+export const CLAIM_REPORT_DELAY_HOURS = 48;
+
+/**
+ * R802: without a declared value, the compensation cap is 100 DT, in millimes. Provisional: GOFAST
+ * answers, 6 Nov 2026. Shown on C07 only: no refund is ever computed in the client space.
+ */
+export const CLAIM_FLAT_CAP_MILLIMES = 100_000;
+
+/** R804: a closed claim can be reopened for 30 days, then it is archived. Provisional: GOFAST answers, 6 Nov 2026. */
+export const CLAIM_REOPEN_WINDOW_MS = 30 * 24 * HOUR;
+
+/** R804: GOFAST answers a claim within 48 h (text of C07). Provisional: GOFAST answers, 6 Nov 2026. */
+export const CLAIM_REPLY_DELAY_HOURS = 48;
+
+/**
+ * Claim attachments (H12): images and PDF, 5 MB per file ("5 MB" read as 5 x 1024 x 1024 bytes, as
+ * for the contact form), at most 5 files. Provisional: GOFAST answers, 6 Nov 2026.
+ */
+export const CLAIM_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+export const CLAIM_ATTACHMENT_MAX_FILES = 5;
+export const CLAIM_ATTACHMENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "application/pdf",
+] as const;

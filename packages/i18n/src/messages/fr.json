@@ -126,6 +126,26 @@
       "accountOrder": {
         "title": "Ma commande | GOFAST",
         "description": "Le détail d'une commande GOFAST : suivi, colis, prix et preuve de remise."
+      },
+      "accountInvoices": {
+        "title": "Factures et reçus | GOFAST",
+        "description": "Vos factures, reçus et avoirs GOFAST, avec leur statut de règlement."
+      },
+      "accountInvoice": {
+        "title": "Facture | GOFAST",
+        "description": "Le détail d'une facture ou d'un avoir GOFAST."
+      },
+      "accountClaims": {
+        "title": "Réclamations | GOFAST",
+        "description": "Vos réclamations GOFAST et leur suivi."
+      },
+      "accountClaimNew": {
+        "title": "Nouvelle réclamation | GOFAST",
+        "description": "Ouvrir une réclamation liée à une commande GOFAST."
+      },
+      "accountClaim": {
+        "title": "Réclamation | GOFAST",
+        "description": "Le suivi d'une réclamation GOFAST et les échanges avec le service client."
       }
     }
   },
@@ -317,7 +337,9 @@
     "text": "[TEXTE]",
     "answer": "[RÉPONSE]",
     "vehicle": "[VÉHICULE]",
-    "ceiling": "[PLAFOND]"
+    "ceiling": "[PLAFOND]",
+    "vat": "[TVA]",
+    "taxId": "[MATRICULE]"
   },
   "nav": {
     "label": "Navigation principale",
@@ -1290,7 +1312,7 @@
       "noneDelivered": "Aucune livraison terminée pour le moment.",
       "seeAll": "Tout voir",
       "settled": "Vous êtes à jour.",
-      "owed": "Frais de retour à régler avant votre prochaine commande en espèces.",
+      "owed": "Montant restant à régler sur votre compte.",
       "error": {
         "title": "Impossible de charger votre espace.",
         "retry": "Réessayer"
@@ -1314,5 +1336,222 @@
       "noscript": "Cette page a besoin de JavaScript pour afficher votre espace."
     },
     "signOut": "Se déconnecter"
+  },
+  "invoices": {
+    "status": {
+      "paid": "Réglée",
+      "partial": "Partielle",
+      "unpaid": "À régler"
+    },
+    "example": "Montants d'exemple.",
+    "list": {
+      "title": "Factures et reçus",
+      "caption": "Vos factures et vos avoirs",
+      "loading": "Chargement des factures…",
+      "error": {
+        "title": "Les factures n'ont pas pu être chargées.",
+        "retry": "Réessayer"
+      },
+      "emptyTitle": "Aucune facture pour le moment",
+      "emptyText": "Vos factures apparaissent ici une fois vos livraisons terminées.",
+      "dueLabel": "À régler",
+      "dueNone": "Aucune facture à régler",
+      "dueSome": "Montant restant à régler sur votre compte",
+      "columns": {
+        "number": "Numéro",
+        "date": "Date",
+        "orders": "Commandes",
+        "status": "Statut",
+        "amount": "Montant",
+        "action": "Action"
+      },
+      "creditNote": "Avoir",
+      "creditNoteOf": "Sur la facture <num></num>",
+      "view": "Voir",
+      "viewOf": "Voir {number}"
+    },
+    "detail": {
+      "title": "Facture",
+      "back": "Factures et reçus",
+      "loading": "Chargement de la facture…",
+      "error": {
+        "title": "La facture n'a pas pu être chargée.",
+        "retry": "Réessayer"
+      },
+      "notFound": {
+        "title": "Facture introuvable",
+        "text": "Cette facture n'existe pas dans votre compte."
+      },
+      "heading": "Facture <num></num>",
+      "issuedOn": "Date d'émission",
+      "issuer": "Émise par",
+      "issuerName": "GOFAST",
+      "issuerTaxId": "Matricule fiscal {value}",
+      "buyer": "Client",
+      "buyerTaxId": "Matricule fiscal <num></num>",
+      "orders": "Commandes facturées",
+      "lines": {
+        "caption": "Prestations facturées",
+        "service": "Prestation",
+        "amount": "Montant",
+        "freight": "Livraison {service}",
+        "freightParcel": "Livraison {service}, colis {index}",
+        "returnFee": "Frais de retour, colis {index}",
+        "cancelFee": "Frais d'annulation"
+      },
+      "totals": {
+        "subtotal": "Sous-total",
+        "vat": "TVA",
+        "stamp": "Timbre fiscal",
+        "total": "Total"
+      },
+      "status": "Statut",
+      "paidOn": "Réglée le",
+      "due": "Reste à régler",
+      "receipt": "Reçu disponible.",
+      "ttn": {
+        "registered": "Facture enregistrée sur El Fatoora.",
+        "id": "Identifiant TTN <num></num>",
+        "qr": "Code QR El Fatoora"
+      },
+      "creditNotes": {
+        "title": "Avoirs liés à cette facture",
+        "item": "Corrigée par l'avoir <num></num>",
+        "amount": "Montant de l'avoir"
+      },
+      "downloadInvoice": "Télécharger la facture",
+      "downloadReceipt": "Télécharger le reçu",
+      "exampleFiles": "Les fichiers PDF sont des exemples, marqués EXEMPLE.",
+      "contest": "Contester cette facture"
+    },
+    "creditNote": {
+      "heading": "Avoir <num></num>",
+      "of": "Cet avoir corrige la facture <num></num>",
+      "amount": "Montant de l'avoir",
+      "issuedOn": "Date d'émission",
+      "download": "Télécharger l'avoir"
+    }
+  },
+  "claims": {
+    "category": {
+      "damage": "Colis endommagé",
+      "loss": "Colis perdu",
+      "delay": "Retard de livraison",
+      "billing": "Contestation de facture",
+      "other": "Autre demande"
+    },
+    "state": {
+      "open": "Ouverte",
+      "toComplete": "À compléter",
+      "resolved": "Résolue",
+      "archived": "Archivée"
+    },
+    "list": {
+      "title": "Réclamations",
+      "caption": "Vos réclamations",
+      "new": "Nouvelle demande",
+      "loading": "Chargement des réclamations…",
+      "error": {
+        "title": "Les réclamations n'ont pas pu être chargées.",
+        "retry": "Réessayer"
+      },
+      "emptyTitle": "Aucune réclamation",
+      "emptyText": "Un problème avec une livraison ou une facture ? Ouvrez une demande, le service client vous répond.",
+      "columns": {
+        "ref": "Référence",
+        "subject": "Sujet",
+        "order": "Commande",
+        "status": "Statut",
+        "updated": "Mise à jour",
+        "action": "Action"
+      },
+      "open": "Ouvrir",
+      "openOf": "Ouvrir {ref}"
+    },
+    "new": {
+      "title": "Nouvelle réclamation",
+      "back": "Réclamations",
+      "loading": "Chargement…",
+      "error": {
+        "title": "La page n'a pas pu être chargée.",
+        "retry": "Réessayer"
+      },
+      "notFound": {
+        "title": "Commande ou facture introuvable",
+        "text": "Cette commande ou cette facture n'existe pas dans votre compte."
+      },
+      "contesting": "Vous contestez la facture <num></num>.",
+      "pick": {
+        "title": "Choisissez la commande concernée",
+        "text": "Cette facture porte sur plusieurs commandes. Indiquez celle qui pose problème.",
+        "continue": "Continuer"
+      },
+      "order": "Commande concernée",
+      "orderPlaceholder": "Choisissez une commande",
+      "orderOption": "{code}, {service}",
+      "category": "Sujet",
+      "message": "Votre message",
+      "attach": "Ajouter des pièces jointes",
+      "attachHelp": "Images et PDF, {size} Mo au maximum par fichier, {count} fichiers au maximum.",
+      "removeAttachment": "Retirer {name}",
+      "submit": "Envoyer la réclamation",
+      "sending": "Envoi en cours…",
+      "errors": {
+        "orderRequired": "Choisissez la commande concernée.",
+        "messageRequired": "Écrivez votre message.",
+        "attachmentTooLarge": "Un fichier dépasse {size} Mo.",
+        "attachmentBadType": "Seuls les images et les PDF sont acceptés.",
+        "attachmentTooMany": "{count} fichiers au maximum.",
+        "network": "La demande n'a pas pu être envoyée. Vous pouvez réessayer sans risque : elle ne sera enregistrée qu'une fois.",
+        "refused": "La demande a été refusée. Vérifiez les champs et réessayez.",
+        "categoryRequired": "Choisissez un sujet."
+      },
+      "categoryPlaceholder": "Choisissez un sujet"
+    },
+    "rules": {
+      "title": "À savoir",
+      "reportDelay": "Signalez un dommage ou une perte dans les {hours} h qui suivent la livraison ou la constatation.",
+      "declaredValue": "Valeur déclarée de la commande",
+      "cap": "L'indemnité ne dépasse pas la valeur déclarée.",
+      "noDeclared": "Sans valeur déclarée, le forfait des CGV s'applique",
+      "replyTime": "Réponse attendue",
+      "replyWithin": "Sous {hours} h"
+    },
+    "detail": {
+      "title": "Réclamation",
+      "back": "Réclamations",
+      "loading": "Chargement de la réclamation…",
+      "error": {
+        "title": "La réclamation n'a pas pu être chargée.",
+        "retry": "Réessayer"
+      },
+      "notFound": {
+        "title": "Réclamation introuvable",
+        "text": "Cette réclamation n'existe pas dans votre compte."
+      },
+      "ref": "Référence",
+      "thread": "Échanges",
+      "you": "Vous",
+      "staff": "Service client GOFAST",
+      "attachments": "Pièces jointes",
+      "linkedOrder": "Commande liée",
+      "viewOrder": "Voir la commande",
+      "deliveredOn": "Livrée le",
+      "noDeclaredValue": "Sans valeur déclarée",
+      "invoice": "Facture contestée",
+      "reply": {
+        "label": "Votre réponse",
+        "submit": "Envoyer"
+      },
+      "reopen": {
+        "text": "Cette réclamation est close. Vous pouvez la rouvrir si le problème continue.",
+        "until": "Possible jusqu'au",
+        "button": "Rouvrir la réclamation",
+        "notClosed": "Cette réclamation n'est plus close. La page a été mise à jour."
+      },
+      "archived": "Cette réclamation est archivée : elle reste consultable, mais elle ne peut plus être rouverte. Ouvrez une nouvelle demande si besoin.",
+      "toComplete": "Le service client attend votre réponse.",
+      "closedNow": "Cette réclamation vient d'être close. La page a été mise à jour."
+    }
   }
 }

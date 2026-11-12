@@ -187,7 +187,8 @@ describe("getDashboard (C01)", () => {
     expect(dash.inProgress.every((o) => o.parcelCount >= 1)).toBe(true);
     expect(dash.lastDeliveries).toHaveLength(3);
     expect(dash.lastDeliveries.some((o) => o.status === "canceled")).toBe(false);
-    expect(dash.amountDueMillimes).toBe(0);
+    // The unpaid and the partly paid invoice of the billing fixtures (RV-15: same figure as C04).
+    expect(dash.amountDueMillimes).toBe(29_000);
   });
 
   it("an account with nothing has empty lists, and the return balance is in millimes", async () => {
