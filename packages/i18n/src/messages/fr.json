@@ -146,6 +146,18 @@
       "accountClaim": {
         "title": "Réclamation | GOFAST",
         "description": "Le suivi d'une réclamation GOFAST et les échanges avec le service client."
+      },
+      "accountAddresses": {
+        "title": "Adresses et destinataires | GOFAST",
+        "description": "Vos adresses et destinataires enregistrés GOFAST."
+      },
+      "accountProfile": {
+        "title": "Profil et préférences | GOFAST",
+        "description": "Vos informations, notifications et langue GOFAST."
+      },
+      "accountEmail": {
+        "title": "Adresse e-mail | GOFAST",
+        "description": "Ajouter ou changer l'e-mail de votre compte GOFAST."
       }
     }
   },
@@ -1032,6 +1044,11 @@
       "change": "Changer l'adresse",
       "zones": "Voir les zones",
       "request": "Demander cette zone"
+    },
+    "saved": {
+      "addressLabel": "Adresse enregistrée",
+      "recipientLabel": "Destinataire enregistré",
+      "placeholder": "Choisir dans mon carnet"
     }
   },
   "auth": {
@@ -1078,7 +1095,8 @@
       "submit": "Continuer",
       "created": "Compte créé.",
       "emailLater": "Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse.",
-      "emailLaterContinue": "Continuer"
+      "emailLaterContinue": "Continuer",
+      "emailLaterConfirm": "Confirmer mon e-mail"
     },
     "code": {
       "title": "Saisissez le code reçu",
@@ -1351,7 +1369,8 @@
       "notAllowed": "Vous n'avez pas accès à cette page.",
       "noscript": "Cette page a besoin de JavaScript pour afficher votre espace."
     },
-    "signOut": "Se déconnecter"
+    "signOut": "Se déconnecter",
+    "closedName": "Compte fermé"
   },
   "invoices": {
     "status": {
@@ -1569,5 +1588,128 @@
       "toComplete": "Le service client attend votre réponse.",
       "closedNow": "Cette réclamation vient d'être close. La page a été mise à jour."
     }
+  },
+  "addressBook": {
+    "title": "Adresses et destinataires",
+    "loading": "Chargement de vos adresses…",
+    "error": {
+      "title": "Impossible de charger vos adresses.",
+      "retry": "Réessayer"
+    },
+    "addresses": {
+      "title": "Mes adresses",
+      "add": "Ajouter",
+      "empty": "Aucune adresse enregistrée.",
+      "edit": "Modifier",
+      "editLabel": "Modifier {label}",
+      "remove": "Supprimer",
+      "removeLabel": "Supprimer {label}",
+      "landmark": "Repère : <landmark></landmark>"
+    },
+    "form": {
+      "addTitle": "Ajouter une adresse",
+      "editTitle": "Modifier l'adresse",
+      "label": "Nom de l'adresse",
+      "labelHint": "Par exemple : Domicile, Bureau.",
+      "text": "Adresse",
+      "landmark": "Point de repère (facultatif)",
+      "save": "Enregistrer",
+      "cancel": "Annuler",
+      "saved": "Adresse enregistrée.",
+      "network": "L'enregistrement a échoué. Réessayez."
+    },
+    "recipients": {
+      "title": "Destinataires enregistrés",
+      "empty": "Aucun destinataire enregistré. Cochez « Enregistrer ce destinataire » en commandant.",
+      "sendTo": "Lui envoyer un colis",
+      "sendToLabel": "Lui envoyer un colis : {name}",
+      "remove": "Supprimer",
+      "removeLabel": "Supprimer {name}"
+    },
+    "removeDialog": {
+      "addressTitle": "Supprimer cette adresse ?",
+      "recipientTitle": "Supprimer ce destinataire ?",
+      "text": "Il sera retiré de votre carnet. Vos commandes ne changent pas.",
+      "confirm": "Oui, supprimer",
+      "keep": "Non, garder"
+    }
+  },
+  "profile": {
+    "title": "Profil et préférences",
+    "loading": "Chargement de votre profil…",
+    "error": {
+      "title": "Impossible de charger votre profil.",
+      "retry": "Réessayer"
+    },
+    "saved": "Enregistré.",
+    "saveFailed": "L'enregistrement a échoué. Réessayez.",
+    "info": {
+      "title": "Mes informations",
+      "name": "Nom complet",
+      "phone": "Téléphone",
+      "phoneVerified": "Vérifié",
+      "phoneHint": "Le numéro ne peut pas être modifié pour le moment.",
+      "email": "E-mail",
+      "noEmail": "Aucun e-mail",
+      "addEmail": "Ajouter un e-mail",
+      "changeEmail": "Changer l'e-mail",
+      "save": "Enregistrer"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "sms": "SMS pour mes livraisons",
+      "email": "E-mail pour mes factures",
+      "offers": "Offres GOFAST"
+    },
+    "google": {
+      "title": "Compte Google",
+      "linked": "Un compte Google est lié.",
+      "none": "Aucun compte Google n'est lié.",
+      "unlink": "Dissocier",
+      "unlinked": "Compte Google dissocié."
+    },
+    "language": {
+      "title": "Langue",
+      "names": {
+        "fr": "Français",
+        "en": "English",
+        "ar": "العربية"
+      }
+    },
+    "account": {
+      "title": "Mon compte",
+      "text": "Fermer votre compte efface votre identité : nom, téléphone et e-mail. Vos commandes et vos factures restent conservées.",
+      "close": "Fermer mon compte"
+    },
+    "close": {
+      "title": "Fermer votre compte ?",
+      "text": "Votre nom, votre téléphone et votre e-mail seront effacés, et vous ne pourrez plus vous connecter avec. Vos factures restent conservées. Cette action est définitive.",
+      "confirm": "Oui, fermer mon compte",
+      "keep": "Non, garder mon compte",
+      "network": "La fermeture a échoué. Réessayez.",
+      "refused": {
+        "title": "Vous ne pouvez pas fermer votre compte pour le moment",
+        "activeOrder": "Une commande est encore en cours. Vous pourrez fermer votre compte quand elle sera terminée.",
+        "amountDue": "Un montant reste à régler sur votre compte. Réglez-le avant de fermer votre compte.",
+        "seeOrders": "Voir mes commandes",
+        "seeInvoices": "Voir mes factures",
+        "dismiss": "Fermer"
+      }
+    }
+  },
+  "emailScreen": {
+    "title": "Adresse e-mail",
+    "intro": "Nous envoyons un code à cette adresse pour la confirmer. Elle ne sera ajoutée à votre compte qu'après.",
+    "current": "E-mail actuel : <email></email>",
+    "field": "Nouvelle adresse e-mail",
+    "send": "Recevoir un code",
+    "sending": "Envoi du code…",
+    "change": "Changer d'adresse",
+    "back": "Retour au profil",
+    "done": "Votre e-mail est confirmé et ajouté à votre compte.",
+    "taken": "Cette adresse e-mail est déjà utilisée par un autre compte. Utilisez une autre adresse.",
+    "notVerified": "Le code n'est plus valable. Demandez-en un nouveau.",
+    "network": "L'opération a échoué. Réessayez.",
+    "loading": "Chargement…"
   }
 }

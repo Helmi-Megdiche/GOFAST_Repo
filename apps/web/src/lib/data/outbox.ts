@@ -14,8 +14,9 @@ export type OutboxMessage = {
   channel: "sms";
   template: "trackingLink";
   params: {
-    senderName: string;
-    senderPhone: string | null;
+    /** Both erased when the sender closes their account (R105): the template and the locale stay. */
+    senderName?: string;
+    senderPhone?: string | null;
     trackingCode: string;
     linkToken: string;
   };

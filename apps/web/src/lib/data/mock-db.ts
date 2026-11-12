@@ -16,6 +16,12 @@ export function writeRow<T>(key: string, id: string, row: T): void {
   writeJson(key, { ...readTable<T>(key), [id]: row });
 }
 
+export function removeRow(key: string, id: string): void {
+  const table = readTable<unknown>(key);
+  delete table[id];
+  writeJson(key, table);
+}
+
 /** Test helper: fails the next order answer once, after the order was created (decision 12). */
 export const FAIL_NEXT_ORDER_RESPONSE_KEY = "fg.mock.failNextOrderResponse";
 

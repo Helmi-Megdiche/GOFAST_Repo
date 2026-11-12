@@ -14,6 +14,12 @@ export const DELIVERY_CODES = "fg.mock.deliveryCodes";
 export const RECIPIENT_LINKS = "fg.mock.recipientLinks";
 export const OUTBOX = "fg.mock.outbox";
 
+/**
+ * What an order's sender name becomes once its owner closed the account (R105): a catalog key the
+ * pages show as "Compte fermé" in the active language. Never text in the data layer.
+ */
+export const CLOSED_ACCOUNT_NAME = "i18n:account.closedName";
+
 /** An order of an account, keyed by its tracking code. `status` is the order's own state until pickup, then derived. */
 export type AccountOrder = {
   code: string;

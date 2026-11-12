@@ -13,6 +13,7 @@ import {
   TimelineItem,
 } from "@fastgo/ui";
 import type { Locale } from "@fastgo/i18n";
+import { CLOSED_ACCOUNT_NAME } from "@/lib/data/order-model";
 import { CancelPlacedOrder, CanceledNotice } from "@/components/order/cancel-placed-order";
 import { DateTime, Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
@@ -73,6 +74,7 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
   const o = useTranslations("offers");
   const p = useTranslations("placeholders");
   const review = useTranslations("order.review");
+  const account = useTranslations("account");
   const status = useTranslations("orders.status");
   const failure = useTranslations("parcels.failure");
   const final = FINAL_ORDER_STATES.includes(order.status);
@@ -154,7 +156,16 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
             <h2 id="route-title" className="text-h4">
               {t("route")}
             </h2>
-            <p className="text-sm">{t("from", order.sender)}</p>
+            <p className="text-sm">
+              {t("from", {
+                ...order.sender,
+                // R105: the sender closed their account, so the name is the catalog key.
+                name:
+                  order.sender.name === CLOSED_ACCOUNT_NAME
+                    ? account("closedName")
+                    : order.sender.name,
+              })}
+            </p>
             <p className="text-sm">{t("to", order.recipient)}</p>
           </Card>
           <Card as="section" aria-labelledby="price-title" className="flex flex-col gap-3">

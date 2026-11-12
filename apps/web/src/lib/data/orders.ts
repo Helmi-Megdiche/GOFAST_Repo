@@ -35,6 +35,7 @@ import {
 } from "./order-model";
 import { isTargetVerified } from "./otp";
 import { writeOutbox } from "./outbox";
+import { saveRecipient } from "./address-book";
 import { mintRecipientLink } from "./recipient-links";
 import { canPayOnAccount, getSession } from "./session";
 
@@ -238,6 +239,17 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
       code: randomDeliveryCode(),
       failedAttempts: 0,
       expiresAt: null,
+    });
+  }
+
+  // CMD-02: "Enregistrer ce destinataire" is kept only now that the order exists, one per phone.
+  if (session && request.recipient.save) {
+    saveRecipient(session, {
+      name: request.recipient.name,
+      phone: request.recipient.phone,
+      address: request.recipient.address,
+      landmark: request.recipient.landmark,
+      locale: recipientLocale,
     });
   }
 

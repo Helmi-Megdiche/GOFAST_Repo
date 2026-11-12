@@ -17,7 +17,8 @@ import { readTable, writeRow } from "./mock-db";
 
 /** Mock of POST /v1/codes and POST /v1/codes/verify (R102, ESP-01, CMD-03). */
 export type CodeTarget = { channel: "sms" | "email"; value: string };
-export type CodePurpose = "order" | "signUp" | "reset" | "googlePhone" | "googleEmail";
+export type CodePurpose =
+  "order" | "signUp" | "reset" | "googlePhone" | "googleEmail" | "emailConfirm";
 
 export type SendResult =
   | { status: "sent"; expiresAt: string; resendAt: string }

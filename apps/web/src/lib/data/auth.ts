@@ -1,7 +1,9 @@
+import { defaultLocale, type Locale } from "@fastgo/i18n";
 import { PASSWORD_MIN_LENGTH } from "../order/constants";
 import { normalizePhone } from "../phone";
 import {
   findByEmail,
+  findById,
   findByPhone,
   findTeamMemberByPhone,
   sessionFor,
@@ -14,7 +16,9 @@ import { clearPendingGoogle } from "./google";
 import { setSession, type Session } from "./session";
 
 /** Mock of POST /v1/auth/sign-in (ESP-01). */
-export type SignInResult = { status: "ok"; session: Session } | { status: "invalidCredentials" };
+/** `locale` is the language saved on the account (R902), applied at sign-in. */
+export type SignInResult =
+  { status: "ok"; session: Session; locale: Locale } | { status: "invalidCredentials" };
 
 /**
  * Same answer for a wrong password and an unknown account (decision 16), so the form cannot be
@@ -29,7 +33,11 @@ export async function signIn(identifier: string, password: string): Promise<Sign
   setSession(session);
   // A Google sign-in left half-way must not finish later on top of this session.
   clearPendingGoogle();
-  return { status: "ok", session };
+  return {
+    status: "ok",
+    session,
+    locale: findById(session.accountId)?.locale ?? defaultLocale,
+  };
 }
 
 /**
