@@ -391,15 +391,27 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.typography.h4` | رقم التتبع | Numéro de suivi | [ ] |
 | `devUi.typography.lead` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
 | `driver.eyebrow` | انضم إلى GOFAST | Rejoindre GOFAST | [ ] |
-| `driver.form.attach` | الرخصة والتأمين (5 ميغابايت) | Permis et assurance (5 Mo) | [ ] |
+| `driver.form.addFile` | إضافة ملف | Ajouter un fichier | [ ] |
+| `driver.form.documents.bankDetails` | المعطيات البنكية أو البريدية (RIB أو شهادة بريدية) | Coordonnées bancaires ou postales (RIB ou attestation postale) | [ ] |
+| `driver.form.documents.cin` | بطاقة التعريف الوطنية | Carte d'identité nationale (CIN) | [ ] |
+| `driver.form.documents.insurance` | شهادة التأمين | Attestation d'assurance | [ ] |
+| `driver.form.documents.licence` | رخصة السياقة المناسبة | Permis de conduire adapté | [ ] |
+| `driver.form.documents.registration` | البطاقة الرمادية | Carte grise | [ ] |
+| `driver.form.documents.vehiclePhoto` | صورة المركبة | Photo du véhicule | [ ] |
+| `driver.form.documentsHint` | صور أو ملفات PDF، بحد أقصى {size} ميغابايت للملف. | Images ou PDF, {size} Mo au maximum par fichier. | [ ] |
+| `driver.form.documentsTitle` | وثائقك | Vos documents | [ ] |
 | `driver.form.fullName` | الاسم الكامل | Nom complet | [ ] |
 | `driver.form.phone` | الهاتف | Téléphone | [ ] |
-| `driver.form.removeAttachment` | إزالة الوثيقة | Retirer le document | [ ] |
+| `driver.form.removeDocument` | إزالة الملف: {document} | Retirer le fichier : {document} | [ ] |
+| `driver.form.requiredLabel` | مطلوب | obligatoire | [ ] |
 | `driver.form.sending` | جارٍ الإرسال… | Envoi… | [ ] |
 | `driver.form.submit` | إرسال ترشحي | Envoyer ma candidature | [ ] |
 | `driver.form.title` | الترشح | Candidature | [ ] |
 | `driver.form.vehicle` | المركبة | Véhicule | [ ] |
-| `driver.form.vehicles.moto` | دراجة نارية | Moto | [ ] |
+| `driver.form.vehicles.car` | سيارة | Voiture | [ ] |
+| `driver.form.vehicles.lightVan` | مركبة نفعية خفيفة | Utilitaire léger | [ ] |
+| `driver.form.vehicles.motorbike` | دراجة نارية | Moto | [ ] |
+| `driver.form.vehicles.scooter` | سكوتر | Scooter | [ ] |
 | `driver.form.zone` | المنطقة المفضلة | Zone souhaitée | [ ] |
 | `driver.needs.licence` | رخصة سياقة سارية، إذا كانت مركبتك تتطلبها | Un permis valide, si votre véhicule en demande un | [ ] |
 | `driver.needs.phone` | هاتف أندرويد 10 أو أحدث، أو آيفون بنظام iOS 16.4 أو أحدث | Un téléphone Android 10 ou plus, ou un iPhone sous iOS 16.4 ou plus | [ ] |
@@ -429,11 +441,13 @@ native-speaker review before release (CLAUDE.md).
 | `footer.zones` | المناطق المشمولة | Zones desservies | [ ] |
 | `forms.errors.addressNotConfirmed` | اختر اقتراحًا أو ضع علامة على الخريطة. | Choisissez une suggestion ou placez un repère sur la carte. | [ ] |
 | `forms.errors.addressTooShort` | أدخل 3 أحرف على الأقل. | Saisissez au moins 3 caractères. | [ ] |
+| `forms.errors.attachmentBadType` | تُقبل الصور وملفات PDF فقط. | Seuls les images et les PDF sont acceptés. | [ ] |
 | `forms.errors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.errors.captchaRequired` | أكّد أنك لست روبوتًا. | Confirmez que vous n'êtes pas un robot. | [ ] |
 | `forms.errors.codeIncomplete` | أدخل الرمز كاملًا. | Saisissez le code complet. | [ ] |
 | `forms.errors.countInvalid` | أدخل عددًا صحيحًا، 1 على الأقل. | Indiquez un nombre entier, 1 au minimum. | [ ] |
 | `forms.errors.declaredValueInvalid` | مبلغ غير صالح. مثال: 48.500 أو 1,152.000. | Montant invalide. Exemple : 48,500 ou 48.5. | [ ] |
+| `forms.errors.documentRequired` | أضف هذه الوثيقة. | Ajoutez ce document. | [ ] |
 | `forms.errors.emailInvalid` | عنوان البريد الإلكتروني غير صالح. | Adresse e-mail invalide. | [ ] |
 | `forms.errors.freightPayerRequired` | اقبل هذه الشروط للدفع عند التسليم. | Acceptez ces conditions pour payer à la livraison. | [ ] |
 | `forms.errors.parcelTypeRequired` | اختر نوع الشحنة. | Choisissez un type d'envoi. | [ ] |
@@ -450,6 +464,7 @@ native-speaker review before release (CLAUDE.md).
 | `forms.serverErrors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.serverErrors.captchaFailed` | فشل التحقق من أنك لست روبوتًا. حاول مرة أخرى. | La vérification anti-robot a échoué. Réessayez. | [ ] |
 | `forms.serverErrors.invalidTrackingCode` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
+| `forms.serverErrors.vehicleInvalid` | اختر مركبة من القائمة. | Choisissez un véhicule de la liste. | [ ] |
 | `help.noResult` | لا يوجد سؤال يطابق بحثك. | Aucune question ne correspond à votre recherche. | [ ] |
 | `help.notFound.cta` | اتصل بنا | Nous contacter | [ ] |
 | `help.notFound.title` | لم تجد ما تبحث عنه؟ | Vous n'avez pas trouvé ? | [ ] |
@@ -1031,7 +1046,6 @@ native-speaker review before release (CLAUDE.md).
 | `placeholders.text` | [النص] | [TEXTE] | [ ] |
 | `placeholders.time` | [الساعة] | [HEURE] | [ ] |
 | `placeholders.vat` | [الضريبة على القيمة المضافة] | [TVA] | [ ] |
-| `placeholders.vehicle` | [المركبة] | [VÉHICULE] | [ ] |
 | `services.extras.declaredValue` | القيمة المصرّح بها | Valeur déclarée | [ ] |
 | `services.extras.fragile` | طرد هش | Colis fragile | [ ] |
 | `services.extras.retry` | محاولة جديدة | Nouvelle tentative | [ ] |

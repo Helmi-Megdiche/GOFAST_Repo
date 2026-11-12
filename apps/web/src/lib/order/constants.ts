@@ -5,6 +5,9 @@
  * 6 Nov 2026 (docs/spec/reponses-gofast.md). Do not copy these numbers anywhere else.
  */
 
+import { ATTACHMENT_TYPES } from "../attachments";
+import { MAX_ATTACHMENT_BYTES } from "../limits";
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
@@ -101,14 +104,9 @@ export const CLAIM_REOPEN_WINDOW_MS = 30 * 24 * HOUR;
 export const CLAIM_REPLY_DELAY_HOURS = 48;
 
 /**
- * Claim attachments (H12): images and PDF, 5 MB per file ("5 MB" read as 5 x 1024 x 1024 bytes, as
- * for the contact form), at most 5 files. Provisional: GOFAST answers, 6 Nov 2026.
+ * Claim attachments (H12): the file rule is shared (`lib/attachments.ts`, size `MAX_ATTACHMENT_BYTES`),
+ * at most 5 files. Provisional: GOFAST answers, 6 Nov 2026.
  */
-export const CLAIM_ATTACHMENT_MAX_BYTES = 5 * 1024 * 1024;
+export const CLAIM_ATTACHMENT_MAX_BYTES = MAX_ATTACHMENT_BYTES;
 export const CLAIM_ATTACHMENT_MAX_FILES = 5;
-export const CLAIM_ATTACHMENT_TYPES = [
-  "image/jpeg",
-  "image/png",
-  "image/webp",
-  "application/pdf",
-] as const;
+export const CLAIM_ATTACHMENT_TYPES = ATTACHMENT_TYPES;

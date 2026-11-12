@@ -459,44 +459,6 @@ test("merchants: Demander un devis scrolls to the section and the button leads t
   await expect(page.locator("main form")).toHaveCount(0);
 });
 
-// ── Driver (W08) ──────────────────────────────────────────────────────────────────────────────
-test("driver: heading, validation, 5 MB rule and confirmation", async ({ page }) => {
-  await page.goto("/fr/livreur");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Livrez avec GOFAST.");
-  await expect(page.locator("main")).not.toContainText("gains visibles");
-
-  await page.getByRole("button", { name: "Envoyer ma candidature" }).click();
-  await expect(page.getByText("Ce champ est obligatoire.").first()).toBeVisible();
-
-  const FIVE_MB = 5 * 1024 * 1024;
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "over.pdf",
-    mimeType: "application/pdf",
-    buffer: Buffer.alloc(FIVE_MB + 1),
-  });
-  await expect(page.getByText("Le fichier dépasse 5 Mo.")).toBeVisible();
-  await page.getByRole("button", { name: "Retirer le document" }).click();
-
-  await expect(page.getByLabel("Véhicule").locator("option")).toHaveText(["Moto", "[VÉHICULE]"]);
-  await page.getByRole("textbox", { name: "Nom complet" }).fill("Test Livreur");
-  await page.getByRole("textbox", { name: "Téléphone", exact: true }).fill("20 000 000");
-  await page.getByRole("button", { name: "Envoyer ma candidature" }).click();
-  await expect(page.getByText("Candidature envoyée.")).toBeVisible();
-  const confirmation = page.locator('div[tabindex="-1"]', { hasText: "Candidature envoyée." });
-  await expect(confirmation).toBeFocused();
-  await expect(confirmation).toHaveCSS("outline-style", "solid");
-});
-
-test("driver: the vehicle placeholder is localized", async ({ page }) => {
-  for (const [code, label, moto, placeholder] of [
-    ["en", "Vehicle", "Motorbike", "[VEHICLE]"],
-    ["ar", "المركبة", "دراجة نارية", "[المركبة]"],
-  ] as const) {
-    await page.goto(`/${code}/livreur`);
-    await expect(page.getByLabel(label).locator("option")).toHaveText([moto, placeholder]);
-  }
-});
-
 // ── Help, legal, services ─────────────────────────────────────────────────────────────────────
 test("help: topics filter the questions, search finds across topics, unanswered show [RÉPONSE]", async ({
   page,

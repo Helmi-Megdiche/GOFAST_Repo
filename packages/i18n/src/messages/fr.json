@@ -336,7 +336,6 @@
     "list": "[LISTE À VALIDER PAR GOFAST]",
     "text": "[TEXTE]",
     "answer": "[RÉPONSE]",
-    "vehicle": "[VÉHICULE]",
     "ceiling": "[PLAFOND]",
     "vat": "[TVA]",
     "taxId": "[MATRICULE]"
@@ -605,13 +604,27 @@
       "phone": "Téléphone",
       "vehicle": "Véhicule",
       "vehicles": {
-        "moto": "Moto"
+        "scooter": "Scooter",
+        "motorbike": "Moto",
+        "car": "Voiture",
+        "lightVan": "Utilitaire léger"
       },
       "zone": "Zone souhaitée",
-      "attach": "Permis et assurance (5 Mo)",
-      "removeAttachment": "Retirer le document",
       "submit": "Envoyer ma candidature",
-      "sending": "Envoi…"
+      "sending": "Envoi…",
+      "documentsTitle": "Vos documents",
+      "documentsHint": "Images ou PDF, {size} Mo au maximum par fichier.",
+      "addFile": "Ajouter un fichier",
+      "removeDocument": "Retirer le fichier : {document}",
+      "documents": {
+        "cin": "Carte d'identité nationale (CIN)",
+        "licence": "Permis de conduire adapté",
+        "registration": "Carte grise",
+        "insurance": "Attestation d'assurance",
+        "vehiclePhoto": "Photo du véhicule",
+        "bankDetails": "Coordonnées bancaires ou postales (RIB ou attestation postale)"
+      },
+      "requiredLabel": "obligatoire"
     },
     "success": {
       "title": "Candidature envoyée.",
@@ -672,12 +685,15 @@
       "termsRequired": "Acceptez les conditions pour continuer.",
       "passwordTooShort": "10 caractères au minimum.",
       "codeIncomplete": "Saisissez le code complet.",
-      "freightPayerRequired": "Acceptez ces conditions pour payer à la livraison."
+      "freightPayerRequired": "Acceptez ces conditions pour payer à la livraison.",
+      "documentRequired": "Ajoutez ce document.",
+      "attachmentBadType": "Seuls les images et les PDF sont acceptés."
     },
     "serverErrors": {
       "attachmentTooLarge": "Le fichier dépasse 5 Mo.",
       "captchaFailed": "La vérification anti-robot a échoué. Réessayez.",
-      "invalidTrackingCode": "Le numéro de suivi ressemble à FG-7K4M-2QXP."
+      "invalidTrackingCode": "Le numéro de suivi ressemble à FG-7K4M-2QXP.",
+      "vehicleInvalid": "Choisissez un véhicule de la liste."
     }
   },
   "home": {
