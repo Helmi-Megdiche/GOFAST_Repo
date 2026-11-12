@@ -124,7 +124,7 @@ Source: PR 0, the `StatusEvent.fromStatus` comment still described mission creat
 **RV-12. A check must be able to fail.**
 Before trusting a command as evidence, run it on a case known to be bad, or read its output line by line.
 When a rule applies to each item of a list, the test loops over the list; one sample item is not a test.
-Source: PR 0 review, a line-ending check with `grep "\r$"` matched lines ending in the letter `r`, so its result meant nothing. It was thrown away and not reported. PR #73, found by the author before review: the driver mock tests checked a wrong type only on `licence` and a missing document only on `cin`, so a loop that stopped early would pass.
+Source: PR 0 review, a line-ending check with `grep "\r$"` matched lines ending in the letter `r`, so its result meant nothing. It was thrown away and not reported. PR #73 round 1: the driver mock tests checked a wrong type only on `licence` and a missing document only on `cin`, so a loop that stopped early would pass.
 
 **RV-13. Text is never assembled from pieces in code.**
 Search the diff for literal words, punctuation or spacing between JSX expressions (`:`, `/`, `-`, ` de `). The whole line is one catalog key with parameters. Render the page in ar and en and read the line.
