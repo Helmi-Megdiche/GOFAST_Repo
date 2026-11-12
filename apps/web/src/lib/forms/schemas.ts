@@ -1,4 +1,6 @@
 import { z } from "zod";
+import { isAcceptedType } from "../claims/attachments";
+import { DRIVER_DOCUMENTS, DRIVER_VEHICLES } from "../data/driver";
 import { MAX_ATTACHMENT_BYTES } from "../limits";
 import { isValidTrackingCode } from "../tracking-code";
 
@@ -13,6 +15,8 @@ export type FormErrorCode =
   | "trackingInvalid"
   | "addressTooShort"
   | "attachmentTooLarge"
+  | "attachmentBadType"
+  | "documentRequired"
   | "captchaRequired";
 
 const code = (value: FormErrorCode) => value;
@@ -72,11 +76,29 @@ export const contactFormSchema = z.object({
 });
 export type ContactFormValues = z.infer<typeof contactFormSchema>;
 
+/**
+ * One required identity document: the contact form's 5 MB limit, and images or PDF (the only type
+ * rule the project has, from the claim attachments).
+ */
+export const requiredDocumentField = z.custom<File | null>().superRefine((file, ctx) => {
+  const fail = (message: FormErrorCode) => ctx.addIssue({ code: "custom", message });
+  if (file == null) return fail("documentRequired");
+  if (!isAcceptedType({ name: file.name, type: file.type, sizeBytes: file.size })) {
+    return fail("attachmentBadType");
+  }
+  if (file.size > MAX_ATTACHMENT_BYTES) fail("attachmentTooLarge");
+});
+
 export const driverFormSchema = z.object({
   fullName: requiredText,
   phone: phoneField,
-  vehicle: z.enum(["moto", "other"]),
+  vehicle: z.enum(DRIVER_VEHICLES),
   zone: z.enum(["city"]),
-  document: attachmentField,
+  documents: z.object(
+    Object.fromEntries(DRIVER_DOCUMENTS.map((key) => [key, requiredDocumentField])) as Record<
+      (typeof DRIVER_DOCUMENTS)[number],
+      typeof requiredDocumentField
+    >,
+  ),
 });
 export type DriverFormValues = z.infer<typeof driverFormSchema>;

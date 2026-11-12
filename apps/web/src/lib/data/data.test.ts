@@ -4,7 +4,13 @@ import { setClock } from "../order/clock";
 import { useMemoryStorage } from "../storage";
 import { requestCaptchaToken } from "./captcha";
 import { submitContact, type ContactInput } from "./contact";
-import { submitDriverApplication } from "./driver";
+import {
+  DRIVER_DOCUMENTS,
+  receivedDriverApplications,
+  resetDriverApplications,
+  submitDriverApplication,
+  type DriverApplicationInput,
+} from "./driver";
 import { getFaq } from "./faq";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
 import { readTable } from "./mock-db";
@@ -181,23 +187,74 @@ describe("submitContact", () => {
 });
 
 describe("submitDriverApplication", () => {
-  const input = {
+  const pdf = { name: "doc.pdf", type: "application/pdf", sizeBytes: 1000 };
+  const documents = () =>
+    Object.fromEntries(
+      DRIVER_DOCUMENTS.map((key) => [key, pdf]),
+    ) as DriverApplicationInput["documents"];
+  const input = (): DriverApplicationInput => ({
     fullName: "Test Livreur",
     phone: "20000000",
-    vehicle: "moto",
+    vehicle: "motorbike",
     zone: "city",
-  } as const;
+    documents: documents(),
+  });
 
-  it("applies the same 5 MB rule as the contact form", async () => {
-    const ok = await submitDriverApplication({
-      ...input,
-      document: { name: "permis.pdf", sizeBytes: MAX_ATTACHMENT_BYTES },
+  it("creates the application when everything is valid", async () => {
+    expect((await submitDriverApplication(input())).status).toBe("created");
+  });
+  it("applies the contact 5 MB rule to each document", async () => {
+    for (const key of DRIVER_DOCUMENTS) {
+      const exact = {
+        ...input(),
+        documents: { ...documents(), [key]: { ...pdf, sizeBytes: MAX_ATTACHMENT_BYTES } },
+      };
+      expect((await submitDriverApplication(exact)).status, key).toBe("created");
+      const over = {
+        ...input(),
+        documents: { ...documents(), [key]: { ...pdf, sizeBytes: MAX_ATTACHMENT_BYTES + 1 } },
+      };
+      expect(await submitDriverApplication(over), key).toEqual({
+        status: "error",
+        code: "attachment-too-large",
+        document: key,
+      });
+    }
+  });
+  it("refuses a wrong type and a missing document, naming the document", async () => {
+    const bad = {
+      ...input(),
+      documents: { ...documents(), licence: { ...pdf, type: "application/zip", name: "a.zip" } },
+    };
+    expect(await submitDriverApplication(bad)).toEqual({
+      status: "error",
+      code: "attachment-bad-type",
+      document: "licence",
     });
-    expect(ok.status).toBe("created");
-    const over = await submitDriverApplication({
-      ...input,
-      document: { name: "permis.pdf", sizeBytes: MAX_ATTACHMENT_BYTES + 1 },
+    const missing = { ...input(), documents: { ...documents(), cin: null } };
+    expect(await submitDriverApplication(missing)).toEqual({
+      status: "error",
+      code: "document-missing",
+      document: "cin",
     });
-    expect(over).toEqual({ status: "error", code: "attachment-too-large" });
+  });
+  it("refuses an unknown vehicle", async () => {
+    const result = await submitDriverApplication({ ...input(), vehicle: "moto" as never });
+    expect(result).toEqual({ status: "error", code: "vehicle-invalid" });
+  });
+  it("keeps only name, type and size of each document, in memory: nothing in localStorage", async () => {
+    const storage = useMemoryStorage();
+    resetDriverApplications();
+    const withContent = {
+      ...input(),
+      documents: { ...documents(), cin: { ...pdf, content: "SECRET" } },
+    };
+    await submitDriverApplication(withContent as DriverApplicationInput);
+    expect(storage.size).toBe(0);
+    const [row] = receivedDriverApplications();
+    expect(row?.documents.cin).toEqual(pdf);
+    expect(JSON.stringify(receivedDriverApplications())).not.toMatch(
+      /SECRET|Test Livreur|20000000/,
+    );
   });
 });

@@ -336,7 +336,6 @@
     "list": "[LIST TO BE VALIDATED BY GOFAST]",
     "text": "[TEXT]",
     "answer": "[ANSWER]",
-    "vehicle": "[VEHICLE]",
     "ceiling": "[CEILING]",
     "vat": "[VAT]",
     "taxId": "[TAX ID]"
@@ -605,13 +604,26 @@
       "phone": "Phone",
       "vehicle": "Vehicle",
       "vehicles": {
-        "moto": "Motorbike"
+        "scooter": "Scooter",
+        "motorbike": "Motorbike",
+        "car": "Car",
+        "lightVan": "Light van"
       },
       "zone": "Preferred area",
-      "attach": "Licence and insurance (5 MB)",
-      "removeAttachment": "Remove the document",
       "submit": "Send my application",
-      "sending": "Sending…"
+      "sending": "Sending…",
+      "documentsTitle": "Your documents",
+      "documentsHint": "Images or PDF, 5 MB at most per file.",
+      "addFile": "Add a file",
+      "removeDocument": "Remove the file: {document}",
+      "documents": {
+        "cin": "National ID card (CIN)",
+        "licence": "Driving licence for your vehicle",
+        "registration": "Vehicle registration (carte grise)",
+        "insurance": "Insurance certificate",
+        "vehiclePhoto": "Vehicle photo",
+        "bankDetails": "Bank or postal details (RIB or postal certificate)"
+      }
     },
     "success": {
       "title": "Application sent.",
@@ -672,12 +684,17 @@
       "termsRequired": "Accept the terms to continue.",
       "passwordTooShort": "At least 10 characters.",
       "codeIncomplete": "Enter the full code.",
-      "freightPayerRequired": "Accept these terms to pay on delivery."
+      "freightPayerRequired": "Accept these terms to pay on delivery.",
+      "documentRequired": "Add this document.",
+      "attachmentBadType": "Only images and PDF files are accepted."
     },
     "serverErrors": {
       "attachmentTooLarge": "The file is larger than 5 MB.",
       "captchaFailed": "The anti-robot check failed. Try again.",
-      "invalidTrackingCode": "A tracking number looks like FG-7K4M-2QXP."
+      "invalidTrackingCode": "A tracking number looks like FG-7K4M-2QXP.",
+      "documentRequired": "Add this document.",
+      "attachmentBadType": "Only images and PDF files are accepted.",
+      "vehicleInvalid": "Choose a vehicle from the list."
     }
   },
   "home": {

@@ -336,7 +336,6 @@
     "list": "[قائمة يعتمدها GOFAST]",
     "text": "[النص]",
     "answer": "[الجواب]",
-    "vehicle": "[المركبة]",
     "ceiling": "[سقف]",
     "vat": "[الضريبة على القيمة المضافة]",
     "taxId": "[المعرّف الجبائي]"
@@ -605,13 +604,26 @@
       "phone": "الهاتف",
       "vehicle": "المركبة",
       "vehicles": {
-        "moto": "دراجة نارية"
+        "scooter": "سكوتر",
+        "motorbike": "دراجة نارية",
+        "car": "سيارة",
+        "lightVan": "مركبة نفعية خفيفة"
       },
       "zone": "المنطقة المفضلة",
-      "attach": "الرخصة والتأمين (5 ميغابايت)",
-      "removeAttachment": "إزالة الوثيقة",
       "submit": "إرسال ترشحي",
-      "sending": "جارٍ الإرسال…"
+      "sending": "جارٍ الإرسال…",
+      "documentsTitle": "وثائقك",
+      "documentsHint": "صور أو ملفات PDF، بحد أقصى 5 ميغابايت للملف.",
+      "addFile": "إضافة ملف",
+      "removeDocument": "إزالة الملف: {document}",
+      "documents": {
+        "cin": "بطاقة التعريف الوطنية",
+        "licence": "رخصة السياقة المناسبة",
+        "registration": "البطاقة الرمادية",
+        "insurance": "شهادة التأمين",
+        "vehiclePhoto": "صورة المركبة",
+        "bankDetails": "المعطيات البنكية أو البريدية (RIB أو شهادة بريدية)"
+      }
     },
     "success": {
       "title": "تم إرسال الترشح.",
@@ -672,12 +684,17 @@
       "termsRequired": "وافق على الشروط للمتابعة.",
       "passwordTooShort": "10 أحرف على الأقل.",
       "codeIncomplete": "أدخل الرمز كاملًا.",
-      "freightPayerRequired": "اقبل هذه الشروط للدفع عند التسليم."
+      "freightPayerRequired": "اقبل هذه الشروط للدفع عند التسليم.",
+      "documentRequired": "أضف هذه الوثيقة.",
+      "attachmentBadType": "تُقبل الصور وملفات PDF فقط."
     },
     "serverErrors": {
       "attachmentTooLarge": "حجم الملف يتجاوز 5 ميغابايت.",
       "captchaFailed": "فشل التحقق من أنك لست روبوتًا. حاول مرة أخرى.",
-      "invalidTrackingCode": "رقم التتبع يشبه ‎FG-7K4M-2QXP‎."
+      "invalidTrackingCode": "رقم التتبع يشبه ‎FG-7K4M-2QXP‎.",
+      "documentRequired": "أضف هذه الوثيقة.",
+      "attachmentBadType": "تُقبل الصور وملفات PDF فقط.",
+      "vehicleInvalid": "اختر مركبة من القائمة."
     }
   },
   "home": {
