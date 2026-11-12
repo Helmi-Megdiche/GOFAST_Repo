@@ -10,6 +10,9 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - Business rules: `docs/spec/regles.md` (rules R101–R904, order and parcel states, data model, API routes and the acceptance scenarios for these screens). It is the binding extract of the cahier; when it and a mockup disagree, it wins.
 - GOFAST's answers (6 Nov 2026, provisional values, admin-editable): `docs/spec/reponses-gofast.md`.
 - UI reference: `docs/ui/` (152 screens). Read `docs/ui/README.md` before any UI work.
+- Test matrix: `docs/spec/recette.md` (T01–T61, DR01–DR36, EX01–EX17, CC1–CC4, with level, priority, gate and coverage). When a PR covers a row, update its status and evidence, and put the scenario ID in the test name.
+- Project status: `docs/status.md` (done, blocked, next actions). Update it when a PR merges or a blocker clears.
+- Servers: `infra/servers/` (setup script and host checklist). Infrastructure changes go there.
 - Lots: L1 = launch (end of week 8), L2 = after launch, L3 = later. Do not build L2 or L3 items unless the ticket says so.
 
 ## Stack (decided, do not change without the team)
@@ -44,6 +47,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - Commit messages start with the feature or rule IDs: `FE-01 CMD-02: address search field`.
 - For anything bigger than one component, start in plan mode, read the plan, then let Claude build.
 - Before opening a PR, run `pnpm lint && pnpm typecheck && pnpm test` and the Playwright screenshot check for touched pages. Fix failures, do not skip them.
+- CI (`.github/workflows/ci.yml`) runs on every PR and every push to `main`: lint, typecheck, unit tests, build, Playwright e2e with axe-core, and a Gitleaks secret scan. Never merge a red PR. If a check fails, open the run's Playwright report artifact, fix the cause, and push again. Do not skip, weaken or delete a check to make it pass.
 - Every PR is reviewed by another engineer, a human. Claude can draft the PR description; the author reads the full diff before asking for review.
 - Do not edit a package owned by another engineer without telling them. Owners: `apps/web` Helmi (@Helmi-Megdiche), `apps/backoffice` and finance modules Ala (@AlaaSalem12), `apps/driver` Moataz (@mootazkraiem), infrastructure Helmi, testing Moataz. `packages/ui` and `packages/i18n` are shared: changes there need one approval from another owner.
 - If the spec and the mockup disagree, the spec wins. Note the gap in the PR.
