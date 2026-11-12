@@ -460,10 +460,8 @@ native-speaker review before release (CLAUDE.md).
 | `forms.errors.termsRequired` | وافق على الشروط للمتابعة. | Acceptez les conditions pour continuer. | [ ] |
 | `forms.errors.trackingInvalid` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
 | `forms.errors.weightInvalid` | أدخل الوزن بالكغ، مثلًا 2 أو 2.5. | Indiquez un poids en kg, par exemple 2 ou 2,5. | [ ] |
-| `forms.serverErrors.attachmentBadType` | تُقبل الصور وملفات PDF فقط. | Seuls les images et les PDF sont acceptés. | [ ] |
 | `forms.serverErrors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.serverErrors.captchaFailed` | فشل التحقق من أنك لست روبوتًا. حاول مرة أخرى. | La vérification anti-robot a échoué. Réessayez. | [ ] |
-| `forms.serverErrors.documentRequired` | أضف هذه الوثيقة. | Ajoutez ce document. | [ ] |
 | `forms.serverErrors.invalidTrackingCode` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
 | `forms.serverErrors.vehicleInvalid` | اختر مركبة من القائمة. | Choisissez un véhicule de la liste. | [ ] |
 | `help.noResult` | لا يوجد سؤال يطابق بحثك. | Aucune question ne correspond à votre recherche. | [ ] |

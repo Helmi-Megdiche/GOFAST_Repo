@@ -153,11 +153,14 @@ describe("driver form (FE-05)", () => {
       const ok = { ...documents(), cin: doc(1000, type) };
       expect(driverFormSchema.safeParse({ ...valid(), documents: ok }).success, type).toBe(true);
     }
-    for (const type of ["application/zip", "text/plain", "image/gif"]) {
-      const bad = { ...documents(), insurance: doc(1000, type) };
-      expect(codes(driverFormSchema.safeParse({ ...valid(), documents: bad })), type).toEqual([
-        "attachmentBadType",
-      ]);
+    for (const key of DRIVER_DOCUMENTS) {
+      for (const type of ["application/zip", "text/plain", "image/gif"]) {
+        const bad = { ...documents(), [key]: doc(1000, type) };
+        expect(
+          codes(driverFormSchema.safeParse({ ...valid(), documents: bad })),
+          `${key} ${type}`,
+        ).toEqual(["attachmentBadType"]);
+      }
     }
   });
 });

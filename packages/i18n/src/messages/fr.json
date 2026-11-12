@@ -692,8 +692,6 @@
       "attachmentTooLarge": "Le fichier dépasse 5 Mo.",
       "captchaFailed": "La vérification anti-robot a échoué. Réessayez.",
       "invalidTrackingCode": "Le numéro de suivi ressemble à FG-7K4M-2QXP.",
-      "documentRequired": "Ajoutez ce document.",
-      "attachmentBadType": "Seuls les images et les PDF sont acceptés.",
       "vehicleInvalid": "Choisissez un véhicule de la liste."
     }
   },

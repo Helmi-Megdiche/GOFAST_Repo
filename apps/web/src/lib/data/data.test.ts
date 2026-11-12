@@ -221,22 +221,26 @@ describe("submitDriverApplication", () => {
       });
     }
   });
-  it("refuses a wrong type and a missing document, naming the document", async () => {
-    const bad = {
-      ...input(),
-      documents: { ...documents(), licence: { ...pdf, type: "application/zip", name: "a.zip" } },
-    };
-    expect(await submitDriverApplication(bad)).toEqual({
-      status: "error",
-      code: "attachment-bad-type",
-      document: "licence",
-    });
-    const missing = { ...input(), documents: { ...documents(), cin: null } };
-    expect(await submitDriverApplication(missing)).toEqual({
-      status: "error",
-      code: "document-missing",
-      document: "cin",
-    });
+  it("refuses a wrong type on each document, naming it", async () => {
+    for (const key of DRIVER_DOCUMENTS) {
+      const zip = { name: "a.zip", type: "application/zip", sizeBytes: 10 };
+      const bad = { ...input(), documents: { ...documents(), [key]: zip } };
+      expect(await submitDriverApplication(bad), key).toEqual({
+        status: "error",
+        code: "attachment-bad-type",
+        document: key,
+      });
+    }
+  });
+  it("refuses each missing document, naming it", async () => {
+    for (const key of DRIVER_DOCUMENTS) {
+      const missing = { ...input(), documents: { ...documents(), [key]: null } };
+      expect(await submitDriverApplication(missing), key).toEqual({
+        status: "error",
+        code: "document-missing",
+        document: key,
+      });
+    }
   });
   it("refuses an unknown vehicle", async () => {
     const result = await submitDriverApplication({ ...input(), vehicle: "moto" as never });

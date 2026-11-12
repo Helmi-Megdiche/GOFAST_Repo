@@ -1,5 +1,4 @@
-import { attachmentError } from "../claims/attachments";
-import { MAX_ATTACHMENT_BYTES } from "../limits";
+import { fileError } from "../attachments";
 import { mockDelay } from "./delay";
 import { FIXTURE_APPLICATION_ID } from "./fixtures/contact";
 
@@ -72,12 +71,11 @@ export async function submitDriverApplication(
   for (const document of DRIVER_DOCUMENTS) {
     const file = input.documents[document];
     if (!file) return { status: "error", code: "document-missing", document };
-    // The size limit is the contact form's; the type rule is the claim attachments' (images, PDF).
-    if (file.sizeBytes > MAX_ATTACHMENT_BYTES) {
-      return { status: "error", code: "attachment-too-large", document };
-    }
-    if (attachmentError([file]) === "badType") {
-      return { status: "error", code: "attachment-bad-type", document };
+    // One file rule for every upload: images and PDF, 5 MB (lib/attachments.ts).
+    const problem = fileError(file);
+    if (problem) {
+      const code = problem === "tooLarge" ? "attachment-too-large" : "attachment-bad-type";
+      return { status: "error", code, document };
     }
     documents[document] = { name: file.name, type: file.type, sizeBytes: file.sizeBytes };
   }

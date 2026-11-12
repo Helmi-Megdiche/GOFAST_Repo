@@ -121,3 +121,24 @@ test("driver: nothing of the application reaches the URL or localStorage", async
   const stored = await page.evaluate(() => JSON.stringify({ ...localStorage }));
   expect(stored).not.toMatch(/doc\.pdf|Test Livreur|20 000 000|20000000/);
 });
+
+test("driver: heading, required text fields, and a focused confirmation (W08)", async ({
+  page,
+}) => {
+  await page.goto("/fr/livreur");
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Livrez avec GOFAST.");
+  await expect(page.locator("main")).not.toContainText("gains visibles");
+
+  await submit(page).click();
+  await expect(alerts(page).filter({ hasText: "Ce champ est obligatoire." })).toHaveCount(0);
+  await expect(page.getByText("Ce champ est obligatoire.")).toHaveCount(2);
+  await expect(page.locator('input[autocomplete="name"]')).toBeFocused();
+
+  await page.locator('input[autocomplete="name"]').fill("Test Livreur");
+  await page.locator("input[type=tel]").fill("20 000 000");
+  for (let index = 0; index < 6; index++) await files(page).nth(index).setInputFiles(pdf());
+  await submit(page).click();
+  const confirmation = page.locator('div[tabindex="-1"]', { hasText: COPY.fr.sent });
+  await expect(confirmation).toBeFocused();
+  await expect(confirmation).toHaveCSS("outline-style", "solid");
+});

@@ -6,25 +6,29 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Card, Field, FileAttach, Input, Ltr, Select } from "@fastgo/ui";
 import { Confirmation } from "@/components/confirmation";
-import { CLAIM_ATTACHMENT_TYPES } from "@/lib/order/constants";
+import { ATTACHMENT_TYPES } from "@/lib/attachments";
 import {
   DRIVER_DOCUMENTS,
   DRIVER_VEHICLES,
   submitDriverApplication,
+  type DriverApplicationInput,
   type DriverApplicationResult,
   type DriverDocumentCode,
 } from "@/lib/data/driver";
 import { driverFormSchema, type DriverFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 
-const ACCEPT = CLAIM_ATTACHMENT_TYPES.join(",");
+const ACCEPT = ATTACHMENT_TYPES.join(",");
 
-const SERVER_ERROR_KEY = {
-  "vehicle-invalid": "vehicleInvalid",
+// A mock-server error on a document is shown on that document, like the form's own check.
+const DOCUMENT_ERROR_CODE = {
   "document-missing": "documentRequired",
   "attachment-too-large": "attachmentTooLarge",
   "attachment-bad-type": "attachmentBadType",
 } as const;
+
+const focusDocument = (code: DriverDocumentCode | undefined) =>
+  document.querySelector<HTMLElement>(`[data-document="${code}"] button`)?.focus();
 
 /**
  * Driver application (W08, FE-05). Six required documents (GOFAST's list), each checked here and
@@ -44,6 +48,7 @@ export function DriverForm() {
     handleSubmit,
     control,
     trigger,
+    setError,
     formState: { errors, isSubmitting },
   } = useForm<DriverFormValues>({
     resolver: zodResolver(driverFormSchema),
@@ -70,18 +75,27 @@ export function DriverForm() {
         const file = values.documents[code];
         return file ? { name: file.name, type: file.type, sizeBytes: file.size } : null;
       };
+      const documents: DriverApplicationInput["documents"] = {
+        cin: info("cin"),
+        licence: info("licence"),
+        registration: info("registration"),
+        insurance: info("insurance"),
+        vehiclePhoto: info("vehiclePhoto"),
+        bankDetails: info("bankDetails"),
+      };
       const result: DriverApplicationResult = await submitDriverApplication({
         ...values,
-        documents: Object.fromEntries(DRIVER_DOCUMENTS.map((code) => [code, info(code)])) as never,
+        documents,
       });
-      if (result.status === "created") setReference(result.applicationId);
-      else setServerError(serverErrors(SERVER_ERROR_KEY[result.code]));
+      if (result.status === "created") return setReference(result.applicationId);
+      if (result.code === "vehicle-invalid") return setServerError(serverErrors("vehicleInvalid"));
+      setError(`documents.${result.document}`, { message: DOCUMENT_ERROR_CODE[result.code] });
+      focusDocument(result.document);
     },
     (invalid) => {
       // The text fields take the focus themselves; a document has no input ref, so move it here.
       if (invalid.fullName || invalid.phone) return;
-      const first = DRIVER_DOCUMENTS.find((code) => invalid.documents?.[code]);
-      document.querySelector<HTMLElement>(`[data-document="${first}"] button`)?.focus();
+      focusDocument(DRIVER_DOCUMENTS.find((code) => invalid.documents?.[code]));
     },
   );
 

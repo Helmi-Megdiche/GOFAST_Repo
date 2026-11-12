@@ -692,8 +692,6 @@
       "attachmentTooLarge": "The file is larger than 5 MB.",
       "captchaFailed": "The anti-robot check failed. Try again.",
       "invalidTrackingCode": "A tracking number looks like FG-7K4M-2QXP.",
-      "documentRequired": "Add this document.",
-      "attachmentBadType": "Only images and PDF files are accepted.",
       "vehicleInvalid": "Choose a vehicle from the list."
     }
   },

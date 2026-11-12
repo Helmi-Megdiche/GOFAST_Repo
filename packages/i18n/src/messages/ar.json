@@ -692,8 +692,6 @@
       "attachmentTooLarge": "حجم الملف يتجاوز 5 ميغابايت.",
       "captchaFailed": "فشل التحقق من أنك لست روبوتًا. حاول مرة أخرى.",
       "invalidTrackingCode": "رقم التتبع يشبه ‎FG-7K4M-2QXP‎.",
-      "documentRequired": "أضف هذه الوثيقة.",
-      "attachmentBadType": "تُقبل الصور وملفات PDF فقط.",
       "vehicleInvalid": "اختر مركبة من القائمة."
     }
   },
