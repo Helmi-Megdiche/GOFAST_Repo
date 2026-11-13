@@ -252,6 +252,8 @@ test.describe("The e-mail screen (R101, R102, ESP-01)", () => {
     await page.getByRole("textbox", { name: "Nouvelle adresse e-mail" }).fill(email);
     await page.getByRole("button", { name: "Recevoir un code" }).click();
     await expect(codeBox(page)).toBeVisible();
+    // The countdown renders after the send has finished: wait for it, so the screen is settled.
+    await expect(main(page).getByText(/Renvoyer dans \d+ s/)).toBeVisible();
   }
   const verify = (page: Page) =>
     page.getByRole("button", { name: "Vérifier", exact: true }).click();
@@ -273,13 +275,14 @@ test.describe("The e-mail screen (R101, R102, ESP-01)", () => {
   }) => {
     await signInAs(page, EMPTY_CUSTOMER);
     await sendTo(page, "personne@example.tn");
+    // The countdown ticks between the two reads: its seconds do not count.
+    const same = (text: string) =>
+      text.replace(/s\S*@\S+|p\S*@\S+/g, "X").replace(/Renvoyer dans \d+ s/, "Renvoyer dans X s");
     const unknownText = await main(page).innerText();
     await page.getByRole("button", { name: "Changer d'adresse" }).click();
     await sendTo(page, "sami.t@example.tn");
     // Same screen: only the masked address differs, so nothing says that the e-mail has an account.
-    expect((await main(page).innerText()).replace(/s\S*@\S+|p\S*@\S+/g, "X")).toBe(
-      unknownText.replace(/s\S*@\S+|p\S*@\S+/g, "X"),
-    );
+    expect(same(await main(page).innerText())).toBe(same(unknownText));
     await expect(main(page).getByText(/déjà utilisée/)).toHaveCount(0);
     await codeBox(page).fill("000000");
     await verify(page);

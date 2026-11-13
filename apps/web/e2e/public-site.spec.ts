@@ -428,7 +428,23 @@ test("contact: an attachment of exactly 5 MB is accepted, one byte more is refus
   // and the form does not send while the file is too large
   await fillContact(page);
   await tickCaptcha(page);
-  await page.getByRole("button", { name: "Envoyer ma demande" }).click();
+  // The state that proves the form handled the click: the submit event fired and the send cycle
+  // is over (the button is not aria-disabled, contact-form.tsx). Only then is "no confirmation" a result.
+  await page.evaluate(() => {
+    (window as unknown as { __submits: number }).__submits = 0;
+    document
+      .querySelector("main form")
+      ?.addEventListener(
+        "submit",
+        () => ((window as unknown as { __submits: number }).__submits += 1),
+      );
+  });
+  const send = page.getByRole("button", { name: "Envoyer ma demande" });
+  await send.click();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as { __submits: number }).__submits))
+    .toBe(1);
+  await expect(send).not.toHaveAttribute("aria-disabled", "true");
   await expect(page.getByText("Votre demande est enregistrée.")).toHaveCount(0);
   await expect(page.getByText("Le fichier dépasse 5 Mo.")).toBeVisible();
 });

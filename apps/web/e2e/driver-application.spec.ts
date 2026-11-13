@@ -135,8 +135,8 @@ test("driver: heading, required text fields, and a focused confirmation (W08)", 
   await expect(page.locator("main")).not.toContainText("gains visibles");
 
   await submit(page).click();
-  await expect(alerts(page).filter({ hasText: "Ce champ est obligatoire." })).toHaveCount(0);
   await expect(page.getByText("Ce champ est obligatoire.")).toHaveCount(2);
+  await expect(alerts(page).filter({ hasText: "Ce champ est obligatoire." })).toHaveCount(0);
   await expect(page.locator('input[autocomplete="name"]')).toBeFocused();
 
   await page.locator('input[autocomplete="name"]').fill("Test Livreur");
