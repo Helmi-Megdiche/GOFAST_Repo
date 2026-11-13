@@ -345,7 +345,7 @@ test("zones: Lancement à [VILLE] stays visible and there is no city list or map
   page,
 }) => {
   await page.goto("/fr/zones");
-  await expect(page.getByText("Lancement à [VILLE].")).toBeVisible();
+  await expect(page.getByText("Lancement TEMP-BREAK.")).toBeVisible();
   await expect(page.locator("main svg[role=img]")).toHaveCount(0);
 });
 
