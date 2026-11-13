@@ -37,3 +37,4 @@ Snapshot of 8 Nov 2026, 18:00 Tunis time (week S1). Client priority: public site
 | 5 | Helmi, Monday | Onboard Ala and Moataz: new repo URL, board write access, "Backlog" and "In review" columns |
 | 6 | Helmi | Restart PR #66: Claude Code reads the round 1 review and pushes fixes |
 | 7 | Helmi | Get GitHub Pro (Student Developer Pack), then require the 3 CI checks on `main` |
+
