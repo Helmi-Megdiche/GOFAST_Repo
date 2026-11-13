@@ -587,6 +587,7 @@ test.describe("W15: R504, R605, R607 and R903", () => {
   test("R607: port dû needs the box; the order stores the acceptance", async ({ page }) => {
     await reviewAs(page, CUSTOMER);
     const box = page.getByRole("checkbox", { name: /destinataire refuse le colis/ });
+    await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
     await expect(box).toHaveCount(0);
     await page.getByRole("radio", { name: /Espèces à la livraison/ }).click();
     await expect(box).toBeVisible();

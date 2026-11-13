@@ -9,7 +9,7 @@ import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 export const generateMetadata = ({ params }: PageParams) =>
   localizedMetadata(params, "/commander/confirmation", "orderConfirmation", { noindex: true });
 
-/** W16 (CMD-06). The stepper ends on step 5, as in the mockup. ?n= is read in the browser so the page stays static; no cancel button (CMD-08: Prompt 4). */
+/** W16 (CMD-06). The stepper ends on step 5, as in the mockup. ?n= is read in the browser so the page stays static; the cancel button is there for a signed-in sender (CMD-08), as in components/order/confirmation.tsx. */
 export default async function Page({ params }: PageParams) {
   await resolveLocale(params);
   const t = await getTranslations("order.confirmation");

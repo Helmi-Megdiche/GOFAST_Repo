@@ -299,6 +299,7 @@ test.describe("abuse", () => {
     const total = await page.getByRole("complementary", { name: "Votre prix" }).textContent();
     await page.getByRole("button", { name: "Vérifier ma commande" }).click();
     await expect(page).toHaveURL(/\/commander\/verification$/);
+    await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
     await expect(page.getByText("Le prix a été recalculé.")).toHaveCount(0);
     const detail = page.getByRole("complementary", { name: "Détail du prix" });
     const amount = /(\d+,\d{3})\sTND/.exec(total ?? "")?.[1] ?? "none";

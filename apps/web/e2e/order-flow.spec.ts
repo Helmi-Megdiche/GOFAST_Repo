@@ -280,6 +280,7 @@ test("'Compte client' appears only for a merchant with a validated contract (R10
   await signInAs(page, "+216 71 000 002"); // merchant, contract pending
   await page.goto("/fr/commander");
   await toReview(page, "+216 71 000 002");
+  await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
   await expect(page.getByRole("radio", { name: /Compte client/ })).toHaveCount(0);
 
   await signInAs(page, "+216 71 000 001"); // merchant, contract validated
@@ -456,7 +457,8 @@ test("W16: tracking link, sample slip, /suivi finds the order without personal d
 }) => {
   const code = await placeGuestOrder(page);
   await expect(page.getByText("Amel B. a reçu son lien de suivi par SMS")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Annuler/ })).toHaveCount(0); // CMD-08: Prompt 4
+  // CMD-08: the cancel button shows once the order has loaded.
+  await expect(page.getByRole("button", { name: /Annuler la commande/ })).toBeVisible();
   const slip = page.getByRole("link", { name: "Bon de commande (exemple)" });
   const href = await slip.getAttribute("href");
   expect(href).toBe("/examples/bon-de-commande-exemple.pdf");
@@ -805,6 +807,7 @@ test.describe("order logic", () => {
     await expect(page.getByRole("radio", { name: /Compte client/ })).toBeChecked();
     await page.evaluate(() => localStorage.removeItem("fg.mock.session"));
     await page.reload();
+    await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
     await expect(page.getByRole("radio", { name: /Compte client/ })).toHaveCount(0);
     await expect.poll(async () => (await draft(page)).payment).toBeNull();
   });
