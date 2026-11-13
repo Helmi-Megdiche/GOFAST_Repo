@@ -10,6 +10,7 @@ import { readyDraft as readyTestDraft } from "../order/test-draft";
 import { isValidTrackingCode } from "../tracking-code";
 import { readJson, useMemoryStorage, writeJson } from "../storage";
 import { createAccount, returnBalanceMillimes, sessionFor } from "./accounts";
+import { savedRecipients } from "./address-book";
 import { signIn } from "./auth";
 import { FIXTURE_ACCOUNTS, FIXTURE_PASSWORD, FIXTURE_TEAM_MEMBERS } from "./fixtures/accounts";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
@@ -573,5 +574,45 @@ describe("createOrder: R605 return balance and R607 port dû", () => {
     await verifyPhone();
     const result = await createOrder(request({ ...readyDraft(), payment: "cashPickup" }), "r607-c");
     expect(result.status).toBe("created");
+  });
+});
+
+describe("createOrder: Enregistrer ce destinataire (CMD-02)", () => {
+  const sami = () => sessionFor({ ...FIXTURE_ACCOUNTS[0]!, google: false });
+  const saveDraft = (save: boolean): OrderDraft => {
+    const draft = readyDraft();
+    return { ...draft, recipient: { ...draft.recipient, save } };
+  };
+
+  it("saves the recipient only when the order is created, once per phone", async () => {
+    setSession(sami());
+    const before = savedRecipients(sami());
+    expect(before).toEqual([]);
+    const draft = saveDraft(true);
+    // A refused order saves nothing (phone not verified yet).
+    expect((await createOrder(request(draft), "k0")).status).toBe("refused");
+    expect(savedRecipients(sami())).toEqual([]);
+    await verifyPhone();
+    expect((await createOrder(request(draft), "k1")).status).toBe("created");
+    const saved = savedRecipients(sami());
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      name: draft.recipient.name.trim(),
+      locale: draft.recipient.smsLanguage,
+    });
+    // A replay of the same key writes nothing again; another order to the same phone updates it.
+    expect(await createOrder(request(draft), "k1")).toMatchObject({ replay: true });
+    expect((await createOrder(request(draft), "k2")).status).toBe("created");
+    expect(savedRecipients(sami())).toHaveLength(1);
+  });
+
+  it("saves nothing when the box is not ticked, or when nobody is signed in", async () => {
+    await verifyPhone();
+    setSession(sami());
+    expect((await createOrder(request(saveDraft(false)), "k1")).status).toBe("created");
+    expect(savedRecipients(sami())).toEqual([]);
+    signOut();
+    expect((await createOrder(request(saveDraft(true)), "k2")).status).toBe("created");
+    expect(savedRecipients(sami())).toEqual([]);
   });
 });

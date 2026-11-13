@@ -11,7 +11,9 @@ import type { AddressDraft, OrderDraft } from "@/lib/order/draft";
 import { recipientFormSchema } from "@/lib/order/schemas";
 import { StepBusy } from "./busy";
 import { PricePending, PriceProvisional } from "./price-aside";
+import { addressDraftFromSaved } from "@/lib/order/saved";
 import { AddressField } from "./address-field";
+import { SavedAddressPicker, SavedRecipientPicker } from "./saved-picker";
 import { useOrderStep } from "./use-order-step";
 
 type Values = {
@@ -63,7 +65,7 @@ function RecipientForm({
   // "Enregistrer ce destinataire" is mock only and needs a session (decision 23).
   const signedIn = getSession() != null;
 
-  const { control, register, handleSubmit, subscribe, formState } = useForm<Values>({
+  const { control, register, handleSubmit, setValue, subscribe, formState } = useForm<Values>({
     resolver: zodResolver(recipientFormSchema),
     defaultValues: {
       address: draft.recipient.address,
@@ -106,6 +108,26 @@ function RecipientForm({
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
       <Card className="flex flex-col gap-4">
+        <SavedRecipientPicker
+          onPick={(saved) => {
+            void addressDraftFromSaved(saved.address, saved.landmark).then((address) => {
+              addressField.onChange(address);
+              setValue("landmark", saved.landmark);
+              setValue("name", saved.name);
+              setValue("phone", saved.phone);
+              setValue("smsLanguage", saved.locale);
+            });
+          }}
+        />
+        <SavedAddressPicker
+          onPick={(saved) => {
+            // The zone is checked now: an address that left the zone goes to W17 (R201).
+            void addressDraftFromSaved(saved.text, saved.landmark).then((address) => {
+              addressField.onChange(address);
+              setValue("landmark", saved.landmark);
+            });
+          }}
+        />
         <AddressField
           label={t("address")}
           value={addressField.value}

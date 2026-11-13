@@ -10,6 +10,14 @@ export function normalizePhone(input: string): string | null {
   return match ? `+216${match[1]}` : null;
 }
 
+/** "+21620000000" -> "+216 20 000 000" (C09, the number as the person typed it in the mockups). */
+export function formatPhone(phone: string): string {
+  const normalized = normalizePhone(phone);
+  if (!normalized) return "";
+  const digits = normalized.slice(4);
+  return `+216 ${digits.slice(0, 2)} ${digits.slice(2, 5)} ${digits.slice(5)}`;
+}
+
 /** "+21620000000" -> "+216 20 ••• 000" (W20). Shows the first 2 and last 3 digits only. */
 export function maskPhone(phone: string): string {
   const normalized = normalizePhone(phone);

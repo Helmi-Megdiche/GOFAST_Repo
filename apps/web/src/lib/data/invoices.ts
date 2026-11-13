@@ -217,3 +217,14 @@ export async function getInvoice(session: Session, number: string): Promise<Invo
     },
   };
 }
+
+/**
+ * The invoices of an account by its id, as the back-office reads them (T37): not scoped by a
+ * session, because closing an account never deletes an accounting document (R105). Tests only.
+ */
+export function listInvoicesForAccountId(accountId: string): Invoice[] {
+  seedBillingFixtures();
+  return Object.values(readTable<Invoice>(INVOICES)).filter(
+    (invoice) => invoice.customerId === accountId,
+  );
+}

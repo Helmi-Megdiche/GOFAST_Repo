@@ -10,6 +10,7 @@ native-speaker review before release (CLAUDE.md).
 
 | Key | Arabic | French (source) | Reviewed |
 | --- | --- | --- | --- |
+| `account.closedName` | حساب مغلق | Compte fermé | [ ] |
 | `account.guard.busy` | جارٍ تحميل مساحتك… | Chargement de votre espace… | [ ] |
 | `account.guard.noscript` | تحتاج هذه الصفحة إلى JavaScript لعرض مساحتك. | Cette page a besoin de JavaScript pour afficher votre espace. | [ ] |
 | `account.guard.notAllowed` | ليس لديك صلاحية الوصول إلى هذه الصفحة. | Vous n'avez pas accès à cette page. | [ ] |
@@ -50,6 +51,39 @@ native-speaker review before release (CLAUDE.md).
 | `account.pro.slots.lastDeliveries` | آخر عمليات التسليم | Dernières livraisons | [ ] |
 | `account.pro.title` | مساحة التاجر | Espace commerçant | [ ] |
 | `account.signOut` | تسجيل الخروج | Se déconnecter | [ ] |
+| `addressBook.addresses.add` | إضافة | Ajouter | [ ] |
+| `addressBook.addresses.edit` | تعديل | Modifier | [ ] |
+| `addressBook.addresses.editLabel` | تعديل {label} | Modifier {label} | [ ] |
+| `addressBook.addresses.empty` | لا يوجد عنوان محفوظ. | Aucune adresse enregistrée. | [ ] |
+| `addressBook.addresses.landmark` | معلم قريب: <landmark></landmark> | Repère : <landmark></landmark> | [ ] |
+| `addressBook.addresses.remove` | حذف | Supprimer | [ ] |
+| `addressBook.addresses.removeLabel` | حذف {label} | Supprimer {label} | [ ] |
+| `addressBook.addresses.title` | عناويني | Mes adresses | [ ] |
+| `addressBook.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `addressBook.error.title` | تعذّر تحميل عناوينك. | Impossible de charger vos adresses. | [ ] |
+| `addressBook.form.addTitle` | إضافة عنوان | Ajouter une adresse | [ ] |
+| `addressBook.form.cancel` | إلغاء | Annuler | [ ] |
+| `addressBook.form.editTitle` | تعديل العنوان | Modifier l'adresse | [ ] |
+| `addressBook.form.label` | اسم العنوان | Nom de l'adresse | [ ] |
+| `addressBook.form.labelHint` | مثال: المنزل، المكتب. | Par exemple : Domicile, Bureau. | [ ] |
+| `addressBook.form.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
+| `addressBook.form.network` | فشل الحفظ. أعد المحاولة. | L'enregistrement a échoué. Réessayez. | [ ] |
+| `addressBook.form.save` | حفظ | Enregistrer | [ ] |
+| `addressBook.form.saved` | تم حفظ العنوان. | Adresse enregistrée. | [ ] |
+| `addressBook.form.text` | العنوان | Adresse | [ ] |
+| `addressBook.loading` | جارٍ تحميل عناوينك… | Chargement de vos adresses… | [ ] |
+| `addressBook.recipients.empty` | لا يوجد مستلم محفوظ. فعّل «حفظ هذا المستلم» عند الطلب. | Aucun destinataire enregistré. Cochez « Enregistrer ce destinataire » en commandant. | [ ] |
+| `addressBook.recipients.remove` | حذف | Supprimer | [ ] |
+| `addressBook.recipients.removeLabel` | حذف {name} | Supprimer {name} | [ ] |
+| `addressBook.recipients.sendTo` | إرسال طرد إليه | Lui envoyer un colis | [ ] |
+| `addressBook.recipients.sendToLabel` | إرسال طرد إليه: {name} | Lui envoyer un colis : {name} | [ ] |
+| `addressBook.recipients.title` | المستلمون المحفوظون | Destinataires enregistrés | [ ] |
+| `addressBook.removeDialog.addressTitle` | حذف هذا العنوان؟ | Supprimer cette adresse ? | [ ] |
+| `addressBook.removeDialog.confirm` | نعم، احذف | Oui, supprimer | [ ] |
+| `addressBook.removeDialog.keep` | لا، أبقِه | Non, garder | [ ] |
+| `addressBook.removeDialog.recipientTitle` | حذف هذا المستلم؟ | Supprimer ce destinataire ? | [ ] |
+| `addressBook.removeDialog.text` | سيُحذف من دفتر عناوينك. لن تتغير طلباتك. | Il sera retiré de votre carnet. Vos commandes ne changent pas. | [ ] |
+| `addressBook.title` | العناوين والمستلمون | Adresses et destinataires | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
 | `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |
@@ -111,6 +145,7 @@ native-speaker review before release (CLAUDE.md).
 | `auth.signUp.created` | تم إنشاء الحساب. | Compte créé. | [ ] |
 | `auth.signUp.email` | البريد الإلكتروني (اختياري) | E-mail (facultatif) | [ ] |
 | `auth.signUp.emailLater` | تم إنشاء الحساب. لم تتم إضافة بريدك الإلكتروني بعد: يمكنك تأكيده لاحقًا برمز يُرسل إلى هذا العنوان. | Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse. | [ ] |
+| `auth.signUp.emailLaterConfirm` | تأكيد بريدي الإلكتروني | Confirmer mon e-mail | [ ] |
 | `auth.signUp.emailLaterContinue` | متابعة | Continuer | [ ] |
 | `auth.signUp.kindLegend` | نوع الحساب | Type de compte | [ ] |
 | `auth.signUp.kinds.customer.text` | شحنات عرضية | Envois ponctuels | [ ] |
@@ -426,6 +461,19 @@ native-speaker review before release (CLAUDE.md).
 | `driver.success.text` | سنتحقق من وثائقك. | Nous vérifions vos documents. | [ ] |
 | `driver.success.title` | تم إرسال الترشح. | Candidature envoyée. | [ ] |
 | `driver.title` | وصّل مع GOFAST. | Livrez avec GOFAST. | [ ] |
+| `emailScreen.back` | العودة إلى ملفي | Retour au profil | [ ] |
+| `emailScreen.change` | استخدام عنوان آخر | Changer d'adresse | [ ] |
+| `emailScreen.current` | البريد الحالي: <email></email> | E-mail actuel : <email></email> | [ ] |
+| `emailScreen.done` | تم تأكيد بريدك الإلكتروني وإضافته إلى حسابك. | Votre e-mail est confirmé et ajouté à votre compte. | [ ] |
+| `emailScreen.field` | عنوان البريد الإلكتروني الجديد | Nouvelle adresse e-mail | [ ] |
+| `emailScreen.intro` | نرسل رمزًا إلى هذا العنوان لتأكيده. لا يُضاف إلى حسابك إلا بعد ذلك. | Nous envoyons un code à cette adresse pour la confirmer. Elle ne sera ajoutée à votre compte qu'après. | [ ] |
+| `emailScreen.loading` | جارٍ التحميل… | Chargement… | [ ] |
+| `emailScreen.network` | فشلت العملية. أعد المحاولة. | L'opération a échoué. Réessayez. | [ ] |
+| `emailScreen.notVerified` | لم يعد الرمز صالحًا. اطلب رمزًا جديدًا. | Le code n'est plus valable. Demandez-en un nouveau. | [ ] |
+| `emailScreen.send` | إرسال رمز إليّ | Recevoir un code | [ ] |
+| `emailScreen.sending` | جارٍ إرسال الرمز… | Envoi du code… | [ ] |
+| `emailScreen.taken` | عنوان البريد هذا مستخدم في حساب آخر. استخدم عنوانًا آخر. | Cette adresse e-mail est déjà utilisée par un autre compte. Utilisez une autre adresse. | [ ] |
+| `emailScreen.title` | البريد الإلكتروني | Adresse e-mail | [ ] |
 | `footer.contact` | اتصل بنا | Contact | [ ] |
 | `footer.driver` | كن عامل توصيل | Devenir livreur | [ ] |
 | `footer.faq` | الأسئلة الشائعة | Questions fréquentes | [ ] |
@@ -649,12 +697,16 @@ native-speaker review before release (CLAUDE.md).
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
 | `meta.pages.account.description` | مساحة عميل GOFAST الخاصة بك. | Votre espace client GOFAST. | [ ] |
 | `meta.pages.account.title` | حسابي \| GOFAST | Mon compte \| GOFAST | [ ] |
+| `meta.pages.accountAddresses.description` | عناوينك ومستلموك المحفوظون في GOFAST. | Vos adresses et destinataires enregistrés GOFAST. | [ ] |
+| `meta.pages.accountAddresses.title` | العناوين والمستلمون \| GOFAST | Adresses et destinataires \| GOFAST | [ ] |
 | `meta.pages.accountClaim.description` | متابعة شكوى لدى GOFAST والمراسلات مع خدمة العملاء. | Le suivi d'une réclamation GOFAST et les échanges avec le service client. | [ ] |
 | `meta.pages.accountClaim.title` | شكوى \| GOFAST | Réclamation \| GOFAST | [ ] |
 | `meta.pages.accountClaimNew.description` | فتح شكوى متعلقة بطلب لدى GOFAST. | Ouvrir une réclamation liée à une commande GOFAST. | [ ] |
 | `meta.pages.accountClaimNew.title` | شكوى جديدة \| GOFAST | Nouvelle réclamation \| GOFAST | [ ] |
 | `meta.pages.accountClaims.description` | شكاواك لدى GOFAST ومتابعتها. | Vos réclamations GOFAST et leur suivi. | [ ] |
 | `meta.pages.accountClaims.title` | الشكاوى \| GOFAST | Réclamations \| GOFAST | [ ] |
+| `meta.pages.accountEmail.description` | إضافة أو تغيير البريد الإلكتروني لحسابك في GOFAST. | Ajouter ou changer l'e-mail de votre compte GOFAST. | [ ] |
+| `meta.pages.accountEmail.title` | البريد الإلكتروني \| GOFAST | Adresse e-mail \| GOFAST | [ ] |
 | `meta.pages.accountInvoice.description` | تفاصيل فاتورة أو إشعار دائن من GOFAST. | Le détail d'une facture ou d'un avoir GOFAST. | [ ] |
 | `meta.pages.accountInvoice.title` | فاتورة \| GOFAST | Facture \| GOFAST | [ ] |
 | `meta.pages.accountInvoices.description` | فواتيرك وإيصالاتك وإشعارات الدائن لدى GOFAST مع حالة السداد. | Vos factures, reçus et avoirs GOFAST, avec leur statut de règlement. | [ ] |
@@ -663,6 +715,8 @@ native-speaker review before release (CLAUDE.md).
 | `meta.pages.accountOrder.title` | طلبي \| GOFAST | Ma commande \| GOFAST | [ ] |
 | `meta.pages.accountOrders.description` | طلباتك لدى GOFAST: بحث وتصفية وتفاصيل. | Vos commandes GOFAST : recherche, filtres et détail. | [ ] |
 | `meta.pages.accountOrders.title` | طلباتي \| GOFAST | Mes commandes \| GOFAST | [ ] |
+| `meta.pages.accountProfile.description` | معلوماتك وإشعاراتك ولغتك في GOFAST. | Vos informations, notifications et langue GOFAST. | [ ] |
+| `meta.pages.accountProfile.title` | الملف الشخصي والتفضيلات \| GOFAST | Profil et préférences \| GOFAST | [ ] |
 | `meta.pages.cgv.description` | شروط البيع الخاصة بـ GOFAST. | Conditions générales de vente de GOFAST. | [ ] |
 | `meta.pages.cgv.title` | شروط البيع \| GOFAST | Conditions générales de vente \| GOFAST | [ ] |
 | `meta.pages.code.description` | أدخل الرمز الذي وصلك. | Saisissez le code reçu. | [ ] |
@@ -836,6 +890,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.dropoff` | التسليم | Livraison | [ ] |
 | `order.review.edit` | تعديل | Modifier | [ ] |
 | `order.review.editSection` | تعديل: {section} | Modifier : {section} | [ ] |
+| `order.review.errors.accountClosed` | هذا الحساب مغلق. سجّل الدخول أو أنشئ حسابًا للطلب. | Ce compte est fermé. Connectez-vous ou créez un compte pour commander. | [ ] |
 | `order.review.errors.draftChanged` | تم تعديل طلبك في علامة تبويب أخرى. راجعه ثم أكّده. | Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez. | [ ] |
 | `order.review.errors.freightPayerNotAccepted` | اقبل شروط الدفع عند التسليم للتأكيد. | Acceptez les conditions du paiement à la livraison pour valider. | [ ] |
 | `order.review.errors.idempotencyConflict` | أُرسل هذا الطلب سابقًا بمعلومات مختلفة. أعد تحميل الصفحة. | Cette commande a déjà été envoyée avec d'autres informations. Rechargez la page. | [ ] |
@@ -879,6 +934,9 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.submitting` | جارٍ التأكيد… | Validation… | [ ] |
 | `order.review.terms` | أوافق على <link>شروط البيع</link> وأؤكد أن الطرد لا يحتوي على أي شيء محظور. | J'accepte les <link>CGV</link> et je confirme que le colis ne contient pas d'objet interdit. | [ ] |
 | `order.review.title` | راجع وأكّد | Vérifiez et validez | [ ] |
+| `order.saved.addressLabel` | عنوان محفوظ | Adresse enregistrée | [ ] |
+| `order.saved.placeholder` | اختيار من دفتر عناويني | Choisir dans mon carnet | [ ] |
+| `order.saved.recipientLabel` | مستلم محفوظ | Destinataire enregistré | [ ] |
 | `order.sender.address` | عنوان الاستلام | Adresse de collecte | [ ] |
 | `order.sender.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
 | `order.sender.name` | اسمك | Votre nom | [ ] |
@@ -1046,6 +1104,49 @@ native-speaker review before release (CLAUDE.md).
 | `placeholders.text` | [النص] | [TEXTE] | [ ] |
 | `placeholders.time` | [الساعة] | [HEURE] | [ ] |
 | `placeholders.vat` | [الضريبة على القيمة المضافة] | [TVA] | [ ] |
+| `profile.account.close` | إغلاق حسابي | Fermer mon compte | [ ] |
+| `profile.account.text` | إغلاق حسابك يمحو هويتك: الاسم والهاتف والبريد الإلكتروني. تبقى طلباتك وفواتيرك محفوظة. | Fermer votre compte efface votre identité : nom, téléphone et e-mail. Vos commandes et vos factures restent conservées. | [ ] |
+| `profile.account.title` | حسابي | Mon compte | [ ] |
+| `profile.close.confirm` | نعم، أغلق حسابي | Oui, fermer mon compte | [ ] |
+| `profile.close.keep` | لا، أبقِ حسابي | Non, garder mon compte | [ ] |
+| `profile.close.network` | فشل الإغلاق. أعد المحاولة. | La fermeture a échoué. Réessayez. | [ ] |
+| `profile.close.refused.activeOrder` | هناك طلب لا يزال قيد التنفيذ. يمكنك إغلاق حسابك عند انتهائه. | Une commande est encore en cours. Vous pourrez fermer votre compte quand elle sera terminée. | [ ] |
+| `profile.close.refused.amountDue` | هناك مبلغ مستحق على حسابك. سدّده قبل إغلاق حسابك. | Un montant reste à régler sur votre compte. Réglez-le avant de fermer votre compte. | [ ] |
+| `profile.close.refused.dismiss` | إغلاق | Fermer | [ ] |
+| `profile.close.refused.seeInvoices` | عرض فواتيري | Voir mes factures | [ ] |
+| `profile.close.refused.seeOrders` | عرض طلباتي | Voir mes commandes | [ ] |
+| `profile.close.refused.title` | لا يمكنك إغلاق حسابك حاليًا | Vous ne pouvez pas fermer votre compte pour le moment | [ ] |
+| `profile.close.text` | سيُمحى اسمك وهاتفك وبريدك الإلكتروني ولن تتمكن من تسجيل الدخول بها. تبقى فواتيرك محفوظة. لا يمكن التراجع عن هذا الإجراء. | Votre nom, votre téléphone et votre e-mail seront effacés, et vous ne pourrez plus vous connecter avec. Vos factures restent conservées. Cette action est définitive. | [ ] |
+| `profile.close.title` | إغلاق حسابك؟ | Fermer votre compte ? | [ ] |
+| `profile.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `profile.error.title` | تعذّر تحميل ملفك الشخصي. | Impossible de charger votre profil. | [ ] |
+| `profile.google.linked` | حساب Google مرتبط. | Un compte Google est lié. | [ ] |
+| `profile.google.none` | لا يوجد حساب Google مرتبط. | Aucun compte Google n'est lié. | [ ] |
+| `profile.google.title` | حساب Google | Compte Google | [ ] |
+| `profile.google.unlink` | إلغاء الربط | Dissocier | [ ] |
+| `profile.google.unlinked` | تم إلغاء ربط حساب Google. | Compte Google dissocié. | [ ] |
+| `profile.info.addEmail` | إضافة بريد إلكتروني | Ajouter un e-mail | [ ] |
+| `profile.info.changeEmail` | تغيير البريد الإلكتروني | Changer l'e-mail | [ ] |
+| `profile.info.email` | البريد الإلكتروني | E-mail | [ ] |
+| `profile.info.name` | الاسم الكامل | Nom complet | [ ] |
+| `profile.info.noEmail` | لا يوجد بريد إلكتروني | Aucun e-mail | [ ] |
+| `profile.info.phone` | الهاتف | Téléphone | [ ] |
+| `profile.info.phoneHint` | لا يمكن تغيير الرقم حاليًا. | Le numéro ne peut pas être modifié pour le moment. | [ ] |
+| `profile.info.phoneVerified` | تم التحقق | Vérifié | [ ] |
+| `profile.info.save` | حفظ | Enregistrer | [ ] |
+| `profile.info.title` | معلوماتي | Mes informations | [ ] |
+| `profile.language.names.ar` | العربية | العربية | [ ] |
+| `profile.language.names.en` | English | English | [ ] |
+| `profile.language.names.fr` | Français | Français | [ ] |
+| `profile.language.title` | اللغة | Langue | [ ] |
+| `profile.loading` | جارٍ تحميل ملفك الشخصي… | Chargement de votre profil… | [ ] |
+| `profile.notifications.email` | بريد إلكتروني لفواتيري | E-mail pour mes factures | [ ] |
+| `profile.notifications.offers` | عروض GOFAST | Offres GOFAST | [ ] |
+| `profile.notifications.sms` | رسائل SMS لتوصيلاتي | SMS pour mes livraisons | [ ] |
+| `profile.notifications.title` | الإشعارات | Notifications | [ ] |
+| `profile.saveFailed` | فشل الحفظ. أعد المحاولة. | L'enregistrement a échoué. Réessayez. | [ ] |
+| `profile.saved` | تم الحفظ. | Enregistré. | [ ] |
+| `profile.title` | الملف الشخصي والتفضيلات | Profil et préférences | [ ] |
 | `services.extras.declaredValue` | القيمة المصرّح بها | Valeur déclarée | [ ] |
 | `services.extras.fragile` | طرد هش | Colis fragile | [ ] |
 | `services.extras.retry` | محاولة جديدة | Nouvelle tentative | [ ] |

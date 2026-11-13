@@ -631,16 +631,25 @@ test.describe("abuse", () => {
     await page.getByRole("button", { name: "Valider la commande" }).click();
     await enterCode(page);
     await expect(page).toHaveURL(CONFIRMED);
-    const prints = await page.evaluate(() =>
-      Object.values(
+    // The request sent no label: the stored order keeps the empty address, and the idempotency row
+    // holds only a digest of the request (R105), never its text.
+    const stored = await page.evaluate(() => ({
+      prints: Object.values(
         JSON.parse(localStorage.getItem("fg.mock.idempotency") ?? "{}") as Record<
           string,
           { fingerprint: string }
         >,
       ).map((row) => row.fingerprint),
-    );
-    expect(prints).toHaveLength(1);
-    expect(prints[0]).toContain('"address":""');
-    expect(prints[0]).not.toMatch(/Repère|علامة|Pin placed/);
+      senders: Object.values(
+        JSON.parse(localStorage.getItem("fg.mock.accountOrders") ?? "{}") as Record<
+          string,
+          { sender: { address: string } }
+        >,
+      ).map((order) => order.sender.address),
+    }));
+    expect(stored.prints).toHaveLength(1);
+    expect(stored.prints[0]).toMatch(/^[0-9a-f]{28}$/);
+    expect(stored.senders).toContain("");
+    expect(JSON.stringify(stored)).not.toMatch(/Repère|علامة|Pin placed/);
   });
 });

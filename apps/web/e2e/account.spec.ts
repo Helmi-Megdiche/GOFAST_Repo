@@ -86,7 +86,7 @@ test("sign-out clears the session and the order draft, and keeps the mock tables
 test("the nav has no dead link: only the entries whose page exists", async ({ page }) => {
   await signInAs(page, CUSTOMER);
   const nav = page.getByRole("navigation", { name: "Mon espace" });
-  await expect(nav.getByRole("link")).toHaveCount(4); // Accueil, Commandes (PR A), Factures, Réclamations (PR C)
+  await expect(nav.getByRole("link")).toHaveCount(6); // Accueil, Commandes (PR A), Factures, Réclamations (PR C), Adresses, Profil (PR B)
   await expect(nav.getByRole("link", { name: "Commandes" })).toHaveAttribute(
     "href",
     "/fr/compte/commandes",

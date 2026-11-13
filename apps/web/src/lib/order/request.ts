@@ -28,6 +28,8 @@ export type OrderRequest = {
     phone: string;
     instructions: string;
     smsLanguage: Locale;
+    /** "Enregistrer ce destinataire": kept in the address book once the order is created (CMD-02). */
+    save: boolean;
   };
   parcel: {
     type: ParcelTypeCode;
@@ -91,6 +93,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
       phone: recipientPhone,
       instructions: recipient.instructions.trim(),
       smsLanguage: recipient.smsLanguage,
+      save: recipient.save,
     },
     parcel: {
       type: parcel.type,

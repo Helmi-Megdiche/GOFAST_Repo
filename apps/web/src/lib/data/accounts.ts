@@ -1,3 +1,4 @@
+import { defaultLocale, type Locale } from "@fastgo/i18n";
 import { maskPhone, normalizePhone } from "../phone";
 import {
   FIXTURE_ACCOUNTS,
@@ -8,20 +9,87 @@ import {
 import { readTable, writeRow } from "./mock-db";
 import { getSession, setSession, type Session } from "./session";
 
-/** Mock accounts table (R101: one phone and one e-mail each belong to one customer only). */
-export type Account = Omit<FixtureAccount, "id"> & { id: string; google: boolean };
+/** What the person chose to receive (C09). "Offres FastGo" is off until they turn it on. */
+export type NotificationPrefs = { sms: boolean; email: boolean; offers: boolean };
 
-const TABLE = "fg.mock.accounts";
+export const DEFAULT_NOTIFICATIONS: NotificationPrefs = { sms: true, email: true, offers: false };
+
+/**
+ * Mock accounts table (R101: one phone and one e-mail each belong to one customer only). The
+ * cahier's `accounts` has `locale` (R902), `status` and `closed_at` (R105). A closed account keeps
+ * its row and id, with the identity erased (name, phone, e-mail, Google link): every record that
+ * points at the id stays readable, and the phone and e-mail are free again.
+ */
+export type Account = Omit<FixtureAccount, "id" | "name" | "phone" | "email"> & {
+  id: string;
+  name: string | null;
+  phone: string | null;
+  email: string | null;
+  google: boolean;
+  /** R902: the language the person chose, applied at sign-in. */
+  locale: Locale;
+  status: "active" | "closed";
+  /** ISO UTC, set when the account is closed. */
+  closedAt: string | null;
+  notifications: NotificationPrefs;
+};
+
+export const ACCOUNTS_TABLE = "fg.mock.accounts";
+const TABLE = ACCOUNTS_TABLE;
+
+/** A row saved before a field existed reads with that field's default. */
+function withDefaults(row: Partial<Account> & { id: string }): Account {
+  return {
+    ...(row as Account),
+    google: row.google === true,
+    locale: row.locale ?? defaultLocale,
+    status: row.status === "closed" ? "closed" : "active",
+    closedAt: row.closedAt ?? null,
+    notifications: { ...DEFAULT_NOTIFICATIONS, ...row.notifications },
+  };
+}
+
+/** True when the session's account was closed (R105): its stale session writes nothing. */
+export function isClosedSession(session: { accountId: string } | null): boolean {
+  return session != null && findById(session.accountId)?.status === "closed";
+}
+
+/** R902: a language belongs to the person. A team member's is kept on the person, an individual's on the account. */
+export const MEMBER_LOCALES = "fg.mock.memberLocales";
+
+export function personLocale(session: {
+  accountId: string;
+  userId: string;
+  role: "admin" | "user" | null;
+}): Locale {
+  const account = findById(session.accountId);
+  if (session.role !== null) {
+    const own = readTable<Locale>(MEMBER_LOCALES)[session.userId];
+    if (own) return own;
+  }
+  return account?.locale ?? defaultLocale;
+}
+
+export function savePersonLocale(
+  session: { userId: string; role: "admin" | "user" | null },
+  account: Account,
+  locale: Locale,
+): void {
+  if (session.role !== null) writeRow(MEMBER_LOCALES, session.userId, locale);
+  else saveAccount({ ...account, locale });
+}
+
+export function saveAccount(account: Account): void {
+  writeRow(TABLE, account.id, account);
+}
 
 function allAccounts(): Account[] {
   // Rows written by the mock (new accounts, a phone added after Google) override fixtures by id.
   const saved = readTable<Account>(TABLE);
-  const fixtures = FIXTURE_ACCOUNTS.map(
-    (account) => saved[account.id] ?? { ...account, google: false },
-  );
-  const created = Object.values(saved).filter(
-    (row) => !FIXTURE_ACCOUNTS.some((a) => a.id === row.id),
-  );
+  const fixtures = FIXTURE_ACCOUNTS.map((account) => withDefaults(saved[account.id] ?? account));
+  const created = Object.values(saved)
+    .filter((row) => !FIXTURE_ACCOUNTS.some((a) => a.id === row.id))
+    .map(withDefaults);
   return [...fixtures, ...created];
 }
 
@@ -60,6 +128,8 @@ export function createAccount(input: {
   phone: string;
   email?: string | null;
   google?: boolean;
+  /** The language of the page the account is created from (R902). Default fr. */
+  locale?: Locale;
 }): CreateResult {
   const phone = normalizePhone(input.phone);
   if (!phone) return { status: "invalidPhone" };
@@ -76,6 +146,10 @@ export function createAccount(input: {
     contract: input.kind === "merchant" ? "pending" : null,
     phoneVerified: true,
     google: input.google === true,
+    locale: input.locale ?? defaultLocale,
+    status: "active",
+    closedAt: null,
+    notifications: { ...DEFAULT_NOTIFICATIONS },
   };
   writeRow(TABLE, account.id, account);
   return { status: "created", account };
@@ -110,6 +184,7 @@ export function attachPhone(accountId: string, phone: string): CreateResult {
   const account = findById(accountId);
   const normalized = normalizePhone(phone);
   if (!account || !normalized) return { status: "invalidPhone" };
+  if (account.status === "closed") return { status: "invalidPhone" };
   if (account.phone && account.phone !== normalized) return { status: "phoneMismatch" };
   const owner = findByPhone(normalized);
   if (owner && owner.id !== account.id) return { status: "phoneTaken" };
@@ -118,7 +193,11 @@ export function attachPhone(accountId: string, phone: string): CreateResult {
   return { status: "created", account: updated };
 }
 
-export function sessionFor(account: Account): Session {
+export function sessionFor(
+  account: Pick<Account, "id" | "kind" | "contract" | "phoneVerified" | "phone"> & {
+    google?: boolean;
+  },
+): Session {
   return {
     accountId: account.id,
     userId: account.id,
@@ -126,7 +205,7 @@ export function sessionFor(account: Account): Session {
     kind: account.kind,
     contract: account.contract,
     phoneVerified: account.phoneVerified,
-    maskedPhone: maskPhone(account.phone),
+    maskedPhone: account.phone ? maskPhone(account.phone) : "",
   };
 }
 

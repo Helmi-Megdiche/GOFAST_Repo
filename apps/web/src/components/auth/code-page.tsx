@@ -4,7 +4,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { Alert, Button } from "@fastgo/ui";
 import { Link, useRouter } from "@/i18n/navigation";
-import { attachPhone, createAccount, findByEmail, sessionFor } from "@/lib/data/accounts";
+import type { Locale } from "@fastgo/i18n";
+import { attachPhone, createAccount, findByEmail, findById, sessionFor } from "@/lib/data/accounts";
 import { clearPendingGoogle, markGoogleEmailVerified, pendingGoogle } from "@/lib/data/google";
 import { consumeVerification } from "@/lib/data/otp";
 import { getSession, setSession } from "@/lib/data/session";
@@ -55,7 +56,10 @@ export function CodePage({ next }: { next: string | null }) {
   };
   const finish = () => {
     endFlow();
-    router.push(destination());
+    // R902: the language saved on the account (a Google sign-in may join an older account).
+    const session = getSession();
+    const saved = session ? findById(session.accountId)?.locale : undefined;
+    router.push(destination(), saved ? { locale: saved } : undefined);
   };
 
   if (flow.kind === "googleEmail") {
@@ -92,7 +96,12 @@ export function CodePage({ next }: { next: string | null }) {
       // The SMS code proves the phone only. The typed e-mail is never attached here: it will be
       // attached after a code sent to it. Taken or not, the same message (no e-mail enumeration).
       const typedEmail = flow.account.email.trim() !== "";
-      const created = createAccount({ ...flow.account, phone, email: null });
+      const created = createAccount({
+        ...flow.account,
+        phone,
+        email: null,
+        locale: locale as Locale,
+      });
       if (created.status === "phoneTaken") return <AccountExists signInHref={signInHref} />;
       if (created.status !== "created") return;
       consumeVerification({ channel: "sms", value: phone }, "signUp");
@@ -121,6 +130,7 @@ export function CodePage({ next }: { next: string | null }) {
           phone,
           email: pending.email,
           google: true,
+          locale: locale as Locale,
         });
     if (result.status === "phoneTaken") return <AccountExists signInHref={signInHref} />;
     if (result.status === "phoneMismatch") {
@@ -162,7 +172,14 @@ function EmailLater({ onContinue }: { onContinue: () => void }) {
   return (
     <div className="flex flex-col gap-3">
       <Alert tone="info">{t("emailLater")}</Alert>
-      <Button onClick={onContinue}>{t("emailLaterContinue")}</Button>
+      <div className="flex flex-wrap gap-3">
+        <Button as={Link} href="/compte/email">
+          {t("emailLaterConfirm")}
+        </Button>
+        <Button variant="ghost" onClick={onContinue}>
+          {t("emailLaterContinue")}
+        </Button>
+      </div>
     </div>
   );
 }

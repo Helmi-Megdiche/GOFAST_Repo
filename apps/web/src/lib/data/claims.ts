@@ -2,6 +2,7 @@ import { attachmentError, type AttachmentError } from "../claims/attachments";
 import { now } from "../order/clock";
 import { CLAIM_REOPEN_WINDOW_MS } from "../order/constants";
 import { getAccountOrder, listAccountOrders, parcelsOf } from "./account-orders";
+import { isClosedSession } from "./accounts";
 import {
   CLAIM_CATEGORIES,
   TICKET_KEYS,
@@ -282,6 +283,7 @@ export async function createClaim(
 ): Promise<CreateClaimResult> {
   await mockDelay();
   if (consumeFailNext("createClaim")) throw new NetworkError();
+  if (isClosedSession(session)) return { status: "refused", error: "orderNotFound" };
   seedBillingFixtures();
   const fingerprint = print(input);
   const known = replayOf(`${session.accountId}:${idempotencyKey}`, fingerprint);
@@ -359,6 +361,7 @@ export async function postClaimMessage(
 ): Promise<PostMessageResult> {
   await mockDelay();
   if (consumeFailNext("postClaimMessage")) throw new NetworkError();
+  if (isClosedSession(session)) return { status: "notFound" };
   const ticket = ownTicket(session, ref);
   if (!ticket) return { status: "notFound" };
   const fingerprint = print({ ref, ...input });
@@ -400,6 +403,7 @@ export type ReopenResult =
 export async function reopenClaim(session: Session, ref: string): Promise<ReopenResult> {
   await mockDelay();
   if (consumeFailNext("reopenClaim")) throw new NetworkError();
+  if (isClosedSession(session)) return { status: "notFound" };
   const ticket = ownTicket(session, ref);
   if (!ticket) return { status: "notFound" };
   const state = claimStateOf(ticket, now());

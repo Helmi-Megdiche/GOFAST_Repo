@@ -74,6 +74,8 @@ describe("R602 an issued invoice never changes", () => {
         "RECEIPT_PDF_EXAMPLE_PATH",
         "getInvoice",
         "listInvoices",
+        // PR B: the back-office reader of T37 (a reader too: nothing writes an invoice).
+        "listInvoicesForAccountId",
       ].sort(),
     );
   });

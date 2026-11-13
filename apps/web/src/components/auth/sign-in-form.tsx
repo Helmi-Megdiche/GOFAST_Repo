@@ -44,7 +44,8 @@ export function SignInForm({ next }: { next: string | null }) {
         const result = await signIn(values.identifier, values.password);
         if (result.status === "ok") {
           signedIn = true;
-          router.push(afterSignInPath(next, result.session));
+          // R902: the page opens in the language saved on the account.
+          router.push(afterSignInPath(next, result.session), { locale: result.locale });
           return;
         }
         setFailures((count) => count + 1);
