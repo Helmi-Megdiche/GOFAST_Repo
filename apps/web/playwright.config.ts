@@ -9,7 +9,10 @@ export default defineConfig({
   outputDir: "./test-results/artifacts",
   fullyParallel: true,
   retries: 0,
-  reporter: [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
+  // In CI each shard writes a blob; the e2e-report job merges the three into one HTML report.
+  reporter: process.env.CI
+    ? [["list"], ["blob"]]
+    : [["list"], ["html", { open: "never", outputFolder: "playwright-report" }]],
   use: {
     baseURL: `http://localhost:${PORT}`,
     trace: "retain-on-failure",
