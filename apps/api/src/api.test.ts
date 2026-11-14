@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { Body, Controller, Get, HttpCode, Post } from "@nestjs/common";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
@@ -9,7 +10,7 @@ import { Operation } from "./http/operation.ts";
 import { type Actor, SessionResolver } from "./http/session.ts";
 import { bundledSpecPath } from "./http/spec.ts";
 
-const KEY = "2f3c1a52-8d0b-4c1e-9d6f-0a1b2c3d4e5f";
+const KEY = randomUUID();
 let handlerRuns = 0;
 let slow = false;
 
