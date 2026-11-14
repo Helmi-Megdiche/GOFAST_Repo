@@ -84,8 +84,7 @@ create policy accounts_select on core.accounts for select to fastgo_app
 create policy accounts_update on core.accounts for update to fastgo_app
   using (id = core.app_user_id() or core.actor_has('admin'))
   with check (id = core.app_user_id() or core.actor_has('admin'));
--- Staff do not edit a person's account here: only their own row (the admin policy above serves the
--- column grant of the same four columns).
+-- An admin may edit those four columns on any account; nobody else edits another person's row.
 -- No INSERT policy: an account is created by core.create_account() only (sign-up, PR 4a).
 
 create table core.companies (

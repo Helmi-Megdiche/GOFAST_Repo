@@ -107,6 +107,26 @@ describe("grant test: every table, as it is in the database", () => {
   });
 });
 
+describe("accounts: column rights of fastgo_app", () => {
+  it("cannot read a *_hash column, and can change only name, language and e-mail", async () => {
+    const app = open(db.url("fastgo_app"));
+    await db.superClient.query(
+      "insert into core.accounts (id, kind, role, full_name) values ($1, 'customer', 'individual', 'Test') on conflict do nothing",
+      [USER],
+    );
+    const me: Actor = { userId: USER, accountId: USER, role: "individual" };
+    await expect(
+      app.withActor(me, (tx) => tx.execute(sql`select password_hash from core.accounts`)),
+    ).rejects.toThrow(/permission denied/);
+    await expect(
+      app.withActor(me, (tx) => tx.execute(sql`update core.accounts set role = 'admin' where id = ${USER}`)),
+    ).rejects.toThrow(/permission denied/);
+    await app.withActor(me, (tx) => tx.execute(sql`update core.accounts set full_name = 'Nouveau' where id = ${USER}`));
+    const rows = await db.superClient.query("select full_name from core.accounts where id = $1", [USER]);
+    expect(rows.rows[0].full_name).toBe("Nouveau");
+  });
+});
+
 describe("audit_events is append-only", () => {
   const event = (actor: Actor) => (tx: Tx) =>
     tx.execute(
