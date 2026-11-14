@@ -1,5 +1,5 @@
 import type { Locale } from "@fastgo/i18n";
-import { normalizePhone } from "../phone";
+import { normalizePhone } from "@fastgo/domain";
 import { isClosedSession } from "./accounts";
 import { readTable, removeRow, writeRow } from "./mock-db";
 import type { Session } from "./session";

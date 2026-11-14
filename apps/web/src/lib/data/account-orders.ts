@@ -1,6 +1,4 @@
-import type { ProofLevel } from "../order/proof";
-import { exceedsWeightTolerance } from "../order/weight";
-import { normalizeTrackingCode } from "../tracking-code";
+import { type ProofLevel, exceedsWeightTolerance, normalizeTrackingCode } from "@fastgo/domain";
 import { findById } from "./accounts";
 import { amountDueMillimes } from "./amount-due";
 import { cancelOption, type CancelOption } from "./cancel-option";

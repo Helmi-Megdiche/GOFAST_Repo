@@ -8,7 +8,7 @@ import { Link } from "@/i18n/navigation";
 import { attachEmail, getProfile } from "@/lib/data/profile";
 import type { Session } from "@/lib/data/session";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
-import { maskEmail } from "@/lib/phone";
+import { maskEmail } from "@fastgo/domain";
 import { useLoader } from "./use-loader";
 
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

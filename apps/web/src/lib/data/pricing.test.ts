@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { suggestAddresses } from "./addresses";
 import { getQuote } from "./pricing";
-import { checkPoint, checkZone, type ZoneResult } from "./zones";
+import { checkPoint, checkZone } from "./zones";
+import { type ZoneResult } from "@fastgo/domain";
 
 const T0 = Date.parse("2026-11-04T10:00:00Z");
 const input = {

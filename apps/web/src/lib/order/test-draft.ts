@@ -2,10 +2,9 @@
  * Test helper (unit tests only): a draft that is complete up to W15, priced at T0, with fake data.
  * Not used by the app.
  */
-import type { ZoneResult } from "../data/zones";
+import { type ZoneResult } from "@fastgo/domain";
+import { exampleMakeQuote, exampleAvailableSlots } from "@/lib/order/example-data";
 import { emptyDraft, type OrderDraft } from "./draft";
-import { makeQuote } from "./pricing";
-import { availableSlots } from "./slots";
 import { priceInputOf } from "./steps";
 
 export const TEST_PHONE = "+216 20 000 000";
@@ -29,7 +28,7 @@ export function readyDraft(at: number): OrderDraft {
       },
       name: "Yasmine K.",
       phone: TEST_PHONE,
-      slot: availableSlots(at)[0]!,
+      slot: exampleAvailableSlots(at)[0]!,
     },
     recipient: {
       ...draft.recipient,
@@ -55,6 +54,6 @@ export function readyDraft(at: number): OrderDraft {
     payment: "cashPickup",
     termsAccepted: true,
   };
-  const quote = makeQuote(priceInputOf(ready)!, at);
+  const quote = exampleMakeQuote(priceInputOf(ready)!, at);
   return { ...ready, quote, acceptedQuoteId: quote.id };
 }

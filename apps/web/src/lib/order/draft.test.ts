@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useBrokenStorage, useMemoryStorage } from "../storage";
 import { setClock } from "./clock";
-import { DRAFT_RETENTION_MS } from "./constants";
+import { DRAFT_RETENTION_MS } from "@fastgo/domain";
 import {
   clearDraft,
   DRAFT_KEY,

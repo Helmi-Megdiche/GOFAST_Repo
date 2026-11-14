@@ -1,11 +1,15 @@
 import type { Locale } from "@fastgo/i18n";
-import type { ServiceCode, ParcelTypeCode } from "../data/services";
-import type { ZoneResult } from "../data/zones";
-import { normalizePhone } from "../phone";
-import type { OrderDraft, PaymentCode } from "./draft";
-import type { Quote } from "./pricing";
+import {
+  type ServiceCode,
+  type ParcelTypeCode,
+  type ZoneResult,
+  normalizePhone,
+  type PaymentCode,
+  type Quote,
+  type Slot,
+} from "@fastgo/domain";
+import type { OrderDraft } from "./draft";
 import { parseCount, parseWeightKg } from "./schemas";
-import type { Slot } from "./slots";
 import { declaredValueValid } from "./steps";
 
 /** What "Valider la commande" sends (mock of POST /v1/orders). Built from the draft only. */

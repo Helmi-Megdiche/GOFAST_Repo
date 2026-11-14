@@ -9,7 +9,7 @@ import { useRouter } from "@/i18n/navigation";
 import { trackingFormSchema, type TrackingFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { FOUND_TRACKING_CODE } from "@/lib/data/fixtures/tracking";
-import { normalizeTrackingCode } from "@/lib/tracking-code";
+import { normalizeTrackingCode } from "@fastgo/domain";
 
 /** "Déjà un numéro de suivi ?" on the home page: checks the shape, then opens /suivi?n=CODE. */
 export function HomeTrackingForm() {

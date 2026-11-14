@@ -1,9 +1,15 @@
 import { isTargetVerified } from "../data/otp";
-import { isSlotInFuture } from "./slots";
-import { addressPriceKey, isQuoteValid, priceKey, type PriceInput, type Quote } from "./pricing";
-import { normalizePhone } from "../phone";
-import type { ServiceCode } from "../data/services";
-import type { ZoneResult } from "../data/zones";
+import {
+  isSlotInFuture,
+  addressPriceKey,
+  isQuoteValid,
+  priceKey,
+  type PriceInput,
+  type Quote,
+  normalizePhone,
+  type ServiceCode,
+  type ZoneResult,
+} from "@fastgo/domain";
 import type { AddressDraft, OrderDraft } from "./draft";
 import { parseCount, parseWeightKg, personSchema, requiredText } from "./schemas";
 

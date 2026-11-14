@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
-import { RECIPIENT_LINK_AFTER_DELIVERY_MS } from "../order/constants";
+import { RECIPIENT_LINK_AFTER_DELIVERY_MS } from "@fastgo/domain";
 import { readTable, writeRow } from "./mock-db";
 import {
   ACCOUNT_ORDERS,

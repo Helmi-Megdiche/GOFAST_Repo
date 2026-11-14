@@ -16,7 +16,7 @@ import {
 } from "@/lib/data/profile";
 import type { Session } from "@/lib/data/session";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
-import { formatPhone } from "@/lib/phone";
+import { formatPhone } from "@fastgo/domain";
 import { CloseAccountDialog } from "./close-account-dialog";
 import { useLoader } from "./use-loader";
 

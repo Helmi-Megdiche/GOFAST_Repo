@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useFormatter, useTranslations } from "next-intl";
 import { Alert, Button, Card, Field, Input } from "@fastgo/ui";
 import { Link } from "@/i18n/navigation";
-import { checkZone, type ZoneResult } from "@/lib/data/zones";
+import { checkZone } from "@/lib/data/zones";
+import { type ZoneResult } from "@fastgo/domain";
 import { zoneFormSchema, type ZoneFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 

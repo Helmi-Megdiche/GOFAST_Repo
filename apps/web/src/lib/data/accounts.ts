@@ -1,5 +1,5 @@
 import { defaultLocale, type Locale } from "@fastgo/i18n";
-import { maskPhone, normalizePhone } from "../phone";
+import { maskPhone, normalizePhone } from "@fastgo/domain";
 import {
   FIXTURE_ACCOUNTS,
   FIXTURE_TEAM_MEMBERS,

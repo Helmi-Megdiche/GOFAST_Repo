@@ -1,8 +1,11 @@
 import type { Locale } from "@fastgo/i18n";
-import type { PaymentCode } from "../order/draft";
-import type { PriceLine } from "../order/pricing";
-import type { ProofLevel } from "../order/proof";
-import type { ParcelTypeCode, ServiceCode } from "./services";
+import {
+  type PaymentCode,
+  type PriceLine,
+  type ProofLevel,
+  type ParcelTypeCode,
+  type ServiceCode,
+} from "@fastgo/domain";
 import type { EndReason, MissionStatus, OrderStatus, ParcelStatus } from "./states";
 
 /** Mock tables (ADR-1). Read and written only from lib/data, through readTable / writeRow. */

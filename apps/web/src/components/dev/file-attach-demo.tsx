@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { FileAttach } from "@fastgo/ui";
-import { MAX_ATTACHMENT_BYTES } from "@/lib/limits";
+import { MAX_ATTACHMENT_BYTES } from "@fastgo/domain";
 
 /** /dev/ui only: the attachment control with the 5 MB rule. */
 export function FileAttachDemo() {

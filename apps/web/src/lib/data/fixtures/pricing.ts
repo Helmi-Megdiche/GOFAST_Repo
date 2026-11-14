@@ -1,4 +1,4 @@
-import type { ParcelTypeCode, ServiceCode } from "../services";
+import type { ParcelTypeCode, PriceTable, ServiceCode } from "@fastgo/domain";
 
 /**
  * EXAMPLE amounts in millimes ("Montants d'exemple", decision 5). Not GOFAST prices: the real price
@@ -47,3 +47,14 @@ export const EXAMPLE_DISCOUNT = 0;
 
 /** Fiscal stamp: example amount 0 until GOFAST gives the rule. */
 export const EXAMPLE_STAMP = 0;
+
+/** The example amounts above, in the shape the pricing rules of @fastgo/domain take. */
+export const EXAMPLE_PRICE_TABLE: PriceTable = {
+  rows: EXAMPLE_PRICE_ROWS,
+  distance: EXAMPLE_DISTANCE,
+  weight: EXAMPLE_WEIGHT,
+  optionsFragile: EXAMPLE_OPTIONS_FRAGILE,
+  surcharge: EXAMPLE_SURCHARGE,
+  discount: EXAMPLE_DISCOUNT,
+  stamp: EXAMPLE_STAMP,
+};

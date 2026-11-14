@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
   // Workspace packages ship TypeScript source: Next compiles them.
-  transpilePackages: ["@fastgo/ui", "@fastgo/i18n"],
+  transpilePackages: ["@fastgo/ui", "@fastgo/i18n", "@fastgo/domain"],
   turbopack: { root: path.resolve(process.cwd(), "../..") },
 };
 

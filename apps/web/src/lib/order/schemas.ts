@@ -1,10 +1,7 @@
 import { z } from "zod";
 import type { Locale } from "@fastgo/i18n";
-import { toLatinDigits } from "../digits";
-import { normalizePhone } from "../phone";
+import { toLatinDigits, normalizePhone, PASSWORD_MIN_LENGTH, parseMillimes } from "@fastgo/domain";
 import type { AddressDraft } from "./draft";
-import { PASSWORD_MIN_LENGTH } from "./constants";
-import { parseMillimes } from "./money-input";
 
 /** Error codes of the order and sign-in forms, looked up in forms.errors.<code> (fr, ar, en). */
 export type OrderErrorCode =

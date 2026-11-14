@@ -5,7 +5,8 @@ import { useTranslations } from "next-intl";
 import { Card, KeyValue } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { EXAMPLE_PRICE_ROWS } from "@/lib/data/fixtures/pricing";
-import { makeQuote, PRICE_LINES, type Quote } from "@/lib/order/pricing";
+import { PRICE_LINES, type Quote } from "@fastgo/domain";
+import { exampleMakeQuote } from "@/lib/order/example-data";
 
 /** Lowest example total, shown as "Dès …" once the delivery address is known (W12, W13). */
 function lowestExample(zone: string): number {
@@ -14,7 +15,7 @@ function lowestExample(zone: string): number {
     for (const parcelType of Object.keys(
       EXAMPLE_PRICE_ROWS[service],
     ) as (keyof (typeof EXAMPLE_PRICE_ROWS)["standard"])[]) {
-      const total = makeQuote(
+      const total = exampleMakeQuote(
         { service, parcelType, weightKg: 1, fragile: false, zone, from: "", to: "" },
         0,
         "preview",

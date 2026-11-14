@@ -1,4 +1,4 @@
-import type { PaymentCode } from "../order/draft";
+import { type PaymentCode, type ServiceCode } from "@fastgo/domain";
 import { amountDueMillimes } from "./amount-due";
 import { mockDelay } from "./delay";
 import { seedBillingFixtures } from "./fixtures/billing";
@@ -15,7 +15,6 @@ import {
 import { consumeFailNext, readTable } from "./mock-db";
 import { NetworkError } from "./orders";
 import type { Session } from "./session";
-import type { ServiceCode } from "./services";
 
 /**
  * Readers of the client's invoices (ESP-05, C04 and C05). There is deliberately no function here

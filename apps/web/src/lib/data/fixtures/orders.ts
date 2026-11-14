@@ -1,4 +1,4 @@
-import { proofLevelFor } from "../../order/proof";
+import { proofLevelFor, type ParcelTypeCode, type ServiceCode } from "@fastgo/domain";
 import { readJson, writeJson } from "../../storage";
 import { readTable, writeRow } from "../mock-db";
 import {
@@ -12,7 +12,6 @@ import {
   type StatusEvent,
 } from "../order-model";
 import { mintRecipientLink } from "../recipient-links";
-import type { ParcelTypeCode, ServiceCode } from "../services";
 import {
   activePickupMission,
   createMission,

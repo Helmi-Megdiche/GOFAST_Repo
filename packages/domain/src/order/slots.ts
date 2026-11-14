@@ -1,5 +1,7 @@
-import { DISPLAY_TIME_ZONE } from "@fastgo/i18n";
-import { PICKUP_WINDOWS } from "../data/fixtures/slots";
+import { DISPLAY_TIME_ZONE } from "@fastgo/i18n/format";
+
+/** A pickup window in Tunis local time, `dayOffset` days after today. The caller passes the table. */
+export type PickupWindow = { dayOffset: 0 | 1; start: string; end: string };
 
 /** A pickup window, stored as UTC instants (CLAUDE.md: store UTC, show Africa/Tunis). */
 export type Slot = { id: string; startUtc: string; endUtc: string };
@@ -41,16 +43,18 @@ export function tunisTimeToUtc(at: number, dayOffset: number, time: string): num
 }
 
 /** Pickup slots that start after `at`. A past slot is never listed. */
-export function availableSlots(at: number): Slot[] {
-  return PICKUP_WINDOWS.map((window) => {
-    const start = tunisTimeToUtc(at, window.dayOffset, window.start);
-    const end = tunisTimeToUtc(at, window.dayOffset, window.end);
-    return {
-      id: new Date(start).toISOString(),
-      startUtc: new Date(start).toISOString(),
-      endUtc: new Date(end).toISOString(),
-    };
-  }).filter((slot) => Date.parse(slot.startUtc) > at);
+export function availableSlots(at: number, windows: readonly PickupWindow[]): Slot[] {
+  return windows
+    .map((window) => {
+      const start = tunisTimeToUtc(at, window.dayOffset, window.start);
+      const end = tunisTimeToUtc(at, window.dayOffset, window.end);
+      return {
+        id: new Date(start).toISOString(),
+        startUtc: new Date(start).toISOString(),
+        endUtc: new Date(end).toISOString(),
+      };
+    })
+    .filter((slot) => Date.parse(slot.startUtc) > at);
 }
 
 /** A slot is usable while it has not started. */

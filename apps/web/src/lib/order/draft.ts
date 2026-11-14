@@ -1,12 +1,17 @@
 import { z } from "zod";
-import type { ParcelTypeCode, ServiceCode } from "../data/services";
-import type { ZoneResult } from "../data/zones";
-import { normalizePhone } from "../phone";
+import {
+  type ParcelTypeCode,
+  type ServiceCode,
+  type ZoneResult,
+  normalizePhone,
+  DRAFT_RETENTION_MS,
+  PRICE_LINES,
+  type Quote,
+  type Slot,
+  type PaymentCode,
+} from "@fastgo/domain";
 import { readJson, removeKey, writeJson } from "../storage";
 import { now } from "./clock";
-import { DRAFT_RETENTION_MS } from "./constants";
-import { PRICE_LINES, type Quote } from "./pricing";
-import type { Slot } from "./slots";
 
 /**
  * The order draft (CMD-07, decision 3): the only module that touches it, one localStorage key.
@@ -23,8 +28,6 @@ export type AddressDraft = {
   zone: ZoneResult | null;
   landmark: string;
 };
-
-export type PaymentCode = "cashPickup" | "cashDelivery" | "account";
 
 export type OrderDraft = {
   version: typeof VERSION;

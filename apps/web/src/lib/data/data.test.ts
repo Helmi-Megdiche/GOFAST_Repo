@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { MAX_ATTACHMENT_BYTES } from "../limits";
+import { MAX_ATTACHMENT_BYTES } from "@fastgo/domain";
 import { setClock } from "../order/clock";
 import { useMemoryStorage } from "../storage";
 import { requestCaptchaToken } from "./captcha";

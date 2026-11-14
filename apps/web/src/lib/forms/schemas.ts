@@ -1,8 +1,6 @@
 import { z } from "zod";
-import { fileError } from "../attachments";
+import { fileError, MAX_ATTACHMENT_BYTES, isValidTrackingCode } from "@fastgo/domain";
 import { DRIVER_DOCUMENTS, DRIVER_VEHICLES } from "../data/driver";
-import { MAX_ATTACHMENT_BYTES } from "../limits";
-import { isValidTrackingCode } from "../tracking-code";
 
 /**
  * Validation rules for the public forms. Messages are error codes, not text: each form looks the
@@ -76,7 +74,7 @@ export const contactFormSchema = z.object({
 });
 export type ContactFormValues = z.infer<typeof contactFormSchema>;
 
-/** One required identity document: the shared file rule (images and PDF, 5 MB; lib/attachments.ts). */
+/** One required identity document: the shared file rule (images and PDF, 5 MB; packages/domain/src/attachments.ts). */
 export const requiredDocumentField = z.custom<File | null>().superRefine((file, ctx) => {
   const fail = (message: FormErrorCode) => ctx.addIssue({ code: "custom", message });
   if (file == null) return fail("documentRequired");

@@ -5,7 +5,7 @@ import { FAIL_NEXT_ORDER_REQUEST_KEY, FAIL_NEXT_ORDER_RESPONSE_KEY } from "../da
 import { sendCode, verifyCode } from "../data/otp";
 import { useMemoryStorage, writeJson } from "../storage";
 import { setClock } from "./clock";
-import { CODE_VERIFIED_WINDOW_MS } from "./constants";
+import { CODE_VERIFIED_WINDOW_MS } from "@fastgo/domain";
 import { loadDraft, saveDraft, type OrderDraft } from "./draft";
 import { resolveLostSubmit, submitOrder } from "./submit";
 import { readyDraft, TEST_PHONE } from "./test-draft";

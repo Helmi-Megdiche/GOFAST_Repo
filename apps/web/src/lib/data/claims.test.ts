@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { attachmentError } from "../claims/attachments";
-import { setClock } from "../order/clock";
 import {
+  attachmentError,
   CLAIM_ATTACHMENT_MAX_BYTES,
   CLAIM_ATTACHMENT_MAX_FILES,
   CLAIM_REOPEN_WINDOW_MS,
-} from "../order/constants";
+} from "@fastgo/domain";
+import { setClock } from "../order/clock";
 import { useMemoryStorage, writeJson } from "../storage";
 import { parcelsOf } from "./account-orders";
 import { TICKET_MESSAGES, TICKETS, type Ticket, type TicketMessage } from "./claim-model";

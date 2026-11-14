@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
-import { CODE_VERIFIED_WINDOW_MS } from "../order/constants";
+import { CODE_VERIFIED_WINDOW_MS } from "@fastgo/domain";
 import { useMemoryStorage } from "../storage";
 import { createAccount, findByEmail, findById, sessionFor } from "./accounts";
 import { listAccountOrders } from "./account-orders";

@@ -1,5 +1,6 @@
 import type { SavedRecipient } from "../data/address-book";
-import { checkZone, type ZoneResult } from "../data/zones";
+import { checkZone } from "../data/zones";
+import { type ZoneResult } from "@fastgo/domain";
 import { updateDraft, type AddressDraft } from "./draft";
 
 /**

@@ -1,15 +1,53 @@
 import { describe, expect, it } from "vitest";
-import type { ParcelTypeCode, ServiceCode } from "../data/services";
+import type { ParcelTypeCode, ServiceCode } from "../services";
 import { QUOTE_VALIDITY_MS } from "./constants";
 import {
   isQuoteValid,
-  makeQuote,
+  makeQuote as makeQuoteWith,
   msLeft,
   PRICE_LINES,
   priceKey,
-  priceLines,
+  priceLines as priceLinesWith,
   sumLines,
+  type PriceInput,
+  type PriceTable,
 } from "./pricing";
+
+// The example amounts of the mockup (W14, W15), copied here: the rules take the table as an
+// argument, so these tests do not depend on the web app's fixtures.
+const TABLE: PriceTable = {
+  rows: {
+    express: {
+      document: { base: 9_000, vat: 2_375 },
+      small: { base: 10_500, vat: 2_660 },
+      medium: { base: 12_500, vat: 3_040 },
+      large: { base: 14_500, vat: 3_420 },
+    },
+    standard: {
+      document: { base: 4_500, vat: 1_520 },
+      small: { base: 6_000, vat: 1_805 },
+      medium: { base: 8_000, vat: 2_185 },
+      large: { base: 10_000, vat: 2_565 },
+    },
+    scheduled: {
+      document: { base: 5_500, vat: 1_710 },
+      small: { base: 7_000, vat: 1_995 },
+      medium: { base: 9_000, vat: 2_375 },
+      large: { base: 11_000, vat: 2_755 },
+    },
+  },
+  distance: 2_500,
+  weight: { includedKg: 2, perKg: 500 },
+  optionsFragile: 0,
+  surcharge: { code: "rain", amount: 1_000, ceiling: null },
+  discount: 0,
+  stamp: 0,
+};
+
+let counter = 0;
+const makeQuote = (input: PriceInput, at: number) =>
+  makeQuoteWith(input, at, TABLE, `quote-${++counter}`);
+const priceLines = (input: PriceInput) => priceLinesWith(input, TABLE);
 
 const SERVICES: ServiceCode[] = ["express", "standard", "scheduled"];
 const SIZES: ParcelTypeCode[] = ["document", "small", "medium", "large"];

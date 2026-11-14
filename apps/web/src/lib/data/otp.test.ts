@@ -7,7 +7,7 @@ import {
   CODE_MAX_SENDS,
   CODE_VALIDITY_MS,
   CODE_VERIFIED_WINDOW_MS,
-} from "../order/constants";
+} from "@fastgo/domain";
 import { useMemoryStorage } from "../storage";
 import { FIXTURE_ACCOUNTS, FIXTURE_CODES } from "./fixtures/accounts";
 import { consumeVerification, isTargetVerified, mockCodeFor, sendCode, verifyCode } from "./otp";

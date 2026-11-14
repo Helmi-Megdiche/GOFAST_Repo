@@ -24,7 +24,7 @@ import { FINAL_ORDER_STATES, type OrderStatus } from "@/lib/data/states";
 import { lookupTracking, type PublicTracking, type TrackingResult } from "@/lib/data/tracking";
 import { trackingFormSchema, type TrackingFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
-import { normalizeTrackingCode } from "@/lib/tracking-code";
+import { normalizeTrackingCode } from "@fastgo/domain";
 
 const OUTCOMES: readonly OrderStatus[] = ["delivered", "partially_delivered", "returned", "lost"];
 

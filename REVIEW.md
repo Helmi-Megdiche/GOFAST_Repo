@@ -96,7 +96,7 @@ When two screens show the same total (an amount due, a balance, a count), both c
 Source: PR C round 1, C01 "À régler" read the return balance only, while C04 summed the unpaid invoices: 0 on C01, 29 DT on C04 for the same account.
 
 **RV-07. A value not in the cahier must be easy to find.**
-It goes in `lib/order/constants.ts` with a comment giving its source or `unsourced`, in section 9 of the plan and in the questions for FastGo. Search the diff for numbers written directly in the code.
+It goes in `packages/domain/src/order/constants.ts` with a comment giving its source or `unsourced`, in section 9 of the plan and in the questions for FastGo. Search the diff for numbers written directly in the code.
 Source: PR 0, the handover code length of 4 digits was hard-coded in `orders.ts`. It comes from the D1 mockup only. PR #73 round 1: a limit repeated as a literal in new catalog text.
 
 ### Tests
