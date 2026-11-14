@@ -1,0 +1,61 @@
+IdempotencyKey:
+  name: Idempotency-Key
+  in: header
+  required: true
+  description: >-
+    A UUID chosen by the client for one attempt. Kept 24 h with a fingerprint of the request. Same
+    key and same content returns the first answer and does nothing again (R202). Same key and other
+    content gives 409 KEY_REUSED. A second call that arrives while the first is running waits for it
+    and gets the same answer.
+  schema:
+    type: string
+    format: uuid
+Cursor:
+  name: cursor
+  in: query
+  description: The `next_cursor` of the previous page.
+  schema:
+    type: string
+Limit:
+  name: limit
+  in: query
+  description: Page size. Default 20, maximum 100 (provisional, from the settings).
+  schema:
+    type: integer
+    minimum: 1
+    maximum: 100
+    default: 20
+OrderId:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+QuoteId:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+AddressId:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+RecipientId:
+  name: id
+  in: path
+  required: true
+  schema:
+    type: string
+    format: uuid
+TrackingNumberPath:
+  name: number
+  in: path
+  required: true
+  schema:
+    $ref: "schemas/common.yaml#/TrackingNumber"

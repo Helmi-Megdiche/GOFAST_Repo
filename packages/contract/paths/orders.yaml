@@ -1,0 +1,76 @@
+post:
+  operationId: createOrder
+  summary: Place an order
+  description: >-
+    Idempotent (R202). The server refuses a quote that expired (410 QUOTE_EXPIRED), a total that is
+    not the quote's (RV-05), a phone that is not verified, a payment on account without a validated
+    contract (R104) and more parcels than the settings allow. Writes the order, its parcels and the
+    tracking SMS in the outbox in one transaction. The cahier's role list for the route family
+    also names staff; creating an order on behalf of a customer is not in this version.
+  tags: [orders]
+  x-roles: [individual, merchant]
+  x-replay: key
+  x-cahier: cahier
+  parameters:
+    - $ref: "../parameters.yaml#/IdempotencyKey"
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/order.yaml#/OrderCreate" }
+  responses:
+    "201":
+      description: The order exists. A replay with the same key and content answers 201 with the same body.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/order.yaml#/Order" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
+    "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
+    "409": { $ref: "../responses/errors.yaml#/KeyReused" }
+    "410": { $ref: "../responses/errors.yaml#/QuoteExpired" }
+    "422": { $ref: "../responses/errors.yaml#/RuleRefused" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }
+get:
+  operationId: listOrders
+  summary: List orders
+  description: >-
+    A customer or merchant sees their own account's orders. Staff see all of them (Agent,
+    Opérations, Admin; read only for Logistique and Service client). Newest first, cursor pagination.
+  tags: [orders]
+  x-roles: [individual, merchant, agent, operations, admin, logistics, customer_service]
+  x-replay: none
+  x-cahier: cahier
+  parameters:
+    - name: status
+      in: query
+      description: Repeatable. Keeps the orders in any of these states.
+      style: form
+      explode: true
+      schema:
+        type: array
+        items: { $ref: "../schemas/common.yaml#/OrderStatus" }
+    - name: from
+      in: query
+      description: First creation date to keep, a UTC date.
+      schema: { type: string, format: date }
+    - name: to
+      in: query
+      description: Last creation date to keep, a UTC date.
+      schema: { type: string, format: date }
+    - name: tracking
+      in: query
+      description: Exact tracking number.
+      schema: { $ref: "../schemas/common.yaml#/TrackingNumber" }
+    - $ref: "../parameters.yaml#/Cursor"
+    - $ref: "../parameters.yaml#/Limit"
+  responses:
+    "200":
+      description: One page.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/order.yaml#/OrderList" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
+    "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

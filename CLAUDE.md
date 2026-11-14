@@ -12,6 +12,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - UI reference: `docs/ui/` (152 screens). Read `docs/ui/README.md` before any UI work.
 - Test matrix: `docs/spec/recette.md` (T01–T61, DR01–DR36, EX01–EX17, CC1–CC4, with level, priority, gate and coverage). When a PR covers a row, update its status and evidence, and put the scenario ID in the test name.
 - Project status: `docs/status.md` (done, blocked, next actions). Update it when a PR merges or a blocker clears.
+- API reference: `docs/spec/technique-api.md` (the cahier's "Technique et sécurité" extract: routes and roles, idempotency, error format). The contract is `packages/contract/openapi.yaml`.
 - Servers: `infra/servers/` (setup script and host checklist). Infrastructure changes go there.
 - Lots: L1 = launch (end of week 8), L2 = after launch, L3 = later. Do not build L2 or L3 items unless the ticket says so.
 
@@ -21,12 +22,13 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - `apps/web`: Next.js (App Router), React, Tailwind. Public site, order flow, auth, client space, merchant space, recipient link.
 - `apps/backoffice`: Next.js. Separate app because it is deployed behind a VPN with 2FA.
 - `apps/driver`: React in Capacitor (Android) + PWA (iPhone).
-- `apps/api`: NestJS modular monolith, REST + WebSocket, OpenAPI, routes under `/v1`. Three processes from one codebase: api, ws, worker.
+- `apps/api`: NestJS modular monolith, REST + WebSocket, routes under `/v1`. Three processes from one codebase: api, ws, worker. The API is built to match `packages/contract` (below).
+- `packages/contract`: `openapi.yaml`, written by hand, is the API contract. **OpenAPI file first**: the web client types are generated from it (`openapi-typescript`), the API is tested against it (Schemathesis), and the spec is never generated from NestJS decorators. Source only, ESM, no `dist`; `apps/api` bundles workspace sources in its own build. A route that is not in the cahier's table carries `x-cahier: addition`.
 - `packages/ui`: design tokens (CSS variables plus a Tailwind v4 theme file; v4 has no JS presets), shared components, icons.
 - `packages/i18n`: message catalogs fr / ar / en and helpers.
 - `packages/domain` (`@fastgo/domain`): the business rules as pure functions and types (states, prices, phone, tracking code). No React, Next.js, DOM, storage, Node-only module or catalog, enforced by lint and by a tsconfig without DOM. ESM, source only: `apps/web` transpiles it and `apps/api` bundles it. Rules take amounts, tables and time (`at`) as arguments. Storage, fixtures and mocks stay in the apps. `pnpm test` in this package also runs the suite with the date moved 40 days ahead (RV-08), so CI covers it.
 - `packages/config`: shared eslint, tsconfig, prettier.
-- Data: PostgreSQL + PostGIS, row-level security, separate DB users, PgBouncer, Redis (sessions, queues), S3-compatible storage.
+- Data: PostgreSQL + PostGIS in two schemas (`core`, `gestion`), row-level security, separate DB users, PgBouncer, Redis (sessions, queues), S3-compatible storage. ORM: Drizzle with SQL migrations (RLS and PostGIS in plain SQL). Drizzle replaces the Prisma named in the cahier's tools table (Helmi, 14 Nov 2026).
 - No microservices, no RabbitMQ, no Kubernetes.
 
 ## Rules that apply to every change
@@ -50,7 +52,8 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - Before opening a PR, run `pnpm lint && pnpm typecheck && pnpm test` and the Playwright screenshot check for touched pages. Fix failures, do not skip them.
 - CI (`.github/workflows/ci.yml`) runs on every PR and every push to `main`: lint, typecheck, unit tests, build, Playwright e2e with axe-core, and a Gitleaks secret scan. The e2e runs as three shards on three machines; the check named "E2E (Playwright, axe-core)" sums them up. A PR that changes only `docs/**`, Markdown files or `infra/**` skips the shards, and that check is green. Never merge a red PR. If a check fails, open the `playwright-report` artifact of the run (one HTML report merged from the three shards; traces of failures are in `playwright-failures-<n>`), fix the cause, and push again. Do not skip, weaken or delete a check to make it pass.
 - Every PR is reviewed by another engineer, a human. Claude can draft the PR description; the author reads the full diff before asking for review.
-- Do not edit a package owned by another engineer without telling them. Owners: `apps/web`, `apps/driver`, e2e and tests, infrastructure: Helmi (@Helmi-Megdiche). `apps/api`, `apps/backoffice`, finance modules and API tests (rights matrix DR/EX, load, TTN outage): Ala (@AlaaSalem12). `packages/ui`, `packages/i18n` and `packages/domain` are shared: changes there need one approval from the other owner.
+- Do not edit a package owned by another engineer without telling them. Owners: `apps/web`, `apps/driver`, e2e and tests, infrastructure: Helmi (@Helmi-Megdiche). `apps/api` (built by Helmi until 16 Nov 2026), `apps/backoffice`, finance modules and API tests (rights matrix DR/EX, load, TTN outage): Ala (@AlaaSalem12). `packages/ui`, `packages/i18n`, `packages/domain` and `packages/contract` are shared: changes there need one approval from the other owner.
+- API work built while Ala is away (until 16 Nov 2026) follows the review flow: one branch per PR (`api/GH-<issue>-name`), everything green locally, push the branch **without opening a PR**, post **Report N** on the issue (head SHA, what changed, local test counts, open questions, under 250 words), then stop. The supervisor reviews on the issue, up to 3 rounds. The PR opens only after **Supervisor: final** on the code; after that, push to it only to fix a red CI check.
 - If the spec and the mockup disagree, the spec wins. Note the gap in the PR.
 - If Claude is unsure about a business rule, it stops and asks. It does not invent prices, fees, thresholds or legal text. Placeholders stay visible as `[PRIX]`, `[VILLE]`, `[TÉLÉPHONE]`.
 - Read `REVIEW.md` before every push. Reviewer findings are binding; disagree with evidence and wait.
@@ -69,9 +72,10 @@ If `pnpm` fails with `Cannot find matching keyid`, the corepack bundled with you
 | `pnpm build` | Production build of every app |
 | `pnpm lint` | ESLint. Also fails on physical CSS classes (`ml-*`, `text-left`...) and on hex colors outside `packages/ui` |
 | `pnpm typecheck` | `tsc` in strict mode, every workspace |
-| `pnpm test` | Unit tests (vitest): money and date formatting (French `14 h 20`), catalog parity, placeholders and the 15-minute guarantee in the catalogs, `AR-REVIEW.md` in sync, and in `apps/web` the mock data layer, form schemas, tracking-code validator and `?type=` parsing |
+| `pnpm test` | Unit tests (vitest): the API contract (`packages/contract`: bundles the spec, checks roles, replay, error shape, money and snake_case against the cahier extract, and that the generated types are up to date), money and date formatting (French `14 h 20`), catalog parity, placeholders and the 15-minute guarantee in the catalogs, `AR-REVIEW.md` in sync, and in `apps/web` the mock data layer, form schemas, tracking-code validator and `?type=` parsing |
 | `pnpm test:e2e` | Playwright: builds `apps/web`, then routing tests, `/dev/ui`, and every public page at 1440 and 360 px in fr and ar with axe-core and no horizontal scroll. Also: tracking, zone check and contact flows, 5 MB attachment edge, URL as the source of truth on `/suivi`, pages with JavaScript off, focus after submit, header at 900 to 1440 px in fr, ar and en, metadata and hreflang. Screenshots go to `apps/web/test-results/shots` (git-ignored) |
 | `pnpm format` | Prettier (never touches `docs/ui`) |
+| `pnpm --filter @fastgo/contract generate` | Regenerate `packages/contract/src/generated/schema.d.ts` after changing `openapi.yaml` (the test fails while it is stale) |
 | `pnpm --filter @fastgo/i18n ar-review` | Regenerate `packages/i18n/AR-REVIEW.md` after adding Arabic keys |
 
 First time only: `pnpm --filter @fastgo/web exec playwright install chromium`.

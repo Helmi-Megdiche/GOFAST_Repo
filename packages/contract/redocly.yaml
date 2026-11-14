@@ -1,0 +1,15 @@
+extends:
+  - recommended
+rules:
+  operation-operationId: error
+  operation-operationId-unique: error
+  # A read with no input (health, services) has no 4xx; src/spec.test.ts checks that every operation lists 500
+  # and that every operation with input lists 400.
+  operation-4xx-response: off
+  no-unused-components: error
+  no-server-example.com: off
+  # The info block has no contact or license yet: GOFAST's legal data is a placeholder (D4).
+  info-license: off
+  info-contact: off
+  # Public routes are listed in `x-roles` and carry `security: []`; src/spec.test.ts checks both.
+  security-defined: error

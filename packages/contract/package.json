@@ -1,0 +1,29 @@
+{
+  "name": "@fastgo/contract",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "The API contract: openapi.yaml is written by hand and is the reference (docs/spec/technique-api.md).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./openapi.bundled.yaml": "./dist/openapi.bundled.yaml"
+  },
+  "scripts": {
+    "bundle": "redocly bundle openapi.yaml --output dist/openapi.bundled.yaml",
+    "spec:lint": "redocly lint openapi.yaml",
+    "generate": "pnpm bundle && node scripts/generate.ts",
+    "lint": "eslint . && pnpm spec:lint",
+    "typecheck": "tsc --noEmit",
+    "test": "pnpm bundle && vitest run"
+  },
+  "devDependencies": {
+    "@fastgo/config": "workspace:*",
+    "@redocly/cli": "2.78.0",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.14.0",
+    "openapi-typescript": "7.13.0",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0",
+    "yaml": "2.9.1"
+  }
+}

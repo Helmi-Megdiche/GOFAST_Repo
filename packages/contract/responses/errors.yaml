@@ -1,0 +1,60 @@
+# One entry per error of the cahier's table. Every one has the same body (schemas/error.yaml#/ErrorBody).
+ValidationFailed:
+  description: 400 VALIDATION_FAILED. A field is missing or invalid; `fields` says which.
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+AuthRequired:
+  description: 401 AUTH_REQUIRED. The session is missing or expired, or the sign-in credentials are wrong.
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+AccessDenied:
+  description: 403 ACCESS_DENIED. The role lacks the right.
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+NotFound:
+  description: 404 NOT_FOUND. The resource is missing or belongs to someone else (regles.md:153).
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+StateConflict:
+  description: 409 STATE_CONFLICT. The state change is not allowed.
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+KeyReused:
+  description: 409 KEY_REUSED. The Idempotency-Key was already used with other content.
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+QuoteExpired:
+  description: 410 QUOTE_EXPIRED. The price is to be revalidated (R205).
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+RuleRefused:
+  description: 422 RULE_REFUSED. A business rule is not met; `fields` gives the reason.
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+TooManyAttempts:
+  description: 429 TOO_MANY_ATTEMPTS. The attempt limit is reached.
+  headers:
+    Retry-After:
+      description: Seconds before the next attempt.
+      schema: { type: integer, minimum: 0 }
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+ProviderUnavailable:
+  description: 503 PROVIDER_UNAVAILABLE. An outside service is down; retry.
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }
+InternalError:
+  description: 500 INTERNAL_ERROR. Nothing else is said (addition, accepted 14 Nov 2026).
+  content:
+    application/json:
+      schema: { $ref: "../schemas/error.yaml#/ErrorBody" }

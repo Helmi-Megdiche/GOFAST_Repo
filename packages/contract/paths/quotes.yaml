@@ -1,0 +1,29 @@
+post:
+  operationId: createQuote
+  summary: Check the zone and price a delivery
+  description: >-
+    R201: an address outside the zone is refused before any price is calculated, and so is an
+    address the server cannot confirm. Both answer 422 RULE_REFUSED with `fields` holding one
+    entry per address, `name` `departure` or `arrival`, and `reason` `outOfZone` or
+    `addressUnconfirmed`. This replaces a zone check route (`/v1/zones` is staff only). R204: every
+    price line is kept. R205: the quote is valid for the time in the settings (15 min).
+  tags: [pricing]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: cahier
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/quote.yaml#/QuoteRequest" }
+  responses:
+    "201":
+      description: The price.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/quote.yaml#/Quote" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "422": { $ref: "../responses/errors.yaml#/RuleRefused" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

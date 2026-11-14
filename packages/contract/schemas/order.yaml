@@ -1,0 +1,216 @@
+OrderSenderInput:
+  type: object
+  description: The pickup. `slot` is the window the driver comes in.
+  required: [name, phone, address, slot]
+  additionalProperties: false
+  properties:
+    name: { type: string, minLength: 1 }
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    address: { $ref: "common.yaml#/AddressInput" }
+    slot: { $ref: "common.yaml#/TimeWindow" }
+OrderRecipientInput:
+  type: object
+  required: [name, phone, address]
+  additionalProperties: false
+  properties:
+    name: { type: string, minLength: 1 }
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    address: { $ref: "common.yaml#/AddressInput" }
+    instructions: { type: string, default: "" }
+    sms_locale:
+      description: R903. The language of the SMS sent to the recipient.
+      $ref: "common.yaml#/Locale"
+    save:
+      type: boolean
+      default: false
+      description: Keep this recipient in the address book once the order exists (CMD-02).
+OrderCreate:
+  type: object
+  description: >-
+    What "Valider la commande" sends. The server recomputes everything from the quote and the
+    settings (RV-05): `accepted_total_millimes` must equal the total the customer saw, or the
+    answer is QUOTE_EXPIRED (410) or RULE_REFUSED `quoteChanged`.
+  required:
+    [
+      quote_id,
+      accepted_total_millimes,
+      sender,
+      recipient,
+      parcel,
+      service,
+      payment_mode,
+      terms_accepted,
+    ]
+  additionalProperties: false
+  properties:
+    quote_id: { $ref: "common.yaml#/ResourceId" }
+    accepted_total_millimes: { $ref: "common.yaml#/Money" }
+    sender: { $ref: "#/OrderSenderInput" }
+    recipient: { $ref: "#/OrderRecipientInput" }
+    parcel:
+      type: object
+      required: [type, count, weight_g, content]
+      additionalProperties: false
+      properties:
+        type: { $ref: "common.yaml#/ParcelTypeCode" }
+        count:
+          type: integer
+          minimum: 1
+          description: The maximum comes from the settings (provisional 10); more gives RULE_REFUSED `tooManyParcels`.
+        weight_g: { type: integer, minimum: 1 }
+        content: { type: string, minLength: 1 }
+        declared_value_millimes:
+          oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+        fragile: { type: boolean, default: false }
+    service:
+      type: object
+      required: [code]
+      additionalProperties: false
+      properties:
+        code: { $ref: "common.yaml#/ServiceCode" }
+        slot:
+          description: Delivery window of a scheduled order (no price yet, [PRIX]).
+          oneOf: [{ $ref: "common.yaml#/TimeWindow" }, { type: "null" }]
+    payment_mode: { $ref: "common.yaml#/PaymentMode" }
+    freight_payer_accepted:
+      type: boolean
+      default: false
+      description: R607. True only when the sender accepts the freight-due terms (payment `cashDelivery`).
+    terms_accepted:
+      type: boolean
+      const: true
+OrderParty:
+  type: object
+  required: [name, phone, address, city]
+  additionalProperties: false
+  properties:
+    name: { type: string }
+    phone:
+      description: Null for a closed account (R105).
+      oneOf: [{ $ref: "common.yaml#/PhoneE164" }, { type: "null" }]
+    address: { type: string }
+    city: { type: [string, "null"] }
+OrderParcel:
+  type: object
+  required: [id, index, barcode, type, weight_declared_g, status, attempts]
+  additionalProperties: false
+  properties:
+    id: { $ref: "common.yaml#/ResourceId" }
+    index: { type: integer, minimum: 1 }
+    barcode: { type: string }
+    type: { $ref: "common.yaml#/ParcelTypeCode" }
+    weight_declared_g: { type: integer }
+    status: { $ref: "common.yaml#/ParcelStatus" }
+    attempts: { type: integer, minimum: 0 }
+OrderCancelRecord:
+  type: object
+  required: [at, fee]
+  additionalProperties: false
+  properties:
+    at: { $ref: "common.yaml#/UtcTimestamp" }
+    fee: { $ref: "common.yaml#/CancelFee" }
+Order:
+  type: object
+  required:
+    [
+      id,
+      tracking_number,
+      status,
+      service,
+      payment_mode,
+      freight_payer,
+      total_millimes,
+      lines,
+      created_at,
+      eta_at,
+      sender,
+      recipient,
+      parcels,
+      loss_reported,
+      cancel,
+    ]
+  additionalProperties: false
+  properties:
+    id: { $ref: "common.yaml#/ResourceId" }
+    tracking_number: { $ref: "common.yaml#/TrackingNumber" }
+    status: { $ref: "common.yaml#/OrderStatus" }
+    service: { $ref: "common.yaml#/ServiceCode" }
+    payment_mode: { $ref: "common.yaml#/PaymentMode" }
+    freight_payer: { $ref: "common.yaml#/FreightPayer" }
+    total_millimes: { $ref: "common.yaml#/Money" }
+    lines:
+      type: array
+      items: { $ref: "quote.yaml#/PriceLine" }
+    created_at: { $ref: "common.yaml#/UtcTimestamp" }
+    eta_at:
+      oneOf: [{ $ref: "common.yaml#/UtcTimestamp" }, { type: "null" }]
+    sender: { $ref: "#/OrderParty" }
+    recipient: { $ref: "#/OrderParty" }
+    parcels:
+      type: array
+      items: { $ref: "#/OrderParcel" }
+    loss_reported:
+      type: boolean
+      description: True whenever a counted parcel is lost.
+    cancel:
+      oneOf: [{ $ref: "#/OrderCancelRecord" }, { type: "null" }]
+OrderList:
+  type: object
+  required: [items, next_cursor]
+  additionalProperties: false
+  properties:
+    items:
+      type: array
+      items: { $ref: "#/Order" }
+    next_cursor:
+      type: [string, "null"]
+      description: Pass it as `cursor` for the next page. Null on the last page.
+CancelRequest:
+  type: object
+  required: [accepted_fee]
+  additionalProperties: false
+  properties:
+    accepted_fee:
+      description: >-
+        The fee the customer saw before cancelling (RV-05). The server compares it with the fee that
+        applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written.
+      $ref: "common.yaml#/CancelFee"
+CancelResult:
+  type: object
+  description: Replay by state (R212). Cancelling an order that is already canceled answers the same, with no new event.
+  required: [status, fee]
+  additionalProperties: false
+  properties:
+    status:
+      type: string
+      enum: [canceled]
+    fee: { $ref: "common.yaml#/CancelFee" }
+PublicTracking:
+  type: object
+  description: >-
+    R405. The allowlist of what anyone holding the number may see: no name, phone, address, driver,
+    position or handover code.
+  required: [status, eta_at, history, from_city, to_city, parcel_count, parcel_outcomes]
+  additionalProperties: false
+  properties:
+    status: { $ref: "common.yaml#/OrderStatus" }
+    eta_at:
+      oneOf: [{ $ref: "common.yaml#/UtcTimestamp" }, { type: "null" }]
+    history:
+      type: array
+      description: The order's own events, oldest first.
+      items:
+        type: object
+        required: [status, at]
+        additionalProperties: false
+        properties:
+          status: { $ref: "common.yaml#/OrderStatus" }
+          at: { $ref: "common.yaml#/UtcTimestamp" }
+    from_city: { type: [string, "null"] }
+    to_city: { type: [string, "null"] }
+    parcel_count:
+      type: integer
+      description: Counted parcels; canceled ones are left out.
+    parcel_outcomes:
+      type: array
+      items: { $ref: "common.yaml#/ParcelStatus" }

@@ -1,0 +1,29 @@
+post:
+  operationId: createGoogleSession
+  summary: Sign in with Google
+  description: >-
+    For customers and merchants only (R103). A new Google account needs a verified phone
+    (`phone_check_id`); without it the answer is 422 RULE_REFUSED with the field `phone_check_id`
+    and the reason `phoneRequired`. An e-mail that already has an account joins it after a code
+    (R103): the shape of that step is not in the cahier, see the open questions in the PR.
+  tags: [auth]
+  x-roles: [individual, merchant]
+  x-replay: none
+  x-cahier: cahier
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/account.yaml#/GoogleSignInRequest" }
+  responses:
+    "201":
+      description: Signed in.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/account.yaml#/Me" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
+    "422": { $ref: "../responses/errors.yaml#/RuleRefused" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "503": { $ref: "../responses/errors.yaml#/ProviderUnavailable" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

@@ -1,0 +1,114 @@
+ServiceCatalog:
+  type: object
+  description: >-
+    Prices, cut-off times, limits and fees are null until GOFAST sets them; the pages then show the
+    placeholder ([PRIX], [HEURE], [LIMITE], [TARIF]). Nothing is invented.
+  required: [offers, parcel_types, extras]
+  additionalProperties: false
+  properties:
+    offers:
+      type: array
+      items:
+        type: object
+        required: [code, from_price_millimes, cutoff_time]
+        additionalProperties: false
+        properties:
+          code: { $ref: "common.yaml#/ServiceCode" }
+          from_price_millimes:
+            oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+          cutoff_time:
+            type: [string, "null"]
+            description: Local time of day, HH:MM, Africa/Tunis.
+    parcel_types:
+      type: array
+      items:
+        type: object
+        required: [code, limit]
+        additionalProperties: false
+        properties:
+          code: { $ref: "common.yaml#/ParcelTypeCode" }
+          limit: { type: [string, "null"] }
+    extras:
+      type: array
+      items:
+        type: object
+        required: [code, fee_millimes]
+        additionalProperties: false
+        properties:
+          code:
+            type: string
+            enum: [fragile, declaredValue, retry, return]
+          fee_millimes:
+            oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+QuoteRequest:
+  type: object
+  required: [service, parcel_type, weight_g, departure, arrival]
+  additionalProperties: false
+  properties:
+    service: { $ref: "common.yaml#/ServiceCode" }
+    parcel_type: { $ref: "common.yaml#/ParcelTypeCode" }
+    weight_g:
+      type: integer
+      minimum: 1
+      description: Declared weight of one parcel, in grams.
+    fragile:
+      type: boolean
+      default: false
+    declared_value_millimes:
+      oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    departure: { $ref: "common.yaml#/AddressInput" }
+    arrival: { $ref: "common.yaml#/AddressInput" }
+PriceLine:
+  type: object
+  required: [kind, millimes]
+  additionalProperties: false
+  properties:
+    kind: { $ref: "common.yaml#/PriceLineKind" }
+    millimes:
+      description: Null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md).
+      oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+Quote:
+  type: object
+  description: R204 and R205. Valid for the time in the settings (15 min), then recalculated and revalidated.
+  required:
+    [
+      id,
+      service,
+      parcel_type,
+      weight_g,
+      fragile,
+      lines,
+      total_millimes,
+      surcharge,
+      quoted_at,
+      expires_at,
+    ]
+  additionalProperties: false
+  properties:
+    id: { $ref: "common.yaml#/ResourceId" }
+    service: { $ref: "common.yaml#/ServiceCode" }
+    parcel_type: { $ref: "common.yaml#/ParcelTypeCode" }
+    weight_g: { type: integer, minimum: 1 }
+    fragile: { type: boolean }
+    lines:
+      type: array
+      description: One entry per PriceLineKind, in the order of R204.
+      items: { $ref: "#/PriceLine" }
+    total_millimes:
+      description: Sum of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT).
+      $ref: "common.yaml#/Money"
+    surcharge:
+      oneOf:
+        - type: "null"
+        - type: object
+          description: R207. Name and ceiling are shown before the customer validates.
+          required: [code, ceiling_millimes]
+          additionalProperties: false
+          properties:
+            code:
+              type: string
+              enum: [rain]
+            ceiling_millimes:
+              oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    quoted_at: { $ref: "common.yaml#/UtcTimestamp" }
+    expires_at: { $ref: "common.yaml#/UtcTimestamp" }

@@ -1,0 +1,42 @@
+get:
+  operationId: listAddresses
+  summary: List the saved addresses
+  description: Addition to the cahier (CMD-02, C08). Only the account's own, with no limit on their number.
+  tags: [account]
+  x-roles: [individual, merchant]
+  x-replay: none
+  x-cahier: addition
+  responses:
+    "200":
+      description: The saved addresses.
+      content:
+        application/json:
+          schema:
+            type: array
+            items: { $ref: "../schemas/account.yaml#/SavedAddress" }
+    "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
+    "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }
+post:
+  operationId: createAddress
+  summary: Save an address
+  description: Addition to the cahier. Only the text is kept, never a zone, the address is checked again when it is used (R201).
+  tags: [account]
+  x-roles: [individual, merchant]
+  x-replay: none
+  x-cahier: addition
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/account.yaml#/SavedAddressInput" }
+  responses:
+    "201":
+      description: Saved.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/account.yaml#/SavedAddress" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
+    "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

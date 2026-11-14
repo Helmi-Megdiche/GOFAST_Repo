@@ -1,0 +1,59 @@
+ErrorCode:
+  type: string
+  description: >-
+    The code never changes; the message follows Accept-Language. The first eleven are the cahier's
+    table. INTERNAL_ERROR (500) is an addition, accepted on 14 Nov 2026.
+  enum:
+    - VALIDATION_FAILED
+    - AUTH_REQUIRED
+    - ACCESS_DENIED
+    - SAME_ACTOR
+    - NOT_FOUND
+    - STATE_CONFLICT
+    - KEY_REUSED
+    - QUOTE_EXPIRED
+    - RULE_REFUSED
+    - TOO_MANY_ATTEMPTS
+    - PROVIDER_UNAVAILABLE
+    - INTERNAL_ERROR
+FieldError:
+  type: object
+  required: [name, reason]
+  additionalProperties: false
+  properties:
+    name:
+      type: string
+      description: Dotted path of the field, for example `sender.phone`.
+      examples: [departure]
+    reason:
+      type: string
+      description: A short camelCase reason the client maps to its own text, for example `outOfZone`.
+      examples: [outOfZone]
+    details:
+      type: object
+      description: Numbers the client may show, for example `attempts_left`.
+      additionalProperties:
+        type: integer
+ErrorBody:
+  type: object
+  required: [error]
+  additionalProperties: false
+  properties:
+    error:
+      type: object
+      required: [code, message, fields, trace_id]
+      additionalProperties: false
+      properties:
+        code:
+          $ref: "#/ErrorCode"
+        message:
+          type: string
+          description: In the language of Accept-Language (fr, ar, en; fr when missing or unsupported).
+        fields:
+          type: array
+          items:
+            $ref: "#/FieldError"
+        trace_id:
+          type: string
+          description: The request id written in the server logs.
+          examples: ["01J9Z6K2M4"]
