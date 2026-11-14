@@ -57,17 +57,15 @@ OrderCreate:
     recipient: { $ref: "#/OrderRecipientInput" }
     parcel:
       type: object
-      required: [type, count, weight_g, content]
+      required: [type, parcels, content]
       additionalProperties: false
       properties:
         type: { $ref: "common.yaml#/ParcelTypeCode" }
-        count:
-          type: integer
-          minimum: 1
+        parcels:
           description: >-
-            Must be the `parcel_count` of the quote. The maximum comes from the settings (provisional
-            10); more gives RULE_REFUSED `tooManyParcels`.
-        weight_g: { type: integer, minimum: 1 }
+            Must be the `parcels` of the quote (same number, same weights). The maximum number comes
+            from the settings (provisional 10); more gives RULE_REFUSED `tooManyParcels`.
+          $ref: "quote.yaml#/QuoteParcels"
         content: { type: string, minLength: 1 }
         declared_value_millimes:
           oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
