@@ -309,10 +309,12 @@ function Review({
             <div>
               <dt className="text-xs text-muted">{t("parcel")}</dt>
               <dd>
-                {t("parcelSummary", {
+                {t.rich("parcelSummary", {
+                  w: (chunks) => <span dir="ltr">{chunks}</span>,
                   count,
                   type: draft.parcel.type ?? "none",
-                  weight: draft.parcel.weightKg,
+                  weight: draft.parcel.weights.slice(0, count).join(" + "),
+                  packaging: draft.parcel.packaging ? "yes" : "no",
                   fragile: draft.parcel.fragile ? "yes" : "no",
                 })}
               </dd>

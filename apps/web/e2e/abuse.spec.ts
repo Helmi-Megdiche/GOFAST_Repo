@@ -198,13 +198,13 @@ test.describe("abuse", () => {
     const other = await page.context().newPage();
     await other.goto("/fr/commander/colis");
     await textbox(other, "Poids estimé (kg)").fill("5");
-    await expect.poll(async () => (await draft(page)).parcel.weightKg).toBe("5");
+    await expect.poll(async () => (await draft(page)).parcel.weights).toEqual(["5"]);
 
     // The first tab still shows 2 kg and its price: it must not send them, nor write them back.
     await page.getByRole("button", { name: "Valider la commande" }).click();
     await expect(page).toHaveURL(/\/commander\/service$/);
     expect(await orders(page)).toBe(0);
-    expect((await draft(page)).parcel.weightKg).toBe("5");
+    expect((await draft(page)).parcel.weights).toEqual(["5"]);
     await expect(page.getByRole("complementary", { name: "Votre prix" })).toContainText(
       "12,805 TND",
     );
@@ -431,7 +431,7 @@ test.describe("abuse", () => {
     // Arabic-Indic weight and count are read too, through to W14.
     await page.goto("/ar/commander/colis");
     await page.locator('input[name="type"][value="small"]').check();
-    await page.locator('input[name="weightKg"]').fill("٢");
+    await page.locator('input[name="weights.0"]').fill("٢");
     await page.locator('input[name="count"]').fill("١");
     await page.locator('input[name="content"]').fill("Vêtements");
     await page.locator('button[type="submit"]').click();

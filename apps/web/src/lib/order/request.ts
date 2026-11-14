@@ -9,7 +9,7 @@ import {
   type Slot,
 } from "@fastgo/domain";
 import type { OrderDraft } from "./draft";
-import { parseCount, parseWeightKg } from "./schemas";
+import { parcelWeightsG } from "./schemas";
 import { declaredValueValid } from "./steps";
 
 /** What "Valider la commande" sends (mock of POST /v1/orders). Built from the draft only. */
@@ -38,12 +38,12 @@ export type OrderRequest = {
   parcel: {
     type: ParcelTypeCode;
     count: number;
-    weightKg: number;
-    /** The W13 weight text from the draft ("2,5"): converted to grams without a float. */
-    weightText: string;
+    /** One weight per parcel, in whole grams (the length is the count). */
+    weightsG: number[];
     content: string;
     declaredValueMillimes: number | null;
     fragile: boolean;
+    packaging: boolean;
   };
   service: { code: ServiceCode; slot: Slot | null };
   quote: Quote;
@@ -59,8 +59,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
   const { sender, recipient, parcel, service } = draft;
   const senderPhone = normalizePhone(sender.phone);
   const recipientPhone = normalizePhone(recipient.phone);
-  const count = parseCount(parcel.count);
-  const weightKg = parseWeightKg(parcel.weightKg);
+  const weightsG = parcelWeightsG(parcel.count, parcel.weights);
   if (
     !senderPhone ||
     !recipientPhone ||
@@ -68,8 +67,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
     !recipient.address.zone ||
     !sender.slot ||
     !parcel.type ||
-    count == null ||
-    weightKg == null ||
+    weightsG == null ||
     !declaredValueValid(parcel.declaredValueMillimes) ||
     parcel.declaredValueInvalid === true ||
     !service.code ||
@@ -101,12 +99,12 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
     },
     parcel: {
       type: parcel.type,
-      count,
-      weightKg,
-      weightText: parcel.weightKg,
+      count: weightsG.length,
+      weightsG,
       content: parcel.content.trim(),
       declaredValueMillimes: parcel.declaredValueMillimes,
       fragile: parcel.fragile,
+      packaging: parcel.packaging,
     },
     service: { code: service.code, slot: service.code === "scheduled" ? service.slot : null },
     quote: draft.quote,

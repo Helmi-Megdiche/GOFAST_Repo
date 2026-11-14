@@ -29,6 +29,32 @@ afterEach(() => {
   setClock();
 });
 
+describe("a draft saved before the parcel count (PR 1b)", () => {
+  const old = (count: string) => {
+    const draft = JSON.parse(JSON.stringify(readyDraft(T0))) as { parcel: Record<string, unknown> };
+    const { weights, packaging, ...rest } = draft.parcel;
+    void weights;
+    void packaging;
+    draft.parcel = { ...rest, count, weightKg: "2,5" };
+    return draft;
+  };
+
+  it("a one-parcel draft keeps its weight, loses its old quote and is saved in the new shape", () => {
+    store.set(DRAFT_KEY, JSON.stringify(old("1")));
+    const loaded = loadDraft(T0);
+    expect(loaded?.parcel.weights).toEqual(["2,5"]);
+    expect(loaded?.parcel.packaging).toBe(false);
+    expect(loaded?.quote).toBeNull();
+    expect(JSON.parse(store.get(DRAFT_KEY)!).parcel.weightKg).toBeUndefined();
+  });
+
+  it("an old draft with several parcels is not read and its key is removed", () => {
+    store.set(DRAFT_KEY, JSON.stringify(old("3")));
+    expect(loadDraft(T0)).toBeNull();
+    expect(store.has(DRAFT_KEY)).toBe(false);
+  });
+});
+
 describe("order draft (CMD-07)", () => {
   it("keeps everything under one key", () => {
     saveDraft(emptyDraft(T0), T0);

@@ -3,6 +3,7 @@ import {
   isSlotInFuture,
   addressPriceKey,
   isQuoteValid,
+  packagingPriced,
   priceKey,
   type PriceInput,
   type Quote,
@@ -11,7 +12,8 @@ import {
   type ZoneResult,
 } from "@fastgo/domain";
 import type { AddressDraft, OrderDraft } from "./draft";
-import { parseCount, parseWeightKg, personSchema, requiredText } from "./schemas";
+import { EXAMPLE_PRICE_TABLE } from "../data/fixtures/pricing";
+import { parcelWeightsG, personSchema, requiredText } from "./schemas";
 
 /** The five steps, in order, with their path under /commander. */
 export const STEPS = ["sender", "recipient", "parcel", "service", "review"] as const;
@@ -60,8 +62,7 @@ function parcelDone(draft: OrderDraft): boolean {
   const { parcel } = draft;
   return (
     parcel.type != null &&
-    parseCount(parcel.count) != null &&
-    parseWeightKg(parcel.weightKg) != null &&
+    parcelWeightsG(parcel.count, parcel.weights) != null &&
     requiredText.safeParse(parcel.content).success &&
     declaredValueValid(parcel.declaredValueMillimes) &&
     parcel.declaredValueInvalid !== true
@@ -78,7 +79,18 @@ export function servicesOffered(
 }
 
 export function offeredServices(draft: OrderDraft): ServiceCode[] {
-  return servicesOffered(draft.sender.address.zone, draft.recipient.address.zone);
+  return servicesOffered(draft.sender.address.zone, draft.recipient.address.zone).filter(
+    (code) => !lacksPackagingPrice(draft, code),
+  );
+}
+
+/** GOFAST packaging chosen on a service that has no packaging price yet ([PRIX]): never priced. */
+export function lacksPackagingPrice(draft: OrderDraft, service: ServiceCode): boolean {
+  return (
+    draft.parcel.packaging &&
+    draft.parcel.type != null &&
+    !packagingPriced(EXAMPLE_PRICE_TABLE, service, draft.parcel.type)
+  );
 }
 
 function serviceDone(draft: OrderDraft, at: number): boolean {
@@ -92,16 +104,17 @@ function serviceDone(draft: OrderDraft, at: number): boolean {
 
 /** What the visitor sees if the quote no longer matches what they ordered. */
 export function priceInputOf(draft: OrderDraft): PriceInput | null {
-  const weightKg = parseWeightKg(draft.parcel.weightKg);
+  const weights = parcelWeightsG(draft.parcel.count, draft.parcel.weights);
   const zone = draft.recipient.address.zone;
   // Distance is priced: both addresses are part of the input.
-  if (!draft.service.code || !draft.parcel.type || weightKg == null || zone?.status !== "in-zone")
+  if (!draft.service.code || !draft.parcel.type || weights == null || zone?.status !== "in-zone")
     return null;
   return {
     service: draft.service.code,
     parcelType: draft.parcel.type,
-    weightKg,
+    parcels: weights.map((weightG) => ({ weightG })),
     fragile: draft.parcel.fragile,
+    packaging: draft.parcel.packaging,
     zone: zone.zone,
     from: addressPriceKey(draft.sender.address),
     to: addressPriceKey(draft.recipient.address),

@@ -639,6 +639,37 @@ test.describe("order logic", () => {
     );
   });
 
+  test("3 parcels with their own weights and GOFAST packaging: unit price and count on every per-parcel line (PR 1b)", async ({
+    page,
+  }) => {
+    await start(page);
+    await toReview(page);
+    await page.goto("/fr/commander/colis");
+    await textbox(page, "Nombre de colis").fill("3");
+    await textbox(page, "Poids du colis 1 (kg)").fill("1");
+    await textbox(page, "Poids du colis 2 (kg)").fill("2,5");
+    await textbox(page, "Poids du colis 3 (kg)").fill("4");
+    await page.getByRole("checkbox", { name: "Emballage GOFAST (par colis)" }).check();
+    await page.goto("/fr/commander/verification");
+    await expect(page).toHaveURL(/\/commander\/service$/);
+    await page.getByRole("button", { name: "Vérifier ma commande" }).click();
+    await expect(page).toHaveURL(/\/commander\/verification$/);
+    const detail = page.getByRole("complementary", { name: "Détail du prix" });
+    // base 3 x 6,000, weight 0 + 500 + 1,000, packaging 3 x 2,000, distance, rain and VAT once
+    await expect(detail).toContainText("30,805 TND");
+    const row = (term: string) => detail.locator("dl > div").filter({ has: page.getByText(term) });
+    await expect(row("Service et zone")).toContainText("18,000");
+    await expect(row("Service et zone")).toContainText("6,000 TND × 3");
+    await expect(row("Poids")).toContainText("1,500");
+    await expect(row("Poids")).toContainText("Poids différent selon le colis");
+    await expect(row("Options")).toContainText("6,000");
+    await expect(row("Distance")).toContainText("2,500");
+    await expect(row("Distance")).not.toContainText("×");
+    await expect(row("Majoration pluie")).not.toContainText("×");
+    await expect(row("TVA")).toContainText("1,805");
+    expect((await draft(page)).parcel.weights).toEqual(["1", "2,5", "4"]);
+  });
+
   test("a pending answer goes to W15 from every step, even once the pickup slot has started", async ({
     page,
   }) => {
@@ -698,7 +729,7 @@ test.describe("order logic", () => {
     const after = await draft(page);
     expect(after.pendingSubmit).toEqual(pending.pendingSubmit);
     expect(after.expiresAt).toBe(pending.expiresAt);
-    expect(after.parcel.weightKg).toBe("2");
+    expect(after.parcel.weights).toEqual(["2"]);
   });
 
   test("a signed-in merchant who checks another sender phone keeps the session and pays on account (R104)", async ({

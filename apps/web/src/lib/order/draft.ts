@@ -6,6 +6,7 @@ import {
   normalizePhone,
   DRAFT_RETENTION_MS,
   PRICE_LINES,
+  MAX_PARCELS,
   type Quote,
   type Slot,
   type PaymentCode,
@@ -51,8 +52,10 @@ export type OrderDraft = {
   };
   parcel: {
     type: ParcelTypeCode | null;
+    /** Number of parcels as typed: 1 to 10. The weights list has one entry per parcel. */
     count: string;
-    weightKg: string;
+    /** One weight in kg per parcel, as typed ("2,5"). Each parcel has its own (2 kg included each). */
+    weights: string[];
     content: string;
     /** Parsed once, in the language it was typed in (never re-read in another language). */
     declaredValueMillimes: number | null;
@@ -61,7 +64,10 @@ export type OrderDraft = {
      * stays in declaredValueMillimes but is never sent: the guard keeps the order on W13.
      */
     declaredValueInvalid?: boolean;
+    /** Applies to every parcel. */
     fragile: boolean;
+    /** GOFAST packaging, applies to every parcel. */
+    packaging: boolean;
   };
   service: { code: ServiceCode | null; slot: Slot | null };
   quote: Quote | null;
@@ -109,11 +115,12 @@ export function emptyDraft(at: number = now()): OrderDraft {
     parcel: {
       type: null,
       count: "1",
-      weightKg: "",
+      weights: [""],
       content: "",
       declaredValueMillimes: null,
       declaredValueInvalid: false,
       fragile: false,
+      packaging: false,
     },
     service: { code: null, slot: null },
     quote: null,
@@ -151,13 +158,24 @@ const quoteShape = z
     input: z.object({
       service: serviceCode,
       parcelType: z.enum(["document", "small", "medium", "large"]),
-      weightKg: z.number(),
+      parcels: z
+        .array(z.object({ weightG: z.number().int() }))
+        .min(1)
+        .max(MAX_PARCELS),
       fragile: z.boolean(),
+      packaging: z.boolean(),
       zone: z.string(),
       from: z.string(),
       to: z.string(),
     }),
-    lines: z.record(z.enum(PRICE_LINES), millimes),
+    lines: z.record(
+      z.enum(PRICE_LINES),
+      z.object({
+        unitMillimes: millimes.nullable(),
+        count: z.number().int(),
+        totalMillimes: millimes,
+      }),
+    ),
     totalMillimes: millimes,
     surcharge: z.object({ code: z.literal("rain"), ceilingMillimes: millimes.nullable() }),
     quotedAt: z.string(),
@@ -189,12 +207,13 @@ const draftShape = z.object({
   parcel: z.object({
     type: z.enum(["document", "small", "medium", "large"]).nullable(),
     count: z.string(),
-    weightKg: z.string(),
+    weights: z.array(z.string()).max(MAX_PARCELS),
     content: z.string(),
     declaredValueMillimes: millimes.nonnegative().nullable(),
     // Optional: a draft saved before this field is read as readable (it was checked by Continue).
     declaredValueInvalid: z.boolean().optional(),
     fragile: z.boolean(),
+    packaging: z.boolean(),
   }),
   service: z.object({ code: serviceCode.nullable(), slot: slotShape }),
   quote: quoteShape,
@@ -206,6 +225,27 @@ const draftShape = z.object({
   verifiedPhone: z.string().nullable(),
 });
 
+/**
+ * A draft saved before the parcel count (PR 1b) has one `weightKg`. A one-parcel draft keeps it as
+ * the weight of its parcel; its quote (priced the old way) is dropped, so W14 prices it again.
+ * Any other old draft is not migrated: it fails the shape check and is cleared.
+ */
+function migrate(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  const draft = value as { parcel?: Record<string, unknown> };
+  const parcel = draft.parcel;
+  if (!parcel || typeof parcel.weightKg !== "string" || "weights" in parcel) return value;
+  if (parcel.count !== "1") return value;
+  const { weightKg, ...rest } = parcel;
+  return {
+    ...draft,
+    parcel: { ...rest, weights: [weightKg], packaging: false },
+    quote: null,
+    acceptedQuoteId: null,
+    previousTotalMillimes: null,
+  };
+}
+
 function isDraft(value: unknown): value is OrderDraft {
   return draftShape.safeParse(value).success;
 }
@@ -215,12 +255,14 @@ function isDraft(value: unknown): value is OrderDraft {
  * null, so the flow starts again instead of breaking.
  */
 export function loadDraft(at: number = now()): OrderDraft | null {
-  const value = readJson(DRAFT_KEY);
-  if (value == null) return null;
+  const stored = readJson(DRAFT_KEY);
+  if (stored == null) return null;
+  const value = migrate(stored);
   if (!isDraft(value) || at >= value.expiresAt) {
     removeKey(DRAFT_KEY);
     return null;
   }
+  if (value !== stored) writeJson(DRAFT_KEY, value);
   return value;
 }
 

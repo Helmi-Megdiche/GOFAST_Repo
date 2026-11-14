@@ -51,10 +51,10 @@ describe("submitOrder (R202)", () => {
 
   it("a stale tab never sends, nor writes back, what another tab changed since", async () => {
     const stale = saved();
-    saveDraft({ ...stale, parcel: { ...stale.parcel, weightKg: "5" } }, T0);
+    saveDraft({ ...stale, parcel: { ...stale.parcel, weights: ["5"] } }, T0);
     expect(await submitOrder(stale)).toEqual({ status: "changed" });
     expect(await findOrderByKey(stale.idempotencyKey)).toBeNull();
-    expect(loadDraft()?.parcel.weightKg).toBe("5");
+    expect(loadDraft()?.parcel.weights).toEqual(["5"]);
     expect(loadDraft()?.pendingSubmit).toBeNull();
   });
 

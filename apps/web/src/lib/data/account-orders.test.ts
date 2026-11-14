@@ -209,8 +209,8 @@ describe("getOrderDetail (C03)", () => {
   it("R204: the price lines and total stored at creation add up", async () => {
     const order = await detail("FG-5A1C-0002");
     expect(order.priceLines).toEqual([
-      { kind: "base", millimes: 9000 },
-      { kind: "distance", millimes: 3000 },
+      { kind: "base", unitMillimes: 9000, count: 1, millimes: 9000 },
+      { kind: "distance", unitMillimes: 3000, count: 1, millimes: 3000 },
     ]);
     expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
       order.totalMillimes,

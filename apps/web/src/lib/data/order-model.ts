@@ -39,7 +39,14 @@ export type AccountOrder = {
   /** True whenever any counted (not canceled) parcel is lost, recomputed on every parcel change. */
   lossReported: boolean;
   totalMillimes: number;
-  priceLines: { kind: PriceLine; millimes: number }[];
+  priceLines: {
+    kind: PriceLine;
+    /** Price of one parcel on a per-parcel line, null when the parcels differ (weight). */
+    unitMillimes: number | null;
+    /** Number of parcels on a per-parcel line, 1 on a line charged once per order. */
+    count: number;
+    millimes: number;
+  }[];
   paymentMode: PaymentCode;
   freightPayer: "sender" | "recipient";
   freightPayerAccepted: boolean;

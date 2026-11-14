@@ -118,8 +118,8 @@ function createFixtureOrder(spec: OrderSpec): { ids: string[]; next: Next } {
     lossReported: false,
     totalMillimes: total,
     priceLines: [
-      { kind: "base", millimes: 9000 },
-      { kind: "distance", millimes: 3000 },
+      { kind: "base", unitMillimes: 9000, count: 1, millimes: 9000 },
+      { kind: "distance", unitMillimes: 3000, count: 1, millimes: 3000 },
     ],
     paymentMode: spec.paymentMode ?? "cashPickup",
     freightPayer: spec.paymentMode === "cashDelivery" ? "recipient" : "sender",
