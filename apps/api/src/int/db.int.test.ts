@@ -6,7 +6,7 @@ import { Db, tables } from "../db/index.ts";
 import type { Actor } from "../http/session.ts";
 import { DbIdempotencyStore } from "../http/idempotency-db.ts";
 import { idempotencyContract } from "../idempotency.contract.ts";
-import { seedMerchants, startPgBouncer, startTestDb, type TestDb } from "./harness.ts";
+import { expectDbError, seedMerchants, startPgBouncer, startTestDb, type TestDb } from "./harness.ts";
 
 let db: TestDb;
 let ids: Awaited<ReturnType<typeof seedMerchants>>;
@@ -81,11 +81,12 @@ describe("owner rows (R104 style isolation)", () => {
       tx.execute(sql`select line from core.addresses`),
     );
     expect(mine.rows).toEqual([{ line: "Rue Test A" }]);
-    await expect(
+    await expectDbError(
       app.withActor(merchant(ids.userA, ids.companyA), (tx) =>
         tx.execute(sql`insert into core.addresses (owner_company_id, line) values (${ids.companyB}, 'intrus')`),
       ),
-    ).rejects.toThrow(/row-level security/);
+      /row-level security/,
+    );
   });
   it("fastgo_readonly reads rows but not a *_hash column", async () => {
     const ro = new pg.Client({ connectionString: db.url("fastgo_readonly") });

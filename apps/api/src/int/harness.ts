@@ -46,7 +46,8 @@ export async function startTestDb(): Promise<TestDb> {
     await superClient.query(`create role ${role} login password '${password}'`);
   }
   await superClient.query("create role fastgo_public_reader nologin");
-  await superClient.query("create extension postgis");
+  // The postgis image already creates the extension in POSTGRES_DB; a real host does it in the infra script.
+  await superClient.query("create extension if not exists postgis");
   await superClient.query("grant create on database fastgo to fastgo_migrator");
   await superClient.query("grant create on schema public to fastgo_migrator");
   await superClient.query("grant usage on schema public to fastgo_app, fastgo_readonly, fastgo_worker");
@@ -66,6 +67,26 @@ export async function startTestDb(): Promise<TestDb> {
       await network.stop();
     },
   };
+}
+
+/**
+ * Asserts that `work` fails and that the PostgreSQL error matches `pattern`. Drizzle wraps the driver
+ * error ("Failed query: ...") and keeps the real message in `cause`, so every message of the chain is
+ * searched. It fails when `work` succeeds (RV-12: the check can fail).
+ */
+export async function expectDbError(work: Promise<unknown>, pattern: RegExp): Promise<void> {
+  let failure: unknown;
+  try {
+    await work;
+  } catch (error) {
+    failure = error;
+  }
+  if (failure === undefined) throw new Error(`Expected a database error matching ${pattern}, but the statement succeeded`);
+  const messages: string[] = [];
+  for (let e: unknown = failure; e instanceof Error; e = e.cause) messages.push(e.message);
+  if (!messages.some((m) => pattern.test(m))) {
+    throw new Error(`Expected a database error matching ${pattern}, got: ${messages.join(" <- ")}`);
+  }
 }
 
 /** PgBouncer in transaction mode with ONE server connection, in front of the test database. */

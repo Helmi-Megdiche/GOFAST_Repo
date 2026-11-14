@@ -104,13 +104,7 @@ create policy companies_select on core.companies for select to fastgo_app
 -- member): a merchant session cannot create one.
 create policy companies_insert on core.companies for insert to fastgo_app
   with check (core.staff_writes_customers());
--- The billing address, when set, belongs to this same company (no pointing at another tenant's row).
-create policy companies_update on core.companies for update to fastgo_app
-  using (id = core.app_company_id() or core.staff_writes_customers())
-  with check ((id = core.app_company_id() or core.staff_writes_customers())
-    and (billing_address_id is null or exists (
-      select 1 from core.addresses a
-       where a.id = billing_address_id and a.owner_company_id = core.companies.id)));
+-- companies_update is created below, after core.addresses exists (its check reads that table).
 
 create table core.company_members (
   company_id uuid not null references core.companies (id),
@@ -164,6 +158,13 @@ create policy addresses_update on core.addresses for update to fastgo_app
 
 alter table core.companies add constraint companies_billing_address_fk
   foreign key (billing_address_id) references core.addresses (id);
+-- The billing address, when set, belongs to this same company (no pointing at another tenant's row).
+create policy companies_update on core.companies for update to fastgo_app
+  using (id = core.app_company_id() or core.staff_writes_customers())
+  with check ((id = core.app_company_id() or core.staff_writes_customers())
+    and (billing_address_id is null or exists (
+      select 1 from core.addresses a
+       where a.id = billing_address_id and a.owner_company_id = core.companies.id)));
 
 create table core.recipients (
   id uuid primary key default gen_random_uuid(),

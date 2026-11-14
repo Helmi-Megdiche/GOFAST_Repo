@@ -3,7 +3,7 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Db, type Tx } from "../db/index.ts";
 import type { Actor } from "../http/session.ts";
-import { startTestDb, type TestDb } from "./harness.ts";
+import { expectDbError, startTestDb, type TestDb } from "./harness.ts";
 
 let db: TestDb;
 const opened: Db[] = [];
@@ -115,12 +115,14 @@ describe("accounts: column rights of fastgo_app", () => {
       [USER],
     );
     const me: Actor = { userId: USER, accountId: USER, role: "individual" };
-    await expect(
+    await expectDbError(
       app.withActor(me, (tx) => tx.execute(sql`select password_hash from core.accounts`)),
-    ).rejects.toThrow(/permission denied/);
-    await expect(
+      /permission denied/,
+    );
+    await expectDbError(
       app.withActor(me, (tx) => tx.execute(sql`update core.accounts set role = 'admin' where id = ${USER}`)),
-    ).rejects.toThrow(/permission denied/);
+      /permission denied/,
+    );
     await app.withActor(me, (tx) => tx.execute(sql`update core.accounts set full_name = 'Nouveau' where id = ${USER}`));
     const rows = await db.superClient.query("select full_name from core.accounts where id = $1", [USER]);
     expect(rows.rows[0].full_name).toBe("Nouveau");
@@ -145,22 +147,25 @@ describe("audit_events is append-only", () => {
 
   it("refuses an event written in the name of someone else", async () => {
     const app = open(db.url("fastgo_app"));
-    await expect(
+    await expectDbError(
       app.withActor(staff("agent"), (tx) =>
         tx.execute(sql`insert into gestion.audit_events (actor_id, action, entity)
                        values ('00000000-0000-4000-8000-0000000000bb', 'a', 'b')`),
       ),
-    ).rejects.toThrow(/row-level security/);
+      /row-level security/,
+    );
   });
 
   it("refuses UPDATE, DELETE and TRUNCATE for the app, and even for a superuser (trigger)", async () => {
     const app = open(db.url("fastgo_app"));
-    await expect(
+    await expectDbError(
       app.withActor(staff("admin"), (tx) => tx.execute(sql`update gestion.audit_events set action = 'x'`)),
-    ).rejects.toThrow(/permission denied/);
-    await expect(
+      /permission denied/,
+    );
+    await expectDbError(
       app.withActor(staff("admin"), (tx) => tx.execute(sql`delete from gestion.audit_events`)),
-    ).rejects.toThrow(/permission denied/);
+      /permission denied/,
+    );
     const su = db.superClient;
     await expect(su.query("update gestion.audit_events set action = 'x'")).rejects.toThrow(/append-only/);
     await expect(su.query("delete from gestion.audit_events")).rejects.toThrow(/append-only/);
