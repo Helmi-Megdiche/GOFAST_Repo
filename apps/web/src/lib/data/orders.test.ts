@@ -143,7 +143,7 @@ describe("createOrder: checks at creation", () => {
     });
     clock = T0;
     const changed = readyDraft();
-    changed.parcel.weightKg = "5";
+    changed.parcel.weights = ["5"];
     expect(await createOrder(request(changed), "k2")).toEqual({
       status: "refused",
       error: "quoteExpired",
@@ -317,7 +317,7 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     const draft = readyDraft();
     draft.parcel.count = "3";
     draft.parcel.fragile = false;
-    draft.parcel.weightKg = "2,5";
+    draft.parcel.weights = ["2,5", "1", "3"];
     draft.parcel.declaredValueMillimes = 100_000;
     const quote = exampleMakeQuote(priceInputOf(draft)!, T0);
     return { ...draft, quote, acceptedQuoteId: quote.id };
@@ -341,7 +341,7 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     expect(order.freightPayerAccepted).toBe(false);
     expect(order.ownerAccountId).toBeNull();
     const parcels = parcelsOf(created.code);
-    expect(parcels.map((p) => p.weightDeclaredG)).toEqual([833, 833, 834]);
+    expect(parcels.map((p) => p.weightDeclaredG)).toEqual([2_500, 1_000, 3_000]);
     expect(parcels.map((p) => p.declaredValueMillimes)).toEqual([33_333, 33_333, 33_334]);
     expect(parcels.map((p) => p.status)).toEqual(["to_collect", "to_collect", "to_collect"]);
     expect(parcels.map((p) => p.barcode)).toEqual([1, 2, 3].map((i) => `${created.code}-${i}`));

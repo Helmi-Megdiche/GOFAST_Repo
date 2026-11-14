@@ -389,7 +389,7 @@ test.describe("C03 order detail", () => {
     await page.goto(orderUrl(code));
     await expect(page.getByRole("heading", { level: 3 })).toHaveCount(3);
     await expect(page.getByText("Poids déclaré")).toHaveCount(3);
-    // 2 kg split in grams, the last parcel takes the remainder: 666 + 666 + 668.
+    // Each parcel has its own weight (PR 1b): 3 x 2 kg, no split.
     const grams = await page.evaluate((c) => {
       const parcels = JSON.parse(localStorage.getItem("fg.mock.parcels") ?? "{}") as Record<
         string,
@@ -399,8 +399,8 @@ test.describe("C03 order detail", () => {
         .filter((p) => p.orderCode === c)
         .map((p) => p.weightDeclaredG);
     }, code);
-    expect(grams.reduce((a, b) => a + b, 0)).toBe(2000);
-    await expect(page.getByText("0,668 kg")).toBeVisible();
+    expect(grams.reduce((a, b) => a + b, 0)).toBe(6000);
+    await expect(page.getByText("2 kg").first()).toBeVisible();
   });
 });
 

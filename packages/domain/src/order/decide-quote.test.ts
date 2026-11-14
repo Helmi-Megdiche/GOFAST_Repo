@@ -26,6 +26,7 @@ const TABLE: PriceTable = {
   distance: 2_500,
   weight: { includedKg: 2, perKg: 500 },
   optionsFragile: 0,
+  optionsPackaging: 2_000,
   surcharge: { code: "rain", amount: 1_000, ceiling: null },
   discount: 0,
   stamp: 0,
@@ -34,8 +35,9 @@ const T0 = Date.parse("2026-11-04T10:00:00Z");
 const INPUT: Omit<PriceInput, "zone"> = {
   service: "standard",
   parcelType: "small",
-  weightKg: 2,
+  parcels: [{ weightG: 2_000 }],
   fragile: false,
+  packaging: false,
   from: "Avenue Habib Bourguiba",
   to: "Rue Ibn Khaldoun",
 };

@@ -689,7 +689,7 @@
       "slotRequired": "اختر موعدًا.",
       "slotPast": "انقضى هذا الموعد. اختر موعدًا آخر.",
       "parcelTypeRequired": "اختر نوع الشحنة.",
-      "countInvalid": "أدخل عددًا صحيحًا، 1 على الأقل.",
+      "countInvalid": "أدخل عددًا صحيحًا من 1 إلى 10.",
       "weightInvalid": "أدخل الوزن بالكغ، مثلًا 2 أو 2.5.",
       "declaredValueInvalid": "مبلغ غير صالح. مثال: 48.500 أو 1,152.000.",
       "serviceRequired": "اختر خدمة.",
@@ -887,11 +887,13 @@
       },
       "count": "عدد الطرود",
       "weight": "الوزن التقديري (كغ)",
+      "weightN": "وزن الطرد {n} (كغ)",
       "content": "المحتوى",
       "declaredValue": "القيمة المصرّح بها (د.ت، اختياري)",
       "declaredValueParsed": "أي <amount></amount>",
       "option": "خيار",
-      "fragile": "طرد هش"
+      "fragile": "طرد هش",
+      "packaging": "تغليف GOFAST (لكل طرد)"
     },
     "service": {
       "title": "متى يجب أن يصل؟",
@@ -915,6 +917,8 @@
       "example": "مبالغ على سبيل المثال.",
       "provisionalNote": "مبلغ على سبيل المثال، يُحدَّد حسب الطرد والخدمة.",
       "guarantee": "شامل الضريبة، مضمون لمدة 15 دقيقة. مبالغ على سبيل المثال.",
+      "unitTimes": "{unit} × {count}",
+      "mixedWeights": "الوزن يختلف حسب الطرد",
       "detail": "تفاصيل السعر",
       "lines": {
         "base": "الخدمة والمنطقة: {service}، المنطقة {zone}",
@@ -949,7 +953,7 @@
       "parcel": "الطرد",
       "proof": "الإثبات",
       "person": "{name}، {address}",
-      "parcelSummary": "{type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{fragile, select, yes {، هش} other {}}",
+      "parcelSummary": "{type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{packaging, select, yes {، تغليف GOFAST} other {}}{fragile, select, yes {، هش} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "رمز يُرسل إلى المستلم، أو صورة مع الموقع",
         "codeOrSignaturePhoto": "رمز يُرسل إلى المستلم، أو توقيع وصورة",

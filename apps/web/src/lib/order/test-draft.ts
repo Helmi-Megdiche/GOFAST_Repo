@@ -45,7 +45,8 @@ export function readyDraft(at: number): OrderDraft {
     parcel: {
       type: "small",
       count: "1",
-      weightKg: "2",
+      weights: ["2"],
+      packaging: false,
       content: "Vêtements",
       declaredValueMillimes: 48_500,
       fragile: true,

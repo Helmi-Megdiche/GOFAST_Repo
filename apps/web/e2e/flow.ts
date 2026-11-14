@@ -47,7 +47,12 @@ export async function fillParcel(page: Page, count = 1) {
   await expect(page).toHaveURL(/\/commander\/colis$/);
   await page.getByRole("radio", { name: /Petit colis/ }).check();
   if (count > 1) await textbox(page, "Nombre de colis").fill(String(count));
-  await textbox(page, "Poids estimé (kg)").fill("2");
+  // One weight per parcel: 2 kg each.
+  if (count > 1) {
+    for (let i = 1; i <= count; i++) await textbox(page, `Poids du colis ${i} (kg)`).fill("2");
+  } else {
+    await textbox(page, "Poids estimé (kg)").fill("2");
+  }
   await textbox(page, "Contenu").fill("Vêtements");
   await textbox(page, "Valeur déclarée (TND, facultatif)").fill("48,500");
   await page.getByRole("checkbox", { name: "Colis fragile" }).check();

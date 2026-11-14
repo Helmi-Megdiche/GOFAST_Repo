@@ -45,6 +45,9 @@ export const EXAMPLE_SURCHARGE = { code: "rain" as const, amount: 1_000, ceiling
 /** No promo code in L1 (CMD-10 is L2): the discount line is always 0. */
 export const EXAMPLE_DISCOUNT = 0;
 
+/** GOFAST packaging, per parcel: +2 DT on Standard and on Express (reponses-gofast.md). */
+export const EXAMPLE_OPTIONS_PACKAGING = 2_000;
+
 /** Fiscal stamp: example amount 0 until GOFAST gives the rule. */
 export const EXAMPLE_STAMP = 0;
 
@@ -54,6 +57,7 @@ export const EXAMPLE_PRICE_TABLE: PriceTable = {
   distance: EXAMPLE_DISTANCE,
   weight: EXAMPLE_WEIGHT,
   optionsFragile: EXAMPLE_OPTIONS_FRAGILE,
+  optionsPackaging: EXAMPLE_OPTIONS_PACKAGING,
   surcharge: EXAMPLE_SURCHARGE,
   discount: EXAMPLE_DISCOUNT,
   stamp: EXAMPLE_STAMP,

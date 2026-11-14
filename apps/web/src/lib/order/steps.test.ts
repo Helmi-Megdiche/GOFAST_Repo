@@ -51,9 +51,33 @@ describe("declared value typed but not readable (final review I2)", () => {
 describe("W15 guard and the quote (R205)", () => {
   it("a weight changed after the quote sends W15 back to W14", () => {
     const draft = readyDraft(T0);
-    draft.parcel.weightKg = "5";
+    draft.parcel.weights = ["5"];
     expect(quoteMatches(draft)).toBe(false);
     expect(redirectFor(draft, "review", T0)).toBe("service");
+  });
+
+  it("each parcel has its own weight: the count and the packaging are priced inputs too", () => {
+    const draft = readyDraft(T0);
+    draft.parcel.count = "2";
+    draft.parcel.weights = ["2", "3,5"];
+    expect(priceInputOf(draft)?.parcels).toEqual([{ weightG: 2_000 }, { weightG: 3_500 }]);
+    expect(quoteMatches(draft)).toBe(false);
+    const packed = readyDraft(T0);
+    packed.parcel.packaging = true;
+    expect(priceInputOf(packed)?.packaging).toBe(true);
+    expect(quoteMatches(packed)).toBe(false);
+  });
+
+  it("a missing weight for one of the parcels, or more than 10 parcels, keeps the order on W13", () => {
+    const draft = readyDraft(T0);
+    draft.parcel.count = "2";
+    draft.parcel.weights = ["2"];
+    expect(priceInputOf(draft)).toBeNull();
+    expect(redirectFor(draft, "service", T0)).toBe("parcel");
+    draft.parcel.count = "11";
+    draft.parcel.weights = Array.from({ length: 11 }, () => "1");
+    expect(priceInputOf(draft)).toBeNull();
+    expect(redirectFor(draft, "service", T0)).toBe("parcel");
   });
 
   it("a changed address needs a new quote too, since distance is priced", () => {
@@ -67,8 +91,8 @@ describe("W15 guard and the quote (R205)", () => {
 
   it("the recalculation input is rebuilt from the draft, not from the old quote", () => {
     const draft = readyDraft(T0);
-    draft.parcel.weightKg = "5";
-    expect(priceInputOf(draft)?.weightKg).toBe(5);
+    draft.parcel.weights = ["5"];
+    expect(priceInputOf(draft)?.parcels).toEqual([{ weightG: 5_000 }]);
     const next = withNewQuote(draft, exampleMakeQuote(priceInputOf(draft)!, T0 + 1));
     expect(quoteMatches(next)).toBe(true);
   });

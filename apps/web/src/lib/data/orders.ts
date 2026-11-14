@@ -12,7 +12,6 @@ import {
   randomTrackingCode,
   type RandomBytes,
   splitWhole,
-  kgTextToGrams,
   digest,
 } from "@fastgo/domain";
 import { fingerprint, type OrderRequest } from "../order/request";
@@ -113,8 +112,9 @@ function check(request: OrderRequest, at: number): OrderError | null {
   const current = priceKey({
     service: request.service.code,
     parcelType: request.parcel.type,
-    weightKg: request.parcel.weightKg,
+    parcels: request.parcel.weightsG.map((weightG) => ({ weightG })),
     fragile: request.parcel.fragile,
+    packaging: request.parcel.packaging,
     zone: zone.zone,
     from: addressPriceKey({ text: request.sender.address, pin: request.sender.pin }),
     to: addressPriceKey({ text: request.recipient.address, pin: request.recipient.pin }),
@@ -169,9 +169,7 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
   const actor = session?.userId ?? "guest";
   const recipientLocale = request.recipient.smsLanguage;
   const { count, declaredValueMillimes } = request.parcel;
-  const grams = kgTextToGrams(request.parcel.weightText);
-  if (typeof grams !== "number") throw new Error("createOrder: weightText was validated before");
-  const weights = splitWhole(grams, count);
+  const weights = request.parcel.weightsG;
   const values =
     declaredValueMillimes == null
       ? Array.from({ length: count }, () => null)
@@ -201,9 +199,9 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
     status: "received",
     lossReported: false,
     totalMillimes: request.quote.totalMillimes,
-    priceLines: Object.entries(request.quote.lines).map(([kind, millimes]) => ({
+    priceLines: Object.entries(request.quote.lines).map(([kind, line]) => ({
       kind: kind as PriceLine,
-      millimes,
+      millimes: line.totalMillimes,
     })),
     paymentMode: request.payment,
     // R607: the recipient pays the freight on delivery only for "cashDelivery", and the sender

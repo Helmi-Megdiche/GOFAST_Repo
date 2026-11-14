@@ -493,7 +493,7 @@ native-speaker review before release (CLAUDE.md).
 | `forms.errors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.errors.captchaRequired` | أكّد أنك لست روبوتًا. | Confirmez que vous n'êtes pas un robot. | [ ] |
 | `forms.errors.codeIncomplete` | أدخل الرمز كاملًا. | Saisissez le code complet. | [ ] |
-| `forms.errors.countInvalid` | أدخل عددًا صحيحًا، 1 على الأقل. | Indiquez un nombre entier, 1 au minimum. | [ ] |
+| `forms.errors.countInvalid` | أدخل عددًا صحيحًا من 1 إلى 10. | Indiquez un nombre entier de 1 à 10. | [ ] |
 | `forms.errors.declaredValueInvalid` | مبلغ غير صالح. مثال: 48.500 أو 1,152.000. | Montant invalide. Exemple : 48,500 ou 48.5. | [ ] |
 | `forms.errors.documentRequired` | أضف هذه الوثيقة. | Ajoutez ce document. | [ ] |
 | `forms.errors.emailInvalid` | عنوان البريد الإلكتروني غير صالح. | Adresse e-mail invalide. | [ ] |
@@ -835,6 +835,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.parcel.declaredValueParsed` | أي <amount></amount> | Soit <amount></amount> | [ ] |
 | `order.parcel.fragile` | طرد هش | Colis fragile | [ ] |
 | `order.parcel.option` | خيار | Option | [ ] |
+| `order.parcel.packaging` | تغليف GOFAST (لكل طرد) | Emballage GOFAST (par colis) | [ ] |
 | `order.parcel.title` | ماذا سنوصل؟ | Que livrons-nous ? | [ ] |
 | `order.parcel.typeLegend` | نوع الشحنة | Type d'envoi | [ ] |
 | `order.parcel.types.document.hint` | وثائق | Documents | [ ] |
@@ -846,6 +847,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.parcel.types.small.hint` | [الحد] | [LIMITE] | [ ] |
 | `order.parcel.types.small.name` | طرد صغير | Petit colis | [ ] |
 | `order.parcel.weight` | الوزن التقديري (كغ) | Poids estimé (kg) | [ ] |
+| `order.parcel.weightN` | وزن الطرد {n} (كغ) | Poids du colis {n} (kg) | [ ] |
 | `order.price.detail` | تفاصيل السعر | Détail du prix | [ ] |
 | `order.price.example` | مبالغ على سبيل المثال. | Montants d'exemple. | [ ] |
 | `order.price.expired.accept` | قبول السعر الجديد | Accepter le nouveau prix | [ ] |
@@ -862,6 +864,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.price.lines.surcharge` | رسوم إضافية: {name} (الحد الأقصى: <ceiling></ceiling>) | Majoration {name} (plafond : <ceiling></ceiling>) | [ ] |
 | `order.price.lines.vat` | الأداء على القيمة المضافة | TVA | [ ] |
 | `order.price.lines.weight` | الوزن | Poids | [ ] |
+| `order.price.mixedWeights` | الوزن يختلف حسب الطرد | Poids différent selon le colis | [ ] |
 | `order.price.pending` | سيظهر بمجرد معرفة عنوان التسليم. | Il s'affichera dès que l'adresse de livraison sera connue. | [ ] |
 | `order.price.provisional` | سعر مبدئي | Prix provisoire | [ ] |
 | `order.price.provisionalNote` | مبلغ على سبيل المثال، يُحدَّد حسب الطرد والخدمة. | Montant d'exemple, à préciser selon le colis et l'offre. | [ ] |
@@ -870,6 +873,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.price.timeLeftShort` | {minutes, plural, zero {لم يبقَ وقت من الضمان.} one {بقيت دقيقة واحدة من الضمان.} two {بقيت دقيقتان من الضمان.} few {بقيت # دقائق من الضمان.} many {بقيت # دقيقة من الضمان.} other {بقيت # دقيقة من الضمان.}} | {minutes, plural, one {Plus que # min de garantie.} other {Plus que # min de garantie.}} | [ ] |
 | `order.price.title` | السعر | Votre prix | [ ] |
 | `order.price.total` | المجموع شامل الضريبة | Total TTC | [ ] |
+| `order.price.unitTimes` | {unit} × {count} | {unit} × {count} | [ ] |
 | `order.recipient.address` | عنوان التسليم | Adresse de livraison | [ ] |
 | `order.recipient.instructions` | تعليمات (اختياري) | Instructions (facultatif) | [ ] |
 | `order.recipient.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
@@ -910,7 +914,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.lost.text` | لا نعرف إن وصل الطلب. أعد المحاولة: لن يُنشأ مرتين. | Nous ne savons pas si la commande est arrivée. Réessayez : elle ne sera pas créée deux fois. | [ ] |
 | `order.review.lost.title` | انقطع الاتصال. | La connexion a été coupée. | [ ] |
 | `order.review.parcel` | الطرد | Colis | [ ] |
-| `order.review.parcelSummary` | {type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{fragile, select, yes {، هش} other {}} | {type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, {weight} kg{fragile, select, yes {, fragile} other {}} | [ ] |
+| `order.review.parcelSummary` | {type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{packaging, select, yes {، تغليف GOFAST} other {}}{fragile, select, yes {، هش} other {}} | {type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, {weight} kg{packaging, select, yes {, emballage GOFAST} other {}}{fragile, select, yes {, fragile} other {}} | [ ] |
 | `order.review.paymentLegend` | كيف تدفع؟ | Comment réglez-vous ? | [ ] |
 | `order.review.payments.account.text` | فاتورة شهرية، للتجار المتعاقدين. | Facture mensuelle, commerçants sous contrat. | [ ] |
 | `order.review.payments.account.title` | حساب العميل | Compte client | [ ] |
