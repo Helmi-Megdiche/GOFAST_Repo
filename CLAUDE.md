@@ -24,6 +24,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - `apps/api`: NestJS modular monolith, REST + WebSocket, OpenAPI, routes under `/v1`. Three processes from one codebase: api, ws, worker.
 - `packages/ui`: design tokens (CSS variables plus a Tailwind v4 theme file; v4 has no JS presets), shared components, icons.
 - `packages/i18n`: message catalogs fr / ar / en and helpers.
+- `packages/domain` (`@fastgo/domain`): the business rules as pure functions and types (states, prices, phone, tracking code). No React, Next.js, DOM, storage, Node-only module or catalog, enforced by lint and by a tsconfig without DOM. ESM, source only: `apps/web` transpiles it and `apps/api` bundles it. Rules take amounts, tables and time (`at`) as arguments. Storage, fixtures and mocks stay in the apps.
 - `packages/config`: shared eslint, tsconfig, prettier.
 - Data: PostgreSQL + PostGIS, row-level security, separate DB users, PgBouncer, Redis (sessions, queues), S3-compatible storage.
 - No microservices, no RabbitMQ, no Kubernetes.
@@ -49,7 +50,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - Before opening a PR, run `pnpm lint && pnpm typecheck && pnpm test` and the Playwright screenshot check for touched pages. Fix failures, do not skip them.
 - CI (`.github/workflows/ci.yml`) runs on every PR and every push to `main`: lint, typecheck, unit tests, build, Playwright e2e with axe-core, and a Gitleaks secret scan. The e2e runs as three shards on three machines; the check named "E2E (Playwright, axe-core)" sums them up. A PR that changes only `docs/**`, Markdown files or `infra/**` skips the shards, and that check is green. Never merge a red PR. If a check fails, open the `playwright-report` artifact of the run (one HTML report merged from the three shards; traces of failures are in `playwright-failures-<n>`), fix the cause, and push again. Do not skip, weaken or delete a check to make it pass.
 - Every PR is reviewed by another engineer, a human. Claude can draft the PR description; the author reads the full diff before asking for review.
-- Do not edit a package owned by another engineer without telling them. Owners: `apps/web`, `apps/driver`, e2e and tests, infrastructure: Helmi (@Helmi-Megdiche). `apps/api`, `apps/backoffice`, finance modules and API tests (rights matrix DR/EX, load, TTN outage): Ala (@AlaaSalem12). `packages/ui` and `packages/i18n` are shared: changes there need one approval from the other owner.
+- Do not edit a package owned by another engineer without telling them. Owners: `apps/web`, `apps/driver`, e2e and tests, infrastructure: Helmi (@Helmi-Megdiche). `apps/api`, `apps/backoffice`, finance modules and API tests (rights matrix DR/EX, load, TTN outage): Ala (@AlaaSalem12). `packages/ui`, `packages/i18n` and `packages/domain` are shared: changes there need one approval from the other owner.
 - If the spec and the mockup disagree, the spec wins. Note the gap in the PR.
 - If Claude is unsure about a business rule, it stops and asks. It does not invent prices, fees, thresholds or legal text. Placeholders stay visible as `[PRIX]`, `[VILLE]`, `[TÉLÉPHONE]`.
 - Read `REVIEW.md` before every push. Reviewer findings are binding; disagree with evidence and wait.

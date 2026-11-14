@@ -6,8 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Card, Field, FileAttach, Input, Ltr, Select } from "@fastgo/ui";
 import { Confirmation } from "@/components/confirmation";
-import { ATTACHMENT_TYPES } from "@/lib/attachments";
-import { MAX_ATTACHMENT_BYTES } from "@/lib/limits";
+import { ATTACHMENT_TYPES, MAX_ATTACHMENT_BYTES } from "@fastgo/domain";
 import {
   DRIVER_DOCUMENTS,
   DRIVER_VEHICLES,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { MAX_ATTACHMENT_BYTES } from "../limits";
+import { MAX_ATTACHMENT_BYTES } from "@fastgo/domain";
 import { DRIVER_DOCUMENTS, DRIVER_VEHICLES } from "../data/driver";
 import {
   contactFormSchema,

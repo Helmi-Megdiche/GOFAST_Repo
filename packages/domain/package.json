@@ -1,0 +1,25 @@
+{
+  "name": "@fastgo/domain",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
+    "test": "vitest run",
+    "test:shifted": "node scripts/test-shifted.mjs"
+  },
+  "dependencies": {
+    "@fastgo/i18n": "workspace:*"
+  },
+  "devDependencies": {
+    "@fastgo/config": "workspace:*",
+    "@types/node": "^24.0.0",
+    "eslint": "^10.14.0",
+    "typescript": "5.9.3",
+    "vitest": "5.1.0"
+  }
+}

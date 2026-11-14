@@ -8,7 +8,7 @@ import { Link, useRouter } from "@/i18n/navigation";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { startFlow } from "@/lib/auth/flow";
 import { withNext } from "@/lib/auth/next";
-import { PASSWORD_MIN_LENGTH } from "@/lib/order/constants";
+import { PASSWORD_MIN_LENGTH } from "@fastgo/domain";
 import { signUpSchema } from "@/lib/order/schemas";
 import { GoogleSignIn, OrDivider } from "./google-sign-in";
 

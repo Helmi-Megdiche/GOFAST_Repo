@@ -2,10 +2,9 @@
  * Test helper (unit tests only): a draft that is complete up to W15, priced at T0, with fake data.
  * Not used by the app.
  */
-import type { ZoneResult } from "../data/zones";
+import { type ZoneResult } from "@fastgo/domain";
+import { makeQuote, availableSlots } from "@/lib/order/example-data";
 import { emptyDraft, type OrderDraft } from "./draft";
-import { makeQuote } from "./pricing";
-import { availableSlots } from "./slots";
 import { priceInputOf } from "./steps";
 
 export const TEST_PHONE = "+216 20 000 000";

@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { RETURN_FEE_MILLIMES } from "../order/constants";
+import { RETURN_FEE_MILLIMES } from "@fastgo/domain";
 import { removeKey, useMemoryStorage, writeJson } from "../storage";
 import { seedBillingFixtures } from "./fixtures/billing";
 import {

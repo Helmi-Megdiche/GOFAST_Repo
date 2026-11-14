@@ -1,4 +1,5 @@
-import { formatMillimes, type Locale } from "@fastgo/i18n";
+import { formatMillimes } from "@fastgo/i18n/format";
+import type { Locale } from "@fastgo/i18n/locales";
 import { toLatinDigits } from "../digits";
 
 export type ParsedAmount =

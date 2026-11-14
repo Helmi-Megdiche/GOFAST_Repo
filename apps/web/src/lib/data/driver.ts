@@ -1,4 +1,4 @@
-import { fileError } from "../attachments";
+import { fileError } from "@fastgo/domain";
 import { mockDelay } from "./delay";
 import { FIXTURE_APPLICATION_ID } from "./fixtures/contact";
 

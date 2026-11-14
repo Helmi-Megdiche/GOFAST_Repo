@@ -5,6 +5,8 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./locales": "./src/locales.ts",
+    "./format": "./src/format/index.ts",
     "./messages/fr.json": "./src/messages/fr.json",
     "./messages/en.json": "./src/messages/en.json",
     "./messages/ar.json": "./src/messages/ar.json"

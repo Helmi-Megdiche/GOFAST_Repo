@@ -1,4 +1,4 @@
-import { locales } from "@fastgo/i18n";
+import { locales } from "@fastgo/i18n/locales";
 
 /** Where to go after sign-in when ?next= is missing or refused (decision 17). */
 export const DEFAULT_AFTER_SIGN_IN = "/compte";

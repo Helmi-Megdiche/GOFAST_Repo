@@ -17,7 +17,7 @@ import {
 import { loadAddressBook } from "@/lib/data/address-book-reader";
 import type { Session } from "@/lib/data/session";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
-import { maskPhone } from "@/lib/phone";
+import { maskPhone } from "@fastgo/domain";
 import { seedFromSavedRecipient } from "@/lib/order/saved";
 import { useLoader } from "./use-loader";
 

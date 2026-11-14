@@ -12,6 +12,7 @@
     "test:e2e": "playwright test"
   },
   "dependencies": {
+    "@fastgo/domain": "workspace:*",
     "@fastgo/i18n": "workspace:*",
     "@fastgo/ui": "workspace:*",
     "@hookform/resolvers": "^7.0.2",

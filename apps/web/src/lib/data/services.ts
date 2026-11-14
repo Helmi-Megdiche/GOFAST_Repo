@@ -1,8 +1,5 @@
+import type { ExtraCode, ParcelTypeCode, ServiceCode } from "@fastgo/domain";
 import { mockDelay } from "./delay";
-
-export type ServiceCode = "express" | "standard" | "scheduled";
-export type ParcelTypeCode = "document" | "small" | "medium" | "large";
-export type ExtraCode = "fragile" | "declaredValue" | "retry" | "return";
 
 /**
  * Prices, cut-off times, limits and fees are null until GOFAST sets them: the pages show the

@@ -1,6 +1,5 @@
 import type { Locale } from "@fastgo/i18n";
-import { PASSWORD_MIN_LENGTH } from "../order/constants";
-import { normalizePhone } from "../phone";
+import { PASSWORD_MIN_LENGTH, normalizePhone } from "@fastgo/domain";
 import {
   findByEmail,
   findByPhone,

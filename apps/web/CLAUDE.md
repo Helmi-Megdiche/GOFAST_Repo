@@ -53,8 +53,9 @@ apps/web/
       ├─ auth/              safeNext (?next= only on this site), in-memory auth flow
       ├─ seo.ts, page.ts    title/description/canonical/hreflang helper, locale + metadata helpers
       ├─ storage.ts         safe localStorage access (missing, full or broken storage never breaks a page)
-      ├─ phone.ts, digits.ts   Tunisian phone normalize/mask, Arabic-Indic digits to Latin
-      └─ tracking-code.ts, limits.ts   shared validator and generator (FG-XXXX-XXXX), the 5 MB limit
+      └─ the pure rules (phone, digits, tracking code, limits, constants, pricing, slots, proof, split,
+         weight, money input, safeNext, attachments) are in `packages/domain`: import them from
+         `@fastgo/domain`. `order/example-data.ts` binds pricing and slots to the example fixtures.
 ```
 
 ## Mock data rules

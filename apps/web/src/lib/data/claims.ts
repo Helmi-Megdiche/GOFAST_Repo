@@ -1,6 +1,10 @@
-import { attachmentError, type AttachmentError } from "../claims/attachments";
+import {
+  attachmentError,
+  type AttachmentError,
+  CLAIM_REOPEN_WINDOW_MS,
+  type ServiceCode,
+} from "@fastgo/domain";
 import { now } from "../order/clock";
-import { CLAIM_REOPEN_WINDOW_MS } from "../order/constants";
 import { getAccountOrder, listAccountOrders, parcelsOf } from "./account-orders";
 import { isClosedSession } from "./accounts";
 import {
@@ -19,7 +23,6 @@ import { getInvoice } from "./invoices";
 import { consumeFailNext, readTable, writeRow } from "./mock-db";
 import { STATUS_EVENTS, type StatusEvent } from "./order-model";
 import { NetworkError } from "./orders";
-import type { ServiceCode } from "./services";
 import type { Session } from "./session";
 
 /**

@@ -1,10 +1,5 @@
+import type { ServiceCode, ZoneResult } from "@fastgo/domain";
 import { mockDelay } from "./delay";
-import type { ServiceCode } from "./services";
-
-export type ZoneResult =
-  | { status: "in-zone"; services: ServiceCode[]; zone: string }
-  | { status: "out-of-zone" }
-  | { status: "unknown" };
 
 // Fake addresses from the mockup (W11, W12, W17). Any other address is "unknown". They offer the
 // three services, as on W14; "rue de marseille" offers two, so the disabled Programmée card and

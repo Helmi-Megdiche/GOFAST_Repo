@@ -1,4 +1,4 @@
-import { isValidTrackingCode, normalizeTrackingCode } from "../tracking-code";
+import { isValidTrackingCode, normalizeTrackingCode } from "@fastgo/domain";
 import { orderHistory, parcelsOf } from "./account-orders";
 import { mockDelay } from "./delay";
 import { seedOrderFixtures } from "./fixtures/orders";

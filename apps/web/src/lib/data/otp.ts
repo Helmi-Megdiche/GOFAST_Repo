@@ -8,9 +8,9 @@ import {
   CODE_SEND_WINDOW_MS,
   CODE_VALIDITY_MS,
   CODE_VERIFIED_WINDOW_MS,
-} from "../order/constants";
-import { toLatinDigits } from "../digits";
-import { normalizePhone } from "../phone";
+  toLatinDigits,
+  normalizePhone,
+} from "@fastgo/domain";
 import { mockDelay } from "./delay";
 import { FIXTURE_CODES } from "./fixtures/accounts";
 import { writeJson } from "../storage";

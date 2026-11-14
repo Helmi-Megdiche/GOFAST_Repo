@@ -9,12 +9,17 @@ import { isVerifiedPhoneForSession, returnBalanceMillimes } from "@/lib/data/acc
 import { getQuote } from "@/lib/data/pricing";
 import { canPayOnAccount, getSession } from "@/lib/data/session";
 import { now } from "@/lib/order/clock";
-import { NEW_ATTEMPT_FEE_MILLIMES, RETURN_FEE_MILLIMES } from "@/lib/order/constants";
-import type { OrderDraft, PaymentCode } from "@/lib/order/draft";
-import { isQuoteValid, msLeft } from "@/lib/order/pricing";
-import { proofFor } from "@/lib/order/proof";
+import {
+  NEW_ATTEMPT_FEE_MILLIMES,
+  RETURN_FEE_MILLIMES,
+  type PaymentCode,
+  isQuoteValid,
+  msLeft,
+  proofFor,
+  isSlotInFuture,
+} from "@fastgo/domain";
+import type { OrderDraft } from "@/lib/order/draft";
 import { parseCount } from "@/lib/order/schemas";
-import { isSlotInFuture } from "@/lib/order/slots";
 import {
   draftPhoneProven,
   priceInputOf,

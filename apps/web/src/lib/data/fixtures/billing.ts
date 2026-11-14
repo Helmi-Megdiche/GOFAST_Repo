@@ -1,4 +1,4 @@
-import { RETURN_FEE_MILLIMES } from "../../order/constants";
+import { RETURN_FEE_MILLIMES } from "@fastgo/domain";
 import { readJson, writeJson } from "../../storage";
 import { TICKET_MESSAGES, TICKETS, type Ticket, type TicketMessage } from "../claim-model";
 import {

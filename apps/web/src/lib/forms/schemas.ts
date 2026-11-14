@@ -1,8 +1,6 @@
 import { z } from "zod";
-import { fileError } from "../attachments";
+import { fileError, MAX_ATTACHMENT_BYTES, isValidTrackingCode } from "@fastgo/domain";
 import { DRIVER_DOCUMENTS, DRIVER_VEHICLES } from "../data/driver";
-import { MAX_ATTACHMENT_BYTES } from "../limits";
-import { isValidTrackingCode } from "../tracking-code";
 
 /**
  * Validation rules for the public forms. Messages are error codes, not text: each form looks the

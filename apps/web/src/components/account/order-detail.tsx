@@ -19,8 +19,7 @@ import { DateTime, Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
 import { getOrderDetail, type OrderDetail, type ParcelView } from "@/lib/data/account-orders";
 import { FINAL_ORDER_STATES } from "@/lib/data/states";
-import type { ProofLevel } from "@/lib/order/proof";
-import { formatKg, weightToleranceG } from "@/lib/order/weight";
+import { type ProofLevel, formatKg, weightToleranceG } from "@fastgo/domain";
 import { OrderStatusBadge } from "./order-status";
 import { useLoader } from "./use-loader";
 

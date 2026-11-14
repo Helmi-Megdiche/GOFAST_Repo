@@ -1,5 +1,4 @@
-import type { PaymentCode } from "../order/draft";
-import type { ServiceCode } from "./services";
+import { type PaymentCode, type ServiceCode } from "@fastgo/domain";
 
 /** Mock tables of the invoices (ESP-05). Read only from lib/data; see invoices.ts. */
 export const INVOICES = "fg.mock.invoices";

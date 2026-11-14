@@ -1,7 +1,6 @@
 import { now } from "../order/clock";
-import { GOOGLE_PENDING_MAX_AGE_MS } from "../order/constants";
+import { GOOGLE_PENDING_MAX_AGE_MS, maskEmail } from "@fastgo/domain";
 import { readJson, removeKey, writeJson } from "../storage";
-import { maskEmail } from "../phone";
 import { findByEmail } from "./accounts";
 import { mockDelay } from "./delay";
 import { FIXTURE_GOOGLE_PROFILES, type GoogleProfileId } from "./fixtures/accounts";

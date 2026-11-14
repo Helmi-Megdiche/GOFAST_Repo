@@ -4,16 +4,17 @@ import { useId, useRef } from "react";
 import { useTranslations } from "next-intl";
 import { Badge, Button, Card, Icon, KeyValue, Ltr, type BadgeTone } from "@fastgo/ui";
 import { DateTime, Money } from "@/components/money";
-import { attachmentError, type AttachmentError } from "@/lib/claims/attachments";
-import type { ClaimOrderInfo, ClaimState } from "@/lib/data/claims";
 import {
+  attachmentError,
+  type AttachmentError,
   CLAIM_ATTACHMENT_MAX_BYTES,
   CLAIM_ATTACHMENT_MAX_FILES,
   CLAIM_ATTACHMENT_TYPES,
   CLAIM_FLAT_CAP_MILLIMES,
   CLAIM_REPLY_DELAY_HOURS,
   CLAIM_REPORT_DELAY_HOURS,
-} from "@/lib/order/constants";
+} from "@fastgo/domain";
+import type { ClaimOrderInfo, ClaimState } from "@/lib/data/claims";
 
 const STATE_LOOK: Record<ClaimState, BadgeTone> = {
   open: "info",

@@ -1,5 +1,24 @@
 import { describe, expect, it } from "vitest";
-import { availableSlots, isSlotInFuture, slotDay, tunisTimeToUtc } from "./slots";
+import {
+  availableSlots as availableSlotsWith,
+  isSlotInFuture,
+  slotDay,
+  tunisTimeToUtc,
+  type PickupWindow,
+} from "./slots";
+
+// The example windows of the web app (decision 7), copied: the rule takes the table as an argument.
+const WINDOWS: PickupWindow[] = [
+  { dayOffset: 0, start: "09:00", end: "11:00" },
+  { dayOffset: 0, start: "11:00", end: "13:00" },
+  { dayOffset: 0, start: "14:00", end: "16:00" },
+  { dayOffset: 0, start: "16:00", end: "18:00" },
+  { dayOffset: 1, start: "09:00", end: "11:00" },
+  { dayOffset: 1, start: "11:00", end: "13:00" },
+  { dayOffset: 1, start: "14:00", end: "16:00" },
+  { dayOffset: 1, start: "16:00", end: "18:00" },
+];
+const availableSlots = (at: number) => availableSlotsWith(at, WINDOWS);
 
 // 4 November 2026, 09:30 in Tunis (UTC+1).
 const MORNING = Date.parse("2026-11-04T08:30:00Z");

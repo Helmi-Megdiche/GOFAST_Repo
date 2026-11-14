@@ -9,7 +9,7 @@ import type { CancelOption } from "@/lib/data/cancel-option";
 import { cancelFeeOf, cancelOrder } from "@/lib/data/cancel";
 import { NetworkError } from "@/lib/data/orders";
 import { getSession } from "@/lib/data/session";
-import { CANCEL_FEE_MILLIMES } from "@/lib/order/constants";
+import { CANCEL_FEE_MILLIMES } from "@fastgo/domain";
 
 type Shown = "free" | "withFee" | "mayHaveFee";
 type Problem = "claimOnly" | "notCancellable" | "network" | null;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import type { ZoneResult } from "../data/zones";
-import { makeQuote } from "./pricing";
+import { type ZoneResult } from "@fastgo/domain";
+import { makeQuote, availableSlots } from "@/lib/order/example-data";
 import { buildOrderRequest } from "./request";
 import {
   offeredServices,
@@ -10,7 +10,6 @@ import {
   STEPS,
   withNewQuote,
 } from "./steps";
-import { availableSlots } from "./slots";
 import { readyDraft } from "./test-draft";
 
 const T0 = Date.parse("2026-11-04T08:30:00Z"); // 09:30 in Tunis

@@ -5,7 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { formatDate, type Locale } from "@fastgo/i18n";
 import { Alert, Button, Card, CodeInput, Ltr } from "@fastgo/ui";
 import { sendCode, verifyCode, type CodePurpose, type CodeTarget } from "@/lib/data/otp";
-import { CODE_LENGTH, CODE_VALIDITY_MS } from "@/lib/order/constants";
+import { CODE_LENGTH, CODE_VALIDITY_MS } from "@fastgo/domain";
 import { useNow } from "@/components/order/use-now";
 
 type Notice = { tone: "error" | "success" | "info"; text: string } | null;

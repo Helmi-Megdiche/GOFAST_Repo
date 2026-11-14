@@ -9,7 +9,7 @@ import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { now } from "@/lib/order/clock";
 import { withSenderPhone, type AddressDraft } from "@/lib/order/draft";
 import { senderFormSchema } from "@/lib/order/schemas";
-import { availableSlots } from "@/lib/order/slots";
+import { availableSlots } from "@/lib/order/example-data";
 import { StepBusy } from "./busy";
 import { CancelOrder } from "./cancel-order";
 import { PricePending } from "./price-aside";

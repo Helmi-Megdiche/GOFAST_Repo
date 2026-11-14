@@ -1,13 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
-import { CODE_VERIFIED_WINDOW_MS } from "../order/constants";
+import { CODE_VERIFIED_WINDOW_MS, isValidTrackingCode } from "@fastgo/domain";
+import { makeQuote, availableSlots } from "@/lib/order/example-data";
 import type { OrderDraft } from "../order/draft";
-import { makeQuote } from "../order/pricing";
 import { priceInputOf } from "../order/steps";
 import { buildOrderRequest, type OrderRequest } from "../order/request";
-import { availableSlots } from "../order/slots";
 import { readyDraft as readyTestDraft } from "../order/test-draft";
-import { isValidTrackingCode } from "../tracking-code";
 import { readJson, useMemoryStorage, writeJson } from "../storage";
 import { createAccount, returnBalanceMillimes, sessionFor } from "./accounts";
 import { savedRecipients } from "./address-book";

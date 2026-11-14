@@ -10,7 +10,7 @@ import { setNewPassword } from "@/lib/data/auth";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { currentFlow, endFlow } from "@/lib/auth/flow";
 import { withNext } from "@/lib/auth/next";
-import { PASSWORD_MIN_LENGTH } from "@/lib/order/constants";
+import { PASSWORD_MIN_LENGTH } from "@fastgo/domain";
 import { newPasswordSchema } from "@/lib/order/schemas";
 
 /** New password after W21 and W20. Proposed step: it is not in the mockup (decision 16). */

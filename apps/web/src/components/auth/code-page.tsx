@@ -11,8 +11,7 @@ import { consumeVerification } from "@/lib/data/otp";
 import { getSession, setSession } from "@/lib/data/session";
 import { currentFlow, endFlow, type AuthFlow } from "@/lib/auth/flow";
 import { afterSignInPath, withNext } from "@/lib/auth/next";
-import { safeNext } from "@/lib/auth/safe-next";
-import { maskEmail, maskPhone, normalizePhone } from "@/lib/phone";
+import { safeNext, maskEmail, maskPhone, normalizePhone } from "@fastgo/domain";
 import { AccountExists, CodeVerification } from "./code-verification";
 
 /**

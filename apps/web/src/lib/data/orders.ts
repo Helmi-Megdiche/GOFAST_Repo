@@ -1,17 +1,22 @@
 import { now } from "../order/clock";
-import { DELIVERY_CODE_DIGITS } from "../order/constants";
-import { addressPriceKey, isQuoteValid, priceKey, type PriceLine } from "../order/pricing";
-import { fingerprint, type OrderRequest } from "../order/request";
-import { isSlotInFuture } from "../order/slots";
-import { proofLevelFor } from "../order/proof";
-import { servicesOffered } from "../order/steps";
 import {
+  DELIVERY_CODE_DIGITS,
+  addressPriceKey,
+  isQuoteValid,
+  priceKey,
+  type PriceLine,
+  isSlotInFuture,
+  proofLevelFor,
   isValidTrackingCode,
   normalizeTrackingCode,
   randomTrackingCode,
   type RandomBytes,
-} from "../tracking-code";
-import { splitWhole, kgTextToGrams } from "../order/split";
+  splitWhole,
+  kgTextToGrams,
+  digest,
+} from "@fastgo/domain";
+import { fingerprint, type OrderRequest } from "../order/request";
+import { servicesOffered } from "../order/steps";
 import { readJson, removeKey } from "../storage";
 import { isClosedSession, isVerifiedPhoneForSession, returnBalanceMillimes } from "./accounts";
 import { mockDelay } from "./delay";
@@ -35,7 +40,6 @@ import {
 } from "./order-model";
 import { isTargetVerified } from "./otp";
 import { writeOutbox } from "./outbox";
-import { digest } from "../hash";
 import { saveRecipient } from "./address-book";
 import { mintRecipientLink } from "./recipient-links";
 import { canPayOnAccount, getSession } from "./session";
