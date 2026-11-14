@@ -1,0 +1,23 @@
+get:
+  operationId: getTracking
+  summary: Follow an order by its tracking number
+  description: >-
+    Public, with limited attempts. Returns only the allowed fields (R405). An unknown number
+    answers 404; a number that does not have the FG-XXXX-XXXX shape answers 400.
+  tags: [tracking]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: cahier
+  security: []
+  parameters:
+    - $ref: "../parameters.yaml#/TrackingNumberPath"
+  responses:
+    "200":
+      description: The public tracking.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/order.yaml#/PublicTracking" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "404": { $ref: "../responses/errors.yaml#/NotFound" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

@@ -1,0 +1,16 @@
+get:
+  operationId: listServices
+  summary: The offers, parcel types and extras
+  description: Addition to the cahier. Read from the settings and price lists; a value GOFAST has not set is null.
+  tags: [pricing]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: addition
+  security: []
+  responses:
+    "200":
+      description: The catalog.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/quote.yaml#/ServiceCatalog" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

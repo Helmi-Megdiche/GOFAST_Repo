@@ -1,0 +1,30 @@
+post:
+  operationId: createAccount
+  summary: Sign up
+  description: >-
+    Addition to the cahier. Creates the account and signs it in. The phone must have been verified
+    for the purpose `signUp` (`phone_check_id`), which is checked first. A phone or e-mail that
+    already has an account gives 422 RULE_REFUSED with the field `phone` or `email` and the reason
+    `phoneTaken` or `emailTaken` (R101). A refused sign-up uses up its `phone_check_id`, and sign-up
+    attempts are limited (429 TOO_MANY_ATTEMPTS, provisional value), so one verified phone cannot
+    probe e-mails.
+  tags: [auth]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: addition
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/account.yaml#/SignUpRequest" }
+  responses:
+    "201":
+      description: The account exists and is signed in.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/account.yaml#/Me" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "422": { $ref: "../responses/errors.yaml#/RuleRefused" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

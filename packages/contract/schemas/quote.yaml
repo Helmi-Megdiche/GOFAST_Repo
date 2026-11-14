@@ -1,0 +1,159 @@
+ServiceCatalog:
+  type: object
+  description: >-
+    Prices, cut-off times, limits and fees are null until GOFAST sets them; the pages then show the
+    placeholder ([PRIX], [HEURE], [LIMITE], [TARIF]). Nothing is invented.
+  required: [offers, parcel_types, extras]
+  additionalProperties: false
+  properties:
+    offers:
+      type: array
+      items:
+        type: object
+        required: [code, from_price_millimes, cutoff_time]
+        additionalProperties: false
+        properties:
+          code: { $ref: "common.yaml#/ServiceCode" }
+          from_price_millimes:
+            oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+          cutoff_time:
+            type: [string, "null"]
+            description: Local time of day, HH:MM, Africa/Tunis.
+    parcel_types:
+      type: array
+      items:
+        type: object
+        required: [code, limit]
+        additionalProperties: false
+        properties:
+          code: { $ref: "common.yaml#/ParcelTypeCode" }
+          limit: { type: [string, "null"] }
+    extras:
+      type: array
+      items:
+        type: object
+        required: [code, fee_millimes]
+        additionalProperties: false
+        properties:
+          code:
+            type: string
+            enum: [fragile, declaredValue, retry, return]
+          fee_millimes:
+            oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+QuoteRequest:
+  type: object
+  required: [service, parcel_type, weight_g, departure, arrival]
+  additionalProperties: false
+  properties:
+    service: { $ref: "common.yaml#/ServiceCode" }
+    parcel_type: { $ref: "common.yaml#/ParcelTypeCode" }
+    parcel_count:
+      type: integer
+      minimum: 1
+      default: 1
+      description: >-
+        Number of parcels. The price is per parcel times this count. The maximum (provisional 10)
+        comes from the settings; more gives RULE_REFUSED `tooManyParcels`.
+    weight_g:
+      type: integer
+      minimum: 1
+      description: Declared weight of one parcel, in grams.
+    packaging:
+      type: boolean
+      default: false
+      description: GOFAST packaging (reponses-gofast.md). Its price is in the `options` line.
+    fragile:
+      type: boolean
+      default: false
+    declared_value_millimes:
+      oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    departure: { $ref: "common.yaml#/AddressInput" }
+    arrival: { $ref: "common.yaml#/AddressInput" }
+AmountLine:
+  type: object
+  description: >-
+    One line of the price. `millimes` is `unit_millimes` times `count`; null while GOFAST has not
+    confirmed the line (vat and stamp, see reponses-gofast.md).
+  required: [kind, unit_millimes, count, millimes]
+  additionalProperties: false
+  properties:
+    kind:
+      type: string
+      enum: [base, distance, weight, options, surcharge, vat, stamp]
+    unit_millimes:
+      description: Price for one parcel.
+      oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    count:
+      type: integer
+      minimum: 1
+      description: The number of parcels the unit price is multiplied by.
+    millimes:
+      oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+DiscountLine:
+  type: object
+  description: A discount line. Its amounts are negative or zero, the only ones that may be.
+  required: [kind, unit_millimes, count, millimes]
+  additionalProperties: false
+  properties:
+    kind:
+      type: string
+      const: discount
+    unit_millimes: { $ref: "common.yaml#/DiscountMillimes" }
+    count:
+      type: integer
+      minimum: 1
+    millimes: { $ref: "common.yaml#/DiscountMillimes" }
+PriceLine:
+  description: Only a `discount` line may be negative.
+  oneOf:
+    - $ref: "#/AmountLine"
+    - $ref: "#/DiscountLine"
+Quote:
+  type: object
+  description: R204 and R205. Valid for the time in the settings (15 min), then recalculated and revalidated.
+  required:
+    [
+      id,
+      service,
+      parcel_type,
+      parcel_count,
+      weight_g,
+      packaging,
+      fragile,
+      lines,
+      total_millimes,
+      surcharge,
+      quoted_at,
+      expires_at,
+    ]
+  additionalProperties: false
+  properties:
+    id: { $ref: "common.yaml#/ResourceId" }
+    service: { $ref: "common.yaml#/ServiceCode" }
+    parcel_type: { $ref: "common.yaml#/ParcelTypeCode" }
+    parcel_count: { type: integer, minimum: 1 }
+    weight_g: { type: integer, minimum: 1 }
+    packaging: { type: boolean }
+    fragile: { type: boolean }
+    lines:
+      type: array
+      description: R204. One entry for each of base, distance, weight, options, surcharge, discount, vat and stamp, in that order, even at 0.
+      items: { $ref: "#/PriceLine" }
+    total_millimes:
+      description: Sum (all parcels) of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT).
+      $ref: "common.yaml#/Money"
+    surcharge:
+      oneOf:
+        - type: "null"
+        - type: object
+          description: R207. Name and ceiling are shown before the customer validates.
+          required: [code, ceiling_millimes]
+          additionalProperties: false
+          properties:
+            code:
+              type: string
+              enum: [rain]
+            ceiling_millimes:
+              oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    quoted_at: { $ref: "common.yaml#/UtcTimestamp" }
+    expires_at: { $ref: "common.yaml#/UtcTimestamp" }

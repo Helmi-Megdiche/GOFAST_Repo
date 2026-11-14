@@ -1,0 +1,21 @@
+get:
+  operationId: getQuote
+  summary: Read a quote
+  description: After its validity the answer is 410 QUOTE_EXPIRED and the customer revalidates a new price (R205).
+  tags: [pricing]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: cahier
+  security: []
+  parameters:
+    - $ref: "../parameters.yaml#/QuoteId"
+  responses:
+    "200":
+      description: The quote.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/quote.yaml#/Quote" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "404": { $ref: "../responses/errors.yaml#/NotFound" }
+    "410": { $ref: "../responses/errors.yaml#/QuoteExpired" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }
