@@ -82,11 +82,60 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+  # On a push to main, the merge commit usually has the same git tree as the merge commit
+  # that already passed e2e on its PR (main did not move in between). Same tree = same code,
+  # so the shards are skipped. The PR run leaves its tree in the `e2e-tree` artifact.
+  # This job never fails: on any API error it says "not passed" and e2e runs as usual.
+  e2e-prior:
+    name: E2E already passed on the PR
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      tree: ${{ steps.prior.outputs.tree }}
+      passed: ${{ steps.prior.outputs.passed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Look for a PR run that passed e2e on this tree
+        id: prior
+        env:
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          tree=$(git rev-parse 'HEAD^{tree}')
+          passed=false
+          pr_head=$(git rev-parse -q --verify 'HEAD^2')
+          if [ "$EVENT" = "push" ] && [ -n "$pr_head" ]; then
+            ids=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$pr_head&per_page=20" \
+              --jq '.workflow_runs[] | select(.conclusion == "success") | .id')
+            for id in $ids; do
+              rm -rf prior
+              if gh run download "$id" --repo "$REPO" --name e2e-tree --dir prior \
+                && [ "$(cat prior/tree)" = "$tree" ]; then
+                echo "PR run $id passed e2e on the same tree."
+                passed=true
+                break
+              fi
+            done
+          fi
+          echo "tree=$tree passed=$passed"
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+          echo "passed=$passed" >> "$GITHUB_OUTPUT"
+
   # Three machines, each runs a third of the tests (one worker per machine).
   e2e-shard:
     name: E2E shard ${{ matrix.shard }}/3
-    needs: [checks, changes]
-    if: ${{ needs.changes.outputs.code == 'true' }}
+    needs: [checks, changes, e2e-prior]
+    if: >-
+      ${{ !cancelled() && needs.checks.result == 'success' && needs.changes.outputs.code == 'true'
+      && needs.e2e-prior.outputs.passed != 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     strategy:
@@ -158,7 +207,7 @@ jobs:
   # One HTML report from the three blobs, named as before.
   e2e-report:
     name: E2E report
-    needs: e2e-shard
+    needs: [e2e-shard, e2e-prior]
     if: ${{ !cancelled() && needs.e2e-shard.result != 'skipped' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
@@ -202,12 +251,28 @@ jobs:
           path: apps/web/playwright-report
           retention-days: 14
 
+      # Read by `e2e-prior` on the push to main after the merge.
+      - name: Record the tree that passed e2e
+        if: ${{ github.event_name == 'pull_request' && needs.e2e-shard.result == 'success' }}
+        env:
+          TREE: ${{ needs.e2e-prior.outputs.tree }}
+        run: mkdir -p e2e-tree && echo "$TREE" > e2e-tree/tree
+
+      - name: Upload the tree that passed e2e
+        if: ${{ github.event_name == 'pull_request' && needs.e2e-shard.result == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-tree
+          path: e2e-tree
+          retention-days: 7
+
   # The check name seen on a PR. Green when every shard passed, or when the shards were
-  # skipped because only docs and infra changed. Red on a failed or cancelled shard, and
+  # skipped because only docs and infra changed, or (push to main) because the same tree
+  # already passed e2e on its PR. Red on a failed or cancelled shard, and
   # also when the shards did not run although code changed (a failed `checks` job).
   e2e:
     name: E2E (Playwright, axe-core)
-    needs: [changes, e2e-shard]
+    needs: [changes, e2e-shard, e2e-prior]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -216,11 +281,16 @@ jobs:
         env:
           CODE: ${{ needs.changes.outputs.code }}
           SHARDS: ${{ needs.e2e-shard.result }}
+          PRIOR: ${{ needs.e2e-prior.outputs.passed }}
         run: |
-          echo "code=$CODE shards=$SHARDS"
+          echo "code=$CODE shards=$SHARDS prior=$PRIOR"
           if [ "$SHARDS" = "success" ]; then exit 0; fi
           if [ "$SHARDS" = "skipped" ] && [ "$CODE" = "false" ]; then
             echo "Only docs, Markdown or infra changed: e2e skipped."
+            exit 0
+          fi
+          if [ "$SHARDS" = "skipped" ] && [ "$PRIOR" = "true" ]; then
+            echo "This tree already passed e2e on its PR: e2e skipped."
             exit 0
           fi
           echo "e2e did not pass."
