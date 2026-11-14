@@ -4,10 +4,12 @@ import {
   checkMissionMove,
   checkOrderMove,
   checkParcelMove,
+  checkPublicEndReason,
   DERIVED_ORDER_STATES,
   deriveOrderOutcome,
   FINAL_ORDER_STATES,
   FINAL_PARCEL_STATES,
+  MISSION_ACTIVE,
   MISSION_NEXT,
   nextOrderOutcome,
   ORDER_NEXT,
@@ -19,17 +21,147 @@ import {
   type ParcelStatus,
 } from "./states";
 
-const ORDERS = Object.keys(ORDER_NEXT) as OrderStatus[];
-const PARCELS = Object.keys(PARCEL_NEXT) as ParcelStatus[];
-const MISSIONS = Object.keys(MISSION_NEXT) as MissionStatus[];
+// The expected values are literals copied from regles.md "États" and NOT read from the tables under
+// test: a test that builds its expectation from ORDER_NEXT, PARCEL_NEXT... passes whatever they say (RV-12).
+const ORDERS: OrderStatus[] = [
+  "received",
+  "confirmed",
+  "assigned",
+  "pickup_failed",
+  "picked_up",
+  "in_transit",
+  "delivered",
+  "partially_delivered",
+  "returned",
+  "lost",
+  "canceled",
+];
+const PARCELS: ParcelStatus[] = [
+  "to_collect",
+  "taken",
+  "at_depot",
+  "in_transit",
+  "delivery_failed",
+  "returning",
+  "handed_over",
+  "returned",
+  "lost",
+  "canceled",
+];
+const MISSIONS: MissionStatus[] = [
+  "proposed",
+  "accepted",
+  "refused",
+  "expired",
+  "arrived",
+  "finished",
+];
 const OK = { ok: true };
+
+/** Every legal move as "from>to", written by hand from regles.md. */
+const ORDER_LEGAL = new Set([
+  "received>confirmed",
+  "received>canceled",
+  "confirmed>assigned",
+  "confirmed>canceled",
+  "assigned>picked_up",
+  "assigned>pickup_failed",
+  "assigned>canceled",
+  "assigned>confirmed",
+  "pickup_failed>confirmed",
+  "pickup_failed>canceled",
+  "picked_up>in_transit",
+  "picked_up>lost",
+  "in_transit>delivered",
+  "in_transit>partially_delivered",
+  "in_transit>returned",
+  "in_transit>lost",
+]);
+const PARCEL_LEGAL = new Set([
+  "to_collect>taken",
+  "to_collect>canceled",
+  "taken>at_depot",
+  "taken>in_transit",
+  "taken>lost",
+  "at_depot>in_transit",
+  "at_depot>returning",
+  "at_depot>lost",
+  "in_transit>handed_over",
+  "in_transit>delivery_failed",
+  "in_transit>lost",
+  "delivery_failed>at_depot",
+  "delivery_failed>in_transit",
+  "delivery_failed>returning",
+  "delivery_failed>lost",
+  "returning>returned",
+  "returning>lost",
+  "lost>at_depot",
+]);
+const MISSION_LEGAL = new Set([
+  "proposed>accepted",
+  "proposed>refused",
+  "proposed>expired",
+  "proposed>finished",
+  "accepted>arrived",
+  "accepted>finished",
+  "arrived>finished",
+]);
+const DERIVED_LITERAL = [
+  "picked_up",
+  "in_transit",
+  "delivered",
+  "partially_delivered",
+  "returned",
+  "lost",
+];
+const FINAL_ORDER_LITERAL = ["delivered", "partially_delivered", "returned", "lost", "canceled"];
+const SCAN_LITERAL = [
+  "assigned",
+  "picked_up",
+  "in_transit",
+  "delivered",
+  "partially_delivered",
+  "returned",
+  "lost",
+];
+const MISSION_ACTIVE_LITERAL = ["proposed", "accepted", "arrived"];
+const legal = (set: Set<string>, from: string, to: string) => set.has(`${from}>${to}`);
+
+describe("the shared tables are the regles.md ones (RV-12: literals, not the tables themselves)", () => {
+  const pairs = <S extends string>(table: Readonly<Record<S, readonly S[]>>) =>
+    new Set(
+      (Object.keys(table) as S[]).flatMap((from) => table[from].map((to) => `${from}>${to}`)),
+    );
+  it("ORDER_NEXT, PARCEL_NEXT and MISSION_NEXT list exactly the legal pairs", () => {
+    expect(pairs(ORDER_NEXT)).toEqual(ORDER_LEGAL);
+    expect(pairs(PARCEL_NEXT)).toEqual(PARCEL_LEGAL);
+    expect(pairs(MISSION_NEXT)).toEqual(MISSION_LEGAL);
+    expect(Object.keys(ORDER_NEXT).sort()).toEqual([...ORDERS].sort());
+    expect(Object.keys(PARCEL_NEXT).sort()).toEqual([...PARCELS].sort());
+    expect(Object.keys(MISSION_NEXT).sort()).toEqual([...MISSIONS].sort());
+  });
+  it("the state sets are exactly the literals (derived, final, scan, active)", () => {
+    expect([...DERIVED_ORDER_STATES].sort()).toEqual([...DERIVED_LITERAL].sort());
+    expect([...FINAL_ORDER_STATES].sort()).toEqual([...FINAL_ORDER_LITERAL].sort());
+    expect([...SCAN_ALLOWED].sort()).toEqual([...SCAN_LITERAL].sort());
+    expect([...MISSION_ACTIVE].sort()).toEqual([...MISSION_ACTIVE_LITERAL].sort());
+  });
+  it("the tables cannot be changed at run time", () => {
+    expect(() => (ORDER_NEXT.received as OrderStatus[]).push("lost")).toThrow();
+    expect(
+      () => ((MISSION_NEXT as unknown as Record<string, string[]>).refused = ["accepted"]),
+    ).toThrow();
+    expect(() => (SCAN_ALLOWED as OrderStatus[]).push("confirmed")).toThrow();
+    expect(() => (FINAL_PARCEL_STATES as ParcelStatus[]).push("taken")).toThrow();
+  });
+});
 
 describe("checkOrderMove (ADR-1, regles.md: États d'une commande)", () => {
   for (const from of ORDERS) {
     for (const to of ORDERS) {
-      const expected = DERIVED_ORDER_STATES.includes(to)
+      const expected = DERIVED_LITERAL.includes(to)
         ? { refused: "derivedState", from, to }
-        : ORDER_NEXT[from].includes(to)
+        : legal(ORDER_LEGAL, from, to)
           ? OK
           : { refused: "illegalTransition", from, to };
       it(`${from} → ${to}`, () => {
@@ -62,7 +194,7 @@ describe("checkParcelMove (ADR-1, regles.md: États d'un colis)", () => {
   for (const from of PARCELS) {
     for (const to of PARCELS) {
       // A scan is checked against an order that accepts it, so only the parcel table is tested here.
-      const expected = PARCEL_NEXT[from].includes(to)
+      const expected = legal(PARCEL_LEGAL, from, to)
         ? OK
         : { refused: "illegalTransition", from, to };
       it(`${from} → ${to}`, () => {
@@ -73,10 +205,10 @@ describe("checkParcelMove (ADR-1, regles.md: États d'un colis)", () => {
 
   it("a scan reads the order first: orderNotAssigned, never illegalTransition", () => {
     for (const order of ORDERS) {
-      const expected = SCAN_ALLOWED.includes(order) ? OK : { refused: "orderNotAssigned" };
+      const expected = SCAN_LITERAL.includes(order) ? OK : { refused: "orderNotAssigned" };
       expect(checkParcelMove("to_collect", "taken", order)).toEqual(expected);
       // Even from a state that cannot be scanned, the order is looked at first.
-      if (!SCAN_ALLOWED.includes(order))
+      if (!SCAN_LITERAL.includes(order))
         expect(checkParcelMove("canceled", "taken", order)).toEqual({
           refused: "orderNotAssigned",
         });
@@ -104,11 +236,14 @@ describe("checkMissionMove (H1, endReasonInternal)", () => {
 
   for (const from of MISSIONS) {
     for (const to of MISSIONS) {
-      if (to === "finished") continue; // a finish has its own rules, below
-      const expected = MISSION_NEXT[from].includes(to)
-        ? OK
+      // A normal finish (no endReason) needs `arrived`, so it is OK only from arrived; every other
+      // cell of the finished column is illegalTransition, whatever the table says.
+      const expected = legal(MISSION_LEGAL, from, to)
+        ? to === "finished" && from !== "arrived"
+          ? { refused: "illegalTransition", from, to }
+          : OK
         : { refused: "illegalTransition", from, to };
-      it(`${from} → ${to}`, () => {
+      it(`${from} → ${to} (public, no endReason)`, () => {
         expect(checkMissionMove(mission(from), to, null, SCANNED, "public")).toEqual(expected);
       });
     }
@@ -132,7 +267,7 @@ describe("checkMissionMove (H1, endReasonInternal)", () => {
     expect(checkMissionMove(mission("arrived"), "finished", null, SCANNED, "public")).toEqual(OK);
   });
 
-  it("only a cascade ends a mission early, from proposed, accepted or arrived", () => {
+  it("H1: only a cascade ends a mission early, from proposed, accepted or arrived", () => {
     for (const from of ["proposed", "accepted", "arrived"] as const) {
       for (const reason of ["driverRemoved", "pickupFailed", "orderCanceled"] as const) {
         expect(checkMissionMove(mission(from), "finished", reason, [], "cascade")).toEqual(OK);
@@ -154,6 +289,19 @@ describe("checkMissionMove (H1, endReasonInternal)", () => {
     });
   });
 
+  it("a cascade endReason on a move that is not a finish is illegalTransition", () => {
+    for (const to of ["accepted", "refused", "expired", "arrived"] as const) {
+      expect(checkMissionMove(mission("proposed"), to, "orderCanceled", [], "cascade")).toEqual({
+        refused: "illegalTransition",
+        from: "proposed",
+        to,
+      });
+    }
+    expect(
+      checkMissionMove(mission("accepted"), "arrived", "driverRemoved", [], "cascade"),
+    ).toEqual({ refused: "illegalTransition", from: "accepted", to: "arrived" });
+  });
+
   it("a normal finish is only allowed from arrived", () => {
     for (const from of ["proposed", "accepted"] as const) {
       expect(checkMissionMove(mission(from), "finished", null, SCANNED, "public")).toEqual({
@@ -164,7 +312,7 @@ describe("checkMissionMove (H1, endReasonInternal)", () => {
     }
   });
 
-  it("a pickup finish needs a parcel that left to_collect and was not canceled (noParcelTaken)", () => {
+  it("R502 pickup finish: needs a parcel that left to_collect and was not canceled (noParcelTaken)", () => {
     const finish = (parcels: ParcelStatus[], kind: "pickup" | "delivery" = "pickup") =>
       checkMissionMove(mission("arrived", kind), "finished", null, parcels, "public");
     const refused = { refused: "noParcelTaken", from: "arrived", to: "finished" };
@@ -177,6 +325,16 @@ describe("checkMissionMove (H1, endReasonInternal)", () => {
     }
     // A delivery mission has no scan rule.
     expect(finish(["to_collect"], "delivery")).toEqual(OK);
+  });
+});
+
+describe("checkPublicEndReason (endReasonInternal, for every subject)", () => {
+  it("refuses any end reason, accepts none or undefined", () => {
+    for (const reason of ["driverRemoved", "pickupFailed", "orderCanceled"] as const) {
+      expect(checkPublicEndReason(reason)).toEqual({ refused: "endReasonInternal" });
+    }
+    expect(checkPublicEndReason(null)).toEqual(OK);
+    expect(checkPublicEndReason(undefined)).toEqual(OK);
   });
 });
 
@@ -197,7 +355,7 @@ describe("deriveOrderOutcome", () => {
     });
   }
 
-  it("the four outcomes", () => {
+  it("the four outcomes (T19: partially_delivered when one parcel came back)", () => {
     expect(deriveOrderOutcome(["handed_over", "handed_over", "handed_over"])).toBe("delivered");
     expect(deriveOrderOutcome(["handed_over", "handed_over", "returned"])).toBe(
       "partially_delivered",
@@ -207,13 +365,13 @@ describe("deriveOrderOutcome", () => {
     expect(deriveOrderOutcome(["lost", "lost"])).toBe("lost");
   });
 
-  it("ignores canceled parcels (H3) and throws when none counts", () => {
+  it("H3: ignores canceled parcels, and throws when none counts", () => {
     expect(deriveOrderOutcome(["handed_over", "canceled"])).toBe("delivered");
     expect(() => deriveOrderOutcome(["canceled"])).toThrow();
     expect(() => deriveOrderOutcome([])).toThrow();
   });
 
-  it("never moves backward: an in_transit order stays in_transit while a parcel is not final", () => {
+  it("H4 never moves backward: an in_transit order stays in_transit while a parcel is not final", () => {
     expect(deriveOrderOutcome(["taken", "lost"], "in_transit")).toBe("in_transit");
     expect(deriveOrderOutcome(["taken", "lost"], "picked_up")).toBe("picked_up");
   });

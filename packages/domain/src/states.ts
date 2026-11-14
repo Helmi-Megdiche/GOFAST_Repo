@@ -38,7 +38,18 @@ export type EndReason = null | "driverRemoved" | "pickupFailed" | "orderCanceled
 export type DerivedOutcome =
   "picked_up" | "in_transit" | "delivered" | "partially_delivered" | "returned" | "lost";
 
-export const ORDER_NEXT: Record<OrderStatus, readonly OrderStatus[]> = {
+/**
+ * The tables are shared rules: frozen, so a caller (the API, a test helper) cannot change them by
+ * accident. `Object.freeze` is shallow, so each list is frozen too.
+ */
+function freezeTable<K extends string, V>(
+  table: Record<K, readonly V[]>,
+): Readonly<Record<K, readonly V[]>> {
+  for (const list of Object.values<readonly V[]>(table)) Object.freeze(list);
+  return Object.freeze(table);
+}
+
+export const ORDER_NEXT: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = freezeTable({
   received: ["confirmed", "canceled"],
   confirmed: ["assigned", "canceled"],
   assigned: ["picked_up", "pickup_failed", "canceled", "confirmed"],
@@ -52,9 +63,9 @@ export const ORDER_NEXT: Record<OrderStatus, readonly OrderStatus[]> = {
   returned: [],
   lost: [],
   canceled: [],
-};
+});
 
-export const PARCEL_NEXT: Record<ParcelStatus, readonly ParcelStatus[]> = {
+export const PARCEL_NEXT: Readonly<Record<ParcelStatus, readonly ParcelStatus[]>> = freezeTable({
   to_collect: ["taken", "canceled"],
   taken: ["at_depot", "in_transit", "lost"],
   at_depot: ["in_transit", "returning", "lost"],
@@ -65,48 +76,55 @@ export const PARCEL_NEXT: Record<ParcelStatus, readonly ParcelStatus[]> = {
   returned: [],
   lost: ["at_depot"],
   canceled: [],
-};
+});
 
 /** `finished` from `proposed` or `accepted` is an early end: reachable only through the order cascades (H1). */
-export const MISSION_NEXT: Record<MissionStatus, readonly MissionStatus[]> = {
+export const MISSION_NEXT: Readonly<Record<MissionStatus, readonly MissionStatus[]>> = freezeTable({
   proposed: ["accepted", "refused", "expired", "finished"],
   accepted: ["arrived", "finished"],
   refused: [],
   expired: [],
   arrived: ["finished"],
   finished: [],
-};
+});
 
 /** Reached only through parcel changes, never by a direct order transition. */
-export const DERIVED_ORDER_STATES: readonly OrderStatus[] = [
+export const DERIVED_ORDER_STATES: readonly OrderStatus[] = Object.freeze([
   "picked_up",
   "in_transit",
   "delivered",
   "partially_delivered",
   "returned",
   "lost",
-];
+] as const);
 
-export const FINAL_ORDER_STATES: readonly OrderStatus[] = [
+export const FINAL_ORDER_STATES: readonly OrderStatus[] = Object.freeze([
   "delivered",
   "partially_delivered",
   "returned",
   "lost",
   "canceled",
-];
+] as const);
 
-export const FINAL_PARCEL_STATES: readonly ParcelStatus[] = [
+export const FINAL_PARCEL_STATES: readonly ParcelStatus[] = Object.freeze([
   "handed_over",
   "returned",
   "lost",
   "canceled",
-];
+] as const);
 
 /** A mission that is still running: the early end of the order cascades applies to it. */
-export const MISSION_ACTIVE: readonly MissionStatus[] = ["proposed", "accepted", "arrived"];
+export const MISSION_ACTIVE: readonly MissionStatus[] = Object.freeze([
+  "proposed",
+  "accepted",
+  "arrived",
+] as const);
 
 /** Order states in which a parcel scan (`to_collect → taken`) is accepted. */
-export const SCAN_ALLOWED: readonly OrderStatus[] = ["assigned", ...DERIVED_ORDER_STATES];
+export const SCAN_ALLOWED: readonly OrderStatus[] = Object.freeze([
+  "assigned",
+  ...DERIVED_ORDER_STATES,
+] as const);
 
 export type Refusal =
   | "illegalTransition"
@@ -153,6 +171,17 @@ export function deriveOrderOutcome(
   return "lost";
 }
 
+/**
+ * A public call (a driver, an agent, a client) can never set an `endReason`: the three reasons are
+ * the result of an order change (assigned → confirmed, assigned → pickup_failed, → canceled), set by
+ * the cascades only. A mission ended alone would leave an `assigned` order with no active mission.
+ * Whoever receives a public move calls this FIRST, for an order, a parcel or a mission, before
+ * reading anything: the refusal does not depend on what exists.
+ */
+export function checkPublicEndReason(endReason: EndReason | undefined): MoveResult {
+  return endReason != null ? { refused: "endReasonInternal" } : OK;
+}
+
 /** A direct order change (a client, an agent): derived states are never set by hand. */
 export function checkOrderMove(from: OrderStatus, to: OrderStatus): MoveResult {
   if (DERIVED_ORDER_STATES.includes(to)) return { refused: "derivedState", from, to };
@@ -180,7 +209,8 @@ export function checkParcelMove(
  * `endReason`, which is refused first, before anything else is looked at; only the order cascades
  * (`"cascade"`) end a mission early. A normal finish (no endReason) needs `arrived` and, for a
  * pickup, at least one parcel scanned (not `to_collect`, not `canceled`): `parcelStatuses` are the
- * order's parcels.
+ * order's parcels. They are read only for that finish: for any other move the caller may pass `[]`
+ * and need not query the parcels (accept, arrive...).
  */
 export function checkMissionMove(
   mission: { kind: "pickup" | "delivery"; status: MissionStatus },
@@ -189,9 +219,14 @@ export function checkMissionMove(
   parcelStatuses: readonly ParcelStatus[],
   origin: "public" | "cascade",
 ): MoveResult {
-  if (origin === "public" && endReason != null) return { refused: "endReasonInternal" };
+  if (origin === "public") {
+    const verdict = checkPublicEndReason(endReason);
+    if (!("ok" in verdict)) return verdict;
+  }
   const from = mission.status;
   if (!MISSION_NEXT[from]?.includes(to)) return illegal(from, to);
+  // An early end is a finish: a cascade that gives a reason for another move is a bug in the caller.
+  if (endReason !== null && to !== "finished") return illegal(from, to);
   if (to === "finished" && endReason === null) {
     if (from !== "arrived") return illegal(from, to);
     // Ruling: "scanned" means the parcel left to_collect and was not canceled. Testing for `taken`

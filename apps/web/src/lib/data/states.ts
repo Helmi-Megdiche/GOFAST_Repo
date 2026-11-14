@@ -3,6 +3,7 @@ import {
   checkMissionMove,
   checkOrderMove,
   checkParcelMove,
+  checkPublicEndReason,
   nextOrderOutcome,
   MISSION_ACTIVE,
   type CancelFee,
@@ -170,19 +171,25 @@ function transitionOrder(
   return { ok: true };
 }
 
-/** After a parcel change: recompute lossReported, then the derived outcome unless the order is final (H4). */
-function recomputeOrder(orderCode: string, at: number): void {
-  const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[orderCode];
-  if (!order) return;
-  const { status, lossReported } = nextOrderOutcome(
-    order.status,
-    parcelsOf(orderCode).map((p) => p.status),
-  );
-  writeRow(ACCOUNT_ORDERS, orderCode, { ...order, lossReported, status });
+/**
+ * Before a parcel change is written: the order outcome the new parcel states give (lossReported, then
+ * the derived state unless the order is final, H4). It throws on a derived move the table does not
+ * list, so it runs before the first write (RV-04): a throw leaves the parcel and its events as they were.
+ */
+function planOrder(parcel: Parcel, to: ParcelStatus) {
+  const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[parcel.orderCode];
+  if (!order) return null;
+  const statuses = parcelsOf(parcel.orderCode).map((p) => (p.id === parcel.id ? to : p.status));
+  return { order, ...nextOrderOutcome(order.status, statuses) };
+}
+
+/** Writes the planned outcome and runs the cascade of a derived move (the link expiry on a final one). */
+function applyOrder(plan: NonNullable<ReturnType<typeof planOrder>>, at: number): void {
+  const { order, status, lossReported } = plan;
+  writeRow(ACCOUNT_ORDERS, order.code, { ...order, lossReported, status });
   if (status !== order.status) {
-    writeEvent("order", orderCode, order.status, status, SYSTEM, at);
-    // A derived move sets off only the link expiry (on a final outcome).
-    runCascades(orderCode, cascadesOf({ type: "order", from: order.status, to: status }), at);
+    writeEvent("order", order.code, order.status, status, SYSTEM, at);
+    runCascades(order.code, cascadesOf({ type: "order", from: order.status, to: status }), at);
   }
 }
 
@@ -195,10 +202,12 @@ function transitionParcel(
   const parcel = readTable<Parcel>(PARCELS)[id];
   if (!parcel) return { refused: "notFound" };
   // A scan reads the order before the parcel (ADR-1).
-  const order = to === "taken" ? readTable<AccountOrder>(ACCOUNT_ORDERS)[parcel.orderCode] : null;
+  const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[parcel.orderCode];
   const from = parcel.status;
   const verdict = checkParcelMove(from, to, order?.status ?? null);
   if (!("ok" in verdict)) return verdict;
+  // RV-04: the outcome (which can throw) is computed before the first write.
+  const plan = planOrder(parcel, to);
 
   writeRow(PARCELS, id, { ...parcel, status: to });
   // R502: the reason of this failure stays with its event, so a second attempt cannot rewrite it.
@@ -212,7 +221,7 @@ function transitionParcel(
     undefined,
     to === "delivery_failed" ? parcel.failure?.reason : undefined,
   );
-  recomputeOrder(parcel.orderCode, at);
+  if (plan) applyOrder(plan, at);
   return { ok: true };
 }
 
@@ -264,13 +273,10 @@ export function transition(
   actorId: string,
   options: Options = {},
 ): TransitionResult {
-  // The three end reasons are the result of an order change (assigned → confirmed, assigned →
-  // pickup_failed, → canceled), never a call of their own: a mission ended alone would leave an
-  // `assigned` order with no active mission. A public call that sets one is refused by
-  // checkMissionMove (origin "public") before anything is read or written.
-  // An order or a parcel has no end reason at all: asking for one is the same refusal.
-  if (subject.type !== "mission" && options.endReason != null)
-    return { refused: "endReasonInternal" };
+  // Before anything is read: a public call never sets an endReason, whatever the subject is and
+  // whether it exists (an order or a parcel has no end reason at all).
+  const publicVerdict = checkPublicEndReason(options.endReason);
+  if (!("ok" in publicVerdict)) return publicVerdict;
   const at = options.at ?? now();
   switch (subject.type) {
     case "order":

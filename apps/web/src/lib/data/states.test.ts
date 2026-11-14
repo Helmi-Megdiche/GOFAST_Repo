@@ -716,11 +716,39 @@ describe("event log", () => {
   });
 });
 
-describe("recomputeOrder refuses a derived move the order table does not list", () => {
+describe("a derived move the order table does not list throws before any write (RV-04)", () => {
   it("an assigned order whose parcel is at_depot throws instead of writing assigned -> in_transit", () => {
     setOrderStatus("assigned");
     setParcelStatus(1, "at_depot");
     expect(() => transition(P(1), "in_transit", "driver-1")).toThrow(/not in ORDER_NEXT/);
+  });
+
+  it("after the throw the parcel, the order and the events are unchanged", () => {
+    setOrderStatus("assigned");
+    setParcelStatus(1, "at_depot");
+    const before = { parcel: parcel(1), order: order(), events: events().length };
+    expect(() => transition(P(1), "in_transit", "driver-1")).toThrow();
+    expect(parcel(1)).toEqual(before.parcel);
+    expect(order()).toEqual(before.order);
+    expect(events()).toHaveLength(before.events);
+  });
+});
+
+describe("endReasonInternal comes before anything is read (checkPublicEndReason)", () => {
+  it("an unknown mission, order or parcel id with an endReason is endReasonInternal, not notFound", () => {
+    for (const subject of [
+      M("no-such-mission"),
+      { type: "order" as const, id: "FG-NOPE" },
+      { type: "parcel" as const, id: "no-such-parcel" },
+    ]) {
+      expect(transition(subject, "finished", "driver-1", { endReason: "driverRemoved" })).toEqual({
+        refused: "endReasonInternal",
+      });
+    }
+    // Without an endReason the same ids are notFound.
+    expect(transition(M("no-such-mission"), "accepted", "driver-1")).toEqual({
+      refused: "notFound",
+    });
   });
 });
 
