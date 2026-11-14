@@ -84,6 +84,18 @@ native-speaker review before release (CLAUDE.md).
 | `addressBook.removeDialog.recipientTitle` | حذف هذا المستلم؟ | Supprimer ce destinataire ? | [ ] |
 | `addressBook.removeDialog.text` | سيُحذف من دفتر عناوينك. لن تتغير طلباتك. | Il sera retiré de votre carnet. Vos commandes ne changent pas. | [ ] |
 | `addressBook.title` | العناوين والمستلمون | Adresses et destinataires | [ ] |
+| `apiErrors.ACCESS_DENIED` | ليست لديك صلاحية القيام بهذا الإجراء. | Vous n'avez pas le droit d'effectuer cette action. | [ ] |
+| `apiErrors.AUTH_REQUIRED` | تسجيل الدخول مطلوب أو بيانات الدخول غير صحيحة. | Connexion requise ou identifiants incorrects. | [ ] |
+| `apiErrors.INTERNAL_ERROR` | خطأ داخلي. | Erreur interne. | [ ] |
+| `apiErrors.KEY_REUSED` | تم استخدام مفتاح عدم التكرار هذا لطلب آخر. | Cette clé d'idempotence a déjà servi pour une autre requête. | [ ] |
+| `apiErrors.NOT_FOUND` | المورد غير موجود. | Ressource introuvable. | [ ] |
+| `apiErrors.PROVIDER_UNAVAILABLE` | خدمة خارجية غير متاحة. | Un service externe est indisponible. | [ ] |
+| `apiErrors.QUOTE_EXPIRED` | انتهت صلاحية السعر ويجب إعادة حسابه. | Le prix a expiré, il doit être recalculé. | [ ] |
+| `apiErrors.RULE_REFUSED` | قاعدة عمل غير مستوفاة. | Une règle métier n'est pas respectée. | [ ] |
+| `apiErrors.SAME_ACTOR` | لا يمكنك اعتماد عملك بنفسك. | Vous ne pouvez pas valider votre propre travail. | [ ] |
+| `apiErrors.STATE_CONFLICT` | هذا الإجراء غير ممكن في الحالة الحالية. | Cette action n'est pas possible dans l'état actuel. | [ ] |
+| `apiErrors.TOO_MANY_ATTEMPTS` | محاولات كثيرة جدًا، حاول لاحقًا. | Trop de tentatives, réessayez plus tard. | [ ] |
+| `apiErrors.VALIDATION_FAILED` | بعض الحقول مفقودة أو غير صالحة. | Certains champs sont manquants ou invalides. | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
 | `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |

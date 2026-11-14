@@ -2,5 +2,9 @@ packages:
   - "apps/*"
   - "packages/*"
 allowBuilds:
+  esbuild: false
+  cpu-features: false
+  protobufjs: false
+  ssh2: false
   "@parcel/watcher": false
   "@swc/core": false
