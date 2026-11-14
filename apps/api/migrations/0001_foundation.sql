@@ -72,12 +72,20 @@ create table core.accounts (
 -- R101: unique, and case does not matter for an e-mail.
 create unique index accounts_email_key on core.accounts (lower(email)) where email is not null;
 select core.protect('core.accounts', 'select, update');
+-- A person edits their own name, language and e-mail only. Role, kind, status, phone verification
+-- and the credentials change through definer functions (sign-up, reset, closing: PR 4a) or by the
+-- migrator, never by an UPDATE of the app. The hash is never readable by the app.
+revoke update on core.accounts from fastgo_app;
+grant update (full_name, locale, email, updated_at) on core.accounts to fastgo_app;
+select core.hide_hashes_from_app('core.accounts');
 
 create policy accounts_select on core.accounts for select to fastgo_app
   using (id = core.app_user_id() or core.staff_reads_customers());
 create policy accounts_update on core.accounts for update to fastgo_app
   using (id = core.app_user_id() or core.actor_has('admin'))
   with check (id = core.app_user_id() or core.actor_has('admin'));
+-- Staff do not edit a person's account here: only their own row (the admin policy above serves the
+-- column grant of the same four columns).
 -- No INSERT policy: an account is created by core.create_account() only (sign-up, PR 4a).
 
 create table core.companies (
@@ -93,11 +101,17 @@ select core.protect('core.companies', 'select, insert, update');
 
 create policy companies_select on core.companies for select to fastgo_app
   using (id = core.app_company_id() or core.staff_reads_customers());
+-- A company is created by staff, or by the sign-up function of PR 4a (which also adds the first
+-- member): a merchant session cannot create one.
 create policy companies_insert on core.companies for insert to fastgo_app
-  with check (core.app_role() = 'merchant' or core.staff_writes_customers());
+  with check (core.staff_writes_customers());
+-- The billing address, when set, belongs to this same company (no pointing at another tenant's row).
 create policy companies_update on core.companies for update to fastgo_app
   using (id = core.app_company_id() or core.staff_writes_customers())
-  with check (id = core.app_company_id() or core.staff_writes_customers());
+  with check ((id = core.app_company_id() or core.staff_writes_customers())
+    and (billing_address_id is null or exists (
+      select 1 from core.addresses a
+       where a.id = billing_address_id and a.owner_company_id = core.companies.id)));
 
 create table core.company_members (
   company_id uuid not null references core.companies (id),
@@ -112,11 +126,14 @@ select core.protect('core.company_members', 'select, insert, update');
 create policy members_select on core.company_members for select to fastgo_app
   using (company_id = core.app_company_id() or account_id = core.app_user_id()
          or core.staff_reads_customers());
+-- Membership is a decision of staff (or of the sign-up function): the cahier does not say who may
+-- invite inside a company, and a merchant who could add a member could add anyone to their company.
+-- Open question for GOFAST; until answered a merchant cannot change members.
 create policy members_insert on core.company_members for insert to fastgo_app
-  with check (company_id = core.app_company_id() or core.staff_writes_customers());
+  with check (core.staff_writes_customers());
 create policy members_update on core.company_members for update to fastgo_app
-  using (company_id = core.app_company_id() or core.staff_writes_customers())
-  with check (company_id = core.app_company_id() or core.staff_writes_customers());
+  using (core.staff_writes_customers())
+  with check (core.staff_writes_customers());
 
 -- Addresses and recipients --------------------------------------------------------------
 
@@ -167,8 +184,19 @@ select core.protect('core.recipients', 'select, insert, update');
 
 create policy recipients_select on core.recipients for select to fastgo_app
   using (core.owns(owner_account_id, owner_company_id) or core.staff_reads_customers());
+-- The address of a recipient belongs to the same owner as the recipient.
 create policy recipients_insert on core.recipients for insert to fastgo_app
-  with check (core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers());
+  with check ((core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers())
+    and (address_id is null or exists (
+      select 1 from core.addresses a
+       where a.id = address_id
+         and a.owner_account_id is not distinct from core.recipients.owner_account_id
+         and a.owner_company_id is not distinct from core.recipients.owner_company_id)));
 create policy recipients_update on core.recipients for update to fastgo_app
   using (core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers())
-  with check (core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers());
+  with check ((core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers())
+    and (address_id is null or exists (
+      select 1 from core.addresses a
+       where a.id = address_id
+         and a.owner_account_id is not distinct from core.recipients.owner_account_id
+         and a.owner_company_id is not distinct from core.recipients.owner_company_id)));

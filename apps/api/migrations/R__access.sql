@@ -91,3 +91,16 @@ begin
   execute format('revoke all on %s from public', tbl);
   execute format('grant select on %s to fastgo_app, fastgo_readonly, fastgo_worker', tbl);
 end $$;
+
+-- A table with a credential column (`*_hash`): the app logs in through a SECURITY DEFINER function
+-- and never reads the hash, so SELECT is column by column, without it.
+create or replace function core.hide_hashes_from_app(tbl regclass) returns void
+  language plpgsql set search_path = pg_catalog as $$
+declare cols text;
+begin
+  select string_agg(quote_ident(attname), ', ' order by attnum) into cols
+    from pg_attribute
+   where attrelid = tbl and attnum > 0 and not attisdropped and attname !~ '_hash$';
+  execute format('revoke select on %s from fastgo_app', tbl);
+  execute format('grant select (%s) on %s to fastgo_app', cols, tbl);
+end $$;

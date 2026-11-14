@@ -27,6 +27,11 @@ export class Db {
     return this.run(fn, [actor.userId, company, actor.role]);
   }
 
+  /** A call with nobody behind it (idempotency keys: a table without RLS). RLS tables read nothing. */
+  withNoActor<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
+    return this.run(fn, ["", "", ""]);
+  }
+
   /** A job of the worker process: its own login, its own policies, no person. */
   withWorker<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
     return this.run(fn, ["", "", "worker"]);

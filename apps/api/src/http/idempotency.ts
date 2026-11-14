@@ -128,7 +128,8 @@ export const fingerprint = (
     .update(canonical([route, params, query, body]))
     .digest("hex");
 
-const POLL_MS = 25;
+const POLL_MS = 25; // first wait; it doubles up to POLL_MAX_MS, so a long first call is not hammered
+const POLL_MAX_MS = 500;
 const MAX_WAIT_MS = 30_000;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -154,6 +155,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     return defer(async () => {
       const giveUpAt = Date.now() + MAX_WAIT_MS;
+      let wait = POLL_MS;
       for (;;) {
         const found = await this.store.begin(scope, fp);
         if (found.kind === "conflict") throw new ApiError("KEY_REUSED");
@@ -163,7 +165,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
         }
         if (found.kind === "running") {
           if (Date.now() > giveUpAt) throw new ApiError("STATE_CONFLICT");
-          await sleep(POLL_MS);
+          await sleep(wait);
+          wait = Math.min(wait * 2, POLL_MAX_MS);
           continue;
         }
         try {

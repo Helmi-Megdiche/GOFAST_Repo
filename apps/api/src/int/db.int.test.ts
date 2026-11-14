@@ -4,6 +4,8 @@ import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Db, tables } from "../db/index.ts";
 import type { Actor } from "../http/session.ts";
+import { DbIdempotencyStore } from "../http/idempotency-db.ts";
+import { idempotencyContract } from "../idempotency.contract.ts";
 import { seedMerchants, startPgBouncer, startTestDb, type TestDb } from "./harness.ts";
 
 let db: TestDb;
@@ -47,7 +49,7 @@ describe("fail closed: no actor, no rows", () => {
     await c.connect();
     try {
       expect((await c.query("select * from core.addresses")).rowCount).toBe(0);
-      expect((await c.query("select * from core.accounts")).rowCount).toBe(0);
+      expect((await c.query("select id from core.accounts")).rowCount).toBe(0);
       await expect(
         c.query("insert into core.addresses (owner_company_id, line) values ($1, 'x')", [ids.companyA]),
       ).rejects.toThrow(/row-level security/);
@@ -153,3 +155,11 @@ describe("drift: the Drizzle schema matches the migrated database", () => {
     }
   });
 });
+
+idempotencyContract(
+  "database store",
+  (clock, lockMs) => new DbIdempotencyStore(open(db.url("fastgo_app")), () => clock.now, lockMs),
+  async () => {
+    await db.superClient.query("truncate core.idempotency_keys");
+  },
+);
