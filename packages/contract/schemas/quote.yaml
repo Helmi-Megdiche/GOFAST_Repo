@@ -79,7 +79,9 @@ QuoteRequest:
 AmountLine:
   type: object
   description: >-
-    One line of the price. `millimes` is `unit_millimes` times `count`; null while GOFAST has not
+    One line of the price. `millimes` is `unit_millimes` times `count`, except for `weight` when the
+    parcels differ: `unit_millimes` is then null and `millimes` is the sum of each parcel's own
+    price. `millimes` is null while GOFAST has not
     confirmed the line (vat and stamp, see reponses-gofast.md). `base`, `weight` and `options` are
     per parcel (`count` is the number of parcels; `unit_millimes` is null for `weight` when the
     parcels differ). `distance`, `surcharge` and `stamp` are once per order (`count` is 1). `vat`
@@ -91,12 +93,15 @@ AmountLine:
       type: string
       enum: [base, distance, weight, options, surcharge, vat, stamp]
     unit_millimes:
-      description: Price for one parcel.
+      description: >-
+        Price of one unit: one parcel for `base`, `weight` and `options`, the whole line for
+        `distance`, `surcharge`, `vat` and `stamp` (`count` is 1). Null when the parcels differ
+        (`weight`) or while the line is not confirmed.
       oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
     count:
       type: integer
       minimum: 1
-      description: The number of parcels the unit price is multiplied by.
+      description: The number of parcels for a per-parcel line; 1 for a once-per-order line.
     millimes:
       oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
 DiscountLine:

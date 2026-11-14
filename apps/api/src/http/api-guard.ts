@@ -3,7 +3,7 @@ import { Reflector } from "@nestjs/core";
 import type { FastifyRequest } from "fastify";
 import { ApiError, type FieldError } from "./errors.ts";
 import { OPERATION } from "./operation.ts";
-import { SessionResolver, type Actor } from "./session.ts";
+import { OwnerCheck, SessionResolver, type Actor } from "./session.ts";
 import { type Operation as Op, OPERATIONS } from "./tokens.ts";
 
 declare module "fastify" {
@@ -49,13 +49,15 @@ export class ApiGuard implements CanActivate {
     @Inject(Reflector) private readonly reflector: Reflector,
     @Inject(OPERATIONS) private readonly operations: Map<string, Op>,
     @Inject(SessionResolver) private readonly sessions: SessionResolver,
+    @Inject(OwnerCheck) private readonly owners: OwnerCheck,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
+    // Deny by default. The boot audit (routes.ts) already refuses a route without a known
+    // @Operation; this is the second lock.
     const id = this.reflector.get<string | undefined>(OPERATION, context.getHandler());
-    if (!id) return true;
-    const op = this.operations.get(id);
-    if (!op) throw new Error(`@Operation("${id}") is not in the contract`);
+    const op = id ? this.operations.get(id) : undefined;
+    if (!op) throw new ApiError("ACCESS_DENIED");
     const req = context.switchToHttp().getRequest<FastifyRequest>();
     req.operation = op;
 
@@ -65,6 +67,8 @@ export class ApiGuard implements CanActivate {
       );
       if (!req.actor) throw new ApiError("AUTH_REQUIRED");
       if (!op.roles.includes(req.actor.role)) throw new ApiError("ACCESS_DENIED");
+      const params = (req.params ?? {}) as Record<string, unknown>;
+      if (!(await this.owners.allows(req.actor, op, params))) throw new ApiError("NOT_FOUND");
     }
 
     const fields: FieldError[] = [];

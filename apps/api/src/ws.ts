@@ -1,7 +1,7 @@
 import "reflect-metadata";
-import { Logger } from "@nestjs/common";
 import { loadConfig } from "./config.ts";
+import { serveHealth } from "./health-server.ts";
 
 // The `ws` process (tracking and driver events) has no gateway yet: it arrives with its lot.
-loadConfig();
-new Logger("ws").log("no gateway yet");
+const config = loadConfig();
+serveHealth("ws", config.wsPort, config.host);

@@ -47,7 +47,7 @@ jobs:
               while IFS= read -r f; do
                 case "$f" in
                   docs/* | infra/* | *.md) ;;
-                  apps/api/* | packages/contract/* | packages/i18n/* | packages/domain/* | pnpm-lock.yaml | .github/*) code=true; api=true ;;
+                  apps/api/* | packages/contract/* | packages/i18n/* | packages/domain/* | packages/config/* | turbo.json | package.json | pnpm-lock.yaml | pnpm-workspace.yaml | .node-version | .github/*) code=true; api=true ;;
                   *) code=true ;;
                 esac
               done <<< "$files"
@@ -261,6 +261,26 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter @fastgo/contract bundle
       - run: pnpm --filter @fastgo/api test:int
+
+  # The one name to require for the API: green when the integration tests passed, or were skipped
+  # because nothing the API depends on changed. Red when they failed or did not run although they should have.
+  api:
+    name: API (tests, contract)
+    needs: [changes, api-int]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Summarise the API tests
+        env:
+          API: ${{ needs.changes.outputs.api }}
+          INT: ${{ needs.api-int.result }}
+        run: |
+          echo "api=$API api-int=$INT"
+          if [ "$INT" = "success" ]; then exit 0; fi
+          if [ "$INT" = "skipped" ] && [ "$API" = "false" ]; then exit 0; fi
+          echo "API integration tests did not pass."
+          exit 1
 
   gitleaks:
     name: Secret scan (Gitleaks)

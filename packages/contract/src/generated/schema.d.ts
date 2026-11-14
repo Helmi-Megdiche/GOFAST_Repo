@@ -451,14 +451,14 @@ export interface components {
             pin?: components["schemas"]["Pin"] | null;
             text: string;
         };
-        /** @description One line of the price. `millimes` is `unit_millimes` times `count`; null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md). `base`, `weight` and `options` are per parcel (`count` is the number of parcels; `unit_millimes` is null for `weight` when the parcels differ). `distance`, `surcharge` and `stamp` are once per order (`count` is 1). `vat` is unchanged: null until the accountant confirms. */
+        /** @description One line of the price. `millimes` is `unit_millimes` times `count`, except for `weight` when the parcels differ: `unit_millimes` is then null and `millimes` is the sum of each parcel's own price. `millimes` is null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md). `base`, `weight` and `options` are per parcel (`count` is the number of parcels; `unit_millimes` is null for `weight` when the parcels differ). `distance`, `surcharge` and `stamp` are once per order (`count` is 1). `vat` is unchanged: null until the accountant confirms. */
         AmountLine: {
-            /** @description The number of parcels the unit price is multiplied by. */
+            /** @description The number of parcels for a per-parcel line; 1 for a once-per-order line. */
             count: number;
             /** @enum {string} */
             kind: "base" | "distance" | "weight" | "options" | "surcharge" | "vat" | "stamp";
             millimes: components["schemas"]["Money"] | null;
-            /** @description Price for one parcel. */
+            /** @description Price of one unit: one parcel for `base`, `weight` and `options`, the whole line for `distance`, `surcharge`, `vat` and `stamp` (`count` is 1). Null when the parcels differ (`weight`) or while the line is not confirmed. */
             unit_millimes: components["schemas"]["Money"] | null;
         };
         /** @description The body of a AUTH_REQUIRED answer. The code is fixed by the status. */

@@ -11,66 +11,130 @@ import { type Observable, defer, lastValueFrom } from "rxjs";
 import { PROVISIONAL } from "../provisional.ts";
 import { ApiError } from "./errors.ts";
 
+export type Answer = { status: number; body: unknown };
+
+/** What `begin` found for a scope (account, route, key). */
+export type Begin =
+  | { kind: "new" } // the caller owns the key now and must call `complete` or `abort`
+  | { kind: "replay"; answer: Answer } // same content, finished: answer again
+  | { kind: "conflict" } // same key, other content
+  | { kind: "running" }; // same content, the first call has not ended: wait and ask again
+
+/**
+ * Keeps the first answer of a keyed request for 24 h (R202). `begin` is atomic: of two callers with
+ * the same scope exactly one gets `new`. Every method is async so that the database store of PR 3
+ * (unique index on account, route and key; `INSERT ... ON CONFLICT`) implements the same contract
+ * and several instances of the API share it. A `running` row older than the lock time counts as
+ * abandoned (a crashed process) and is handed to the next caller as `new`.
+ */
+export abstract class IdempotencyStore {
+  abstract begin(scope: string, fingerprint: string): Promise<Begin>;
+  /** Stores the answer of the call that got `new`. */
+  abstract complete(scope: string, answer: Answer): Promise<void>;
+  /** The call failed: forget the key so the same key can be tried again. */
+  abstract abort(scope: string): Promise<void>;
+  /** RV-18: the stored answers of a closed account are erased. Returns how many. */
+  abstract purgeAccount(accountId: string): Promise<number>;
+  /** Removes what is past 24 h (a job of the `worker`). Returns how many. */
+  abstract purgeExpired(): Promise<number>;
+}
+
 type Entry = {
   fingerprint: string;
   expiresAt: number;
-  /** Settles when the first call ends; true when it stored an answer. */
-  settled: Promise<boolean>;
-  answer?: { status: number; body: unknown };
+  lockedUntil: number;
+  answer?: Answer;
 };
 
 /**
- * Keeps the first answer of a keyed request for 24 h (R202). In memory in this skeleton; PR 3/4
- * moves it to the database (unique per account, route and key) behind the same methods.
+ * ONE PROCESS ONLY: two instances of the API would not see each other's keys. It is for the tests
+ * and for the skeleton; production binds the database store (PR 3).
  */
-export abstract class IdempotencyStore {
-  abstract get(scope: string): Entry | undefined;
-  abstract set(scope: string, entry: Entry): void;
-  abstract delete(scope: string): void;
-  /** RV-18: the stored answers of a closed account are erased. */
-  abstract purgeAccount(accountId: string): void;
-}
-
 export class MemoryIdempotencyStore extends IdempotencyStore {
   private readonly entries = new Map<string, Entry>();
-  constructor(private readonly now: () => number = Date.now) {
+  constructor(
+    private readonly now: () => number = Date.now,
+    private readonly lockMs = 60_000,
+  ) {
     super();
   }
-  override get(scope: string) {
+
+  override async begin(scope: string, fingerprint: string): Promise<Begin> {
+    const now = this.now();
     const e = this.entries.get(scope);
-    if (e && e.expiresAt <= this.now()) {
-      this.entries.delete(scope);
-      return undefined;
+    if (e && e.expiresAt > now) {
+      if (e.fingerprint !== fingerprint) return { kind: "conflict" };
+      if (e.answer) return { kind: "replay", answer: e.answer };
+      if (e.lockedUntil > now) return { kind: "running" };
     }
-    return e;
+    this.entries.set(scope, {
+      fingerprint,
+      expiresAt: now + PROVISIONAL.idempotencyHours * 3_600_000,
+      lockedUntil: now + this.lockMs,
+    });
+    return { kind: "new" };
   }
-  override set(scope: string, entry: Entry) {
-    this.entries.set(scope, entry);
+  override async complete(scope: string, answer: Answer) {
+    const e = this.entries.get(scope);
+    if (e) e.answer = answer;
   }
-  override delete(scope: string) {
+  override async abort(scope: string) {
     this.entries.delete(scope);
   }
-  override purgeAccount(accountId: string) {
-    for (const k of this.entries.keys()) if (k.startsWith(`${accountId}|`)) this.entries.delete(k);
+  override async purgeAccount(accountId: string) {
+    let n = 0;
+    for (const k of [...this.entries.keys()]) {
+      if (k.startsWith(`${accountId}|`)) {
+        this.entries.delete(k);
+        n += 1;
+      }
+    }
+    return n;
+  }
+  override async purgeExpired() {
+    const now = this.now();
+    let n = 0;
+    for (const [k, e] of [...this.entries]) {
+      if (e.expiresAt <= now) {
+        this.entries.delete(k);
+        n += 1;
+      }
+    }
+    return n;
   }
 }
 
-export const fingerprint = (method: string, url: string, body: unknown): string =>
+/** JSON with object keys sorted at every depth: key order in the body does not change the print. */
+export const canonical = (value: unknown): string =>
+  JSON.stringify(value ?? null, (_k, v: unknown) =>
+    v && typeof v === "object" && !Array.isArray(v)
+      ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)))
+      : v,
+  );
+
+/** Same call = same route template, same path and query values (any order), same body (any key order). */
+export const fingerprint = (
+  route: string,
+  params: unknown,
+  query: unknown,
+  body: unknown,
+): string =>
   createHash("sha256")
-    .update(`${method}\n${url}\n${JSON.stringify(body ?? null)}`)
+    .update(canonical([route, params, query, body]))
     .digest("hex");
+
+const POLL_MS = 25;
+const MAX_WAIT_MS = 30_000;
+const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
 /**
  * Same key and same content: the first answer again, nothing done twice. Same key and other
- * content: 409 KEY_REUSED. A second call while the first runs waits and gets the same answer.
- * Only a successful answer is kept; a failed attempt can be tried again with the same key.
+ * content: 409 KEY_REUSED. A second call while the first runs waits and gets the same answer. Only a
+ * successful answer is kept; a failed attempt can be tried again with the same key.
  */
 @Injectable()
 export class IdempotencyInterceptor implements NestInterceptor {
-  constructor(
-    @Inject(IdempotencyStore) private readonly store: IdempotencyStore,
-    private readonly now: () => number = Date.now,
-  ) {}
+  constructor(@Inject(IdempotencyStore) private readonly store: IdempotencyStore) {}
 
   intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
     const http = context.switchToHttp();
@@ -81,37 +145,30 @@ export class IdempotencyInterceptor implements NestInterceptor {
     if (op?.replay !== "key" || typeof key !== "string") return next.handle();
 
     const scope = `${req.actor?.accountId ?? "anonymous"}|${op.method} ${op.path}|${key}`;
-    const fp = fingerprint(req.method, req.url, req.body);
+    const fp = fingerprint(`${op.method} ${op.path}`, req.params, req.query, req.body);
 
     return defer(async () => {
+      const giveUpAt = Date.now() + MAX_WAIT_MS;
       for (;;) {
-        const entry = this.store.get(scope);
-        if (!entry) {
-          let settle!: (stored: boolean) => void;
-          const mine: Entry = {
-            fingerprint: fp,
-            expiresAt: this.now() + PROVISIONAL.idempotencyHours * 3_600_000,
-            settled: new Promise<boolean>((resolve) => (settle = resolve)),
-          };
-          this.store.set(scope, mine);
-          try {
-            const body = await lastValueFrom(next.handle(), { defaultValue: undefined });
-            mine.answer = { status: reply.statusCode, body };
-            settle(true);
-            return body;
-          } catch (error) {
-            this.store.delete(scope);
-            settle(false);
-            throw error;
-          }
+        const found = await this.store.begin(scope, fp);
+        if (found.kind === "conflict") throw new ApiError("KEY_REUSED");
+        if (found.kind === "replay") {
+          void reply.status(found.answer.status);
+          return found.answer.body;
         }
-        if (entry.fingerprint !== fp) throw new ApiError("KEY_REUSED");
-        if (!entry.answer) {
-          await entry.settled;
+        if (found.kind === "running") {
+          if (Date.now() > giveUpAt) throw new ApiError("STATE_CONFLICT");
+          await sleep(POLL_MS);
           continue;
         }
-        void reply.status(entry.answer.status);
-        return entry.answer.body;
+        try {
+          const body = await lastValueFrom(next.handle(), { defaultValue: undefined });
+          await this.store.complete(scope, { status: reply.statusCode, body });
+          return body;
+        } catch (error) {
+          await this.store.abort(scope);
+          throw error;
+        }
       }
     });
   }
