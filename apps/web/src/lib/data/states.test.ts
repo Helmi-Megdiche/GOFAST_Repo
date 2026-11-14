@@ -17,9 +17,7 @@ import {
   activePickupMission,
   createMission,
   DERIVED_ORDER_STATES,
-  deriveOrderOutcome,
   FINAL_ORDER_STATES,
-  FINAL_PARCEL_STATES,
   MISSION_NEXT,
   ORDER_NEXT,
   PARCEL_NEXT,
@@ -256,6 +254,18 @@ describe("mission table", () => {
         });
       }
     }
+
+    it("an order or a parcel has no end reason either: asking for one is endReasonInternal", () => {
+      expect(transition(O, "canceled", "staff-1", { endReason: "orderCanceled" })).toEqual({
+        refused: "endReasonInternal",
+      });
+      expect(order().status).toBe("received");
+      expect(
+        transition({ type: "parcel", id: `${CODE}-p1` }, "taken", "driver-1", {
+          endReason: "driverRemoved",
+        }),
+      ).toEqual({ refused: "endReasonInternal" });
+    });
 
     it("a direct normal finish (endReason null) stays public", () => {
       const m = toAssigned();
@@ -620,37 +630,7 @@ describe("cancel cascade", () => {
   });
 });
 
-describe("deriveOrderOutcome", () => {
-  it("picked_up while every counted parcel is taken", () => {
-    expect(deriveOrderOutcome(["taken", "taken"])).toBe("picked_up");
-  });
-
-  for (const s of [
-    "in_transit",
-    "at_depot",
-    "delivery_failed",
-    "returning",
-    "handed_over",
-  ] as const) {
-    it(`in_transit with ${s} and the other taken`, () => {
-      expect(deriveOrderOutcome([s, "taken"])).toBe("in_transit");
-    });
-  }
-
-  it("the four outcomes", () => {
-    expect(deriveOrderOutcome(["handed_over", "handed_over", "handed_over"])).toBe("delivered");
-    expect(deriveOrderOutcome(["handed_over", "handed_over", "returned"])).toBe(
-      "partially_delivered",
-    ); // T19
-    expect(deriveOrderOutcome(["handed_over", "lost"])).toBe("partially_delivered");
-    expect(deriveOrderOutcome(["returned", "lost"])).toBe("returned");
-    expect(deriveOrderOutcome(["lost", "lost"])).toBe("lost");
-  });
-
-  it("ignores canceled parcels", () => {
-    expect(deriveOrderOutcome(["handed_over", "canceled"])).toBe("delivered");
-  });
-});
+// deriveOrderOutcome and the guards are tested in packages/domain (states.test.ts).
 
 describe("lossReported", () => {
   function deliverWith(outcomes: ParcelStatus[]) {
@@ -733,12 +713,6 @@ describe("event log", () => {
       toStatus: "finished",
       endReason: "driverRemoved",
     });
-  });
-
-  it("final parcel states are handed_over returned lost canceled", () => {
-    expect([...FINAL_PARCEL_STATES].sort()).toEqual(
-      ["canceled", "handed_over", "lost", "returned"].sort(),
-    );
   });
 });
 

@@ -1,3 +1,17 @@
+import {
+  cascadesOf,
+  checkMissionMove,
+  checkOrderMove,
+  checkParcelMove,
+  nextOrderOutcome,
+  MISSION_ACTIVE,
+  type CancelFee,
+  type EndReason,
+  type MissionStatus,
+  type MoveResult,
+  type OrderStatus,
+  type ParcelStatus,
+} from "@fastgo/domain";
 import { now } from "../order/clock";
 import { readTable, writeRow } from "./mock-db";
 import {
@@ -13,128 +27,38 @@ import {
 } from "./order-model";
 import { expireRecipientLink } from "./recipient-links";
 
+// The rules (tables, refusals, cascades) are in @fastgo/domain; they are re-exported here until the
+// importers move (GH-75, PR 3).
+export {
+  DERIVED_ORDER_STATES,
+  deriveOrderOutcome,
+  FINAL_ORDER_STATES,
+  FINAL_PARCEL_STATES,
+  MISSION_NEXT,
+  ORDER_NEXT,
+  PARCEL_NEXT,
+  type CancelFee,
+  type DerivedOutcome,
+  type EndReason,
+  type MissionStatus,
+  type OrderStatus,
+  type ParcelStatus,
+  type Refusal,
+} from "@fastgo/domain";
+
 /**
- * Order, parcel and mission states (ADR-1, regles.md "États"). One transition function; every
- * change writes one event to fg.mock.statusEvents. "Le serveur refuse tout autre changement d'état."
+ * The storage side of the order, parcel and mission states (ADR-1). One transition function; every
+ * change writes one event to fg.mock.statusEvents. The decisions (what is legal, what is refused,
+ * what cascades) are the pure functions of @fastgo/domain.
  */
 
-export type OrderStatus =
-  | "received"
-  | "confirmed"
-  | "assigned"
-  | "pickup_failed"
-  | "picked_up"
-  | "in_transit"
-  | "delivered"
-  | "partially_delivered"
-  | "returned"
-  | "lost"
-  | "canceled";
-
-export type ParcelStatus =
-  | "to_collect"
-  | "taken"
-  | "at_depot"
-  | "in_transit"
-  | "delivery_failed"
-  | "returning"
-  | "handed_over"
-  | "returned"
-  | "lost"
-  | "canceled";
-
-export type MissionStatus =
-  "proposed" | "accepted" | "refused" | "expired" | "arrived" | "finished";
-
-export type EndReason = null | "driverRemoved" | "pickupFailed" | "orderCanceled";
-
-export type DerivedOutcome =
-  "picked_up" | "in_transit" | "delivered" | "partially_delivered" | "returned" | "lost";
-
-export const ORDER_NEXT: Record<OrderStatus, readonly OrderStatus[]> = {
-  received: ["confirmed", "canceled"],
-  confirmed: ["assigned", "canceled"],
-  assigned: ["picked_up", "pickup_failed", "canceled", "confirmed"],
-  pickup_failed: ["confirmed", "canceled"],
-  // `lost` only by derivation (a parcel lost right after the scan, ruling of 5 Nov 2026): a direct order
-  // transition to it is refused with derivedState, and it never passes through in_transit.
-  picked_up: ["in_transit", "lost"],
-  in_transit: ["delivered", "partially_delivered", "returned", "lost"],
-  delivered: [],
-  partially_delivered: [],
-  returned: [],
-  lost: [],
-  canceled: [],
-};
-
-export const PARCEL_NEXT: Record<ParcelStatus, readonly ParcelStatus[]> = {
-  to_collect: ["taken", "canceled"],
-  taken: ["at_depot", "in_transit", "lost"],
-  at_depot: ["in_transit", "returning", "lost"],
-  in_transit: ["handed_over", "delivery_failed", "lost"],
-  delivery_failed: ["at_depot", "in_transit", "returning", "lost"],
-  returning: ["returned", "lost"],
-  handed_over: [],
-  returned: [],
-  lost: ["at_depot"],
-  canceled: [],
-};
-
-/** `finished` from `proposed` or `accepted` is an early end: reachable only through the order cascades (H1). */
-export const MISSION_NEXT: Record<MissionStatus, readonly MissionStatus[]> = {
-  proposed: ["accepted", "refused", "expired", "finished"],
-  accepted: ["arrived", "finished"],
-  refused: [],
-  expired: [],
-  arrived: ["finished"],
-  finished: [],
-};
-
-/** Reached only through parcel changes, never by a direct order transition. */
-export const DERIVED_ORDER_STATES: readonly OrderStatus[] = [
-  "picked_up",
-  "in_transit",
-  "delivered",
-  "partially_delivered",
-  "returned",
-  "lost",
-];
-
-export const FINAL_ORDER_STATES: readonly OrderStatus[] = [
-  "delivered",
-  "partially_delivered",
-  "returned",
-  "lost",
-  "canceled",
-];
-
-export const FINAL_PARCEL_STATES: readonly ParcelStatus[] = [
-  "handed_over",
-  "returned",
-  "lost",
-  "canceled",
-];
-
-export type Refusal =
-  | "illegalTransition"
-  | "derivedState"
-  | "orderNotAssigned"
-  | "noParcelTaken"
-  | "endReasonInternal"
-  | "notFound";
-
-export type CancelFee = NonNullable<AccountOrder["cancel"]>["fee"];
-
-export type TransitionResult = { ok: true } | { refused: Refusal; from?: string; to?: string };
+export type TransitionResult = MoveResult;
 
 type Subject = { type: "order" | "parcel" | "mission"; id: string };
 /** `endReason` is accepted only to be refused (`endReasonInternal`): the order cascades set it. */
 type Options = { endReason?: EndReason; at?: number };
 
 const SYSTEM = "system";
-const MISSION_ACTIVE: readonly MissionStatus[] = ["proposed", "accepted", "arrived"];
-/** Order states in which a parcel scan (`to_collect → taken`) is accepted. */
-const SCAN_ALLOWED: readonly OrderStatus[] = ["assigned", ...DERIVED_ORDER_STATES];
 
 const iso = (at: number) => new Date(at).toISOString();
 
@@ -161,37 +85,6 @@ function writeEvent(
     ...(reason ? { reason } : {}),
   };
   writeRow(STATUS_EVENTS, id, event);
-}
-
-const illegal = (from: string, to: string): TransitionResult => ({
-  refused: "illegalTransition",
-  from,
-  to,
-});
-
-/**
- * Pure: the order outcome from its parcels' states. Canceled parcels are ignored (H3). The set that
- * counts is never empty after pickup; an empty set is a bug and throws. A derived state never moves
- * backward: once the order is `in_transit` (`current`), it stays there until a final state.
- */
-export function deriveOrderOutcome(parcels: ParcelStatus[], current?: OrderStatus): DerivedOutcome {
-  const counted = parcels.filter((s) => s !== "canceled");
-  if (counted.length === 0) throw new Error("deriveOrderOutcome: no counted parcel");
-  const allFinal = counted.every((s) => FINAL_PARCEL_STATES.includes(s));
-  // `to_collect` and `lost` do not count as "moved on": while every other parcel is still taken, the
-  // order stays picked_up, so a loss never shows a delivery that did not happen (ruling of 5 Nov:
-  // picked_up -> lost directly). `to_collect` parcels are canceled at the normal finish.
-  if (!allFinal) {
-    if (current === "in_transit") return "in_transit";
-    return counted.every((s) => s === "taken" || s === "to_collect" || s === "lost")
-      ? "picked_up"
-      : "in_transit";
-  }
-  const handed = counted.filter((s) => s === "handed_over").length;
-  if (handed === counted.length) return "delivered";
-  if (handed > 0) return "partially_delivered";
-  if (counted.includes("returned")) return "returned";
-  return "lost";
 }
 
 /** The order's latest pickup mission that is not refused, expired, nor ended with an endReason. */
@@ -245,8 +138,15 @@ function endActivePickupMission(orderCode: string, endReason: EndReason, at: num
   const mission = activePickupMission(orderCode);
   if (mission && MISSION_ACTIVE.includes(mission.status)) {
     // Internal call: the public `transition` refuses a non-null endReason.
-    transitionMission(mission.id, "finished", SYSTEM, endReason, at);
+    transitionMission(mission.id, "finished", SYSTEM, endReason, at, "cascade");
   }
+}
+
+/** Runs what an accepted change sets off (cascadesOf): the storage side of the cascades. */
+function runCascades(orderCode: string, cascades: ReturnType<typeof cascadesOf>, at: number): void {
+  if (cascades.endPickupMission) endActivePickupMission(orderCode, cascades.endPickupMission, at);
+  if (cascades.cancelToCollectParcels) cancelParcelsToCollect(orderCode, at);
+  if (cascades.expireRecipientLink) expireRecipientLink(orderCode, at);
 }
 
 function transitionOrder(
@@ -259,21 +159,14 @@ function transitionOrder(
   const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[id];
   if (!order) return { refused: "notFound" };
   const from = order.status;
-  if (DERIVED_ORDER_STATES.includes(to)) return { refused: "derivedState", from, to };
-  if (!ORDER_NEXT[from]?.includes(to)) return illegal(from, to);
+  const verdict = checkOrderMove(from, to);
+  if (!("ok" in verdict)) return verdict;
 
   // CMD-08: a client cancel records its fee in the same write as the state.
   const cancel = to === "canceled" && cancelFee ? { at: iso(at), fee: cancelFee } : order.cancel;
   writeRow(ACCOUNT_ORDERS, id, { ...order, status: to, cancel });
   writeEvent("order", id, from, to, actorId, at);
-
-  if (from === "assigned" && to === "confirmed") endActivePickupMission(id, "driverRemoved", at);
-  if (from === "assigned" && to === "pickup_failed") endActivePickupMission(id, "pickupFailed", at);
-  if (to === "canceled") {
-    endActivePickupMission(id, "orderCanceled", at);
-    cancelParcelsToCollect(id, at);
-    expireRecipientLink(id, at);
-  }
+  runCascades(id, cascadesOf({ type: "order", from, to }), at);
   return { ok: true };
 }
 
@@ -281,22 +174,15 @@ function transitionOrder(
 function recomputeOrder(orderCode: string, at: number): void {
   const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[orderCode];
   if (!order) return;
-  const statuses = parcelsOf(orderCode).map((p) => p.status);
-  const lossReported = statuses.some((s) => s === "lost");
-  let status = order.status;
-  const final = FINAL_ORDER_STATES.includes(order.status);
-  // Before pickup the order carries its own state: derive only once a parcel left to_collect.
-  const pickedUp =
-    DERIVED_ORDER_STATES.includes(order.status) ||
-    (order.status === "assigned" && statuses.some((s) => s !== "to_collect" && s !== "canceled"));
-  if (!final && pickedUp) status = deriveOrderOutcome(statuses, order.status);
-  // A derived move the table does not list is a bug in the derivation or a bad fixture: fail loudly.
-  if (status !== order.status && !ORDER_NEXT[order.status].includes(status))
-    throw new Error(`recomputeOrder: ${order.status} -> ${status} is not in ORDER_NEXT`);
+  const { status, lossReported } = nextOrderOutcome(
+    order.status,
+    parcelsOf(orderCode).map((p) => p.status),
+  );
   writeRow(ACCOUNT_ORDERS, orderCode, { ...order, lossReported, status });
   if (status !== order.status) {
     writeEvent("order", orderCode, order.status, status, SYSTEM, at);
-    if (FINAL_ORDER_STATES.includes(status)) expireRecipientLink(orderCode, at);
+    // A derived move sets off only the link expiry (on a final outcome).
+    runCascades(orderCode, cascadesOf({ type: "order", from: order.status, to: status }), at);
   }
 }
 
@@ -308,13 +194,11 @@ function transitionParcel(
 ): TransitionResult {
   const parcel = readTable<Parcel>(PARCELS)[id];
   if (!parcel) return { refused: "notFound" };
-  if (to === "taken") {
-    // A scan reads the order before the parcel (ADR-1).
-    const order = readTable<AccountOrder>(ACCOUNT_ORDERS)[parcel.orderCode];
-    if (!order || !SCAN_ALLOWED.includes(order.status)) return { refused: "orderNotAssigned" };
-  }
+  // A scan reads the order before the parcel (ADR-1).
+  const order = to === "taken" ? readTable<AccountOrder>(ACCOUNT_ORDERS)[parcel.orderCode] : null;
   const from = parcel.status;
-  if (!PARCEL_NEXT[from]?.includes(to)) return illegal(from, to);
+  const verdict = checkParcelMove(from, to, order?.status ?? null);
+  if (!("ok" in verdict)) return verdict;
 
   writeRow(PARCELS, id, { ...parcel, status: to });
   // R502: the reason of this failure stays with its event, so a second attempt cannot rewrite it.
@@ -338,26 +222,19 @@ function transitionMission(
   actorId: string,
   endReason: EndReason,
   at: number,
+  origin: "public" | "cascade",
 ): TransitionResult {
   const mission = readTable<Mission>(MISSIONS)[id];
   if (!mission) return { refused: "notFound" };
   const from = mission.status;
-  if (!MISSION_NEXT[from]?.includes(to)) return illegal(from, to);
-
-  const normalFinish = to === "finished" && endReason === null;
-  if (normalFinish) {
-    if (from !== "arrived") return illegal(from, to);
-    // Ruling: "scanned" means the parcel left to_collect and was not canceled. Testing for `taken`
-    // alone refused the finish once the scanned parcel had moved on (in_transit, lost, handed_over...).
-    if (
-      mission.kind === "pickup" &&
-      !parcelsOf(mission.orderCode).some(
-        (p) => p.status !== "to_collect" && p.status !== "canceled",
-      )
-    ) {
-      return { refused: "noParcelTaken", from, to };
-    }
-  }
+  const verdict = checkMissionMove(
+    mission,
+    to,
+    endReason,
+    parcelsOf(mission.orderCode).map((p) => p.status),
+    origin,
+  );
+  if (!("ok" in verdict)) return verdict;
 
   const updated: Mission = { ...mission, status: to };
   if (to === "arrived") updated.arrivedAt = iso(at);
@@ -368,8 +245,11 @@ function transitionMission(
   writeRow(MISSIONS, id, updated);
   writeEvent("mission", id, from, to, actorId, at, to === "finished" ? endReason : undefined);
 
-  // Only a normal pickup finish cancels the parcels never handed to the driver.
-  if (normalFinish && mission.kind === "pickup") cancelParcelsToCollect(mission.orderCode, at);
+  runCascades(
+    mission.orderCode,
+    cascadesOf({ type: "mission", kind: mission.kind, to, endReason }),
+    at,
+  );
   return { ok: true };
 }
 
@@ -386,8 +266,11 @@ export function transition(
 ): TransitionResult {
   // The three end reasons are the result of an order change (assigned → confirmed, assigned →
   // pickup_failed, → canceled), never a call of their own: a mission ended alone would leave an
-  // `assigned` order with no active mission. Refused before anything is read or written.
-  if (options.endReason != null) return { refused: "endReasonInternal" };
+  // `assigned` order with no active mission. A public call that sets one is refused by
+  // checkMissionMove (origin "public") before anything is read or written.
+  // An order or a parcel has no end reason at all: asking for one is the same refusal.
+  if (subject.type !== "mission" && options.endReason != null)
+    return { refused: "endReasonInternal" };
   const at = options.at ?? now();
   switch (subject.type) {
     case "order":
@@ -395,7 +278,14 @@ export function transition(
     case "parcel":
       return transitionParcel(subject.id, to as ParcelStatus, actorId, at);
     case "mission":
-      return transitionMission(subject.id, to as MissionStatus, actorId, null, at);
+      return transitionMission(
+        subject.id,
+        to as MissionStatus,
+        actorId,
+        options.endReason ?? null,
+        at,
+        "public",
+      );
   }
 }
 
