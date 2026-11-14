@@ -104,7 +104,7 @@ export const CLAIM_REOPEN_WINDOW_MS = 30 * 24 * HOUR;
 export const CLAIM_REPLY_DELAY_HOURS = 48;
 
 /**
- * Claim attachments (H12): the file rule is shared (`lib/attachments.ts`, size `MAX_ATTACHMENT_BYTES`),
+ * Claim attachments (H12): the file rule is shared (`packages/domain/src/attachments.ts`, size `MAX_ATTACHMENT_BYTES`),
  * at most 5 files. Provisional: GOFAST answers, 6 Nov 2026.
  */
 export const CLAIM_ATTACHMENT_MAX_BYTES = MAX_ATTACHMENT_BYTES;

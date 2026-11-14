@@ -14,11 +14,14 @@ import { PICKUP_WINDOWS } from "../data/fixtures/slots";
 // crypto.randomUUID for the quote id.
 
 /** The example price lines of an input. */
-export const priceLines = (input: PriceInput) => priceLinesWith(input, EXAMPLE_PRICE_TABLE);
+export const examplePriceLines = (input: PriceInput) => priceLinesWith(input, EXAMPLE_PRICE_TABLE);
 
 /** A quote from the example prices, with a new id unless one is given. */
-export const makeQuote = (input: PriceInput, at: number, id: string = crypto.randomUUID()): Quote =>
-  makeQuoteWith(input, at, EXAMPLE_PRICE_TABLE, id);
+export const exampleMakeQuote = (
+  input: PriceInput,
+  at: number,
+  id: string = crypto.randomUUID(),
+): Quote => makeQuoteWith(input, at, EXAMPLE_PRICE_TABLE, id);
 
 /** The example pickup slots that start after `at`. */
-export const availableSlots = (at: number): Slot[] => availableSlotsWith(at, PICKUP_WINDOWS);
+export const exampleAvailableSlots = (at: number): Slot[] => availableSlotsWith(at, PICKUP_WINDOWS);

@@ -33,7 +33,7 @@ const focusDocument = (code: DriverDocumentCode | undefined) =>
 /**
  * Driver application (W08, FE-05). Six required documents (GOFAST's list), each checked here and
  * again by the mock server. File rule (images and PDF, 5 MB): GOFAST's answer on attachments,
- * 6 Nov 2026 (lib/attachments.ts). Files stay in memory: never in storage or the URL.
+ * 6 Nov 2026 (packages/domain/src/attachments.ts). Files stay in memory: never in storage or the URL.
  */
 export function DriverForm() {
   const t = useTranslations("driver");

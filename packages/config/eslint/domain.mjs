@@ -60,6 +60,25 @@ const FORBIDDEN_IMPORTS = {
   ],
 };
 
+const GLOBAL_THIS_LOOKUPS = [
+  "localStorage",
+  "sessionStorage",
+  "window",
+  "document",
+  "navigator",
+  "process",
+].map((property) => ({
+  object: "globalThis",
+  property,
+  message: "Not available in packages/domain: pass it in as an argument.",
+}));
+
+// The clock and the random source are arguments (`at`, a RandomBytes or id maker), never read here.
+const CLOCK_AND_RANDOM = [
+  { object: "Date", property: "now", message: "Take the time as an argument (`at`)." },
+  { object: "Math", property: "random", message: "Take the random source as an argument." },
+];
+
 export function domainConfig() {
   return [
     ...baseConfig(),
@@ -74,22 +93,18 @@ export function domainConfig() {
             message: "Not available in packages/domain: pass it in as an argument.",
           })),
         ],
-        "no-restricted-properties": [
-          "error",
-          ...["localStorage", "sessionStorage", "window", "document", "navigator", "process"].map(
-            (property) => ({
-              object: "globalThis",
-              property,
-              message: "Not available in packages/domain: pass it in as an argument.",
-            }),
-          ),
-        ],
+        "no-restricted-properties": ["error", ...GLOBAL_THIS_LOOKUPS, ...CLOCK_AND_RANDOM],
       },
     },
     {
-      // The shifted-clock setup reads one environment variable (RV-08).
+      // Tests may read the clock (the shifted clock of RV-08 is set up for them).
+      files: ["**/*.test.ts"],
+      rules: { "no-restricted-properties": ["error", ...GLOBAL_THIS_LOOKUPS] },
+    },
+    {
+      // The shifted-clock setup reads one environment variable and the clock (RV-08).
       files: ["src/test-setup.ts"],
-      rules: { "no-restricted-globals": "off" },
+      rules: { "no-restricted-globals": "off", "no-restricted-properties": "off" },
     },
   ];
 }

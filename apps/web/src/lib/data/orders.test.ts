@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
 import { CODE_VERIFIED_WINDOW_MS, isValidTrackingCode } from "@fastgo/domain";
-import { makeQuote, availableSlots } from "@/lib/order/example-data";
+import { exampleMakeQuote, exampleAvailableSlots } from "@/lib/order/example-data";
 import type { OrderDraft } from "../order/draft";
 import { priceInputOf } from "../order/steps";
 import { buildOrderRequest, type OrderRequest } from "../order/request";
@@ -153,7 +153,7 @@ describe("createOrder: checks at creation", () => {
   it("refuses a recalculated quote the customer did not accept", async () => {
     await verifyPhone();
     const draft = readyDraft();
-    draft.quote = makeQuote(draft.quote!.input, T0);
+    draft.quote = exampleMakeQuote(draft.quote!.input, T0);
     expect(await createOrder(request(draft), "k")).toEqual({
       status: "refused",
       error: "quoteNotAccepted",
@@ -191,7 +191,7 @@ describe("createOrder: checks at creation", () => {
     const draft = readyDraft();
     clock = Date.parse(draft.sender.slot!.startUtc);
     await verifyPhone();
-    draft.quote = makeQuote(draft.quote!.input, clock);
+    draft.quote = exampleMakeQuote(draft.quote!.input, clock);
     draft.acceptedQuoteId = draft.quote.id;
     expect(await createOrder(request(draft), "k")).toEqual({
       status: "refused",
@@ -202,15 +202,15 @@ describe("createOrder: checks at creation", () => {
   it("refuses a scheduled delivery slot that has started", async () => {
     await verifyPhone();
     const draft = readyDraft();
-    const slots = availableSlots(T0);
+    const slots = exampleAvailableSlots(T0);
     draft.sender.slot = slots[slots.length - 1]!; // the pickup slot is still ahead
     draft.service = { code: "scheduled", slot: slots[0]! };
-    draft.quote = makeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
+    draft.quote = exampleMakeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
     draft.acceptedQuoteId = draft.quote.id;
     expect((await createOrder(request(structuredClone(draft)), "k1")).status).toBe("created");
     clock = Date.parse(slots[0]!.startUtc);
     await verifyPhone();
-    draft.quote = makeQuote(draft.quote.input, clock);
+    draft.quote = exampleMakeQuote(draft.quote.input, clock);
     draft.acceptedQuoteId = draft.quote.id;
     expect(await createOrder(request(draft), "k2")).toEqual({
       status: "refused",
@@ -225,13 +225,13 @@ describe("createOrder: checks at creation", () => {
       services: ["express" as const, "standard" as const],
       zone: "A",
     };
-    const slots = availableSlots(T0);
+    const slots = exampleAvailableSlots(T0);
     for (const side of ["sender", "recipient"] as const) {
       const draft = readyDraft();
       draft.sender.slot = slots[slots.length - 1]!;
       draft.service = { code: "scheduled", slot: slots[0]! };
       draft[side].address.zone = two;
-      draft.quote = makeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
+      draft.quote = exampleMakeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
       draft.acceptedQuoteId = draft.quote.id;
       expect(await createOrder(request(draft), `k-${side}`)).toEqual({
         status: "refused",
@@ -319,7 +319,7 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     draft.parcel.fragile = false;
     draft.parcel.weightKg = "2,5";
     draft.parcel.declaredValueMillimes = 100_000;
-    const quote = makeQuote(priceInputOf(draft)!, T0);
+    const quote = exampleMakeQuote(priceInputOf(draft)!, T0);
     return { ...draft, quote, acceptedQuoteId: quote.id };
   }
   const parcelsOf = (code: string) =>

@@ -131,11 +131,11 @@ export function decideQuote(
   arrival: ZoneResult | null,
   at: number,
   table: PriceTable,
-  id: string,
+  makeId: () => string,
 ): QuoteResult {
   if (departure?.status === "out-of-zone" || arrival?.status === "out-of-zone")
     return { status: "outOfZone" };
   if (departure?.status !== "in-zone" || arrival?.status !== "in-zone")
     return { status: "addressUnconfirmed" };
-  return { status: "ok", quote: makeQuote({ ...input, zone: arrival.zone }, at, table, id) };
+  return { status: "ok", quote: makeQuote({ ...input, zone: arrival.zone }, at, table, makeId()) };
 }

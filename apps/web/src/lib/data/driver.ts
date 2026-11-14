@@ -71,7 +71,7 @@ export async function submitDriverApplication(
   for (const document of DRIVER_DOCUMENTS) {
     const file = input.documents[document];
     if (!file) return { status: "error", code: "document-missing", document };
-    // One file rule for every upload: images and PDF, 5 MB (lib/attachments.ts).
+    // One file rule for every upload: images and PDF, 5 MB (packages/domain/src/attachments.ts).
     const problem = fileError(file);
     if (problem) {
       const code = problem === "tooLarge" ? "attachment-too-large" : "attachment-bad-type";

@@ -48,9 +48,9 @@ apps/web/
       ├─ data/              mock data layer. Pages read from here; swapped for the API client later.
       │  └─ fixtures/       example data (names, amounts, tracking codes). Never in components.
       ├─ forms/             zod schemas (error codes, not text) and useErrorMessage
-      ├─ order/             constants (every unsourced value), draft (the one localStorage module), clock,
-      │                     pricing, slots, proof, schemas, steps (guard), request, submit (idempotency)
-      ├─ auth/              safeNext (?next= only on this site), in-memory auth flow
+      ├─ order/             draft (the one localStorage module), clock, example-data, schemas, steps (guard),
+      │                     request, submit (idempotency). Unsourced values: packages/domain/src/order/constants.ts
+      ├─ auth/              route guard, in-memory auth flow (safeNext is in packages/domain)
       ├─ seo.ts, page.ts    title/description/canonical/hreflang helper, locale + metadata helpers
       ├─ storage.ts         safe localStorage access (missing, full or broken storage never breaks a page)
       └─ the pure rules (phone, digits, tracking code, limits, constants, pricing, slots, proof, split,
@@ -93,7 +93,7 @@ apps/web/
   Express, Standard and Programmée (W14); Rue de Marseille offers Express and Standard only (W05's
   answer, and the disabled Programmée card); Route de Sousse is out of zone.
 - Unsourced values (code length, validity, resend delay, attempts, password length, draft
-  retention) live in `lib/order/constants.ts` only. Prices are example fixtures
+  retention) live in `packages/domain/src/order/constants.ts` only. Prices are example fixtures
   (`lib/data/fixtures/pricing.ts`), labelled "Montants d'exemple".
 - Steps read the draft in the browser: each page server-renders its h1 and a busy placeholder, and
   `<noscript>` says ordering needs JavaScript.

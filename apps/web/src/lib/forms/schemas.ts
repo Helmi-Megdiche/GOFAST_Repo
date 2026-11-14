@@ -74,7 +74,7 @@ export const contactFormSchema = z.object({
 });
 export type ContactFormValues = z.infer<typeof contactFormSchema>;
 
-/** One required identity document: the shared file rule (images and PDF, 5 MB; lib/attachments.ts). */
+/** One required identity document: the shared file rule (images and PDF, 5 MB; packages/domain/src/attachments.ts). */
 export const requiredDocumentField = z.custom<File | null>().superRefine((file, ctx) => {
   const fail = (message: FormErrorCode) => ctx.addIssue({ code: "custom", message });
   if (file == null) return fail("documentRequired");

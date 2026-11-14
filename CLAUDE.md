@@ -24,7 +24,7 @@ Customers order a delivery on the website (or the installable web app on iPhone 
 - `apps/api`: NestJS modular monolith, REST + WebSocket, OpenAPI, routes under `/v1`. Three processes from one codebase: api, ws, worker.
 - `packages/ui`: design tokens (CSS variables plus a Tailwind v4 theme file; v4 has no JS presets), shared components, icons.
 - `packages/i18n`: message catalogs fr / ar / en and helpers.
-- `packages/domain` (`@fastgo/domain`): the business rules as pure functions and types (states, prices, phone, tracking code). No React, Next.js, DOM, storage, Node-only module or catalog, enforced by lint and by a tsconfig without DOM. ESM, source only: `apps/web` transpiles it and `apps/api` bundles it. Rules take amounts, tables and time (`at`) as arguments. Storage, fixtures and mocks stay in the apps.
+- `packages/domain` (`@fastgo/domain`): the business rules as pure functions and types (states, prices, phone, tracking code). No React, Next.js, DOM, storage, Node-only module or catalog, enforced by lint and by a tsconfig without DOM. ESM, source only: `apps/web` transpiles it and `apps/api` bundles it. Rules take amounts, tables and time (`at`) as arguments. Storage, fixtures and mocks stay in the apps. `pnpm test` in this package also runs the suite with the date moved 40 days ahead (RV-08), so CI covers it.
 - `packages/config`: shared eslint, tsconfig, prettier.
 - Data: PostgreSQL + PostGIS, row-level security, separate DB users, PgBouncer, Redis (sessions, queues), S3-compatible storage.
 - No microservices, no RabbitMQ, no Kubernetes.

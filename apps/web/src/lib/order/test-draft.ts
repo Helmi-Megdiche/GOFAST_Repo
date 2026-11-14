@@ -3,7 +3,7 @@
  * Not used by the app.
  */
 import { type ZoneResult } from "@fastgo/domain";
-import { makeQuote, availableSlots } from "@/lib/order/example-data";
+import { exampleMakeQuote, exampleAvailableSlots } from "@/lib/order/example-data";
 import { emptyDraft, type OrderDraft } from "./draft";
 import { priceInputOf } from "./steps";
 
@@ -28,7 +28,7 @@ export function readyDraft(at: number): OrderDraft {
       },
       name: "Yasmine K.",
       phone: TEST_PHONE,
-      slot: availableSlots(at)[0]!,
+      slot: exampleAvailableSlots(at)[0]!,
     },
     recipient: {
       ...draft.recipient,
@@ -54,6 +54,6 @@ export function readyDraft(at: number): OrderDraft {
     payment: "cashPickup",
     termsAccepted: true,
   };
-  const quote = makeQuote(priceInputOf(ready)!, at);
+  const quote = exampleMakeQuote(priceInputOf(ready)!, at);
   return { ...ready, quote, acceptedQuoteId: quote.id };
 }

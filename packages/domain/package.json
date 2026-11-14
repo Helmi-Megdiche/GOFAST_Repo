@@ -9,7 +9,7 @@
   "scripts": {
     "lint": "eslint .",
     "typecheck": "tsc --noEmit -p tsconfig.json && tsc --noEmit -p tsconfig.test.json",
-    "test": "vitest run",
+    "test": "vitest run && node scripts/test-shifted.mjs",
     "test:shifted": "node scripts/test-shifted.mjs"
   },
   "dependencies": {

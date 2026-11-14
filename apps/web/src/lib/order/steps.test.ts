@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { type ZoneResult } from "@fastgo/domain";
-import { makeQuote, availableSlots } from "@/lib/order/example-data";
+import { exampleMakeQuote, exampleAvailableSlots } from "@/lib/order/example-data";
 import { buildOrderRequest } from "./request";
 import {
   offeredServices,
@@ -69,18 +69,18 @@ describe("W15 guard and the quote (R205)", () => {
     const draft = readyDraft(T0);
     draft.parcel.weightKg = "5";
     expect(priceInputOf(draft)?.weightKg).toBe(5);
-    const next = withNewQuote(draft, makeQuote(priceInputOf(draft)!, T0 + 1));
+    const next = withNewQuote(draft, exampleMakeQuote(priceInputOf(draft)!, T0 + 1));
     expect(quoteMatches(next)).toBe(true);
   });
 
   it("keeps the previous accepted total in the draft until the new price is accepted", () => {
     const draft = readyDraft(T0);
-    const first = withNewQuote(draft, makeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
+    const first = withNewQuote(draft, exampleMakeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
     expect(first.previousTotalMillimes).toBe(11_305);
     expect(first.acceptedQuoteId).toBe(draft.quote!.id);
     // A second recalculation before acceptance keeps the price the customer had accepted.
     const changed = { ...first, quote: { ...first.quote!, totalMillimes: 99_000 } };
-    const second = withNewQuote(changed, makeQuote(priceInputOf(draft)!, T0 + 30 * 60_000));
+    const second = withNewQuote(changed, exampleMakeQuote(priceInputOf(draft)!, T0 + 30 * 60_000));
     expect(second.previousTotalMillimes).toBe(11_305);
   });
 });
@@ -104,12 +104,12 @@ describe("services offered by both addresses (CMD-04)", () => {
   /** Programmée accepted at W14, then one address changed to a zone without it. */
   function scheduledThenTwoServices(side: "sender" | "recipient") {
     const draft = readyDraft(T0);
-    const slots = availableSlots(T0);
+    const slots = exampleAvailableSlots(T0);
     draft.sender.slot = slots[slots.length - 1]!;
     draft.service = { code: "scheduled", slot: slots[0]! };
     draft[side].address = { ...draft[side].address, zone: TWO };
     // Priced again with the new address, as the old W14 did: the quote matches the draft.
-    draft.quote = makeQuote(priceInputOf(draft)!, T0);
+    draft.quote = exampleMakeQuote(priceInputOf(draft)!, T0);
     draft.acceptedQuoteId = draft.quote.id;
     return draft;
   }
@@ -144,7 +144,7 @@ describe("R607 acceptance and a new quote (RV-05)", () => {
       payment: "cashDelivery" as const,
       freightPayerAccepted: true,
     };
-    const next = withNewQuote(draft, makeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
+    const next = withNewQuote(draft, exampleMakeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
     expect(next.freightPayerAccepted).toBe(false);
     expect(next.payment).toBe("cashDelivery");
   });
