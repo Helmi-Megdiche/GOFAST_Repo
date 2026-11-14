@@ -451,14 +451,14 @@ export interface components {
             pin?: components["schemas"]["Pin"] | null;
             text: string;
         };
-        /** @description One line of the price. `millimes` is `unit_millimes` times `count`; null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md). */
+        /** @description One line of the price. `millimes` is `unit_millimes` times `count`, except for `weight` when the parcels differ: `unit_millimes` is then null and `millimes` is the sum of each parcel's own price. `millimes` is null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md). `base`, `weight` and `options` are per parcel (`count` is the number of parcels; `unit_millimes` is null for `weight` when the parcels differ). `distance`, `surcharge` and `stamp` are once per order (`count` is 1). `vat` is unchanged: null until the accountant confirms. */
         AmountLine: {
-            /** @description The number of parcels the unit price is multiplied by. */
+            /** @description The number of parcels for a per-parcel line; 1 for a once-per-order line. */
             count: number;
             /** @enum {string} */
             kind: "base" | "distance" | "weight" | "options" | "surcharge" | "vat" | "stamp";
             millimes: components["schemas"]["Money"] | null;
-            /** @description Price for one parcel. */
+            /** @description Price of one unit: one parcel for `base`, `weight` and `options`, the whole line for `distance`, `surcharge`, `vat` and `stamp` (`count` is 1). Null when the parcels differ (`weight`) or while the line is not confirmed. */
             unit_millimes: components["schemas"]["Money"] | null;
         };
         /** @description The body of a AUTH_REQUIRED answer. The code is fixed by the status. */
@@ -637,8 +637,6 @@ export interface components {
             freight_payer_accepted: boolean;
             parcel: {
                 content: string;
-                /** @description Must be the `parcel_count` of the quote. The maximum comes from the settings (provisional 10); more gives RULE_REFUSED `tooManyParcels`. */
-                count: number;
                 declared_value_millimes?: components["schemas"]["Money"] | null;
                 /** @default false */
                 fragile: boolean;
@@ -647,8 +645,9 @@ export interface components {
                  * @default false
                  */
                 packaging: boolean;
+                /** @description Must be the `parcels` of the quote (same number, same weights). The maximum number comes from the settings (provisional 10); more gives RULE_REFUSED `tooManyParcels`. */
+                parcels: components["schemas"]["QuoteParcels"];
                 type: components["schemas"]["ParcelTypeCode"];
-                weight_g: number;
             };
             payment_mode: components["schemas"]["PaymentMode"];
             /** @description Proof that the sender's phone was verified for the purpose `order` (R102). Needed only while that phone is not verified on the account; without it the answer is 422 RULE_REFUSED with the field `phone_check_id` and the reason `phoneRequired`. Used once. */
@@ -799,8 +798,8 @@ export interface components {
             /** @description R204. One entry for each of base, distance, weight, options, surcharge, discount, vat and stamp, in that order, even at 0. */
             lines: components["schemas"]["PriceLine"][];
             packaging: boolean;
-            parcel_count: number;
             parcel_type: components["schemas"]["ParcelTypeCode"];
+            parcels: components["schemas"]["QuoteParcels"];
             quoted_at: components["schemas"]["UtcTimestamp"];
             service: components["schemas"]["ServiceCode"];
             surcharge: null | {
@@ -810,7 +809,6 @@ export interface components {
             };
             /** @description Sum (all parcels) of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT). */
             total_millimes: components["schemas"]["Money"];
-            weight_g: number;
         };
         /** @description The body of a QUOTE_EXPIRED answer. The code is fixed by the status. */
         QuoteExpiredBody: {
@@ -819,6 +817,10 @@ export interface components {
                 code?: "QUOTE_EXPIRED";
             };
         };
+        QuoteParcels: {
+            /** @description Declared weight of this parcel, in grams. */
+            weight_g: number;
+        }[];
         QuoteRequest: {
             arrival: components["schemas"]["AddressInput"];
             declared_value_millimes?: components["schemas"]["Money"] | null;
@@ -826,19 +828,14 @@ export interface components {
             /** @default false */
             fragile: boolean;
             /**
-             * @description GOFAST packaging (reponses-gofast.md). Its price is in the `options` line.
+             * @description GOFAST packaging (reponses-gofast.md), for every parcel. Its price is in the `options` line.
              * @default false
              */
             packaging: boolean;
-            /**
-             * @description Number of parcels. The price is per parcel times this count. The maximum (provisional 10) comes from the settings; more gives RULE_REFUSED `tooManyParcels`.
-             * @default 1
-             */
-            parcel_count: number;
             parcel_type: components["schemas"]["ParcelTypeCode"];
+            /** @description One entry for each parcel, with its own weight (2 kg are included in the base price of each parcel). The maximum number (provisional 10) comes from the settings; more gives RULE_REFUSED `tooManyParcels` (so the schema sets no upper bound). */
+            parcels: components["schemas"]["QuoteParcels"];
             service: components["schemas"]["ServiceCode"];
-            /** @description Declared weight of one parcel, in grams. */
-            weight_g: number;
         };
         /** Format: uuid */
         ResourceId: string;

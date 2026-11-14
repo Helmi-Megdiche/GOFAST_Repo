@@ -1717,5 +1717,19 @@
     "notVerified": "Le code n'est plus valable. Demandez-en un nouveau.",
     "network": "L'opération a échoué. Réessayez.",
     "loading": "Chargement…"
+  },
+  "apiErrors": {
+    "VALIDATION_FAILED": "Certains champs sont manquants ou invalides.",
+    "AUTH_REQUIRED": "Connexion requise ou identifiants incorrects.",
+    "ACCESS_DENIED": "Vous n'avez pas le droit d'effectuer cette action.",
+    "NOT_FOUND": "Ressource introuvable.",
+    "STATE_CONFLICT": "Cette action n'est pas possible dans l'état actuel.",
+    "KEY_REUSED": "Cette clé d'idempotence a déjà servi pour une autre requête.",
+    "QUOTE_EXPIRED": "Le prix a expiré, il doit être recalculé.",
+    "RULE_REFUSED": "Une règle métier n'est pas respectée.",
+    "TOO_MANY_ATTEMPTS": "Trop de tentatives, réessayez plus tard.",
+    "PROVIDER_UNAVAILABLE": "Un service externe est indisponible.",
+    "INTERNAL_ERROR": "Erreur interne.",
+    "SAME_ACTOR": "Vous ne pouvez pas valider votre propre travail."
   }
 }

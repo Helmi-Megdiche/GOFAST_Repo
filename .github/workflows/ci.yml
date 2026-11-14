@@ -23,6 +23,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       code: ${{ steps.diff.outputs.code }}
+      api: ${{ steps.diff.outputs.api }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,22 +36,27 @@ jobs:
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
           code=true
+          api=true
           if [ "$EVENT" = "pull_request" ]; then
             files=$(git diff --name-only "$BASE_SHA" HEAD)
             echo "Changed files:"
             echo "$files"
             if [ -n "$files" ]; then
               code=false
+              api=false
               while IFS= read -r f; do
                 case "$f" in
                   docs/* | infra/* | *.md) ;;
+                  apps/api/* | packages/contract/* | packages/i18n/* | packages/domain/* | packages/config/* | turbo.json | package.json | pnpm-lock.yaml | pnpm-workspace.yaml | .node-version | .github/*) code=true; api=true ;;
                   *) code=true ;;
                 esac
               done <<< "$files"
             fi
           fi
           echo "code=$code"
+          echo "api=$api"
           echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "api=$api" >> "$GITHUB_OUTPUT"
 
   checks:
     name: Lint, typecheck, unit tests, build
@@ -294,6 +300,56 @@ jobs:
             exit 0
           fi
           echo "e2e did not pass."
+          exit 1
+
+  # Integration tests of the API: Docker is on the runner (Testcontainers, Schemathesis). #7, #21.
+  api-int:
+    name: API integration tests
+    needs: [checks, changes]
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm (version from package.json)
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @fastgo/contract bundle
+      - run: pnpm --filter @fastgo/api test:int
+
+  # The one name to require for the API: green when the integration tests passed, or were skipped
+  # because nothing the API depends on changed. Red when they failed or did not run although they should have.
+  api:
+    name: API (tests, contract)
+    needs: [changes, api-int]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Summarise the API tests
+        env:
+          API: ${{ needs.changes.outputs.api }}
+          INT: ${{ needs.api-int.result }}
+        run: |
+          echo "api=$API api-int=$INT"
+          if [ "$INT" = "success" ]; then exit 0; fi
+          if [ "$INT" = "skipped" ] && [ "$API" = "false" ]; then exit 0; fi
+          echo "API integration tests did not pass."
           exit 1
 
   gitleaks:

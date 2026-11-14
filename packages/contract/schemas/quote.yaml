@@ -40,28 +40,35 @@ ServiceCatalog:
             enum: [fragile, declaredValue, retry, return]
           fee_millimes:
             oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+QuoteParcels:
+  type: array
+  minItems: 1
+  items:
+    type: object
+    required: [weight_g]
+    additionalProperties: false
+    properties:
+      weight_g:
+        type: integer
+        minimum: 1
+        description: Declared weight of this parcel, in grams.
 QuoteRequest:
   type: object
-  required: [service, parcel_type, weight_g, departure, arrival]
+  required: [service, parcel_type, parcels, departure, arrival]
   additionalProperties: false
   properties:
     service: { $ref: "common.yaml#/ServiceCode" }
     parcel_type: { $ref: "common.yaml#/ParcelTypeCode" }
-    parcel_count:
-      type: integer
-      minimum: 1
-      default: 1
+    parcels:
       description: >-
-        Number of parcels. The price is per parcel times this count. The maximum (provisional 10)
-        comes from the settings; more gives RULE_REFUSED `tooManyParcels`.
-    weight_g:
-      type: integer
-      minimum: 1
-      description: Declared weight of one parcel, in grams.
+        One entry for each parcel, with its own weight (2 kg are included in the base price of each
+        parcel). The maximum number (provisional 10) comes from the settings; more gives
+        RULE_REFUSED `tooManyParcels` (so the schema sets no upper bound).
+      $ref: "#/QuoteParcels"
     packaging:
       type: boolean
       default: false
-      description: GOFAST packaging (reponses-gofast.md). Its price is in the `options` line.
+      description: GOFAST packaging (reponses-gofast.md), for every parcel. Its price is in the `options` line.
     fragile:
       type: boolean
       default: false
@@ -72,8 +79,13 @@ QuoteRequest:
 AmountLine:
   type: object
   description: >-
-    One line of the price. `millimes` is `unit_millimes` times `count`; null while GOFAST has not
-    confirmed the line (vat and stamp, see reponses-gofast.md).
+    One line of the price. `millimes` is `unit_millimes` times `count`, except for `weight` when the
+    parcels differ: `unit_millimes` is then null and `millimes` is the sum of each parcel's own
+    price. `millimes` is null while GOFAST has not
+    confirmed the line (vat and stamp, see reponses-gofast.md). `base`, `weight` and `options` are
+    per parcel (`count` is the number of parcels; `unit_millimes` is null for `weight` when the
+    parcels differ). `distance`, `surcharge` and `stamp` are once per order (`count` is 1). `vat`
+    is unchanged: null until the accountant confirms.
   required: [kind, unit_millimes, count, millimes]
   additionalProperties: false
   properties:
@@ -81,12 +93,15 @@ AmountLine:
       type: string
       enum: [base, distance, weight, options, surcharge, vat, stamp]
     unit_millimes:
-      description: Price for one parcel.
+      description: >-
+        Price of one unit: one parcel for `base`, `weight` and `options`, the whole line for
+        `distance`, `surcharge`, `vat` and `stamp` (`count` is 1). Null when the parcels differ
+        (`weight`) or while the line is not confirmed.
       oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
     count:
       type: integer
       minimum: 1
-      description: The number of parcels the unit price is multiplied by.
+      description: The number of parcels for a per-parcel line; 1 for a once-per-order line.
     millimes:
       oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
 DiscountLine:
@@ -116,8 +131,7 @@ Quote:
       id,
       service,
       parcel_type,
-      parcel_count,
-      weight_g,
+      parcels,
       packaging,
       fragile,
       lines,
@@ -131,8 +145,7 @@ Quote:
     id: { $ref: "common.yaml#/ResourceId" }
     service: { $ref: "common.yaml#/ServiceCode" }
     parcel_type: { $ref: "common.yaml#/ParcelTypeCode" }
-    parcel_count: { type: integer, minimum: 1 }
-    weight_g: { type: integer, minimum: 1 }
+    parcels: { $ref: "#/QuoteParcels" }
     packaging: { type: boolean }
     fragile: { type: boolean }
     lines:

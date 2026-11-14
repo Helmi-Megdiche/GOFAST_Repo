@@ -1717,5 +1717,19 @@
     "notVerified": "The code is no longer valid. Ask for a new one.",
     "network": "The operation failed. Try again.",
     "loading": "Loading…"
+  },
+  "apiErrors": {
+    "VALIDATION_FAILED": "Some fields are missing or invalid.",
+    "AUTH_REQUIRED": "Sign-in required or wrong credentials.",
+    "ACCESS_DENIED": "You are not allowed to do this.",
+    "NOT_FOUND": "Resource not found.",
+    "STATE_CONFLICT": "This action is not possible in the current state.",
+    "KEY_REUSED": "This idempotency key was already used for another request.",
+    "QUOTE_EXPIRED": "The price has expired and must be recalculated.",
+    "RULE_REFUSED": "A business rule is not met.",
+    "TOO_MANY_ATTEMPTS": "Too many attempts, try again later.",
+    "PROVIDER_UNAVAILABLE": "An external service is unavailable.",
+    "INTERNAL_ERROR": "Internal error.",
+    "SAME_ACTOR": "You cannot validate your own work."
   }
 }
