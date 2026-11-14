@@ -56,8 +56,10 @@ delete:
   operationId: closeMe
   summary: Close the account
   description: >-
-    Addition to the cahier. R105: the identity is erased and the accounting records stay. After it
-    every writer scoped by the account refuses it, and the session ends.
+    Addition to the cahier. R105: the identity is erased (name, phone, e-mail, the saved addresses and
+    the saved recipients, and the name and address on the orders, which then read null) and the
+    accounting records stay. The stored response of an idempotent call is purged with it (RV-18).
+    After it every writer scoped by the account refuses it, and the session ends.
   tags: [account]
   x-roles: [individual, merchant]
   x-replay: state

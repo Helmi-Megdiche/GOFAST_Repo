@@ -65,6 +65,8 @@ paths:
     $ref: paths/orders.yaml
   /v1/orders/{id}:
     $ref: paths/order.yaml
+  /v1/orders/{id}/confirm:
+    $ref: paths/order-confirm.yaml
   /v1/orders/{id}/cancel:
     $ref: paths/order-cancel.yaml
   /v1/tracking/{number}:

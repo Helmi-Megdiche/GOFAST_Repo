@@ -3,7 +3,9 @@ post:
   summary: Sign in with a phone or an e-mail and a password
   description: >-
     Sets the session cookie and answers with the signed-in person. A wrong password and an unknown
-    account give the same 401 (decision 16). Attempts are limited per account and per IP.
+    account give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so
+    the answer does not tell whether an account exists (a choice of this contract, not a rule of the
+    cahier). Attempts are limited per account and per IP.
   tags: [auth]
   x-roles: [public]
   x-replay: none

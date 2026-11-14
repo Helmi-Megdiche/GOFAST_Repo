@@ -45,6 +45,14 @@ OrderCreate:
   properties:
     quote_id: { $ref: "common.yaml#/ResourceId" }
     accepted_total_millimes: { $ref: "common.yaml#/Money" }
+    phone_check_id:
+      description: >-
+        Proof that the sender's phone was verified for the purpose `order` (R102). Needed only while
+        that phone is not verified on the account; without it the answer is 422 RULE_REFUSED with the
+        field `phone_check_id` and the reason `phoneRequired`. Used once.
+      oneOf:
+        - $ref: "account.yaml#/PhoneCheckId"
+        - type: "null"
     sender: { $ref: "#/OrderSenderInput" }
     recipient: { $ref: "#/OrderRecipientInput" }
     parcel:
@@ -56,12 +64,18 @@ OrderCreate:
         count:
           type: integer
           minimum: 1
-          description: The maximum comes from the settings (provisional 10); more gives RULE_REFUSED `tooManyParcels`.
+          description: >-
+            Must be the `parcel_count` of the quote. The maximum comes from the settings (provisional
+            10); more gives RULE_REFUSED `tooManyParcels`.
         weight_g: { type: integer, minimum: 1 }
         content: { type: string, minLength: 1 }
         declared_value_millimes:
           oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
         fragile: { type: boolean, default: false }
+        packaging:
+          type: boolean
+          default: false
+          description: GOFAST packaging, as in the quote.
     service:
       type: object
       required: [code]
@@ -84,11 +98,15 @@ OrderParty:
   required: [name, phone, address, city]
   additionalProperties: false
   properties:
-    name: { type: string }
+    name:
+      description: Null once the account is closed (R105).
+      type: [string, "null"]
     phone:
-      description: Null for a closed account (R105).
+      description: Null once the account is closed (R105).
       oneOf: [{ $ref: "common.yaml#/PhoneE164" }, { type: "null" }]
-    address: { type: string }
+    address:
+      description: Null once the account is closed (R105).
+      type: [string, "null"]
     city: { type: [string, "null"] }
 OrderParcel:
   type: object

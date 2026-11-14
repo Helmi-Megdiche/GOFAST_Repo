@@ -46,6 +46,10 @@ const operations: Operation[] = Object.entries(spec.paths as Record<string, Json
     }),
 );
 
+const schemas = components.schemas as Record<string, Json>;
+const cahierErrors = new Set(
+  [...technique.matchAll(/^\| (\d{3}) \| ([A-Z_]+) \|/gm)].map((m) => `${m[1]} ${m[2]}`),
+);
 const refName = (ref: string) => ref.split("/").pop() as string;
 const parametersOf = (op: Json): Json[] =>
   ((op.parameters as Json[] | undefined) ?? []).map((p) =>
@@ -68,6 +72,58 @@ function cahierRoutes(): Set<string> {
     }
   }
   return routes;
+}
+
+const CAHIER_ROLES: Record<string, string[]> = {
+  particulier: ["individual"],
+  commerçant: ["merchant"],
+  agent: ["agent"],
+  opérations: ["operations"],
+  logistique: ["logistics"],
+  "service client": ["customer_service"],
+  comptable: ["accountant"],
+  direction: ["management"],
+  admin: ["admin"],
+  public: ["public"],
+  "any account": ROLES.filter((r) => r !== "public"),
+};
+const CAHIER_REPLAY: Record<string, string> = {
+  no: "none",
+  key: "key",
+  state: "state",
+  event: "event",
+};
+
+type CahierRow = { roles: string[]; readRoles: string[]; replay: string };
+
+/** The cahier's table as "METHOD /v1/path" (every `{x}` written `{}`) to its roles and replay. */
+function cahierRows(): Map<string, CahierRow> {
+  const rows = new Map<string, CahierRow>();
+  const names = (text: string): string[] =>
+    text
+      .replace(/\(own\)/g, "")
+      .replace(/^read /, "")
+      .split(/,| and /)
+      .map((n) => n.trim().toLowerCase())
+      .filter((n) => n && n !== "limited attempts")
+      .flatMap((n) => CAHIER_ROLES[n] ?? (n.startsWith("public") ? ["public"] : [`?${n}`]));
+  for (const line of technique.split("\n")) {
+    const cells = line.split("|").map((cell) => cell.trim());
+    const route = cells[1];
+    if (!route?.startsWith("/v1/") || cells.length < 6) continue;
+    const base = route.replace(/ \(L\d\)$/, "").replace(/\{[^}]*\}/g, "{}");
+    const [main = "", ...rest] = (cells[3] ?? "").split(";");
+    const row: CahierRow = {
+      roles: names(main),
+      readRoles: rest.flatMap((part) => names(part.trim())),
+      replay: CAHIER_REPLAY[(cells[4] ?? "").toLowerCase()] ?? "?",
+    };
+    for (const action of (cells[2] ?? "").split(",").map((a) => a.trim())) {
+      const [method, suffix = ""] = action.split(" ");
+      rows.set(`${method} ${base}${suffix.replace(/\{[^}]*\}/g, "{}")}`, row);
+    }
+  }
+  return rows;
 }
 
 const normalizePath = (path: string) => path.replace(/\{[^}]*\}/g, "{}");
@@ -118,9 +174,22 @@ describe("operations", () => {
           ? ((components.responses as Record<string, Json>)[refName(raw.$ref as string)] as Json)
           : raw;
         const content = (response.content as Json)["application/json"] as Json;
-        expect((content.schema as Json).$ref).toBe("#/components/schemas/ErrorBody");
         // "401 AUTH_REQUIRED. ..." : the description starts with the status it is used for.
-        expect(String(response.description)).toMatch(new RegExp(`^${status} [A-Z_]+\\.`));
+        const [, described] =
+          String(response.description).match(new RegExp(`^${status} ([A-Z_]+)\\.`)) ?? [];
+        expect(described, `${status} description`).toBeDefined();
+        // The body schema pins that same code, so a 404 cannot carry VALIDATION_FAILED.
+        const body = schemas[refName((content.schema as Json).$ref as string)] ?? {};
+        const error = (body.properties as Json).error as Json;
+        const pinned = ((error.allOf as Json[])[1]?.properties as Json | undefined)?.code as
+          Json | undefined;
+        expect(pinned?.const, `${status} body code`).toBe(described);
+        expect(error.unevaluatedProperties).toBe(false);
+        // The pair is one of the cahier's table, or the accepted INTERNAL_ERROR.
+        expect(
+          cahierErrors.has(`${status} ${described}`) ||
+            `${status} ${described}` === "500 INTERNAL_ERROR",
+        ).toBe(true);
       }
     },
   );
@@ -155,57 +224,111 @@ describe("the cahier", () => {
     }
   });
 
+  // Where the contract differs from the cahier on purpose; each reason is in the operation's text.
+  const DIFFERENT_ROLES: Record<string, string> = {
+    "POST /v1/sessions": "the caller has no session; any account may sign in",
+    "POST /v1/sessions/google":
+      "the caller has no session; the handler allows customers and merchants",
+    "POST /v1/orders": "creating an order for a customer (staff) is not in this version",
+  };
+
+  it("gives every `cahier` route the roles and the replay of its table row", () => {
+    const rows = cahierRows();
+    expect(rows.get("POST /v1/orders/{}/confirm")?.roles).toEqual(["agent", "operations", "admin"]);
+    const checked: string[] = [];
+    for (const { method, path, op } of operations) {
+      if (op["x-cahier"] !== "cahier") continue;
+      const key = `${method} ${normalizePath(path)}`;
+      const row = rows.get(key);
+      expect(row, key).toBeDefined();
+      if (!row) continue;
+      const allowed = method === "GET" ? [...row.roles, ...row.readRoles] : row.roles;
+      expect(
+        allowed.filter((r) => r.startsWith("?")),
+        `${key} role names`,
+      ).toEqual([]);
+      const roles = op["x-roles"] as string[];
+      if (DIFFERENT_ROLES[key]) {
+        // Still never wider than the cahier, except the two sign-in routes, which are public.
+        if (!key.startsWith("POST /v1/sessions"))
+          for (const r of roles) expect(allowed, key).toContain(r);
+      } else {
+        expect([...roles].sort(), `${key} roles`).toEqual([...new Set(allowed)].sort());
+      }
+      expect(op["x-replay"], `${key} replay`).toBe(method === "GET" ? "none" : row.replay);
+      checked.push(key);
+    }
+    expect(checked.length).toBeGreaterThanOrEqual(13);
+  });
+
   it("uses the error codes of its table, plus INTERNAL_ERROR", () => {
     const codes = [...technique.matchAll(/^\| \d{3} \| ([A-Z_]+) \|/gm)].map((m) => m[1]);
     expect(codes).toHaveLength(11);
-    const enumValues = (components.schemas as Record<string, Json>).ErrorCode?.enum;
+    const enumValues = schemas.ErrorCode?.enum;
     expect(enumValues).toEqual([...codes, "INTERNAL_ERROR"]);
   });
 });
 
 describe("conventions", () => {
-  const schemas = components.schemas as Record<string, Json>;
+  /** Every `properties` map in the whole spec: components and inline schemas of the paths alike. */
+  const propertyMaps: { where: string; owner: Json; props: Json }[] = [];
+  const collect = (node: unknown, where: string): void => {
+    if (Array.isArray(node)) node.forEach((item, i) => collect(item, `${where}[${i}]`));
+    else if (node && typeof node === "object") {
+      const object = node as Json;
+      if (object.properties && typeof object.properties === "object")
+        propertyMaps.push({ where, owner: object, props: object.properties as Json });
+      for (const [key, value] of Object.entries(object)) collect(value, `${where}.${key}`);
+    }
+  };
+  collect(spec.paths, "paths");
+  collect(spec.components, "components");
+
+  it("walks the inline schemas of the paths too", () => {
+    expect(propertyMaps.some((m) => m.where.startsWith("paths"))).toBe(true);
+    expect(propertyMaps.some((m) => m.where.startsWith("components"))).toBe(true);
+  });
 
   it("writes every property in snake_case", () => {
-    const bad: string[] = [];
-    const walk = (node: unknown, where: string): void => {
-      if (Array.isArray(node)) node.forEach((item, i) => walk(item, `${where}[${i}]`));
-      else if (node && typeof node === "object") {
-        const object = node as Json;
-        if (object.properties && typeof object.properties === "object") {
-          for (const key of Object.keys(object.properties as Json))
-            if (!/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/.test(key)) bad.push(`${where}.${key}`);
-        }
-        for (const [key, value] of Object.entries(object)) walk(value, `${where}.${key}`);
-      }
-    };
-    walk(schemas, "schemas");
+    const bad = propertyMaps.flatMap(({ where, props }) =>
+      Object.keys(props)
+        .filter((key) => !/^[a-z][a-z0-9]*(_[a-z0-9]+)*$/.test(key))
+        .map((key) => `${where}.${key}`),
+    );
     expect(bad).toEqual([]);
   });
 
-  it("types every amount as Money (integer millimes)", () => {
+  it("types every amount as Money (integer millimes), but a discount line", () => {
     expect(schemas.Money).toMatchObject({ type: "integer", minimum: 0 });
-    const bad: string[] = [];
+    expect(schemas.DiscountMillimes).toMatchObject({ type: "integer", maximum: 0 });
+    const ref = (name: string) => `#/components/schemas/${name}`;
     const isMoney = (schema: Json): boolean =>
-      schema.$ref === "#/components/schemas/Money" ||
+      schema.$ref === ref("Money") ||
       (Array.isArray(schema.oneOf) &&
-        (schema.oneOf as Json[]).some((s) => s.$ref === "#/components/schemas/Money"));
-    const walk = (node: unknown, where: string): void => {
-      if (Array.isArray(node)) node.forEach((item, i) => walk(item, `${where}[${i}]`));
-      else if (node && typeof node === "object") {
-        const object = node as Json;
-        for (const [key, value] of Object.entries((object.properties ?? {}) as Json))
-          if (/millimes$/.test(key) && !isMoney(value as Json)) bad.push(`${where}.${key}`);
-        for (const [key, value] of Object.entries(object)) walk(value, `${where}.${key}`);
+        (schema.oneOf as Json[]).some((s) => s.$ref === ref("Money")));
+    const bad: string[] = [];
+    let discountUses = 0;
+    for (const { where, owner, props } of propertyMaps) {
+      for (const [key, value] of Object.entries(props)) {
+        if (!/millimes$/.test(key)) continue;
+        const schema = value as Json;
+        if (schema.$ref === ref("DiscountMillimes")) {
+          // The only place a negative amount is allowed: a line whose kind is `discount`.
+          discountUses += 1;
+          if ((props.kind as Json | undefined)?.const !== "discount" || owner.type !== "object")
+            bad.push(`${where}.${key} (negative outside a discount line)`);
+        } else if (!isMoney(schema)) bad.push(`${where}.${key}`);
       }
-    };
-    walk(schemas, "schemas");
+    }
     expect(bad).toEqual([]);
+    expect(discountUses).toBe(2);
   });
 
   it("never sends a float for money: no `number` type next to an amount", () => {
-    const text = JSON.stringify(schemas);
-    expect(text).not.toMatch(/millimes"?:\{[^}]*"type":"number"/);
+    for (const { where, props } of propertyMaps)
+      for (const [key, value] of Object.entries(props))
+        if (/millimes$/.test(key))
+          expect(JSON.stringify(value), `${where}.${key}`).not.toContain('"number"');
   });
 });
 

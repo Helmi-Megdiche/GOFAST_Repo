@@ -70,10 +70,13 @@ ParcelStatus:
     - returned
     - lost
     - canceled
-PriceLineKind:
-  type: string
-  description: R204. Every kind is always present in a quote, even at 0.
-  enum: [base, distance, weight, options, surcharge, discount, vat, stamp]
+DiscountMillimes:
+  type: integer
+  maximum: 0
+  description: >-
+    A discount in millimes. It is negative or zero, as in the web mock. It is the only amount that
+    may be negative, and only on a line of kind `discount`.
+  examples: [-1500]
 CancelFee:
   type: string
   description: >-

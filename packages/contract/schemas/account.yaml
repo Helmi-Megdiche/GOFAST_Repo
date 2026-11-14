@@ -87,6 +87,12 @@ GoogleSignInRequest:
       oneOf:
         - $ref: "#/PhoneCheckId"
         - type: "null"
+    link_code:
+      description: >-
+        The code sent by SMS to the stored phone when the Google e-mail already has an account
+        (R103). Absent on the first call.
+      type: [string, "null"]
+      pattern: "^[0-9]+$"
 SignUpRequest:
   type: object
   required: [kind, name, phone, phone_check_id, password, locale, terms_accepted]
@@ -133,7 +139,7 @@ PhoneCheckRequest:
     purpose: { $ref: "#/PhoneCheckPurpose" }
 PhoneCheckSent:
   type: object
-  description: The answer is the same for a known and an unknown phone (R102, decision 16).
+  description: The answer is the same for a known and an unknown phone (R102), so it does not tell whether the phone has an account (a choice of this contract, not a rule of the cahier).
   required: [expires_at, resend_at]
   additionalProperties: false
   properties:

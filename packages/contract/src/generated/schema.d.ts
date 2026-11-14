@@ -15,7 +15,7 @@ export interface paths {
         put?: never;
         /**
          * Sign up
-         * @description Addition to the cahier. Creates the account and signs it in. The phone must have been verified for the purpose `signUp` (`phone_check_id`). A phone or e-mail that already has an account gives 422 RULE_REFUSED (R101).
+         * @description Addition to the cahier. Creates the account and signs it in. The phone must have been verified for the purpose `signUp` (`phone_check_id`), which is checked first. A phone or e-mail that already has an account gives 422 RULE_REFUSED with the field `phone` or `email` and the reason `phoneTaken` or `emailTaken` (R101). A refused sign-up uses up its `phone_check_id`, and sign-up attempts are limited (429 TOO_MANY_ATTEMPTS, provisional value), so one verified phone cannot probe e-mails.
          */
         post: operations["createAccount"];
         delete?: never;
@@ -60,7 +60,7 @@ export interface paths {
         post?: never;
         /**
          * Close the account
-         * @description Addition to the cahier. R105: the identity is erased and the accounting records stay. After it every writer scoped by the account refuses it, and the session ends.
+         * @description Addition to the cahier. R105: the identity is erased (name, phone, e-mail, the saved addresses and the saved recipients, and the name and address on the orders, which then read null) and the accounting records stay. The stored response of an idempotent call is purged with it (RV-18). After it every writer scoped by the account refuses it, and the session ends.
          */
         delete: operations["closeMe"];
         options?: never;
@@ -183,7 +183,7 @@ export interface paths {
         put?: never;
         /**
          * Place an order
-         * @description Idempotent (R202). The server refuses a quote that expired (410 QUOTE_EXPIRED), a total that is not the quote's (RV-05), a phone that is not verified, a payment on account without a validated contract (R104) and more parcels than the settings allow. Writes the order, its parcels and the tracking SMS in the outbox in one transaction. The cahier's role list for the route family also names staff; creating an order on behalf of a customer is not in this version.
+         * @description Idempotent (R202). The server refuses a quote that expired (410 QUOTE_EXPIRED), a total that is not the quote's (RV-05), a phone that is not verified, a payment on account without a validated contract (R104) and more parcels than the settings allow. An unknown `quote_id` answers 404 NOT_FOUND; an unverified phone answers 422 RULE_REFUSED `phoneRequired` (field `phone_check_id`). Writes the order, its parcels and the tracking SMS in the outbox in one transaction. The cahier's role list for the route family also names staff; creating an order on behalf of a customer is not in this version.
          */
         post: operations["createOrder"];
         delete?: never;
@@ -232,6 +232,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/orders/{id}/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm an order that waits for an agent
+         * @description R209, D8. The system confirms an order by itself only for a verified customer under the amount set in the settings; an agent confirms the others. Replay by state: an order that is already confirmed answers 200 again with no new event. An order that is not waiting for confirmation (for example canceled) answers 409 STATE_CONFLICT.
+         */
+        post: operations["confirmOrder"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/password-resets": {
         parameters: {
             query?: never;
@@ -243,7 +263,7 @@ export interface paths {
         put?: never;
         /**
          * Set a new password after a verified phone
-         * @description Addition to the cahier. The phone must have been verified for the purpose `reset`. The answer is the same whether or not the phone has an account (decision 16).
+         * @description Addition to the cahier. The phone must have been verified for the purpose `reset`. The answer is the same whether or not the phone has an account (so it does not tell whether one exists; a choice of this contract, not a rule of the cahier).
          */
         post: operations["createPasswordReset"];
         delete?: never;
@@ -363,7 +383,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in with a phone or an e-mail and a password
-         * @description Sets the session cookie and answers with the signed-in person. A wrong password and an unknown account give the same 401 (decision 16). Attempts are limited per account and per IP.
+         * @description Sets the session cookie and answers with the signed-in person. A wrong password and an unknown account give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer does not tell whether an account exists (a choice of this contract, not a rule of the cahier). Attempts are limited per account and per IP.
          */
         post: operations["createSession"];
         /** Sign out */
@@ -384,7 +404,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in with Google
-         * @description For customers and merchants only (R103). A new Google account needs a verified phone (`phone_check_id`); without it the answer is 422 RULE_REFUSED with the field `phone_check_id` and the reason `phoneRequired`. An e-mail that already has an account joins it after a code (R103): the shape of that step is not in the cahier, see the open questions in the PR.
+         * @description R103. Public, because the caller has no session yet; the handler refuses a driver or an internal account (403 ACCESS_DENIED), as the cahier lists Particulier and Commerçant only. A new Google account needs a verified phone (`phone_check_id`); without it the answer is 422 RULE_REFUSED with the field `phone_check_id` and the reason `phoneRequired`. A Google e-mail that already has an account joins it after a code sent by SMS to the phone stored on that account. The first call answers 422 RULE_REFUSED with `fields: [{ name: credential, reason: linkCodeRequired }]` and sends the code. The client calls again with the same `credential` and the `link_code`. A wrong code answers 422 RULE_REFUSED with `fields: [{ name: link_code, reason: wrong, details: { attempts_left } }]`; when no attempt is left, 429 TOO_MANY_ATTEMPTS.
          */
         post: operations["createGoogleSession"];
         delete?: never;
@@ -417,12 +437,36 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** @description The body of a ACCESS_DENIED answer. The code is fixed by the status. */
+        AccessDeniedBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "ACCESS_DENIED";
+            };
+        };
         /** @description An address as the customer typed or picked it. The server resolves the zone itself (R201); the client never sends one. */
         AddressInput: {
             /** @default  */
             landmark: string;
             pin?: components["schemas"]["Pin"] | null;
             text: string;
+        };
+        /** @description One line of the price. `millimes` is `unit_millimes` times `count`; null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md). */
+        AmountLine: {
+            /** @description The number of parcels the unit price is multiplied by. */
+            count: number;
+            /** @enum {string} */
+            kind: "base" | "distance" | "weight" | "options" | "surcharge" | "vat" | "stamp";
+            millimes: components["schemas"]["Money"] | null;
+            /** @description Price for one parcel. */
+            unit_millimes: components["schemas"]["Money"] | null;
+        };
+        /** @description The body of a AUTH_REQUIRED answer. The code is fixed by the status. */
+        AuthRequiredBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "AUTH_REQUIRED";
+            };
         };
         /**
          * @description R212. `none` before the driver arrived; `applies` after (fee from the settings); `backOfficeDecides` after a failed pickup (R505).
@@ -439,24 +483,36 @@ export interface components {
             /** @enum {string} */
             status: "canceled";
         };
-        ErrorBody: {
-            error: {
-                code: components["schemas"]["ErrorCode"];
-                fields: components["schemas"]["FieldError"][];
-                /** @description In the language of Accept-Language (fr, ar, en; fr when missing or unsupported). */
-                message: string;
-                /**
-                 * @description The request id written in the server logs.
-                 * @example 01J9Z6K2M4
-                 */
-                trace_id: string;
-            };
+        /** @description A discount line. Its amounts are negative or zero, the only ones that may be. */
+        DiscountLine: {
+            count: number;
+            /** @constant */
+            kind: "discount";
+            millimes: components["schemas"]["DiscountMillimes"];
+            unit_millimes: components["schemas"]["DiscountMillimes"];
         };
+        /**
+         * @description A discount in millimes. It is negative or zero, as in the web mock. It is the only amount that may be negative, and only on a line of kind `discount`.
+         * @example -1500
+         */
+        DiscountMillimes: number;
         /**
          * @description The code never changes; the message follows Accept-Language. The first eleven are the cahier's table. INTERNAL_ERROR (500) is an addition, accepted on 14 Nov 2026.
          * @enum {string}
          */
         ErrorCode: "VALIDATION_FAILED" | "AUTH_REQUIRED" | "ACCESS_DENIED" | "SAME_ACTOR" | "NOT_FOUND" | "STATE_CONFLICT" | "KEY_REUSED" | "QUOTE_EXPIRED" | "RULE_REFUSED" | "TOO_MANY_ATTEMPTS" | "PROVIDER_UNAVAILABLE" | "INTERNAL_ERROR";
+        /** @description The content of every error. Each response pins its own code (see the *Body schemas). */
+        ErrorInfo: {
+            code: components["schemas"]["ErrorCode"];
+            fields: components["schemas"]["FieldError"][];
+            /** @description In the language of Accept-Language (fr, ar, en; fr when missing or unsupported). */
+            message: string;
+            /**
+             * @description The request id written in the server logs.
+             * @example 01J9Z6K2M4
+             */
+            trace_id: string;
+        };
         FieldError: {
             /** @description Numbers the client may show, for example `attempts_left`. */
             details?: {
@@ -478,8 +534,24 @@ export interface components {
         GoogleSignInRequest: {
             /** @description The Google ID token. */
             credential: string;
+            /** @description The code sent by SMS to the stored phone when the Google e-mail already has an account (R103). Absent on the first call. */
+            link_code?: string | null;
             /** @description Required for a new Google account, whose phone is verified once (R103). */
             phone_check_id?: components["schemas"]["PhoneCheckId"] | null;
+        };
+        /** @description The body of a INTERNAL_ERROR answer. The code is fixed by the status. */
+        InternalErrorBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "INTERNAL_ERROR";
+            };
+        };
+        /** @description The body of a KEY_REUSED answer. The code is fixed by the status. */
+        KeyReusedBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "KEY_REUSED";
+            };
         };
         /**
          * @description R901. French is the default.
@@ -521,6 +593,13 @@ export interface components {
          * @example 48500
          */
         Money: number;
+        /** @description The body of a NOT_FOUND answer. The code is fixed by the status. */
+        NotFoundBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "NOT_FOUND";
+            };
+        };
         NotificationPrefs: {
             email: boolean;
             offers: boolean;
@@ -558,15 +637,22 @@ export interface components {
             freight_payer_accepted: boolean;
             parcel: {
                 content: string;
-                /** @description The maximum comes from the settings (provisional 10); more gives RULE_REFUSED `tooManyParcels`. */
+                /** @description Must be the `parcel_count` of the quote. The maximum comes from the settings (provisional 10); more gives RULE_REFUSED `tooManyParcels`. */
                 count: number;
                 declared_value_millimes?: components["schemas"]["Money"] | null;
                 /** @default false */
                 fragile: boolean;
+                /**
+                 * @description GOFAST packaging, as in the quote.
+                 * @default false
+                 */
+                packaging: boolean;
                 type: components["schemas"]["ParcelTypeCode"];
                 weight_g: number;
             };
             payment_mode: components["schemas"]["PaymentMode"];
+            /** @description Proof that the sender's phone was verified for the purpose `order` (R102). Needed only while that phone is not verified on the account; without it the answer is 422 RULE_REFUSED with the field `phone_check_id` and the reason `phoneRequired`. Used once. */
+            phone_check_id?: components["schemas"]["PhoneCheckId"] | null;
             quote_id: components["schemas"]["ResourceId"];
             recipient: components["schemas"]["OrderRecipientInput"];
             sender: components["schemas"]["OrderSenderInput"];
@@ -593,10 +679,12 @@ export interface components {
             weight_declared_g: number;
         };
         OrderParty: {
-            address: string;
+            /** @description Null once the account is closed (R105). */
+            address: string | null;
             city: string | null;
-            name: string;
-            /** @description Null for a closed account (R105). */
+            /** @description Null once the account is closed (R105). */
+            name: string | null;
+            /** @description Null once the account is closed (R105). */
             phone: components["schemas"]["PhoneE164"] | null;
         };
         OrderRecipientInput: {
@@ -654,7 +742,7 @@ export interface components {
             phone: components["schemas"]["PhoneE164"];
             purpose: components["schemas"]["PhoneCheckPurpose"];
         };
-        /** @description The answer is the same for a known and an unknown phone (R102, decision 16). */
+        /** @description The answer is the same for a known and an unknown phone (R102), so it does not tell whether the phone has an account (a choice of this contract, not a rule of the cahier). */
         PhoneCheckSent: {
             expires_at: components["schemas"]["UtcTimestamp"];
             resend_at: components["schemas"]["UtcTimestamp"];
@@ -679,16 +767,15 @@ export interface components {
             x: number;
             y: number;
         };
-        PriceLine: {
-            kind: components["schemas"]["PriceLineKind"];
-            /** @description Null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md). */
-            millimes: components["schemas"]["Money"] | null;
+        /** @description Only a `discount` line may be negative. */
+        PriceLine: components["schemas"]["AmountLine"] | components["schemas"]["DiscountLine"];
+        /** @description The body of a PROVIDER_UNAVAILABLE answer. The code is fixed by the status. */
+        ProviderUnavailableBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "PROVIDER_UNAVAILABLE";
+            };
         };
-        /**
-         * @description R204. Every kind is always present in a quote, even at 0.
-         * @enum {string}
-         */
-        PriceLineKind: "base" | "distance" | "weight" | "options" | "surcharge" | "discount" | "vat" | "stamp";
         /** @description R405. The allowlist of what anyone holding the number may see: no name, phone, address, driver, position or handover code. */
         PublicTracking: {
             eta_at: components["schemas"]["UtcTimestamp"] | null;
@@ -709,8 +796,10 @@ export interface components {
             expires_at: components["schemas"]["UtcTimestamp"];
             fragile: boolean;
             id: components["schemas"]["ResourceId"];
-            /** @description One entry per PriceLineKind, in the order of R204. */
+            /** @description R204. One entry for each of base, distance, weight, options, surcharge, discount, vat and stamp, in that order, even at 0. */
             lines: components["schemas"]["PriceLine"][];
+            packaging: boolean;
+            parcel_count: number;
             parcel_type: components["schemas"]["ParcelTypeCode"];
             quoted_at: components["schemas"]["UtcTimestamp"];
             service: components["schemas"]["ServiceCode"];
@@ -719,9 +808,16 @@ export interface components {
                 /** @enum {string} */
                 code: "rain";
             };
-            /** @description Sum of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT). */
+            /** @description Sum (all parcels) of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT). */
             total_millimes: components["schemas"]["Money"];
             weight_g: number;
+        };
+        /** @description The body of a QUOTE_EXPIRED answer. The code is fixed by the status. */
+        QuoteExpiredBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "QUOTE_EXPIRED";
+            };
         };
         QuoteRequest: {
             arrival: components["schemas"]["AddressInput"];
@@ -729,6 +825,16 @@ export interface components {
             departure: components["schemas"]["AddressInput"];
             /** @default false */
             fragile: boolean;
+            /**
+             * @description GOFAST packaging (reponses-gofast.md). Its price is in the `options` line.
+             * @default false
+             */
+            packaging: boolean;
+            /**
+             * @description Number of parcels. The price is per parcel times this count. The maximum (provisional 10) comes from the settings; more gives RULE_REFUSED `tooManyParcels`.
+             * @default 1
+             */
+            parcel_count: number;
             parcel_type: components["schemas"]["ParcelTypeCode"];
             service: components["schemas"]["ServiceCode"];
             /** @description Declared weight of one parcel, in grams. */
@@ -736,6 +842,13 @@ export interface components {
         };
         /** Format: uuid */
         ResourceId: string;
+        /** @description The body of a RULE_REFUSED answer. The code is fixed by the status. */
+        RuleRefusedBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "RULE_REFUSED";
+            };
+        };
         SavedAddress: {
             id: components["schemas"]["ResourceId"];
             label: string;
@@ -808,10 +921,24 @@ export interface components {
             /** @constant */
             terms_accepted: true;
         };
+        /** @description The body of a STATE_CONFLICT answer. The code is fixed by the status. */
+        StateConflictBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "STATE_CONFLICT";
+            };
+        };
         /** @description A pickup window, as two UTC instants (R503 lists the windows GOFAST offers). */
         TimeWindow: {
             end_at: components["schemas"]["UtcTimestamp"];
             start_at: components["schemas"]["UtcTimestamp"];
+        };
+        /** @description The body of a TOO_MANY_ATTEMPTS answer. The code is fixed by the status. */
+        TooManyAttemptsBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "TOO_MANY_ATTEMPTS";
+            };
         };
         /**
          * @description R203. The cahier gives the FG-XXXX-XXXX shape and no alphabet; letters and digits are an assumption shared with apps/web.
@@ -824,6 +951,13 @@ export interface components {
          * @example 2026-11-20T09:30:00Z
          */
         UtcTimestamp: string;
+        /** @description The body of a VALIDATION_FAILED answer. The code is fixed by the status. */
+        ValidationFailedBody: {
+            error: components["schemas"]["ErrorInfo"] & {
+                /** @constant */
+                code?: "VALIDATION_FAILED";
+            };
+        };
     };
     responses: {
         /** @description 403 ACCESS_DENIED. The role lacks the right. */
@@ -832,7 +966,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["AccessDeniedBody"];
             };
         };
         /** @description 401 AUTH_REQUIRED. The session is missing or expired, or the sign-in credentials are wrong. */
@@ -841,7 +975,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["AuthRequiredBody"];
             };
         };
         /** @description 500 INTERNAL_ERROR. Nothing else is said (addition, accepted 14 Nov 2026). */
@@ -850,7 +984,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["InternalErrorBody"];
             };
         };
         /** @description 409 KEY_REUSED. The Idempotency-Key was already used with other content. */
@@ -859,7 +993,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["KeyReusedBody"];
             };
         };
         /** @description 404 NOT_FOUND. The resource is missing or belongs to someone else (regles.md:153). */
@@ -868,7 +1002,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["NotFoundBody"];
             };
         };
         /** @description 503 PROVIDER_UNAVAILABLE. An outside service is down; retry. */
@@ -877,7 +1011,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["ProviderUnavailableBody"];
             };
         };
         /** @description 410 QUOTE_EXPIRED. The price is to be revalidated (R205). */
@@ -886,7 +1020,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["QuoteExpiredBody"];
             };
         };
         /** @description 422 RULE_REFUSED. A business rule is not met; `fields` gives the reason. */
@@ -895,7 +1029,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["RuleRefusedBody"];
             };
         };
         /** @description 409 STATE_CONFLICT. The state change is not allowed. */
@@ -904,7 +1038,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["StateConflictBody"];
             };
         };
         /** @description 429 TOO_MANY_ATTEMPTS. The attempt limit is reached. */
@@ -915,7 +1049,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["TooManyAttemptsBody"];
             };
         };
         /** @description 400 VALIDATION_FAILED. A field is missing or invalid; `fields` says which. */
@@ -924,7 +1058,7 @@ export interface components {
                 [name: string]: unknown;
             };
             content: {
-                "application/json": components["schemas"]["ErrorBody"];
+                "application/json": components["schemas"]["ValidationFailedBody"];
             };
         };
     };
@@ -934,7 +1068,7 @@ export interface components {
         Cursor: string;
         /** @description A UUID chosen by the client for one attempt. Kept 24 h with a fingerprint of the request. Same key and same content returns the first answer and does nothing again (R202). Same key and other content gives 409 KEY_REUSED. A second call that arrives while the first is running waits for it and gets the same answer. */
         IdempotencyKey: string;
-        /** @description Page size. Default 20, maximum 100 (provisional, from the settings). */
+        /** @description Page size. Default 20, maximum 100. Both are provisional values of the settings; the schema keeps the provisional maximum. */
         Limit: number;
         OrderId: string;
         QuoteId: string;
@@ -1291,7 +1425,7 @@ export interface operations {
                 cursor?: components["parameters"]["Cursor"];
                 /** @description First creation date to keep, a UTC date. */
                 from?: string;
-                /** @description Page size. Default 20, maximum 100 (provisional, from the settings). */
+                /** @description Page size. Default 20, maximum 100. Both are provisional values of the settings; the schema keeps the provisional maximum. */
                 limit?: components["parameters"]["Limit"];
                 /** @description Repeatable. Keeps the orders in any of these states. */
                 status?: components["schemas"]["OrderStatus"][];
@@ -1349,6 +1483,7 @@ export interface operations {
             400: components["responses"]["ValidationFailed"];
             401: components["responses"]["AuthRequired"];
             403: components["responses"]["AccessDenied"];
+            404: components["responses"]["NotFound"];
             409: components["responses"]["KeyReused"];
             410: components["responses"]["QuoteExpired"];
             422: components["responses"]["RuleRefused"];
@@ -1412,6 +1547,34 @@ export interface operations {
             404: components["responses"]["NotFound"];
             409: components["responses"]["StateConflict"];
             422: components["responses"]["RuleRefused"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    confirmOrder: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: components["parameters"]["OrderId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The order is confirmed. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Order"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["AuthRequired"];
+            403: components["responses"]["AccessDenied"];
+            404: components["responses"]["NotFound"];
+            409: components["responses"]["StateConflict"];
             500: components["responses"]["InternalError"];
         };
     };
@@ -1644,6 +1807,7 @@ export interface operations {
             };
             400: components["responses"]["ValidationFailed"];
             401: components["responses"]["AuthRequired"];
+            403: components["responses"]["AccessDenied"];
             422: components["responses"]["RuleRefused"];
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];

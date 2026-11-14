@@ -4,7 +4,8 @@ post:
   description: >-
     Idempotent (R202). The server refuses a quote that expired (410 QUOTE_EXPIRED), a total that is
     not the quote's (RV-05), a phone that is not verified, a payment on account without a validated
-    contract (R104) and more parcels than the settings allow. Writes the order, its parcels and the
+    contract (R104) and more parcels than the settings allow. An unknown `quote_id` answers 404
+    NOT_FOUND; an unverified phone answers 422 RULE_REFUSED `phoneRequired` (field `phone_check_id`). Writes the order, its parcels and the
     tracking SMS in the outbox in one transaction. The cahier's role list for the route family
     also names staff; creating an order on behalf of a customer is not in this version.
   tags: [orders]
@@ -27,6 +28,7 @@ post:
     "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
     "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
     "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
+    "404": { $ref: "../responses/errors.yaml#/NotFound" }
     "409": { $ref: "../responses/errors.yaml#/KeyReused" }
     "410": { $ref: "../responses/errors.yaml#/QuoteExpired" }
     "422": { $ref: "../responses/errors.yaml#/RuleRefused" }

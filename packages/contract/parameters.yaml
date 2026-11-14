@@ -19,7 +19,7 @@ Cursor:
 Limit:
   name: limit
   in: query
-  description: Page size. Default 20, maximum 100 (provisional, from the settings).
+  description: Page size. Default 20, maximum 100. Both are provisional values of the settings; the schema keeps the provisional maximum.
   schema:
     type: integer
     minimum: 1
