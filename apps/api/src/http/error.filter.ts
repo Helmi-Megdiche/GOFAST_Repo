@@ -1,4 +1,10 @@
-import { type ArgumentsHost, Catch, type ExceptionFilter, HttpException, Logger } from "@nestjs/common";
+import {
+  type ArgumentsHost,
+  Catch,
+  type ExceptionFilter,
+  HttpException,
+  Logger,
+} from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { ApiError, type ErrorCode, type FieldError } from "./errors.ts";
 import { errorMessage } from "./messages.ts";
@@ -24,7 +30,10 @@ export class ErrorFilter implements ExceptionFilter {
     } else if (error instanceof HttpException && error.getStatus() === 404) {
       code = "NOT_FOUND";
       status = 404;
-    } else if (typeof (error as { statusCode?: unknown })?.statusCode === "number" && (error as { statusCode: number }).statusCode < 500) {
+    } else if (
+      typeof (error as { statusCode?: unknown })?.statusCode === "number" &&
+      (error as { statusCode: number }).statusCode < 500
+    ) {
       // Fastify's own refusals: broken JSON, wrong content type, body too large.
       code = "VALIDATION_FAILED";
       status = 400;
@@ -33,12 +42,20 @@ export class ErrorFilter implements ExceptionFilter {
       code = "VALIDATION_FAILED";
       status = 400;
     } else {
-      this.log.error(`${req.method} ${req.url} ${req.id}`, error instanceof Error ? error.stack : String(error));
+      this.log.error(
+        `${req.method} ${req.url} ${req.id}`,
+        error instanceof Error ? error.stack : String(error),
+      );
     }
 
     if (retryAfter !== undefined) void reply.header("Retry-After", String(retryAfter));
     void reply.status(status).send({
-      error: { code, message: errorMessage(code, req.headers["accept-language"]), fields, trace_id: String(req.id) },
+      error: {
+        code,
+        message: errorMessage(code, req.headers["accept-language"]),
+        fields,
+        trace_id: String(req.id),
+      },
     });
   }
 }

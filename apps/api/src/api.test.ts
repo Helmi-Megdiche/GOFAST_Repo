@@ -51,11 +51,21 @@ const spec = parse(readFileSync(bundledSpecPath(), "utf8"));
 const ajv = new Ajv2020({ strict: false, validateSchema: false });
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
 const deref = (node: Json): Json =>
-  typeof node.$ref === "string" ? deref(node.$ref.split("/").slice(1).reduce((n: Json, k: string) => n[k], spec)) : node;
+  typeof node.$ref === "string"
+    ? deref(
+        node.$ref
+          .split("/")
+          .slice(1)
+          .reduce((n: Json, k: string) => n[k], spec),
+      )
+    : node;
 /** Checks a body against the contract's schema for that status. It can fail (RV-12). */
 const matchesContract = (path: string, method: string, status: number, body: unknown) => {
   const response = deref(spec.paths[path][method].responses[String(status)]);
-  return ajv.compile({ ...response.content["application/json"].schema, components: spec.components })(body);
+  return ajv.compile({
+    ...response.content["application/json"].schema,
+    components: spec.components,
+  })(body);
 };
 
 const order = {
@@ -76,7 +86,10 @@ const order = {
 
 let app: NestFastifyApplication;
 beforeAll(async () => {
-  app = await createApp({ trustProxy: false }, { controllers: [StubController], sessions: new FakeSessions() });
+  app = await createApp(
+    { trustProxy: false },
+    { controllers: [StubController], sessions: new FakeSessions() },
+  );
 });
 afterAll(() => app.close());
 
@@ -84,7 +97,8 @@ const send = (
   method: "GET" | "POST",
   url: string,
   init: { payload?: unknown; headers?: Record<string, string> } = {},
-) => app.inject({ method, url, payload: init.payload as object | undefined, headers: init.headers });
+) =>
+  app.inject({ method, url, payload: init.payload as object | undefined, headers: init.headers });
 
 const as = (session: string, key: string | null = KEY): Record<string, string> => ({
   cookie: `session=${session}`,
@@ -113,7 +127,11 @@ describe("health and errors", () => {
     expect(en.json().error.message).toBe("Resource not found.");
     expect(ar.json().error.message).not.toBe(en.json().error.message);
     expect(other.json().error.message).toBe("Ressource introuvable.");
-    expect([en, ar, other].map((r) => r.json().error.code)).toEqual(["NOT_FOUND", "NOT_FOUND", "NOT_FOUND"]);
+    expect([en, ar, other].map((r) => r.json().error.code)).toEqual([
+      "NOT_FOUND",
+      "NOT_FOUND",
+      "NOT_FOUND",
+    ]);
   });
 
   it("refuses broken JSON with 400 VALIDATION_FAILED", async () => {
@@ -130,7 +148,10 @@ describe("health and errors", () => {
 
 describe("order of checks: auth 401, roles 403, validation 400, handler", () => {
   it("401 before anything else, even with an invalid body", async () => {
-    const r = await send("POST", "/v1/orders", { payload: {}, headers: { "idempotency-key": KEY } });
+    const r = await send("POST", "/v1/orders", {
+      payload: {},
+      headers: { "idempotency-key": KEY },
+    });
     expect(r.statusCode).toBe(401);
     expect(r.json().error.code).toBe("AUTH_REQUIRED");
   });
@@ -142,7 +163,10 @@ describe("order of checks: auth 401, roles 403, validation 400, handler", () => 
   });
 
   it("400 with the failing fields once allowed", async () => {
-    const r = await send("POST", "/v1/orders", { payload: { extra: 1 }, headers: as("individual") });
+    const r = await send("POST", "/v1/orders", {
+      payload: { extra: 1 },
+      headers: as("individual"),
+    });
     expect(r.statusCode).toBe(400);
     const names = r.json().error.fields.map((f: { name: string }) => f.name);
     expect(names).toContain("quote_id");
@@ -150,11 +174,19 @@ describe("order of checks: auth 401, roles 403, validation 400, handler", () => 
   });
 
   it("400 for a missing or malformed Idempotency-Key", async () => {
-    const none = await send("POST", "/v1/orders", { payload: order, headers: as("individual", null) });
-    const bad = await send("POST", "/v1/orders", { payload: order, headers: as("individual", "x") });
+    const none = await send("POST", "/v1/orders", {
+      payload: order,
+      headers: as("individual", null),
+    });
+    const bad = await send("POST", "/v1/orders", {
+      payload: order,
+      headers: as("individual", "x"),
+    });
     for (const r of [none, bad]) {
       expect(r.statusCode).toBe(400);
-      expect(r.json().error.fields.map((f: { name: string }) => f.name)).toContain("Idempotency-Key");
+      expect(r.json().error.fields.map((f: { name: string }) => f.name)).toContain(
+        "Idempotency-Key",
+      );
     }
   });
 
@@ -172,7 +204,10 @@ describe("order of checks: auth 401, roles 403, validation 400, handler", () => 
 
   it("accepts a valid order and reaches the handler", async () => {
     handlerRuns = 0;
-    const r = await send("POST", "/v1/orders", { payload: order, headers: as("individual:ok", "9a0b1c2d-0000-4000-8000-000000000001") });
+    const r = await send("POST", "/v1/orders", {
+      payload: order,
+      headers: as("individual:ok", "9a0b1c2d-0000-4000-8000-000000000001"),
+    });
     expect(r.statusCode).toBe(201);
     expect(handlerRuns).toBe(1);
   });
@@ -183,8 +218,14 @@ describe("idempotency (R202)", () => {
 
   it("replays the first answer and runs the handler once", async () => {
     handlerRuns = 0;
-    const first = await send("POST", "/v1/orders", { payload: order, headers: as("individual:a", key(1)) });
-    const again = await send("POST", "/v1/orders", { payload: order, headers: as("individual:a", key(1)) });
+    const first = await send("POST", "/v1/orders", {
+      payload: order,
+      headers: as("individual:a", key(1)),
+    });
+    const again = await send("POST", "/v1/orders", {
+      payload: order,
+      headers: as("individual:a", key(1)),
+    });
     expect(again.statusCode).toBe(first.statusCode);
     expect(again.json()).toEqual(first.json());
     expect(handlerRuns).toBe(1);

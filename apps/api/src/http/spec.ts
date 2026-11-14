@@ -28,7 +28,12 @@ export type Operation = {
   body: ValidateFunction | null;
   bodyRequired: boolean;
   /** Parameters (path, query, header), each with its own validator. */
-  params: { name: string; in: "path" | "query" | "header"; required: boolean; validate: ValidateFunction }[];
+  params: {
+    name: string;
+    in: "path" | "query" | "header";
+    required: boolean;
+    validate: ValidateFunction;
+  }[];
 };
 
 type Json = Record<string, any>; // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -46,15 +51,30 @@ export function bundledSpecPath(): string {
  */
 export function loadOperations(path = bundledSpecPath()): Map<string, Operation> {
   const spec = parse(readFileSync(path, "utf8")) as Json;
-  const ajv = new Ajv2020({ strict: false, allErrors: true, validateSchema: false, coerceTypes: false });
+  const ajv = new Ajv2020({
+    strict: false,
+    allErrors: true,
+    validateSchema: false,
+    coerceTypes: false,
+  });
   addFormats.default(ajv);
   ajv.addFormat("password", true);
   ajv.addSchema({ ...spec, $id: "spec" });
   // Query and path values arrive as strings: parameters are checked with coercion, bodies are not.
-  const paramAjv = new Ajv2020({ strict: false, allErrors: true, validateSchema: false, coerceTypes: true });
+  const paramAjv = new Ajv2020({
+    strict: false,
+    allErrors: true,
+    validateSchema: false,
+    coerceTypes: true,
+  });
   addFormats.default(paramAjv);
   const deref = (p: Json): Json =>
-    typeof p.$ref === "string" ? (p.$ref.split("/").slice(1).reduce((n: Json, k: string) => n[k], spec) as Json) : p;
+    typeof p.$ref === "string"
+      ? (p.$ref
+          .split("/")
+          .slice(1)
+          .reduce((n: Json, k: string) => n[k], spec) as Json)
+      : p;
   const ptr = (...parts: string[]) =>
     "spec#/" + parts.map((p) => p.replaceAll("~", "~0").replaceAll("/", "~1")).join("/");
   const ops = new Map<string, Operation>();
@@ -67,7 +87,11 @@ export function loadOperations(path = bundledSpecPath()): Map<string, Operation>
         name: p.name as string,
         in: p.in as "path" | "query" | "header",
         required: p.required === true,
-        validate: paramAjv.compile({ type: "object", properties: { v: p.schema ?? {} }, components: spec.components }),
+        validate: paramAjv.compile({
+          type: "object",
+          properties: { v: p.schema ?? {} },
+          components: spec.components,
+        }),
       }));
       ops.set(op.operationId, {
         operationId: op.operationId,
@@ -75,7 +99,19 @@ export function loadOperations(path = bundledSpecPath()): Map<string, Operation>
         path,
         roles: op["x-roles"],
         replay: op["x-replay"],
-        body: json ? ajv.compile({ $ref: ptr("paths", path, method, "requestBody", "content", "application/json", "schema") }) : null,
+        body: json
+          ? ajv.compile({
+              $ref: ptr(
+                "paths",
+                path,
+                method,
+                "requestBody",
+                "content",
+                "application/json",
+                "schema",
+              ),
+            })
+          : null,
         bodyRequired: op.requestBody?.required === true,
         params,
       });

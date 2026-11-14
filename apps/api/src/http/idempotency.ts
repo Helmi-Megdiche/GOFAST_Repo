@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
-import { type CallHandler, type ExecutionContext, Inject, Injectable, type NestInterceptor } from "@nestjs/common";
+import {
+  type CallHandler,
+  type ExecutionContext,
+  Inject,
+  Injectable,
+  type NestInterceptor,
+} from "@nestjs/common";
 import type { FastifyReply, FastifyRequest } from "fastify";
 import { type Observable, defer, lastValueFrom } from "rxjs";
 import { PROVISIONAL } from "../provisional.ts";
@@ -50,7 +56,9 @@ export class MemoryIdempotencyStore extends IdempotencyStore {
 }
 
 export const fingerprint = (method: string, url: string, body: unknown): string =>
-  createHash("sha256").update(`${method}\n${url}\n${JSON.stringify(body ?? null)}`).digest("hex");
+  createHash("sha256")
+    .update(`${method}\n${url}\n${JSON.stringify(body ?? null)}`)
+    .digest("hex");
 
 /**
  * Same key and same content: the first answer again, nothing done twice. Same key and other

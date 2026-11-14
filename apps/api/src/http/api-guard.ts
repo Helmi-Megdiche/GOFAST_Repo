@@ -21,9 +21,12 @@ export function toFields(errors: AjvError[], prefix = ""): FieldError[] {
   const out: FieldError[] = [];
   for (const e of errors) {
     let path = e.instancePath.split("/").filter(Boolean).join(".");
-    if (e.keyword === "required") path = [path, String(e.params.missingProperty)].filter(Boolean).join(".");
+    if (e.keyword === "required")
+      path = [path, String(e.params.missingProperty)].filter(Boolean).join(".");
     if (e.keyword === "additionalProperties" || e.keyword === "unevaluatedProperties") {
-      path = [path, String(e.params.additionalProperty ?? e.params.unevaluatedProperty)].filter(Boolean).join(".");
+      path = [path, String(e.params.additionalProperty ?? e.params.unevaluatedProperty)]
+        .filter(Boolean)
+        .join(".");
     }
     const name = [prefix, path].filter(Boolean).join(".") || "body";
     const reason = e.keyword === "required" ? "required" : e.keyword;
@@ -57,21 +60,28 @@ export class ApiGuard implements CanActivate {
     req.operation = op;
 
     if (!op.roles.includes("public")) {
-      req.actor = await this.sessions.resolve((req.cookies ?? {}) as Record<string, string | undefined>);
+      req.actor = await this.sessions.resolve(
+        (req.cookies ?? {}) as Record<string, string | undefined>,
+      );
       if (!req.actor) throw new ApiError("AUTH_REQUIRED");
       if (!op.roles.includes(req.actor.role)) throw new ApiError("ACCESS_DENIED");
     }
 
     const fields: FieldError[] = [];
     for (const p of op.params) {
-      const source = (p.in === "path" ? req.params : p.in === "query" ? req.query : req.headers) as Record<string, unknown>;
+      const source = (
+        p.in === "path" ? req.params : p.in === "query" ? req.query : req.headers
+      ) as Record<string, unknown>;
       const value = source?.[p.in === "header" ? p.name.toLowerCase() : p.name];
       if (value === undefined) {
         if (p.required) fields.push({ name: p.name, reason: "required" });
         continue;
       }
       const holder = { v: value };
-      if (!p.validate(holder)) fields.push(...toFields(p.validate.errors as AjvError[], p.name).map((f) => ({ ...f, name: p.name })));
+      if (!p.validate(holder))
+        fields.push(
+          ...toFields(p.validate.errors as AjvError[], p.name).map((f) => ({ ...f, name: p.name })),
+        );
     }
     if (op.body) {
       if (req.body === undefined || req.body === null) {
