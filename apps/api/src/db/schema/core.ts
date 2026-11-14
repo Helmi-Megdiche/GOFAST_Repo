@@ -4,6 +4,8 @@ import {
   boolean,
   customType,
   check,
+  integer,
+  jsonb,
   pgSchema,
   primaryKey,
   text,
@@ -120,5 +122,152 @@ export const recipients = core.table("recipients", {
   addressId: uuid("address_id").references(() => addresses.id),
   locale: text("locale").notNull().default("fr"),
   archivedAt: timestamp("archived_at", { withTimezone: true }),
+  createdAt: createdAt(),
+});
+
+const tstz = (name: string) => timestamp(name, { withTimezone: true });
+
+export const orders = core.table("orders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  trackingNumber: text("tracking_number").notNull().unique(),
+  ownerAccountId: uuid("owner_account_id").references(() => accounts.id),
+  ownerCompanyId: uuid("owner_company_id").references(() => companies.id),
+  createdBy: uuid("created_by").references(() => accounts.id),
+  idempotencyScope: text("idempotency_scope").unique(),
+  service: text("service").notNull(),
+  paymentMode: text("payment_mode").notNull(),
+  freightPayer: text("freight_payer").notNull(),
+  recipientLocale: text("recipient_locale").notNull().default("fr"),
+  status: text("status").notNull().default("received"),
+  totalMillimes: millimes("total_millimes").notNull(),
+  pickupAddressId: uuid("pickup_address_id")
+    .notNull()
+    .references(() => addresses.id),
+  recipientId: uuid("recipient_id")
+    .notNull()
+    .references(() => recipients.id),
+  createdAt: createdAt(),
+  updatedAt: tstz("updated_at").notNull().defaultNow(),
+});
+
+export const parcels = core.table("parcels", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id),
+  barcode: text("barcode").unique(),
+  size: text("size").notNull(),
+  weightDeclaredG: integer("weight_declared_g").notNull(),
+  weightMeasuredG: integer("weight_measured_g"),
+  declaredValueMillimes: millimes("declared_value_millimes").notNull().default(0),
+  codMillimes: millimes("cod_millimes").notNull().default(0),
+  proofLevel: text("proof_level").notNull(),
+  attempts: integer("attempts").notNull().default(0),
+  status: text("status").notNull().default("to_collect"),
+  createdAt: createdAt(),
+  updatedAt: tstz("updated_at").notNull().defaultNow(),
+});
+
+export const missions = core.table("missions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id),
+  driverId: uuid("driver_id").references(() => accounts.id),
+  kind: text("kind").notNull(),
+  status: text("status").notNull().default("proposed"),
+  endReason: text("end_reason"),
+  offeredAt: tstz("offered_at").notNull().defaultNow(),
+  expiresAt: tstz("expires_at"),
+  arrivedAt: tstz("arrived_at"),
+  finishedAt: tstz("finished_at"),
+  createdAt: createdAt(),
+});
+
+export const statusEvents = core.table("status_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  eventId: uuid("event_id").notNull().unique().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id),
+  subjectType: text("subject_type").notNull(),
+  subjectId: uuid("subject_id").notNull(),
+  fromStatus: text("from_status"),
+  toStatus: text("to_status").notNull(),
+  actorId: uuid("actor_id").references(() => accounts.id),
+  occurredAt: tstz("occurred_at").notNull().defaultNow(),
+  receivedAt: tstz("received_at").notNull().defaultNow(),
+  location: geography("location", "Point"),
+});
+
+export const proofs = core.table("proofs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  parcelId: uuid("parcel_id")
+    .notNull()
+    .references(() => parcels.id),
+  kind: text("kind").notNull(),
+  codeVerified: boolean("code_verified").notNull().default(false),
+  capturedAt: tstz("captured_at").notNull().defaultNow(),
+  location: geography("location", "Point"),
+  fileId: text("file_id"),
+  validatedBy: uuid("validated_by").references(() => accounts.id),
+  createdAt: createdAt(),
+});
+
+export const deliveryCodes = core.table("delivery_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  parcelId: uuid("parcel_id")
+    .notNull()
+    .unique()
+    .references(() => parcels.id),
+  codeHash: text("code_hash").notNull(),
+  failedAttempts: integer("failed_attempts").notNull().default(0),
+  expiresAt: tstz("expires_at").notNull(),
+  createdAt: createdAt(),
+});
+
+export const recipientLinks = core.table("recipient_links", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id")
+    .notNull()
+    .references(() => orders.id),
+  tokenHash: text("token_hash").notNull().unique(),
+  locale: text("locale").notNull().default("fr"),
+  expiresAt: tstz("expires_at").notNull(),
+  createdAt: createdAt(),
+});
+
+export const outbox = core.table("outbox", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  topic: text("topic").notNull(),
+  payload: jsonb("payload").notNull().default({}),
+  createdAt: createdAt(),
+  attempts: integer("attempts").notNull().default(0),
+  processedAt: tstz("processed_at"),
+});
+
+export const tickets = core.table("tickets", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  orderId: uuid("order_id").references(() => orders.id),
+  openedBy: uuid("opened_by")
+    .notNull()
+    .references(() => accounts.id),
+  category: text("category").notNull(),
+  status: text("status").notNull().default("open"),
+  closedAt: tstz("closed_at"),
+  archivedAt: tstz("archived_at"),
+  createdAt: createdAt(),
+});
+
+export const ticketMessages = core.table("ticket_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  ticketId: uuid("ticket_id")
+    .notNull()
+    .references(() => tickets.id),
+  authorId: uuid("author_id")
+    .notNull()
+    .references(() => accounts.id),
+  body: text("body").notNull(),
+  isInternal: boolean("is_internal").notNull().default(false),
   createdAt: createdAt(),
 });

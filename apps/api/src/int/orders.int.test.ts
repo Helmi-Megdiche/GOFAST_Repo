@@ -1,0 +1,285 @@
+import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { sql } from "drizzle-orm";
+import pg from "pg";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { parse } from "yaml";
+import { Db } from "../db/index.ts";
+import type { Actor } from "../http/session.ts";
+import { expectDbError, seedMerchants, startTestDb, type TestDb } from "./harness.ts";
+
+let db: TestDb;
+let ids: Awaited<ReturnType<typeof seedMerchants>>;
+const opened: Db[] = [];
+const open = (url: string) => {
+  const d = new Db(url, 2);
+  opened.push(d);
+  return d;
+};
+const merchant = (user: string, company: string): Actor => ({ userId: user, accountId: company, role: "merchant" });
+
+const staffId = randomUUID();
+const staff = (role: Actor["role"]): Actor => ({ userId: staffId, accountId: staffId, role });
+const recipientA = randomUUID();
+const recipientB = randomUUID();
+const orderA = randomUUID();
+const orderB = randomUUID();
+const parcelA = randomUUID();
+
+const q = (text: string, values: unknown[] = []) => db.superClient.query(text, values);
+
+beforeAll(async () => {
+  db = await startTestDb();
+  ids = await seedMerchants(db);
+  await q("insert into core.accounts (id, kind, role, full_name) values ($1, 'staff', 'agent', 'Agent Test')", [staffId]);
+  await q(
+    `insert into core.recipients (id, owner_company_id, name, phone_e164, address_id) values
+       ($1, $2, 'Destinataire Test A', '+21620000011', null), ($3, $4, 'Destinataire Test B', '+21620000012', null)`,
+    [recipientA, ids.companyA, recipientB, ids.companyB],
+  );
+  const order = (id: string, company: string, address: string, recipient: string, tracking: string) =>
+    q(
+      `insert into core.orders (id, tracking_number, owner_company_id, service, payment_mode, freight_payer,
+                                total_millimes, pickup_address_id, recipient_id)
+       values ($1, $5, $2, 'standard', 'cashPickup', 'sender', 48500, $3, $4)`,
+      [id, company, address, recipient, tracking],
+    );
+  await order(orderA, ids.companyA, ids.addressA, recipientA, "FG-AAAA-0001");
+  await order(orderB, ids.companyB, ids.addressB, recipientB, "FG-BBBB-0002");
+  await q(
+    `insert into core.parcels (id, order_id, size, weight_declared_g, proof_level)
+     values ($1, $2, 'small', 800, 'codeOrPhotoWithPosition')`,
+    [parcelA, orderA],
+  );
+});
+
+afterAll(async () => {
+  await Promise.all(opened.map((d) => d.close()));
+  await db?.stop();
+});
+
+describe("CHECK enums match packages/contract/schemas/common.yaml", () => {
+  const common = parse(
+    readFileSync(new URL("../../../../packages/contract/schemas/common.yaml", import.meta.url), "utf8"),
+  ) as Record<string, { enum: string[] }>;
+  const cases: Array<[string, string, string]> = [
+    ["core.orders", "status", "OrderStatus"],
+    ["core.orders", "service", "ServiceCode"],
+    ["core.orders", "payment_mode", "PaymentMode"],
+    ["core.orders", "freight_payer", "FreightPayer"],
+    ["core.parcels", "status", "ParcelStatus"],
+    ["core.parcels", "size", "ParcelTypeCode"],
+  ];
+  it.each(cases)("%s.%s = %s", async (table, column, schema) => {
+    const r = await db.superClient.query<{ def: string }>(
+      `select pg_get_constraintdef(oid) as def from pg_constraint
+        where contype = 'c' and conrelid = $1::regclass`,
+      [table],
+    );
+    const def = r.rows.map((x) => x.def).find((d) => d.includes(`${column} = ANY`));
+    expect(def, `a CHECK on ${table}.${column}`).toBeDefined();
+    const values = [...def!.matchAll(/'([^']+)'::text/g)].map((m) => m[1]!);
+    expect(values.sort()).toEqual([...common[schema]!.enum].sort());
+  });
+});
+
+describe("orders: a merchant sees their own and cannot point at another tenant's rows", () => {
+  it("reads only their own order, parcel and history", async () => {
+    const app = open(db.url("fastgo_app"));
+    const seen = await app.withActor(merchant(ids.userA, ids.companyA), (tx) =>
+      tx.execute(sql`select tracking_number, (select count(*) from core.parcels) as parcels from core.orders`),
+    );
+    expect(seen.rows).toEqual([{ tracking_number: "FG-AAAA-0001", parcels: "1" }]);
+  });
+
+  it("refuses an order whose pickup address belongs to another company", async () => {
+    const app = open(db.url("fastgo_app"));
+    await expectDbError(
+      app.withActor(merchant(ids.userA, ids.companyA), (tx) =>
+        tx.execute(sql`insert into core.orders (tracking_number, owner_company_id, service, payment_mode,
+                         freight_payer, total_millimes, pickup_address_id, recipient_id)
+                       values ('FG-AAAA-0003', ${ids.companyA}, 'standard', 'cashPickup', 'sender', 0,
+                               ${ids.addressB}, ${recipientA})`),
+      ),
+      /row-level security/,
+    );
+  });
+
+  it("refuses a negative amount and a malformed tracking number", async () => {
+    await expect(
+      q(`insert into core.orders (tracking_number, owner_company_id, service, payment_mode, freight_payer,
+                total_millimes, pickup_address_id, recipient_id)
+         values ('FG-AAAA-0004', $1, 'standard', 'cashPickup', 'sender', -1, $2, $3)`, [ids.companyA, ids.addressA, recipientA]),
+    ).rejects.toThrow(/total_millimes/);
+    await expect(
+      q(`insert into core.orders (tracking_number, owner_company_id, service, payment_mode, freight_payer,
+                total_millimes, pickup_address_id, recipient_id)
+         values ('fg-1', $1, 'standard', 'cashPickup', 'sender', 0, $2, $3)`, [ids.companyA, ids.addressA, recipientA]),
+    ).rejects.toThrow(/tracking_number/);
+  });
+});
+
+describe("T30: an internal ticket note is never visible to the customer", () => {
+  it("the customer reads the public message only; the agent reads both", async () => {
+    const app = open(db.url("fastgo_app"));
+    const me = merchant(ids.userA, ids.companyA);
+    const ticket = await app.withActor(me, async (tx) => {
+      const t = await tx.execute(
+        sql`insert into core.tickets (order_id, opened_by, category) values (${orderA}, ${ids.userA}, 'delay') returning id`,
+      );
+      const id = (t.rows[0] as { id: string }).id;
+      await tx.execute(sql`insert into core.ticket_messages (ticket_id, author_id, body)
+                           values (${id}, ${ids.userA}, 'Mon colis est en retard')`);
+      return id;
+    });
+    await app.withActor(staff("agent"), (tx) =>
+      tx.execute(sql`insert into core.ticket_messages (ticket_id, author_id, body, is_internal)
+                     values (${ticket}, ${staffId}, 'Chauffeur contacté', true)`),
+    );
+    const mine = await app.withActor(me, (tx) => tx.execute(sql`select body from core.ticket_messages`));
+    expect(mine.rows).toEqual([{ body: "Mon colis est en retard" }]);
+    const theirs = await app.withActor(staff("agent"), (tx) => tx.execute(sql`select body from core.ticket_messages`));
+    expect(theirs.rows).toHaveLength(2);
+    // The other merchant sees neither the ticket nor its messages.
+    const other = await app.withActor(merchant(ids.userB, ids.companyB), (tx) =>
+      tx.execute(sql`select (select count(*) from core.tickets) as t, (select count(*) from core.ticket_messages) as m`),
+    );
+    expect(other.rows).toEqual([{ t: "0", m: "0" }]);
+    // The customer cannot write an internal note either.
+    await expectDbError(
+      app.withActor(me, (tx) =>
+        tx.execute(sql`insert into core.ticket_messages (ticket_id, author_id, body, is_internal)
+                       values (${ticket}, ${ids.userA}, 'note', true)`),
+      ),
+      /row-level security/,
+    );
+  });
+});
+
+describe("status_events: append-only, the worker may only empty the position (D9)", () => {
+  const eventId = randomUUID();
+  it("the app adds an event as itself and cannot change or delete it", async () => {
+    const app = open(db.url("fastgo_app"));
+    await app.withActor(staff("agent"), (tx) =>
+      tx.execute(sql`insert into core.status_events (event_id, order_id, subject_type, subject_id, from_status,
+                       to_status, actor_id, location)
+                     values (${eventId}, ${orderA}, 'order', ${orderA}, 'received', 'confirmed', ${staffId},
+                             'SRID=4326;POINT(10.18 36.8)')`),
+    );
+    await expectDbError(
+      app.withActor(staff("admin"), (tx) => tx.execute(sql`update core.status_events set to_status = 'x'`)),
+      /permission denied/,
+    );
+    await expectDbError(
+      app.withActor(staff("admin"), (tx) => tx.execute(sql`delete from core.status_events`)),
+      /permission denied/,
+    );
+  });
+  it("the same event_id is stored once", async () => {
+    await expect(
+      q(`insert into core.status_events (event_id, order_id, subject_type, subject_id, to_status)
+         values ($1, $2, 'order', $2, 'confirmed')`, [eventId, orderA]),
+    ).rejects.toThrow(/event_id/);
+  });
+  it("the worker empties the location and nothing else; a superuser cannot change a row", async () => {
+    const w = new pg.Client({ connectionString: db.url("fastgo_worker") });
+    await w.connect();
+    try {
+      await expect(w.query("update core.status_events set to_status = 'x'")).rejects.toThrow(/permission denied/);
+      await w.query("update core.status_events set location = null");
+      const row = (await q("select to_status, location from core.status_events where event_id = $1", [eventId])).rows[0];
+      expect(row).toEqual({ to_status: "confirmed", location: null });
+    } finally {
+      await w.end();
+    }
+    await expect(q("update core.status_events set to_status = 'x'")).rejects.toThrow(/append-only/);
+    await expect(q("delete from core.status_events")).rejects.toThrow(/append-only/);
+    await expect(q("truncate core.status_events")).rejects.toThrow(/append-only/);
+  });
+});
+
+describe("hashes of codes and links are not readable by the app", () => {
+  it("refuses SELECT of code_hash and token_hash, allows the other columns", async () => {
+    await q(
+      `insert into core.delivery_codes (parcel_id, code_hash, expires_at) values ($1, 'hmac-test', now() + interval '1 day')`,
+      [parcelA],
+    );
+    await q(
+      `insert into core.recipient_links (order_id, token_hash, expires_at) values ($1, 'token-test', now() + interval '1 day')`,
+      [orderA],
+    );
+    const app = open(db.url("fastgo_app"));
+    const me = staff("agent");
+    await expectDbError(app.withActor(me, (tx) => tx.execute(sql`select code_hash from core.delivery_codes`)), /permission denied/);
+    await expectDbError(app.withActor(me, (tx) => tx.execute(sql`select token_hash from core.recipient_links`)), /permission denied/);
+    const ok = await app.withActor(me, (tx) => tx.execute(sql`select failed_attempts from core.delivery_codes`));
+    expect(ok.rows).toEqual([{ failed_attempts: 0 }]);
+  });
+});
+
+describe("definer functions", () => {
+  const app = () => open(db.url("fastgo_app"));
+  const nobody: Actor = { userId: "", accountId: "", role: "individual" };
+
+  it("are owned by fastgo_public_reader, with a fixed search_path, and only fastgo_app may call them", async () => {
+    const r = await q(
+      `select p.proname, pg_get_userbyid(p.proowner) as owner, p.prosecdef, p.proconfig::text as cfg,
+              has_function_privilege('fastgo_app', p.oid, 'execute') as app,
+              has_function_privilege('fastgo_readonly', p.oid, 'execute') as ro,
+              has_function_privilege('fastgo_worker', p.oid, 'execute') as worker
+         from pg_proc p where p.pronamespace = 'core'::regnamespace and p.prosecdef order by 1`,
+    );
+    expect(r.rows.map((x) => x.proname)).toEqual(["account_for_login", "create_account", "recipient_link", "tracking"]);
+    for (const f of r.rows) {
+      expect(f, f.proname).toMatchObject({ owner: "fastgo_public_reader", app: true, ro: false, worker: false });
+      expect(f.cfg, f.proname).toContain("search_path=pg_catalog, core");
+    }
+  });
+
+  it("R405: tracking returns state, dates and zone names, and nothing personal", async () => {
+    const zone = randomUUID();
+    await q("insert into core.zones (id, name) values ($1, 'Tunis')", [zone]);
+    await q("update core.addresses set zone_id = $1 where id = $2", [zone, ids.addressA]);
+    const res = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-AAAA-0001') as t`));
+    const t = (res.rows[0] as { t: Record<string, unknown> }).t;
+    expect(Object.keys(t).sort()).toEqual(["createdAt", "deliveryZone", "history", "pickupZone", "status", "updatedAt"]);
+    expect(t).toMatchObject({ status: "received", pickupZone: "Tunis", deliveryZone: null });
+    const text = JSON.stringify(t);
+    for (const secret of ["Rue Test A", "Destinataire", "+216", "48500", "POINT"]) expect(text).not.toContain(secret);
+    const none = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-ZZZZ-9999') as t`));
+    expect((none.rows[0] as { t: unknown }).t).toBeNull();
+  });
+
+  it("R406: recipient_link finds a live link and returns nothing once it has expired", async () => {
+    await q(`insert into core.recipient_links (order_id, token_hash, locale, expires_at) values
+               ($1, 'live-hash', 'ar', now() + interval '1 hour'), ($1, 'dead-hash', 'fr', now() - interval '1 second')`, [orderB]);
+    const live = await app().withActor(nobody, (tx) => tx.execute(sql`select * from core.recipient_link('live-hash')`));
+    expect(live.rows).toMatchObject([{ tracking_number: "FG-BBBB-0002", locale: "ar" }]);
+    const dead = await app().withActor(nobody, (tx) => tx.execute(sql`select * from core.recipient_link('dead-hash')`));
+    expect(dead.rows).toEqual([]);
+  });
+
+  it("create_account signs up an individual or a merchant, refuses staff roles, and login finds them", async () => {
+    const a = app();
+    const made = await a.withActor(nobody, (tx) =>
+      tx.execute(sql`select * from core.create_account('merchant', 'Marchand Test C', '+21620000031',
+                       'C@Example.test', 'argon2-test', 'fr', 'Boutique Test C')`),
+    );
+    const row = made.rows[0] as { new_account_id: string; new_company_id: string };
+    expect(row.new_company_id).toBeTruthy();
+    const login = await a.withActor(nobody, (tx) =>
+      tx.execute(sql`select * from core.account_for_login(null, 'c@example.test')`),
+    );
+    expect(login.rows).toMatchObject([{ id: row.new_account_id, role: "merchant", company_id: row.new_company_id, password_hash: "argon2-test" }]);
+    await expectDbError(
+      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.create_account('admin', 'X', '+21620000032', null, 'h')`)),
+      /cannot sign up/,
+    );
+    await expectDbError(
+      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.create_account('individual', 'Y', '+21620000031', null, 'h')`)),
+      /unique|duplicate/,
+    );
+    // Nothing was left behind by the refused calls.
+    expect((await q("select count(*)::int as n from core.accounts where phone_e164 in ('+21620000032')")).rows[0].n).toBe(0);
+  });
+});

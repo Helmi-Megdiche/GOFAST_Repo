@@ -27,6 +27,7 @@ afterAll(async () => {
 // app = rights of fastgo_app; ro = what fastgo_readonly may read; rls = false only for reference
 // tables and idempotency_keys (no row of a person).
 type Expect = { app: string[]; ro: "no-hash" | "all" | "none"; rls: boolean };
+const SIGN_UP_TABLES = ["core.accounts", "core.companies", "core.company_members"];
 const REFERENCE: Expect = { app: ["SELECT"], ro: "all", rls: false };
 const OWNED: Expect = { app: ["INSERT", "SELECT", "UPDATE"], ro: "no-hash", rls: true };
 const EXPECTED: Record<string, Expect> = {
@@ -39,6 +40,17 @@ const EXPECTED: Record<string, Expect> = {
   "core.company_members": OWNED,
   "core.addresses": OWNED,
   "core.recipients": OWNED,
+  "core.orders": OWNED,
+  "core.parcels": OWNED,
+  "core.missions": OWNED,
+  "core.status_events": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
+  "core.proofs": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
+  // Hash columns are hidden from the app: column grants only, so no table-level SELECT.
+  "core.delivery_codes": { app: ["INSERT"], ro: "none", rls: true },
+  "core.recipient_links": { app: ["INSERT"], ro: "none", rls: true },
+  "core.outbox": { app: ["INSERT"], ro: "none", rls: true },
+  "core.tickets": { app: ["INSERT", "SELECT", "UPDATE"], ro: "none", rls: true },
+  "core.ticket_messages": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
   "core.idempotency_keys": { app: ["DELETE", "INSERT", "SELECT", "UPDATE"], ro: "none", rls: false },
   "gestion.audit_events": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
 };
@@ -76,11 +88,17 @@ describe("grant test: every table, as it is in the database", () => {
         `${t.name}: rights of fastgo_app`,
       ).toEqual(want.app);
       expect(
-        grants.filter(
-          (g) => ["fastgo_readonly", "fastgo_public_reader"].includes(g.grantee) && g.privilege_type !== "SELECT",
-        ),
-        `${t.name}: no write right for read-only logins`,
+        grants.filter((g) => g.grantee === "fastgo_readonly" && g.privilege_type !== "SELECT"),
+        `${t.name}: no write right for fastgo_readonly`,
       ).toEqual([]);
+      // fastgo_public_reader owns the definer functions: read-only, except sign-up (core.create_account)
+      // which inserts into these three identity tables and nowhere else.
+      expect(
+        grants
+          .filter((g) => g.grantee === "fastgo_public_reader" && g.privilege_type !== "SELECT")
+          .map((g) => g.privilege_type),
+        `${t.name}: writes of fastgo_public_reader`,
+      ).toEqual(SIGN_UP_TABLES.includes(t.name) ? ["INSERT"] : []);
 
       const cols = (
         await db.superClient.query<{ attname: string; ro: boolean }>(

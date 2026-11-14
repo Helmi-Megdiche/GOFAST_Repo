@@ -44,6 +44,10 @@ create or replace function core.staff_writes_customers() returns boolean
   language sql stable parallel safe set search_path = pg_catalog, core
   as $$ select core.actor_has('agent', 'operations', 'admin') $$;
 
+create or replace function core.staff_handles_tickets() returns boolean
+  language sql stable parallel safe set search_path = pg_catalog, core
+  as $$ select core.actor_has('agent', 'operations', 'customer_service', 'admin') $$;
+
 create or replace function core.staff_reads_finance() returns boolean
   language sql stable parallel safe set search_path = pg_catalog, core
   as $$ select core.actor_has('accountant', 'management', 'operations', 'customer_service',
