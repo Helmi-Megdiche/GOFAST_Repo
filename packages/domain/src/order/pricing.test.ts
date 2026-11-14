@@ -4,7 +4,9 @@ import { QUOTE_VALIDITY_MS } from "./constants";
 import {
   isQuoteValid,
   makeQuote as makeQuoteWith,
+  MAX_PARCEL_WEIGHT_G,
   msLeft,
+  packagingPriced,
   PRICE_LINES,
   priceKey,
   priceLines as priceLinesWith,
@@ -18,28 +20,27 @@ import {
 const TABLE: PriceTable = {
   rows: {
     express: {
-      document: { base: 9_000, vat: 2_375 },
-      small: { base: 10_500, vat: 2_660 },
-      medium: { base: 12_500, vat: 3_040 },
-      large: { base: 14_500, vat: 3_420 },
+      document: { base: 9_000, vat: 2_375, packaging: 2_000 },
+      small: { base: 10_500, vat: 2_660, packaging: 2_000 },
+      medium: { base: 12_500, vat: 3_040, packaging: 2_000 },
+      large: { base: 14_500, vat: 3_420, packaging: 2_000 },
     },
     standard: {
-      document: { base: 4_500, vat: 1_520 },
-      small: { base: 6_000, vat: 1_805 },
-      medium: { base: 8_000, vat: 2_185 },
-      large: { base: 10_000, vat: 2_565 },
+      document: { base: 4_500, vat: 1_520, packaging: 2_000 },
+      small: { base: 6_000, vat: 1_805, packaging: 2_000 },
+      medium: { base: 8_000, vat: 2_185, packaging: 2_000 },
+      large: { base: 10_000, vat: 2_565, packaging: 2_000 },
     },
     scheduled: {
-      document: { base: 5_500, vat: 1_710 },
-      small: { base: 7_000, vat: 1_995 },
-      medium: { base: 9_000, vat: 2_375 },
-      large: { base: 11_000, vat: 2_755 },
+      document: { base: 5_500, vat: 1_710, packaging: null },
+      small: { base: 7_000, vat: 1_995, packaging: null },
+      medium: { base: 9_000, vat: 2_375, packaging: null },
+      large: { base: 11_000, vat: 2_755, packaging: null },
     },
   },
   distance: 2_500,
   weight: { includedKg: 2, perKg: 500 },
   optionsFragile: 0,
-  optionsPackaging: 2_000,
   surcharge: { code: "rain", amount: 1_000, ceiling: null },
   discount: 0,
   stamp: 0,
@@ -75,7 +76,7 @@ describe("example pricing (R204)", () => {
       for (const parcelType of SIZES) {
         for (const weights of [[0.5], [1], [2.1], [7], [30], [1, 3], [0.5, 2.1, 7]]) {
           for (const fragile of [true, false]) {
-            for (const packaging of [true, false]) {
+            for (const packaging of service === "scheduled" ? [false] : [true, false]) {
               const quote = makeQuote(
                 input({ service, parcelType, parcels: parcels(...weights), fragile, packaging }),
                 T0,
@@ -148,7 +149,17 @@ describe("example pricing (R204)", () => {
   });
 });
 
+// A table with a stamp and a discount, so a line multiplied by the count cannot go unseen.
+const LOADED: PriceTable = { ...TABLE, stamp: 300, discount: 400 };
+
 describe("parcel count (PR 1b)", () => {
+  it.each([1, 3, 10])("%i parcels: stamp and discount are charged once, not per parcel", (n) => {
+    const lines = priceLinesWith(input({ parcels: same(n, 1) }), LOADED);
+    expect(lines.stamp).toEqual({ unitMillimes: 300, count: 1, totalMillimes: 300 });
+    expect(lines.discount).toEqual({ unitMillimes: -400, count: 1, totalMillimes: -400 });
+    expect(sumLines(lines)).toBe(n * 6_000 + 2_500 + 1_000 - 400 + 1_805 + 300);
+  });
+
   it.each([1, 3, 10])(
     "%i identical parcels: per-parcel lines times the count, others once",
     (n) => {
@@ -209,6 +220,35 @@ describe("parcel count (PR 1b)", () => {
     expect(() => price([{ weightG: 0 }])).toThrow(RangeError);
     expect(() => price([{ weightG: 1.5 }])).toThrow(RangeError);
     expect(() => price(same(10, 1))).not.toThrow();
+  });
+
+  it("refuses a weight above the 999.9 kg the form accepts, so no total leaves the safe integers", () => {
+    const price = (weightG: number) => priceLines(input({ parcels: [{ weightG }] }));
+    expect(() => price(MAX_PARCEL_WEIGHT_G + 1)).toThrow(RangeError);
+    expect(() => price(Number.MAX_SAFE_INTEGER)).toThrow(RangeError);
+    const heaviest = priceLines(input({ parcels: same(10, 999.9) }));
+    expect(Number.isSafeInteger(sumLines(heaviest))).toBe(true);
+  });
+
+  it("packaging is the row's own amount; a row without a price refuses it", () => {
+    const priced = (service: ServiceCode) =>
+      priceLines(input({ service, packaging: true, parcels: same(2, 1) })).options;
+    expect(priced("standard")).toEqual({ unitMillimes: 2_000, count: 2, totalMillimes: 4_000 });
+    const table: PriceTable = {
+      ...TABLE,
+      rows: {
+        ...TABLE.rows,
+        express: { ...TABLE.rows.express, small: { base: 10_500, vat: 2_660, packaging: 3_000 } },
+      },
+    };
+    expect(
+      priceLinesWith(input({ service: "express", packaging: true }), table).options.unitMillimes,
+    ).toBe(3_000);
+    // Scheduled has no packaging price ([PRIX]): refused, and the same order without it is fine.
+    expect(packagingPriced(TABLE, "scheduled", "small")).toBe(false);
+    expect(packagingPriced(TABLE, "standard", "small")).toBe(true);
+    expect(() => priced("scheduled")).toThrow(RangeError);
+    expect(() => priceLines(input({ service: "scheduled" }))).not.toThrow();
   });
 });
 

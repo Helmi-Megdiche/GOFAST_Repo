@@ -3,17 +3,22 @@ import type { ZoneResult } from "../zones";
 import { QUOTE_VALIDITY_MS } from "./constants";
 
 /**
+ * One row of the grid. `packaging` is the amount GOFAST packaging adds per parcel on this row
+ * (reponses-gofast.md: Standard 10 to 12 DT, Express 15 to 17 DT), or null while the row has no
+ * packaging price ([PRIX], e.g. the scheduled offer): packaging is then refused, never guessed.
+ */
+export type PriceRow = { base: number; vat: number; packaging: number | null };
+
+/**
  * The amounts the price is made of, in millimes. The rules below do not hold any amount: GOFAST
  * sets them and an admin edits them, so the caller passes the table in (the web app passes its
  * example table, the API will read the real one).
  */
 export type PriceTable = {
-  rows: Record<ServiceCode, Record<ParcelTypeCode, { base: number; vat: number }>>;
+  rows: Record<ServiceCode, Record<ParcelTypeCode, PriceRow>>;
   distance: number;
   weight: { includedKg: number; perKg: number };
   optionsFragile: number;
-  /** GOFAST packaging, per parcel (reponses-gofast.md: +2 DT on Standard and on Express). */
-  optionsPackaging: number;
   surcharge: { code: "rain"; amount: number; ceiling: number | null };
   discount: number;
   stamp: number;
@@ -35,6 +40,17 @@ export type PriceLine = (typeof PRICE_LINES)[number];
 /** Up to 10 parcels in one order (provisional, GOFAST's setting). The count is the list length. */
 export const MIN_PARCELS = 1;
 export const MAX_PARCELS = 10;
+/** Heaviest parcel the order form accepts (999.9 kg), so no weight total can leave the safe integers. */
+export const MAX_PARCEL_WEIGHT_G = 999_900;
+
+/** True when this service and parcel type has a packaging price in the table. */
+export function packagingPriced(
+  table: PriceTable,
+  service: ServiceCode,
+  parcelType: ParcelTypeCode,
+): boolean {
+  return table.rows[service][parcelType].packaging != null;
+}
 
 /**
  * One line of the price: `totalMillimes` is the sum over the parcels. A per-parcel line has
@@ -90,17 +106,21 @@ const oncePerOrder = (amount: number): LineAmount => perParcel(amount, 1);
  * The lines of a price, all integers in millimes. Per parcel (times the count): base, weight,
  * options (fragile, packaging). Once per order: distance, surcharge (R207), discount, VAT and
  * stamp (VAT and stamp are the table's amounts as they are: no rate is calculated).
- * Throws on a count outside 1 to 10 or a weight that is not a positive whole number of grams:
- * callers validate before pricing.
+ * Throws on a count outside 1 to 10, a weight that is not a whole number of grams between 1 and
+ * 999,900, or packaging on a row that has no packaging price: callers validate before pricing.
  */
 export function priceLines(input: PriceInput, table: PriceTable): PriceLines {
   const count = input.parcels.length;
   if (count < MIN_PARCELS || count > MAX_PARCELS)
     throw new RangeError(`priceLines: ${MIN_PARCELS} to ${MAX_PARCELS} parcels, got ${count}`);
   for (const { weightG } of input.parcels)
-    if (!Number.isSafeInteger(weightG) || weightG < 1)
-      throw new RangeError("priceLines: a parcel weight is a positive whole number of grams");
+    if (!Number.isSafeInteger(weightG) || weightG < 1 || weightG > MAX_PARCEL_WEIGHT_G)
+      throw new RangeError(
+        `priceLines: a parcel weight is a whole number of grams, 1 to ${MAX_PARCEL_WEIGHT_G}`,
+      );
   const row = table.rows[input.service][input.parcelType];
+  if (input.packaging && row.packaging == null)
+    throw new RangeError("priceLines: no packaging price for this service and parcel type");
   // 2 kg are included per parcel; every started kilogram above costs perKg (ceil, per parcel).
   const weights = input.parcels.map(
     ({ weightG }) =>
@@ -108,7 +128,7 @@ export function priceLines(input: PriceInput, table: PriceTable): PriceLines {
   );
   const sameWeight = weights.every((amount) => amount === weights[0]);
   const optionsUnit =
-    (input.fragile ? table.optionsFragile : 0) + (input.packaging ? table.optionsPackaging : 0);
+    (input.fragile ? table.optionsFragile : 0) + (input.packaging ? (row.packaging ?? 0) : 0);
   return {
     base: perParcel(row.base, count),
     distance: oncePerOrder(table.distance),

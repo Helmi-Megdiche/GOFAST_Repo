@@ -891,7 +891,7 @@
       "content": "Contenu",
       "declaredValue": "Valeur déclarée (TND, facultatif)",
       "declaredValueParsed": "Soit <amount></amount>",
-      "option": "Option",
+      "option": "Options",
       "fragile": "Colis fragile",
       "packaging": "Emballage GOFAST (par colis)"
     },
@@ -907,7 +907,8 @@
       "surcharge": "Majoration {name} de <amount></amount> incluse, plafonnée à <ceiling></ceiling>. Elle est affichée pour que le prix ne change pas à la fin.",
       "submit": "Vérifier ma commande",
       "pricing": "Calcul du prix…",
-      "unavailable": "Pas encore disponible pour ces adresses."
+      "unavailable": "Pas encore disponible pour ces adresses.",
+      "unavailablePackaging": "Pas encore de prix avec l'emballage GOFAST."
     },
     "price": {
       "title": "Votre prix",
@@ -917,7 +918,7 @@
       "example": "Montants d'exemple.",
       "provisionalNote": "Montant d'exemple, à préciser selon le colis et l'offre.",
       "guarantee": "TTC, garanti 15 minutes. Montants d'exemple.",
-      "unitTimes": "{unit} × {count}",
+      "unitTimes": "<unit></unit> × {count}",
       "mixedWeights": "Poids différent selon le colis",
       "detail": "Détail du prix",
       "lines": {
@@ -953,7 +954,7 @@
       "parcel": "Colis",
       "proof": "Preuve",
       "person": "{name}, {address}",
-      "parcelSummary": "{type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, {weight} kg{packaging, select, yes {, emballage GOFAST} other {}}{fragile, select, yes {, fragile} other {}}",
+      "parcelSummary": "{type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, <w>{weight} kg</w>{packaging, select, yes {, emballage GOFAST} other {}}{fragile, select, yes {, fragile} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "Code envoyé au destinataire, ou photo avec position",
         "codeOrSignaturePhoto": "Code envoyé au destinataire, ou signature et photo",

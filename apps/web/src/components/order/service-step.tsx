@@ -11,7 +11,12 @@ import { EXAMPLE_SURCHARGE } from "@/lib/data/fixtures/pricing";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { now } from "@/lib/order/clock";
 import type { OrderDraft } from "@/lib/order/draft";
-import { offeredServices, priceInputOf, quoteMatches } from "@/lib/order/steps";
+import {
+  lacksPackagingPrice,
+  offeredServices,
+  priceInputOf,
+  quoteMatches,
+} from "@/lib/order/steps";
 import { StepBusy } from "./busy";
 import { PricePending, PriceTotal } from "./price-aside";
 import { useSlotLabel } from "./slot-label";
@@ -154,7 +159,9 @@ function ServiceForm({
                 end={enabled ? <Money millimes={totalFor(service)} /> : null}
                 description={
                   !enabled
-                    ? t("unavailable")
+                    ? lacksPackagingPrice(draft, service)
+                      ? t("unavailablePackaging")
+                      : t("unavailable")
                     : service === "standard"
                       ? t("delays.standard", { time: p("time") })
                       : t(`delays.${service}`)

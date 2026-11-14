@@ -225,6 +225,27 @@ const draftShape = z.object({
   verifiedPhone: z.string().nullable(),
 });
 
+/**
+ * A draft saved before the parcel count (PR 1b) has one `weightKg`. A one-parcel draft keeps it as
+ * the weight of its parcel; its quote (priced the old way) is dropped, so W14 prices it again.
+ * Any other old draft is not migrated: it fails the shape check and is cleared.
+ */
+function migrate(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  const draft = value as { parcel?: Record<string, unknown> };
+  const parcel = draft.parcel;
+  if (!parcel || typeof parcel.weightKg !== "string" || "weights" in parcel) return value;
+  if (parcel.count !== "1") return value;
+  const { weightKg, ...rest } = parcel;
+  return {
+    ...draft,
+    parcel: { ...rest, weights: [weightKg], packaging: false },
+    quote: null,
+    acceptedQuoteId: null,
+    previousTotalMillimes: null,
+  };
+}
+
 function isDraft(value: unknown): value is OrderDraft {
   return draftShape.safeParse(value).success;
 }
@@ -234,12 +255,14 @@ function isDraft(value: unknown): value is OrderDraft {
  * null, so the flow starts again instead of breaking.
  */
 export function loadDraft(at: number = now()): OrderDraft | null {
-  const value = readJson(DRAFT_KEY);
-  if (value == null) return null;
+  const stored = readJson(DRAFT_KEY);
+  if (stored == null) return null;
+  const value = migrate(stored);
   if (!isDraft(value) || at >= value.expiresAt) {
     removeKey(DRAFT_KEY);
     return null;
   }
+  if (value !== stored) writeJson(DRAFT_KEY, value);
   return value;
 }
 

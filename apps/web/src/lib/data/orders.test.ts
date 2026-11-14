@@ -338,6 +338,11 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
       order.totalMillimes,
     );
+    // the unit price and the count are kept with each line
+    const line = (kind: string) => order.priceLines.find((l) => l.kind === kind)!;
+    expect(line("base")).toMatchObject({ unitMillimes: 6_000, count: 3, millimes: 18_000 });
+    expect(line("weight")).toMatchObject({ unitMillimes: null, count: 3 });
+    expect(line("distance")).toMatchObject({ count: 1 });
     expect(order.freightPayerAccepted).toBe(false);
     expect(order.ownerAccountId).toBeNull();
     const parcels = parcelsOf(created.code);

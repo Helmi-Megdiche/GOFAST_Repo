@@ -201,6 +201,8 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
     totalMillimes: request.quote.totalMillimes,
     priceLines: Object.entries(request.quote.lines).map(([kind, line]) => ({
       kind: kind as PriceLine,
+      unitMillimes: line.unitMillimes,
+      count: line.count,
       millimes: line.totalMillimes,
     })),
     paymentMode: request.payment,

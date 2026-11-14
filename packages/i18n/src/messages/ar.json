@@ -891,7 +891,7 @@
       "content": "المحتوى",
       "declaredValue": "القيمة المصرّح بها (د.ت، اختياري)",
       "declaredValueParsed": "أي <amount></amount>",
-      "option": "خيار",
+      "option": "خيارات",
       "fragile": "طرد هش",
       "packaging": "تغليف GOFAST (لكل طرد)"
     },
@@ -907,7 +907,8 @@
       "surcharge": "رسوم إضافية ({name}) بقيمة <amount></amount> مشمولة، بحد أقصى <ceiling></ceiling>. نعرضها الآن حتى لا يتغير السعر في النهاية.",
       "submit": "مراجعة طلبي",
       "pricing": "جارٍ حساب السعر…",
-      "unavailable": "غير متاح بعد لهذين العنوانين."
+      "unavailable": "غير متاح بعد لهذين العنوانين.",
+      "unavailablePackaging": "لا يوجد سعر بعد مع تغليف GOFAST."
     },
     "price": {
       "title": "السعر",
@@ -917,7 +918,7 @@
       "example": "مبالغ على سبيل المثال.",
       "provisionalNote": "مبلغ على سبيل المثال، يُحدَّد حسب الطرد والخدمة.",
       "guarantee": "شامل الضريبة، مضمون لمدة 15 دقيقة. مبالغ على سبيل المثال.",
-      "unitTimes": "{unit} × {count}",
+      "unitTimes": "<unit></unit> × {count}",
       "mixedWeights": "الوزن يختلف حسب الطرد",
       "detail": "تفاصيل السعر",
       "lines": {
@@ -953,7 +954,7 @@
       "parcel": "الطرد",
       "proof": "الإثبات",
       "person": "{name}، {address}",
-      "parcelSummary": "{type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{packaging, select, yes {، تغليف GOFAST} other {}}{fragile, select, yes {، هش} other {}}",
+      "parcelSummary": "{type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، <w>{weight} كغ</w>{packaging, select, yes {، تغليف GOFAST} other {}}{fragile, select, yes {، هش} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "رمز يُرسل إلى المستلم، أو صورة مع الموقع",
         "codeOrSignaturePhoto": "رمز يُرسل إلى المستلم، أو توقيع وصورة",

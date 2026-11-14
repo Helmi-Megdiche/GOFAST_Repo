@@ -891,7 +891,7 @@
       "content": "Contents",
       "declaredValue": "Declared value (TND, optional)",
       "declaredValueParsed": "That is <amount></amount>",
-      "option": "Option",
+      "option": "Options",
       "fragile": "Fragile parcel",
       "packaging": "GOFAST packaging (per parcel)"
     },
@@ -907,7 +907,8 @@
       "surcharge": "{name} surcharge of <amount></amount> included, capped at <ceiling></ceiling>. It is shown now so the price does not change at the end.",
       "submit": "Review my order",
       "pricing": "Calculating the price…",
-      "unavailable": "Not available yet for these addresses."
+      "unavailable": "Not available yet for these addresses.",
+      "unavailablePackaging": "No price yet with GOFAST packaging."
     },
     "price": {
       "title": "Your price",
@@ -917,7 +918,7 @@
       "example": "Example amounts.",
       "provisionalNote": "Example amount, to be confirmed by the parcel and the service.",
       "guarantee": "Incl. VAT, guaranteed for 15 minutes. Example amounts.",
-      "unitTimes": "{unit} × {count}",
+      "unitTimes": "<unit></unit> × {count}",
       "mixedWeights": "Weight differs by parcel",
       "detail": "Price breakdown",
       "lines": {
@@ -953,7 +954,7 @@
       "parcel": "Parcel",
       "proof": "Proof",
       "person": "{name}, {address}",
-      "parcelSummary": "{type, select, document {{count, plural, one {# envelope} other {# envelopes}}} small {{count, plural, one {# small parcel} other {# small parcels}}} medium {{count, plural, one {# medium parcel} other {# medium parcels}}} large {{count, plural, one {# large parcel} other {# large parcels}}} other {{count, plural, one {# parcel} other {# parcels}}}}, {weight} kg{packaging, select, yes {, GOFAST packaging} other {}}{fragile, select, yes {, fragile} other {}}",
+      "parcelSummary": "{type, select, document {{count, plural, one {# envelope} other {# envelopes}}} small {{count, plural, one {# small parcel} other {# small parcels}}} medium {{count, plural, one {# medium parcel} other {# medium parcels}}} large {{count, plural, one {# large parcel} other {# large parcels}}} other {{count, plural, one {# parcel} other {# parcels}}}}, <w>{weight} kg</w>{packaging, select, yes {, GOFAST packaging} other {}}{fragile, select, yes {, fragile} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "Code sent to the recipient, or photo with location",
         "codeOrSignaturePhoto": "Code sent to the recipient, or signature and photo",

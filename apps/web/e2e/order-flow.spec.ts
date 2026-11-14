@@ -659,7 +659,7 @@ test.describe("order logic", () => {
     await expect(detail).toContainText("30,805 TND");
     const row = (term: string) => detail.locator("dl > div").filter({ has: page.getByText(term) });
     await expect(row("Service et zone")).toContainText("18,000");
-    await expect(row("Service et zone")).toContainText("× 3");
+    await expect(row("Service et zone")).toContainText("6,000 TND × 3");
     await expect(row("Poids")).toContainText("1,500");
     await expect(row("Poids")).toContainText("Poids différent selon le colis");
     await expect(row("Options")).toContainText("6,000");

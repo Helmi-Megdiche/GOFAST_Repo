@@ -52,7 +52,7 @@ function makeOrder(n: number): { order: AccountOrder; parcels: Parcel[] } {
     status: "received",
     lossReported: false,
     totalMillimes: 7000,
-    priceLines: [{ kind: "base", millimes: 7000 }],
+    priceLines: [{ kind: "base", unitMillimes: 7000, count: 1, millimes: 7000 }],
     paymentMode: "cashPickup",
     freightPayer: "sender",
     freightPayerAccepted: false,

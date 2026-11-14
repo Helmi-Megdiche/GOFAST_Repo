@@ -3,6 +3,7 @@ import { type ZoneResult } from "@fastgo/domain";
 import { exampleMakeQuote, exampleAvailableSlots } from "@/lib/order/example-data";
 import { buildOrderRequest } from "./request";
 import {
+  lacksPackagingPrice,
   offeredServices,
   priceInputOf,
   quoteMatches,
@@ -137,6 +138,16 @@ describe("services offered by both addresses (CMD-04)", () => {
     draft.acceptedQuoteId = draft.quote.id;
     return draft;
   }
+
+  it("packaging is not offered on a service with no packaging price (Programmée, [PRIX])", () => {
+    const draft = readyDraft(T0);
+    draft.parcel.packaging = true;
+    expect(offeredServices(draft)).toEqual(["express", "standard"]);
+    expect(lacksPackagingPrice(draft, "scheduled")).toBe(true);
+    expect(lacksPackagingPrice(draft, "standard")).toBe(false);
+    draft.parcel.packaging = false;
+    expect(offeredServices(draft)).toEqual(["express", "standard", "scheduled"]);
+  });
 
   it("are the services both the departure and the arrival zones offer", () => {
     const draft = readyDraft(T0);
