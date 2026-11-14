@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import {
   type CallHandler,
   type ExecutionContext,
@@ -15,7 +15,7 @@ export type Answer = { status: number; body: unknown };
 
 /** What `begin` found for a scope (account, route, key). */
 export type Begin =
-  | { kind: "new" } // the caller owns the key now and must call `complete` or `abort`
+  | { kind: "new"; token: string } // the caller holds the lease now and must call `complete` or `abort` with this token
   | { kind: "replay"; answer: Answer } // same content, finished: answer again
   | { kind: "conflict" } // same key, other content
   | { kind: "running" }; // same content, the first call has not ended: wait and ask again
@@ -25,14 +25,16 @@ export type Begin =
  * the same scope exactly one gets `new`. Every method is async so that the database store of PR 3
  * (unique index on account, route and key; `INSERT ... ON CONFLICT`) implements the same contract
  * and several instances of the API share it. A `running` row older than the lock time counts as
- * abandoned (a crashed process) and is handed to the next caller as `new`.
+ * abandoned (a crashed process) and is handed to the next caller as `new` with a new token; `complete`
+ * and `abort` act only when the token is still the row's, so a slow first call cannot overwrite or
+ * delete the answer of the call that took over. The lock time must exceed the longest handler.
  */
 export abstract class IdempotencyStore {
   abstract begin(scope: string, fingerprint: string): Promise<Begin>;
   /** Stores the answer of the call that got `new`. */
-  abstract complete(scope: string, answer: Answer): Promise<void>;
+  abstract complete(scope: string, token: string, answer: Answer): Promise<void>;
   /** The call failed: forget the key so the same key can be tried again. */
-  abstract abort(scope: string): Promise<void>;
+  abstract abort(scope: string, token: string): Promise<void>;
   /** RV-18: the stored answers of a closed account are erased. Returns how many. */
   abstract purgeAccount(accountId: string): Promise<number>;
   /** Removes what is past 24 h (a job of the `worker`). Returns how many. */
@@ -43,6 +45,7 @@ type Entry = {
   fingerprint: string;
   expiresAt: number;
   lockedUntil: number;
+  token: string;
   answer?: Answer;
 };
 
@@ -54,7 +57,7 @@ export class MemoryIdempotencyStore extends IdempotencyStore {
   private readonly entries = new Map<string, Entry>();
   constructor(
     private readonly now: () => number = Date.now,
-    private readonly lockMs = 60_000,
+    private readonly lockMs = 300_000,
   ) {
     super();
   }
@@ -67,19 +70,21 @@ export class MemoryIdempotencyStore extends IdempotencyStore {
       if (e.answer) return { kind: "replay", answer: e.answer };
       if (e.lockedUntil > now) return { kind: "running" };
     }
+    const token = randomUUID();
     this.entries.set(scope, {
+      token,
       fingerprint,
       expiresAt: now + PROVISIONAL.idempotencyHours * 3_600_000,
       lockedUntil: now + this.lockMs,
     });
-    return { kind: "new" };
+    return { kind: "new", token };
   }
-  override async complete(scope: string, answer: Answer) {
+  override async complete(scope: string, token: string, answer: Answer) {
     const e = this.entries.get(scope);
-    if (e) e.answer = answer;
+    if (e?.token === token) e.answer = answer;
   }
-  override async abort(scope: string) {
-    this.entries.delete(scope);
+  override async abort(scope: string, token: string) {
+    if (this.entries.get(scope)?.token === token) this.entries.delete(scope);
   }
   override async purgeAccount(accountId: string) {
     let n = 0;
@@ -163,10 +168,10 @@ export class IdempotencyInterceptor implements NestInterceptor {
         }
         try {
           const body = await lastValueFrom(next.handle(), { defaultValue: undefined });
-          await this.store.complete(scope, { status: reply.statusCode, body });
+          await this.store.complete(scope, found.token, { status: reply.statusCode, body });
           return body;
         } catch (error) {
-          await this.store.abort(scope);
+          await this.store.abort(scope, found.token);
           throw error;
         }
       }
