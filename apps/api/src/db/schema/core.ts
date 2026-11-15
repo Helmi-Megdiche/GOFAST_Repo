@@ -66,6 +66,9 @@ export const accounts = core.table("accounts", {
   locale: text("locale").notNull().default("fr"),
   status: text("status").notNull().default("active"),
   closedAt: timestamp("closed_at", { withTimezone: true }),
+  notifySms: boolean("notify_sms").notNull().default(true),
+  notifyEmail: boolean("notify_email").notNull().default(true),
+  notifyOffers: boolean("notify_offers").notNull().default(false),
   createdAt: createdAt(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 });

@@ -229,7 +229,16 @@ describe("definer functions", () => {
               has_function_privilege('fastgo_worker', p.oid, 'execute') as worker
          from pg_proc p where p.pronamespace = 'core'::regnamespace and p.prosecdef order by 1`,
     );
-    expect(r.rows.map((x) => x.proname)).toEqual(["account_for_login", "create_account", "recipient_link", "tracking"]);
+    expect(r.rows.map((x) => x.proname)).toEqual([
+      "account_for_login",
+      "create_account",
+      "mark_phone_verified",
+      "recipient_link",
+      "rehash_password",
+      "session_account",
+      "set_password",
+      "tracking",
+    ]);
     for (const f of r.rows) {
       expect(f, f.proname).toMatchObject({ owner: "fastgo_public_reader", app: true, ro: false, worker: false });
       expect(f.cfg, f.proname).toContain("search_path=pg_catalog, core");

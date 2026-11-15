@@ -145,3 +145,17 @@ export async function seedMerchants(db: TestDb) {
   );
   return ids;
 }
+
+/** A throw-away Redis for the sessions, codes and counters of the auth module. */
+export async function startRedis(): Promise<{ url: string; stop: () => Promise<void> }> {
+  const container = await new GenericContainer("redis:7")
+    .withExposedPorts(6379)
+    .withWaitStrategy(Wait.forLogMessage(/Ready to accept connections/))
+    .start();
+  return {
+    url: `redis://${container.getHost()}:${container.getMappedPort(6379)}`,
+    stop: async () => {
+      await container.stop();
+    },
+  };
+}

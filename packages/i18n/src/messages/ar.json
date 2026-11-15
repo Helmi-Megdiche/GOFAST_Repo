@@ -1731,5 +1731,8 @@
     "PROVIDER_UNAVAILABLE": "خدمة خارجية غير متاحة.",
     "INTERNAL_ERROR": "خطأ داخلي.",
     "SAME_ACTOR": "لا يمكنك اعتماد عملك بنفسك."
+  },
+  "apiSms": {
+    "code": "GOFAST: رمزك هو {code}. صالح لمدة {minutes} دقائق. لا تشاركه مع أحد."
   }
 }

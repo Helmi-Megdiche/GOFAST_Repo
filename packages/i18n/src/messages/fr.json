@@ -1731,5 +1731,8 @@
     "PROVIDER_UNAVAILABLE": "Un service externe est indisponible.",
     "INTERNAL_ERROR": "Erreur interne.",
     "SAME_ACTOR": "Vous ne pouvez pas valider votre propre travail."
+  },
+  "apiSms": {
+    "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne."
   }
 }

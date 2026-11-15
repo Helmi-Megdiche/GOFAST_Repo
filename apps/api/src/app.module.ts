@@ -1,5 +1,6 @@
 import { type DynamicModule, Module } from "@nestjs/common";
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from "@nestjs/core";
+import { CSRF_OPTIONS, type CsrfOptions, CsrfGuard } from "./auth/csrf.ts";
 import { HealthController } from "./health.controller.ts";
 import { ApiGuard } from "./http/api-guard.ts";
 import { ErrorFilter } from "./http/error.filter.ts";
@@ -20,6 +21,10 @@ export type AppOptions = {
   owners?: OwnerCheck;
   idempotency?: IdempotencyStore;
   specPath?: string;
+  /** Extra providers (the auth service and what it needs). */
+  providers?: NonNullable<DynamicModule["providers"]>;
+  /** Same-origin write check; runs before the API guard. */
+  csrf?: CsrfOptions;
 };
 
 @Module({})
@@ -37,6 +42,14 @@ export class AppModule {
           useValue: options.idempotency ?? new MemoryIdempotencyStore(),
         },
         RouteAudit,
+        ...(options.providers ?? []),
+        // Order matters: the CSRF guard is registered first, so it runs before the API guard.
+        ...(options.csrf
+          ? [
+              { provide: CSRF_OPTIONS, useValue: options.csrf },
+              { provide: APP_GUARD, useClass: CsrfGuard },
+            ]
+          : []),
         { provide: APP_GUARD, useClass: ApiGuard },
         { provide: APP_INTERCEPTOR, useClass: IdempotencyInterceptor },
         { provide: APP_FILTER, useClass: ErrorFilter },

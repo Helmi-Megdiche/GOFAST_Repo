@@ -96,6 +96,7 @@ native-speaker review before release (CLAUDE.md).
 | `apiErrors.STATE_CONFLICT` | هذا الإجراء غير ممكن في الحالة الحالية. | Cette action n'est pas possible dans l'état actuel. | [ ] |
 | `apiErrors.TOO_MANY_ATTEMPTS` | محاولات كثيرة جدًا، حاول لاحقًا. | Trop de tentatives, réessayez plus tard. | [ ] |
 | `apiErrors.VALIDATION_FAILED` | بعض الحقول مفقودة أو غير صالحة. | Certains champs sont manquants ou invalides. | [ ] |
+| `apiSms.code` | GOFAST: رمزك هو {code}. صالح لمدة {minutes} دقائق. لا تشاركه مع أحد. | GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne. | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
 | `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |

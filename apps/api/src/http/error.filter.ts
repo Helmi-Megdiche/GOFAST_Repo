@@ -40,10 +40,12 @@ export class ErrorFilter implements ExceptionFilter {
     let status = 500;
     let fields: FieldError[] = [];
     let retryAfter: number | undefined;
+    let details: Record<string, number> | undefined;
 
     if (error instanceof ApiError) {
       ({ code, status, fields } = error);
       retryAfter = error.retryAfterSeconds;
+      details = error.details;
     } else if (clientStatus(error) !== undefined) {
       // Nest and Fastify refusals: unknown route, broken JSON, wrong content type, body too large.
       status = clientStatus(error) as number;
@@ -65,6 +67,7 @@ export class ErrorFilter implements ExceptionFilter {
         code,
         message: errorMessage(code, req.headers["accept-language"]),
         fields,
+        ...(details ? { details } : {}),
         trace_id: String(req.id),
       },
     });
