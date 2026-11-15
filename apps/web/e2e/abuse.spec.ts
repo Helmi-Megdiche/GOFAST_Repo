@@ -50,6 +50,9 @@ const orders = (page: Page) =>
 const draft = (page: Page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("fg.order.draft.v1") ?? "null"));
 
+/** A step is interactive once its busy placeholder is gone: the draft is read, so React has hydrated. */
+const ready = (page: Page) => expect(page.locator("[aria-busy=true]")).toHaveCount(0);
+
 async function start(page: Page, locale = "fr") {
   await page.clock.install({ time: MORNING });
   await page.goto(`/${locale}/commander`);
@@ -57,6 +60,8 @@ async function start(page: Page, locale = "fr") {
 }
 
 async function fillSender(page: Page, phone = SENDER_PHONE) {
+  await expect(page).toHaveURL(/\/commander\/expediteur$/);
+  await ready(page);
   await textbox(page, "Adresse de collecte").fill("Avenue");
   await page.getByRole("button", { name: "Avenue Habib Bourguiba" }).click();
   await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
@@ -68,6 +73,7 @@ async function fillSender(page: Page, phone = SENDER_PHONE) {
 
 async function fillRecipient(page: Page) {
   await expect(page).toHaveURL(/\/commander\/destinataire$/);
+  await ready(page);
   await textbox(page, "Adresse de livraison").fill("Rue Ib");
   await page.getByRole("button", { name: "Rue Ibn Khaldoun" }).click();
   await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
@@ -78,6 +84,7 @@ async function fillRecipient(page: Page) {
 
 async function fillParcel(page: Page) {
   await expect(page).toHaveURL(/\/commander\/colis$/);
+  await ready(page);
   await page.getByRole("radio", { name: /Petit colis/ }).check();
   await textbox(page, "Poids estimé (kg)").fill("2");
   await textbox(page, "Contenu").fill("Vêtements");
@@ -88,6 +95,7 @@ async function fillParcel(page: Page) {
 
 async function chooseStandard(page: Page) {
   await expect(page).toHaveURL(/\/commander\/service$/);
+  await ready(page);
   await page.getByRole("radio", { name: /Standard/ }).click();
   await expect(page.getByRole("radio", { name: /Standard/ })).toBeChecked();
 }
@@ -480,11 +488,12 @@ test.describe("abuse", () => {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.clock.install({ time: MORNING });
-      await page.goto("/fr");
+      await page.goto("/fr", { waitUntil: "domcontentloaded" }); // only an origin for localStorage
       for (const path of ["", "/colis", "/service", "/verification", "/code", "/expediteur"]) {
         await page.evaluate((text) => localStorage.setItem("fg.order.draft.v1", text), value);
         await page.goto(`/fr/commander${path}`);
         await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
+        await ready(page);
         await expect(textbox(page, "Votre nom")).toHaveValue("");
       }
       expect(errors).toEqual([]);
