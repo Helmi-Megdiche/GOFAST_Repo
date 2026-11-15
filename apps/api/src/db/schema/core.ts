@@ -148,6 +148,8 @@ export const orders = core.table("orders", {
     .references(() => recipients.id),
   createdAt: createdAt(),
   updatedAt: tstz("updated_at").notNull().defaultNow(),
+  /** Set by a trigger when the status enters an end state; R406 closes the recipient link 24 h later. */
+  endedAt: tstz("ended_at"),
 });
 
 export const parcels = core.table("parcels", {

@@ -264,26 +264,51 @@ describe("definer functions", () => {
     expect(dead.rows).toEqual([]);
   });
 
-  it("R406: a delivered order with a live link returns no row once 24 h have passed", async () => {
+  // The trigger stamps ended_at with now() when the status enters an end state; the test moves that
+  // stamp to a fixed date (status unchanged, so the trigger leaves it alone) to test the 24 h rule.
+  async function deliveredOrder(tracking: string, hash: string, endedAt: Date) {
     const order = randomUUID();
-    const delivered = new Date("2026-11-10T10:00:00Z");
     await q(
       `insert into core.orders (id, tracking_number, owner_company_id, service, payment_mode, freight_payer,
-                                total_millimes, pickup_address_id, recipient_id, status, updated_at)
-       values ($1, 'FG-DLVR-0001', $2, 'standard', 'cashPickup', 'sender', 0, $3, $4, 'delivered', $5)`,
-      [order, ids.companyA, ids.addressA, recipientA, delivered],
+                                total_millimes, pickup_address_id, recipient_id)
+       values ($1, $2, $3, 'standard', 'cashPickup', 'sender', 0, $4, $5)`,
+      [order, tracking, ids.companyA, ids.addressA, recipientA],
     );
-    await q(
-      `insert into core.recipient_links (order_id, token_hash, expires_at) values ($1, 'delivered-hash', $2)`,
-      [order, new Date("2027-01-01T00:00:00Z")],
-    );
+    await q("update core.orders set status = 'delivered' where id = $1", [order]);
+    await q("update core.orders set ended_at = $2 where id = $1", [order, endedAt]);
+    await q(`insert into core.recipient_links (order_id, token_hash, expires_at) values ($1, $2, $3)`, [
+      order,
+      hash,
+      new Date("2027-01-01T00:00:00Z"),
+    ]);
+    return order;
+  }
+  const findLink = (hash: string, when: Date) =>
+    app().withActor(nobody, (tx) => tx.execute(sql`select * from core.recipient_link(${hash}, ${when}::timestamptz)`));
+
+  it("R406: a delivered order with a live link returns no row once 24 h have passed", async () => {
+    const delivered = new Date("2026-11-10T10:00:00Z");
+    await deliveredOrder("FG-DLVR-0001", "delivered-hash", delivered);
     const at = (h: number) => new Date(delivered.getTime() + h * 3_600_000);
-    const find = (when: Date) =>
-      app().withActor(nobody, (tx) =>
-        tx.execute(sql`select * from core.recipient_link('delivered-hash', ${when}::timestamptz)`),
-      );
-    expect((await find(at(23))).rows).toMatchObject([{ tracking_number: "FG-DLVR-0001" }]);
-    expect((await find(at(25))).rows).toEqual([]);
+    expect((await findLink("delivered-hash", at(23))).rows).toMatchObject([{ tracking_number: "FG-DLVR-0001" }]);
+    expect((await findLink("delivered-hash", at(25))).rows).toEqual([]);
+  });
+
+  it("R406: a staff edit after delivery does not reopen the link", async () => {
+    const delivered = new Date("2026-11-10T10:00:00Z");
+    const order = await deliveredOrder("FG-DLVR-0002", "edited-hash", delivered);
+    const later = new Date(delivered.getTime() + 25 * 3_600_000);
+    expect((await findLink("edited-hash", later)).rows).toEqual([]);
+    // An agent edits the order after delivery: updated_at moves to now, ended_at must not.
+    await app().withActor(staff("agent"), (tx) =>
+      tx.execute(sql`update core.orders set recipient_id = recipient_id where id = ${order}`),
+    );
+    const row = (await q("select ended_at, updated_at from core.orders where id = $1", [order])).rows[0];
+    expect(row.ended_at).toEqual(delivered);
+    expect(row.updated_at.getTime()).toBeGreaterThan(delivered.getTime());
+    expect((await findLink("edited-hash", later)).rows).toEqual([]);
+    // Right after the edit's own clock the link is still closed: the 24 h count from ended_at, not updated_at.
+    expect((await findLink("edited-hash", new Date(row.updated_at.getTime() + 1000))).rows).toEqual([]);
   });
 
   it("account_for_login takes exactly one identifier and returns phone_verified_at", async () => {
@@ -384,8 +409,9 @@ describe("RV-21: protected columns", () => {
       ["recipient_locale", "'ar'", false],
       ["total_millimes", "1", false],
       ["created_at", "now()", false],
+      ["updated_at", "now() + interval '1 day'", false],
+      ["ended_at", "now()", false],
       ["status", "'delivered'", true],
-      ["updated_at", "now() + interval '1 day'", true],
       ["pickup_address_id", "null::uuid", true],
       ["recipient_id", "null::uuid", true],
     ];
@@ -444,18 +470,67 @@ describe("RV-21: protected columns", () => {
         await expect(q(`update core.orders set ${set} where id = $1`, [order]), set).rejects.toThrow(/never change/);
       }
     });
-    it("a merchant inserts an order as `received` with themselves as creator, and nothing else", async () => {
-      const insert = (tracking: string, status: string, createdBy: string) =>
+    it("a merchant inserts an order with themselves as creator, and nobody else", async () => {
+      const insert = (tracking: string, createdBy: string) =>
         app().withActor(A(), (tx) =>
           tx.execute(sql`insert into core.orders (tracking_number, owner_company_id, created_by, service, payment_mode,
-                           freight_payer, total_millimes, pickup_address_id, recipient_id, status)
+                           freight_payer, total_millimes, pickup_address_id, recipient_id)
                          values (${tracking}, ${ids.companyA}, ${createdBy}, 'standard', 'cashPickup', 'sender', 0,
-                                 ${ids.addressA}, ${recipientA}, ${status})`),
+                                 ${ids.addressA}, ${recipientA})`),
         );
-      await expectDbError(insert("FG-INSR-0001", "confirmed", ids.userA), /row-level security/);
-      await expectDbError(insert("FG-INSR-0002", "received", ids.userB), /row-level security/);
-      expect(rowCount(await insert("FG-INSR-0003", "received", ids.userA))).toBe(1);
-      expect((await q("select count(*)::int as n from core.orders where tracking_number in ('FG-INSR-0001', 'FG-INSR-0002')")).rows[0].n).toBe(0);
+      await expectDbError(insert("FG-INSR-0002", ids.userB), /row-level security/);
+      expect(rowCount(await insert("FG-INSR-0003", ids.userA))).toBe(1);
+      expect((await q("select count(*)::int as n from core.orders where tracking_number = 'FG-INSR-0002'")).rows[0].n).toBe(0);
+    });
+    // RV-21 round 2: INSERT is granted by column too, so a merchant cannot backdate an order or pick its status.
+    it.each([
+      ["id", "gen_random_uuid()"],
+      ["status", "'received'"],
+      ["created_at", "now() - interval '30 days'"],
+      ["updated_at", "now() - interval '30 days'"],
+      ["ended_at", "now()"],
+    ])("a merchant cannot set %s when creating an order (%s)", async (column, value) => {
+      const tracking = `FG-INS${column.length}-${String(n++).padStart(4, "0")}`.toUpperCase().slice(0, 12);
+      await expectDbError(
+        app().withActor(A(), (tx) =>
+          tx.execute(
+            sql.raw(`insert into core.orders (tracking_number, owner_company_id, created_by, service, payment_mode,
+                       freight_payer, total_millimes, pickup_address_id, recipient_id, ${column})
+                     values ('${tracking}', '${ids.companyA}', '${ids.userA}', 'standard', 'cashPickup', 'sender', 0,
+                             '${ids.addressA}', '${recipientA}', ${value})`),
+          ),
+        ),
+        /permission denied/,
+      );
+      expect((await q("select count(*)::int as n from core.orders where tracking_number = $1", [tracking])).rows[0].n).toBe(0);
+    });
+    it("CONTROL: the granted columns insert, the others take their default (a fresh status and clock)", async () => {
+      const r = await app().withActor(A(), (tx) =>
+        tx.execute(sql`insert into core.orders (tracking_number, owner_company_id, created_by, service, payment_mode,
+                         freight_payer, total_millimes, pickup_address_id, recipient_id)
+                       values ('FG-CTRL-0001', ${ids.companyA}, ${ids.userA}, 'standard', 'cashPickup', 'sender', 0,
+                               ${ids.addressA}, ${recipientA})
+                       returning status, ended_at, created_at = updated_at as same_clock`),
+      );
+      expect(r.rows).toEqual([{ status: "received", ended_at: null, same_clock: true }]);
+    });
+    it("updated_at moves on every update and ended_at is set by the trigger when the status ends", async () => {
+      const { order } = await fresh("confirmed");
+      const before = await orderRow(order);
+      expect(before.ended_at).toBeNull();
+      await app().withActor(staff("agent"), (tx) =>
+        tx.execute(sql`update core.orders set status = 'delivered' where id = ${order}`),
+      );
+      const after = await orderRow(order);
+      expect(after.ended_at).not.toBeNull();
+      expect(after.updated_at.getTime()).toBeGreaterThan(before.updated_at.getTime());
+      // A later edit moves updated_at, never ended_at.
+      await app().withActor(staff("agent"), (tx) =>
+        tx.execute(sql`update core.orders set recipient_id = recipient_id where id = ${order}`),
+      );
+      const edited = await orderRow(order);
+      expect(edited.ended_at).toEqual(after.ended_at);
+      expect(edited.updated_at.getTime()).toBeGreaterThan(after.updated_at.getTime());
     });
     it("a merchant listing reads orders through the owner indexes", async () => {
       // Enough rows for the planner to prefer an index, and the sequential scan switched off so the test
@@ -490,8 +565,8 @@ describe("RV-21: protected columns", () => {
       ["cod_millimes", "1", true],
       ["proof_level", "'codeOrPhotoWithPosition'", true],
       ["attempts", "1", true],
+      ["updated_at", "now() + interval '1 day'", false],
       ["status", "'delivered'", true],
-      ["updated_at", "now() + interval '1 day'", true],
     ];
     it("lists every column of the table", async () => {
       const r = await q("select column_name from information_schema.columns where table_schema = 'core' and table_name = 'parcels'");
@@ -586,6 +661,16 @@ describe("RV-21: protected columns", () => {
         );
       expect(rowCount(await insert(open1.parcel))).toBe(1);
       await expectDbError(insert(done.parcel), /row-level security/);
+      // Customer service reads and helps, but does not mint the owner's delivery code.
+      const cs = await fresh("received");
+      await expectDbError(
+        app().withActor(staff("customer_service"), (tx) =>
+          tx.execute(sql`insert into core.delivery_codes (parcel_id, code_hash, expires_at)
+                         values (${cs.parcel}, 'hmac-cs', now() + interval '1 day')`),
+        ),
+        /row-level security/,
+      );
+      expect((await q("select count(*)::int as n from core.delivery_codes where parcel_id = $1", [cs.parcel])).rows[0].n).toBe(0);
       // The Drizzle column set leaves the hash out; a plain select of the table does not work as the app.
       const ok = await app().withActor(staff("agent"), (tx) =>
         tx.select(tables.deliveryCodeColumns).from(tables.deliveryCodes).where(sql`parcel_id = ${open1.parcel}`),

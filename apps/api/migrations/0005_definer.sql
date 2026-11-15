@@ -15,7 +15,7 @@ end $$;
 
 -- What the owner may read. R405: the public page shows the state, dates and zone names only, so
 -- orders, addresses, recipients and history are opened column by column and without any personal field.
-grant select (id, tracking_number, status, created_at, updated_at, pickup_address_id, recipient_id)
+grant select (id, tracking_number, status, created_at, updated_at, ended_at, pickup_address_id, recipient_id)
   on core.orders to fastgo_public_reader;
 grant select (id, zone_id) on core.addresses to fastgo_public_reader;
 grant select (id, address_id) on core.recipients to fastgo_public_reader;
@@ -64,7 +64,8 @@ $$;
 -- R406: the recipient link. The caller passes the hash of the token and the time (p_at, never the
 -- database clock). It returns nothing when the link is past its own expiry, or when the order ended
 -- more than 24 h ago (provisional, GOFAST 6 Nov 2026): the app cannot update expires_at, so the state
--- of the order is what closes the link after delivery.
+-- of the order is what closes the link after delivery. It reads ended_at, set by a trigger when the
+-- status enters an end state: a later edit of the order does not move it.
 create function core.recipient_link(p_token_hash text, p_at timestamptz)
   returns table (tracking_number text, locale text, expires_at timestamptz)
   language sql stable security definer set search_path = pg_catalog, core, pg_temp as $$
@@ -73,8 +74,7 @@ create function core.recipient_link(p_token_hash text, p_at timestamptz)
     join core.orders o on o.id = l.order_id
    where l.token_hash = p_token_hash
      and l.expires_at > p_at
-     and (o.status not in ('delivered', 'partially_delivered', 'returned', 'lost', 'canceled')
-          or o.updated_at + interval '24 hours' > p_at)
+     and (o.ended_at is null or o.ended_at + interval '24 hours' > p_at)
 $$;
 
 -- Login: the app never reads the hash, this function hands it to the API, which compares it. Exactly

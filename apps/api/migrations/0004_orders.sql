@@ -24,7 +24,10 @@ create table core.orders (
   pickup_address_id uuid not null,
   recipient_id uuid not null,
   created_at timestamptz not null default now(),
+  -- Both are set by triggers below, never by a login: updated_at on every update, ended_at when the
+  -- status enters an end state (R406 reads it: a later edit must not reopen the recipient link).
   updated_at timestamptz not null default now(),
+  ended_at timestamptz,
   check (num_nonnulls(owner_account_id, owner_company_id) = 1),
   -- Tenant-safe keys: the address and the recipient belong to the owner of the order, whoever writes
   -- (MATCH SIMPLE skips the key whose owner column is NULL, the other one always applies).
@@ -54,10 +57,36 @@ create policy orders_update on core.orders for update to fastgo_app
   using (core.staff_moves_orders())
   with check (core.staff_moves_orders());
 
+-- Columns the app login may set at creation: what the API computes or receives. Never the status (it
+-- comes from the default, the policy checks it), nor created_at, updated_at, ended_at or the id: an
+-- order cannot be backdated. total_millimes is computed by the API from the parcels (PR 4b).
+revoke insert on core.orders from fastgo_app;
+grant insert (tracking_number, owner_account_id, owner_company_id, created_by, idempotency_scope,
+              service, payment_mode, freight_payer, recipient_locale, total_millimes,
+              pickup_address_id, recipient_id)
+  on core.orders to fastgo_app;
+
 -- Columns the app login may change (the policy above limits it to staff): the state, and the two
--- keys an agent may correct (tenant-safe keys above). Money, owner and tracking are never updated.
+-- keys an agent may correct (tenant-safe keys above). Money, owner and tracking are never updated;
+-- updated_at and ended_at belong to the trigger.
 revoke update on core.orders from fastgo_app;
-grant update (status, updated_at, pickup_address_id, recipient_id) on core.orders to fastgo_app;
+grant update (status, pickup_address_id, recipient_id) on core.orders to fastgo_app;
+
+-- updated_at moves on every update; ended_at is set when the status enters an end state and cleared
+-- if it leaves one. An update that does not change the status keeps ended_at as it is.
+create function core.orders_touch() returns trigger
+  language plpgsql set search_path = pg_catalog as $$
+declare
+  v_end constant text[] := array['delivered', 'partially_delivered', 'returned', 'lost', 'canceled'];
+begin
+  new.updated_at := now();
+  if new.status is distinct from old.status then
+    new.ended_at := case when new.status = any (v_end) then now() else null end;
+  end if;
+  return new;
+end $$;
+create trigger orders_touch before update on core.orders
+  for each row execute function core.orders_touch();
 
 -- What never changes after creation. The worker may only clear the idempotency scope (purge, R202).
 create function core.orders_freeze() returns trigger
@@ -122,8 +151,18 @@ revoke insert, update on core.parcels from fastgo_app;
 grant insert (order_id, size, weight_declared_g, declared_value_millimes, cod_millimes, proof_level)
   on core.parcels to fastgo_app;
 grant update (barcode, size, weight_declared_g, weight_measured_g, declared_value_millimes,
-              cod_millimes, proof_level, attempts, status, updated_at)
+              cod_millimes, proof_level, attempts, status)
   on core.parcels to fastgo_app;
+
+-- updated_at is set by a trigger, never by a login.
+create function core.touch_updated_at() returns trigger
+  language plpgsql set search_path = pg_catalog as $$
+begin
+  new.updated_at := now();
+  return new;
+end $$;
+create trigger parcels_touch before update on core.parcels
+  for each row execute function core.touch_updated_at();
 
 -- Money is frozen once the order is confirmed: a price quoted and accepted is not edited afterwards.
 -- (The trigger runs as the caller; the order is read through its RLS, staff read every order.)
@@ -255,11 +294,14 @@ select core.hide_hashes_from_app('core.delivery_codes');
 create policy delivery_codes_select on core.delivery_codes for select to fastgo_app
   using (core.staff_reads_customers());
 -- The code of a COD order (D8) is created with the order by its owner, so the owner may insert while the
--- order is `received`; after that only staff do. Nobody reads the hash back.
+-- order is `received`; after that only staff do. Not any role that merely reads the order (customer
+-- service): the second arm is the owner test, written inline. Nobody reads the hash back.
 create policy delivery_codes_insert on core.delivery_codes for insert to fastgo_app
   with check (core.staff_writes_customers()
     or exists (select 1 from core.parcels p join core.orders o on o.id = p.order_id
-                where p.id = parcel_id and o.status = 'received'));
+                where p.id = parcel_id and o.status = 'received'
+                  and (o.owner_account_id = (select core.app_user_id())
+                       or o.owner_company_id = (select core.app_company_id()))));
 
 create table core.recipient_links (
   id uuid primary key default gen_random_uuid(),

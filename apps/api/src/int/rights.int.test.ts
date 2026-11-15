@@ -42,8 +42,25 @@ const EXPECTED: Record<string, Expect> = {
   "core.recipients": OWNED,
   // RV-21: no table-level UPDATE on orders and no INSERT or UPDATE on parcels, only these columns.
   "core.orders": {
-    app: ["INSERT", "SELECT"],
-    appCols: { UPDATE: ["pickup_address_id", "recipient_id", "status", "updated_at"] },
+    app: ["SELECT"],
+    // Insert: what the API sets (no status, created_at, updated_at, ended_at, id). Update: no updated_at (trigger).
+    appCols: {
+      INSERT: [
+        "created_by",
+        "freight_payer",
+        "idempotency_scope",
+        "owner_account_id",
+        "owner_company_id",
+        "payment_mode",
+        "pickup_address_id",
+        "recipient_id",
+        "recipient_locale",
+        "service",
+        "total_millimes",
+        "tracking_number",
+      ],
+      UPDATE: ["pickup_address_id", "recipient_id", "status"],
+    },
     ro: "no-hash",
     rls: true,
   },
@@ -59,7 +76,6 @@ const EXPECTED: Record<string, Expect> = {
         "proof_level",
         "size",
         "status",
-        "updated_at",
         "weight_declared_g",
         "weight_measured_g",
       ],
@@ -96,7 +112,9 @@ const WORKER: Record<string, Rights> = {
 };
 const PUBLIC_READER: Record<string, Rights> = {
   "core.orders": {
-    c: { SELECT: ["created_at", "id", "pickup_address_id", "recipient_id", "status", "tracking_number", "updated_at"] },
+    c: {
+      SELECT: ["created_at", "ended_at", "id", "pickup_address_id", "recipient_id", "status", "tracking_number", "updated_at"],
+    },
   },
   "core.addresses": { c: { SELECT: ["id", "zone_id"] } },
   "core.recipients": { c: { SELECT: ["address_id", "id"] } },
