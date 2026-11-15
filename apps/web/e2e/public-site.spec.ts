@@ -433,6 +433,11 @@ test("contact: an attachment of exactly 5 MB is accepted, one byte more is refus
   const send = page.getByRole("button", { name: "Envoyer ma demande" });
   await send.click();
   await expect(input).toBeFocused();
+  // The input is off screen, so a keyboard user must see the ring on the visible chip (computed
+  // style, not a class name).
+  const chip = page.locator("main form div").filter({ hasText: "over.pdf" }).last();
+  await expect(chip).toHaveCSS("outline-style", "solid");
+  await expect(chip).toHaveCSS("outline-width", "2px");
   await expect(send).not.toHaveAttribute("aria-disabled", "true");
   await expect(page.getByText("Votre demande est enregistrée.")).toHaveCount(0);
   await expect(page.getByText("Le fichier dépasse 5 Mo.")).toBeVisible();

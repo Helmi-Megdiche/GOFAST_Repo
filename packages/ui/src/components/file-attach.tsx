@@ -19,6 +19,10 @@ export type FileAttachProps = {
   className?: string;
 };
 
+// The real input is off screen: while it has focus, the visible control after it shows the ring.
+const FOCUS_RING =
+  "peer-focus:outline-2 peer-focus:outline-offset-2 peer-focus:outline-orange-dark";
+
 /**
  * One optional file. The button opens the system picker; the chosen file name is shown with a
  * remove button. The picker is a real <input type="file"> kept off screen, so the button is the
@@ -42,7 +46,7 @@ export const FileAttach = forwardRef<HTMLInputElement, FileAttachProps>(function
         accept={accept}
         tabIndex={-1}
         aria-hidden="true"
-        className="sr-only"
+        className="peer sr-only"
         onChange={(event) => {
           onChange(event.target.files?.[0] ?? null);
           // Allow choosing the same file again after removing it.
@@ -50,7 +54,12 @@ export const FileAttach = forwardRef<HTMLInputElement, FileAttachProps>(function
         }}
       />
       {value ? (
-        <div className="flex items-center justify-between gap-3 rounded-md border border-line bg-fill-subtle px-3 py-2 text-sm">
+        <div
+          className={
+            "flex items-center justify-between gap-3 rounded-md border border-line bg-fill-subtle px-3 py-2 text-sm " +
+            FOCUS_RING
+          }
+        >
           <span className="flex min-w-0 items-center gap-2">
             <Icon name="file" size="sm" className="text-muted" />
             <bdi dir="ltr" className="truncate">
@@ -69,6 +78,7 @@ export const FileAttach = forwardRef<HTMLInputElement, FileAttachProps>(function
       ) : (
         <Button
           variant="ghost"
+          className={FOCUS_RING}
           aria-describedby={error ? errorId : undefined}
           onClick={() => inputRef.current?.click()}
         >
