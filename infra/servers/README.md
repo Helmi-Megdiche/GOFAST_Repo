@@ -76,4 +76,20 @@ It ends with a check list and stops with an error if one item fails. It can be r
 
 ## Database setup (once per database, before the first migration)
 
-The migrations create no role and no password. On a new database, the PostgreSQL superuser runs `db-setup.sql` (roles, PostGIS, and the `fastgo_public_reader` grant that migration 0005 needs). Passwords are passed as psql variables from the host's secret store, never written in a file: see the header of `db-setup.sql`. It mirrors `apps/api/src/int/harness.ts`; change both together. Then run the migrations as `fastgo_migrator`.
+The migrations create no role and no password. On a new database, the PostgreSQL superuser runs `db-setup.sql` from a terminal (roles, PostGIS, and the `fastgo_public_reader` grant that migration 0005 needs):
+
+```
+psql "postgres://postgres@127.0.0.1:5432/fastgo" -f infra/servers/db-setup.sql
+```
+
+The script asks for 4 passwords (migrator, app, readonly, worker) with psql `\password`: hidden prompt, typed twice, hashed on the client with SCRAM-SHA-256, so the plain password never reaches the server, its log or the process list. It stops with an error when it is not run in a terminal or when `password_encryption` is not `scram-sha-256`. It can be run again (it asks again). It mirrors `apps/api/src/int/harness.ts`; change both together. Then run the migrations as `fastgo_migrator`.
+
+## Secrets and backups on the host
+
+Checklist for each host. Open choices are marked `[À FIXER]`.
+
+- [ ] Database passwords are generated on the host (for example `openssl rand -base64 32`), one per role, never reused, never sent by chat or e-mail.
+- [ ] The app reads them from files owned by root with mode 600 (or Docker secrets), not from a `.env` readable by every engineer account.
+- [ ] `log_statement` is not `all` or `ddl` while passwords are set.
+- [ ] Backups are encrypted before they leave the server, the key is kept off the server, and a restore is tested (#30).
+- [ ] Who may read the secrets: `[À FIXER]` with Helmi.
