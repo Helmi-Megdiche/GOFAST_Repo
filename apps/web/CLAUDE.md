@@ -148,3 +148,11 @@ draft, `?next=`, and every code case. Tests use `page.clock` and the fixture cod
 - `?type=` on `/contact` (`constructor`, `__proto__` fall back to Question);
 - the header at 900, 1000, 1100, 1200 and 1440 px in fr, ar and en: one row, no overlap, no overflow,
   logo 42 px and 44 px buttons from 1200 px, burger menu below 1100 px.
+
+## API layer (#20)
+
+- `lib/api/`: typed client (`openapi-fetch` on `@fastgo/contract`), error mapping, request mapping. `lib/data/ports.ts`: one interface per domain (orders, pricing), `mock-adapters.ts` and `lib/api/*` are the two adapters; `lib/data/index.ts` picks one. Components and `lib/order` use `ordersPort()` / `pricingPort()`, never an adapter.
+- `NEXT_PUBLIC_API_DOMAINS` (comma list: auth, orders, pricing, account). Empty = all mock (CI, e2e). An unknown name throws.
+- Same origin: the browser calls `/v1/...`; `next.config.ts` rewrites it to the server-side `API_ORIGIN`. `proxy.ts` skips `/v1`. No CORS, no `NEXT_PUBLIC_API_URL`.
+- R202 on the api adapter: the draft stores the exact request body next to the key (`pendingSubmit.body`); a retry re-sends those bytes. Over 24 h (key purged) nothing is sent and the "lost" message stays.
+- Server text is never shown, only `trace_id` is kept. A 401 goes to `/connexion?next=` with a same-site path only (`signInUrl`).

@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Alert, Button, Card, Checkbox, KeyValue, RadioCard } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { Link, useRouter } from "@/i18n/navigation";
+import { signInUrl } from "@/lib/api/unauthorized";
 import { isVerifiedPhoneForSession, returnBalanceMillimes } from "@/lib/data/accounts";
 import { getQuote } from "@/lib/data/pricing";
 import { canPayOnAccount, getSession } from "@/lib/data/session";
@@ -59,6 +60,7 @@ function Review({
   reload,
 }: { draft: OrderDraft } & Pick<ReturnType<typeof useOrderStep>, "save" | "goTo" | "reload">) {
   const t = useTranslations("order.review");
+  const locale = useLocale();
   const price = useTranslations("order.price");
   const o = useTranslations("offers");
   const addressT = useTranslations("order.address");
@@ -179,6 +181,11 @@ function Review({
     await send();
   }
 
+  // 401: the draft stays saved; after sign-in the customer comes back here (same-site path only).
+  function goToSignIn() {
+    window.location.assign(signInUrl(locale, window.location.pathname));
+  }
+
   async function send() {
     busyRef.current = true;
     setBusy(true);
@@ -191,6 +198,8 @@ function Review({
       router.push(`/commander/confirmation?n=${result.code}`);
     } else if (result.status === "lost") {
       setProblem({ kind: "lost" });
+    } else if (result.status === "signIn") {
+      goToSignIn();
     } else if (result.status === "refused") {
       // The verified code ran out (CODE_VERIFIED_WINDOW_MS): submitOrder forgot it, ask for a new one.
       if (result.error === "phoneNotVerified") {
@@ -221,6 +230,10 @@ function Review({
       return;
     }
     if (result.status === "lost") return;
+    if (result.status === "signIn") {
+      goToSignIn();
+      return;
+    }
     if (result.status === "changed") {
       reload();
       return;

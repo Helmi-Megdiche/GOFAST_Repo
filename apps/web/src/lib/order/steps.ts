@@ -3,7 +3,6 @@ import {
   isSlotInFuture,
   addressPriceKey,
   isQuoteValid,
-  packagingPriced,
   priceKey,
   type PriceInput,
   type Quote,
@@ -12,7 +11,7 @@ import {
   type ZoneResult,
 } from "@fastgo/domain";
 import type { AddressDraft, OrderDraft } from "./draft";
-import { EXAMPLE_PRICE_TABLE } from "../data/fixtures/pricing";
+import { pricingPort } from "../data";
 import { parcelWeightsG, personSchema, requiredText } from "./schemas";
 
 /** The five steps, in order, with their path under /commander. */
@@ -89,7 +88,7 @@ export function lacksPackagingPrice(draft: OrderDraft, service: ServiceCode): bo
   return (
     draft.parcel.packaging &&
     draft.parcel.type != null &&
-    !packagingPriced(EXAMPLE_PRICE_TABLE, service, draft.parcel.type)
+    !pricingPort().packagingPriced(service, draft.parcel.type)
   );
 }
 

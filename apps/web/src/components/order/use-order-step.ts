@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "@/i18n/navigation";
-import { findOrderByKey } from "@/lib/data/orders";
+import { ordersPort } from "@/lib/data";
 import { now } from "@/lib/order/clock";
 import { editDraft, emptyDraft, loadDraft, saveDraft, type OrderDraft } from "@/lib/order/draft";
 import { redirectFor, STEP_PATHS, type StepId } from "@/lib/order/steps";
@@ -52,7 +52,7 @@ export function useOrderStep(step: StepId) {
         return;
       }
       if (mine && loadDraft() == null) {
-        void findOrderByKey(mine.idempotencyKey).then((code) => {
+        void ordersPort().findOrderByKey(mine.idempotencyKey).then((code) => {
           if (code) router.replace(`/commander/confirmation?n=${code}`);
           else reload();
         });

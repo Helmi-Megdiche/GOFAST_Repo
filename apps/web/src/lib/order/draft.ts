@@ -40,7 +40,8 @@ export type OrderDraft = {
   /** Set when "Valider" was pressed: the key is now in use on the server side. */
   submitAttemptedAt: number | null;
   /** A submit whose answer never came back: only "Réessayer" with the same payload is allowed. */
-  pendingSubmit: { fingerprint: string } | null;
+  /** `body`: the exact bytes sent with the key (api adapter), re-sent unchanged on a retry (R202). */
+  pendingSubmit: { fingerprint: string; body?: string } | null;
   sender: { address: AddressDraft; name: string; phone: string; slot: Slot | null };
   recipient: {
     address: AddressDraft;
@@ -189,7 +190,7 @@ const draftShape = z.object({
   expiresAt: z.number(),
   idempotencyKey: z.string().min(1),
   submitAttemptedAt: z.number().nullable(),
-  pendingSubmit: z.object({ fingerprint: z.string() }).nullable(),
+  pendingSubmit: z.object({ fingerprint: z.string(), body: z.string().optional() }).nullable(),
   sender: z.object({
     address: addressShape,
     name: z.string(),

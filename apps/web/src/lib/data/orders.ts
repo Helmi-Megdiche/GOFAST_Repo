@@ -1,4 +1,5 @@
 import { now } from "../order/clock";
+import { NetworkError } from "../api/errors";
 import {
   DELIVERY_CODE_DIGITS,
   addressPriceKey,
@@ -61,13 +62,8 @@ export type OrderError =
 export type CreateOrderResult =
   { status: "created"; code: string; replay: boolean } | { status: "refused"; error: OrderError };
 
-/** Thrown when the request or its answer was lost (simulated network cut): the order may exist. */
-export class NetworkError extends Error {
-  constructor() {
-    super("network");
-    this.name = "NetworkError";
-  }
-}
+/** Moved to lib/api/errors (#20); re-exported so existing imports keep the same class. */
+export { NetworkError };
 
 type StoredOrder = {
   code: string;
