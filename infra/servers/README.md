@@ -73,3 +73,7 @@ It ends with a check list and stops with an error if one item fails. It can be r
 - Docker publishes ports past `ufw`. Bind container ports to `127.0.0.1`; only the reverse proxy listens on 80 and 443.
 - To remove someone, taking the login out of `TEAM` is not enough: run `sudo deluser --remove-home <user>` on each server.
 - The back-office VPN and 2FA are #36, backups #30, monitoring #32.
+
+## Database setup (once per database, before the first migration)
+
+The migrations create no role and no password. On a new database, the PostgreSQL superuser runs `db-setup.sql` (roles, PostGIS, and the `fastgo_public_reader` grant that migration 0005 needs). Passwords are passed as psql variables from the host's secret store, never written in a file: see the header of `db-setup.sql`. It mirrors `apps/api/src/int/harness.ts`; change both together. Then run the migrations as `fastgo_migrator`.
