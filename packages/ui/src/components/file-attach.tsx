@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, type ReactNode } from "react";
+import { forwardRef, useId, useImperativeHandle, useRef, type ReactNode } from "react";
 import { cn } from "../lib/cn";
 import { Button } from "./button";
 import { Icon } from "./icon";
@@ -22,19 +22,15 @@ export type FileAttachProps = {
 /**
  * One optional file. The button opens the system picker; the chosen file name is shown with a
  * remove button. The picker is a real <input type="file"> kept off screen, so the button is the
- * only control a keyboard user reaches.
+ * only control a keyboard user reaches. The ref reaches that input, so react-hook-form can focus
+ * it when a submit is refused.
  */
-export function FileAttach({
-  label,
-  removeLabel,
-  value,
-  onChange,
-  error,
-  accept,
-  name,
-  className,
-}: FileAttachProps) {
+export const FileAttach = forwardRef<HTMLInputElement, FileAttachProps>(function FileAttach(
+  { label, removeLabel, value, onChange, error, accept, name, className },
+  ref,
+) {
   const inputRef = useRef<HTMLInputElement>(null);
+  useImperativeHandle(ref, () => inputRef.current as HTMLInputElement, []);
   const errorId = useId();
 
   return (
@@ -92,4 +88,4 @@ export function FileAttach({
       ) : null}
     </div>
   );
-}
+});
