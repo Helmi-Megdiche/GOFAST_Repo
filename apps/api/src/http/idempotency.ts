@@ -31,8 +31,8 @@ export type Begin =
  */
 export abstract class IdempotencyStore {
   abstract begin(scope: string, fingerprint: string): Promise<Begin>;
-  /** Stores the answer of the call that got `new`. */
-  abstract complete(scope: string, token: string, answer: Answer): Promise<void>;
+  /** Stores the answer of the call that got `new`. False when the lease was lost (another call took over). */
+  abstract complete(scope: string, token: string, answer: Answer): Promise<boolean>;
   /** The call failed: forget the key so the same key can be tried again. */
   abstract abort(scope: string, token: string): Promise<void>;
   /** RV-18: the stored answers of a closed account are erased. Returns how many. */
@@ -81,7 +81,9 @@ export class MemoryIdempotencyStore extends IdempotencyStore {
   }
   override async complete(scope: string, token: string, answer: Answer) {
     const e = this.entries.get(scope);
-    if (e?.token === token) e.answer = answer;
+    if (e?.token !== token) return false;
+    e.answer = answer;
+    return true;
   }
   override async abort(scope: string, token: string) {
     if (this.entries.get(scope)?.token === token) this.entries.delete(scope);
@@ -128,7 +130,8 @@ export const fingerprint = (
     .update(canonical([route, params, query, body]))
     .digest("hex");
 
-const POLL_MS = 25;
+const POLL_MS = 25; // first wait; it doubles up to POLL_MAX_MS, so a long first call is not hammered
+const POLL_MAX_MS = 500;
 const MAX_WAIT_MS = 30_000;
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
@@ -154,6 +157,7 @@ export class IdempotencyInterceptor implements NestInterceptor {
 
     return defer(async () => {
       const giveUpAt = Date.now() + MAX_WAIT_MS;
+      let wait = POLL_MS;
       for (;;) {
         const found = await this.store.begin(scope, fp);
         if (found.kind === "conflict") throw new ApiError("KEY_REUSED");
@@ -163,7 +167,8 @@ export class IdempotencyInterceptor implements NestInterceptor {
         }
         if (found.kind === "running") {
           if (Date.now() > giveUpAt) throw new ApiError("STATE_CONFLICT");
-          await sleep(POLL_MS);
+          await sleep(wait);
+          wait = Math.min(wait * 2, POLL_MAX_MS);
           continue;
         }
         try {
