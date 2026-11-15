@@ -9,7 +9,9 @@ create table core.orders (
   owner_account_id uuid references core.accounts (id),
   owner_company_id uuid references core.companies (id),
   created_by uuid references core.accounts (id),
-  -- Idempotent creation (x-replay: key): the same scope returns the same order.
+  -- Idempotent creation (x-replay: key): the same scope returns the same order. The key lives 24 h
+  -- (R202): the worker clears the scope when it purges the key, so the scope can be used again;
+  -- until then a second insert raises unique_violation, which 4b turns into a replay.
   idempotency_scope text unique,
   service text not null check (service in ('express', 'standard', 'scheduled')),
   payment_mode text not null check (payment_mode in ('cashPickup', 'cashDelivery', 'account')),
@@ -19,33 +21,68 @@ create table core.orders (
     'pickup_failed', 'picked_up', 'in_transit', 'delivered', 'partially_delivered', 'returned',
     'lost', 'canceled')),
   total_millimes bigint not null check (total_millimes >= 0),
-  pickup_address_id uuid not null references core.addresses (id),
-  recipient_id uuid not null references core.recipients (id),
+  pickup_address_id uuid not null,
+  recipient_id uuid not null,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
-  check (num_nonnulls(owner_account_id, owner_company_id) = 1)
+  check (num_nonnulls(owner_account_id, owner_company_id) = 1),
+  -- Tenant-safe keys: the address and the recipient belong to the owner of the order, whoever writes
+  -- (MATCH SIMPLE skips the key whose owner column is NULL, the other one always applies).
+  foreign key (pickup_address_id, owner_account_id) references core.addresses (id, owner_account_id),
+  foreign key (pickup_address_id, owner_company_id) references core.addresses (id, owner_company_id),
+  foreign key (recipient_id, owner_account_id) references core.recipients (id, owner_account_id),
+  foreign key (recipient_id, owner_company_id) references core.recipients (id, owner_company_id)
 );
 create index orders_owner_account on core.orders (owner_account_id, created_at desc);
 create index orders_owner_company on core.orders (owner_company_id, created_at desc);
 create index orders_status on core.orders (status);
 select core.protect('core.orders', 'select, insert, update');
 
--- The pickup address and the recipient belong to the owner of the order (no pointing at a tenant's row).
+-- RLS writes: a customer or merchant never updates an order. They create it (as `received`, by
+-- themselves) and read it; cancel (R212) and auto-confirm (R209) go through definer functions (PR 4b).
+-- The owner tests are written inline (see R__access.sql) so the owner indexes stay usable.
 create policy orders_select on core.orders for select to fastgo_app
-  using (core.owns(owner_account_id, owner_company_id) or core.staff_reads_customers());
+  using (owner_account_id = (select core.app_user_id())
+         or owner_company_id = (select core.app_company_id())
+         or core.staff_reads_orders());
 create policy orders_insert on core.orders for insert to fastgo_app
-  with check ((core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers())
-    and exists (select 1 from core.addresses a
-                 where a.id = pickup_address_id
-                   and a.owner_account_id is not distinct from core.orders.owner_account_id
-                   and a.owner_company_id is not distinct from core.orders.owner_company_id)
-    and exists (select 1 from core.recipients r
-                 where r.id = recipient_id
-                   and r.owner_account_id is not distinct from core.orders.owner_account_id
-                   and r.owner_company_id is not distinct from core.orders.owner_company_id));
+  with check (status = 'received' and created_by = (select core.app_user_id())
+    and (owner_account_id = (select core.app_user_id())
+         or owner_company_id = (select core.app_company_id())
+         or core.staff_writes_customers()));
 create policy orders_update on core.orders for update to fastgo_app
-  using (core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers())
-  with check (core.owns(owner_account_id, owner_company_id) or core.staff_writes_customers());
+  using (core.staff_moves_orders())
+  with check (core.staff_moves_orders());
+
+-- Columns the app login may change (the policy above limits it to staff): the state, and the two
+-- keys an agent may correct (tenant-safe keys above). Money, owner and tracking are never updated.
+revoke update on core.orders from fastgo_app;
+grant update (status, updated_at, pickup_address_id, recipient_id) on core.orders to fastgo_app;
+
+-- What never changes after creation. The worker may only clear the idempotency scope (purge, R202).
+create function core.orders_freeze() returns trigger
+  language plpgsql set search_path = pg_catalog as $$
+begin
+  if new.tracking_number is distinct from old.tracking_number
+     or new.owner_account_id is distinct from old.owner_account_id
+     or new.owner_company_id is distinct from old.owner_company_id
+     or new.created_by is distinct from old.created_by
+     or new.created_at is distinct from old.created_at
+     or (new.idempotency_scope is distinct from old.idempotency_scope
+         and not (new.idempotency_scope is null and current_user = 'fastgo_worker')) then
+    raise exception 'tracking_number, owner, created_by and idempotency_scope of an order never change'
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end $$;
+create trigger orders_freeze before update on core.orders
+  for each row execute function core.orders_freeze();
+
+-- The worker clears a scope when it purges the matching idempotency key (it reads nothing else).
+grant select (id, idempotency_scope), update (idempotency_scope) on core.orders to fastgo_worker;
+create policy orders_select_worker on core.orders for select to fastgo_worker using (true);
+create policy orders_purge_worker on core.orders for update to fastgo_worker
+  using (true) with check (idempotency_scope is null);
 
 create table core.parcels (
   id uuid primary key default gen_random_uuid(),
@@ -70,11 +107,42 @@ select core.protect('core.parcels', 'select, insert, update');
 -- A parcel is as visible as its order (the subselect goes through the RLS of orders).
 create policy parcels_select on core.parcels for select to fastgo_app
   using (exists (select 1 from core.orders o where o.id = order_id));
+-- The owner adds parcels only while the order is `received` (staff may add at any time), and chooses
+-- no state: barcode, measured weight, attempts and status are set by staff or by the system.
 create policy parcels_insert on core.parcels for insert to fastgo_app
-  with check (exists (select 1 from core.orders o where o.id = order_id));
+  with check (status = 'to_collect' and exists (
+    select 1 from core.orders o
+     where o.id = order_id and (o.status = 'received' or core.staff_moves_orders())));
+-- Only staff update a parcel. The owner has no UPDATE policy at all.
 create policy parcels_update on core.parcels for update to fastgo_app
-  using (exists (select 1 from core.orders o where o.id = order_id))
-  with check (exists (select 1 from core.orders o where o.id = order_id));
+  using (core.staff_moves_orders() and exists (select 1 from core.orders o where o.id = order_id))
+  with check (core.staff_moves_orders() and exists (select 1 from core.orders o where o.id = order_id));
+
+revoke insert, update on core.parcels from fastgo_app;
+grant insert (order_id, size, weight_declared_g, declared_value_millimes, cod_millimes, proof_level)
+  on core.parcels to fastgo_app;
+grant update (barcode, size, weight_declared_g, weight_measured_g, declared_value_millimes,
+              cod_millimes, proof_level, attempts, status, updated_at)
+  on core.parcels to fastgo_app;
+
+-- Money is frozen once the order is confirmed: a price quoted and accepted is not edited afterwards.
+-- (The trigger runs as the caller; the order is read through its RLS, staff read every order.)
+create function core.parcels_freeze() returns trigger
+  language plpgsql set search_path = pg_catalog, core as $$
+begin
+  if new.order_id is distinct from old.order_id then
+    raise exception 'a parcel stays on its order' using errcode = 'insufficient_privilege';
+  end if;
+  if (new.cod_millimes is distinct from old.cod_millimes
+      or new.declared_value_millimes is distinct from old.declared_value_millimes)
+     and exists (select 1 from core.orders o where o.id = old.order_id and o.status <> 'received') then
+    raise exception 'cod and declared value are frozen once the order is confirmed'
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end $$;
+create trigger parcels_freeze before update on core.parcels
+  for each row execute function core.parcels_freeze();
 
 create table core.missions (
   id uuid primary key default gen_random_uuid(),
@@ -124,8 +192,10 @@ select core.protect('core.status_events', 'select, insert', false);
 
 create policy status_events_select on core.status_events for select to fastgo_app
   using (exists (select 1 from core.orders o where o.id = order_id));
+-- Staff write the history of an order. A customer's cancel writes its own event inside the definer
+-- function of PR 4b, never by INSERT.
 create policy status_events_insert on core.status_events for insert to fastgo_app
-  with check (actor_id is not distinct from core.app_user_id()
+  with check (core.staff_moves_orders() and actor_id = core.app_user_id()
     and exists (select 1 from core.orders o where o.id = order_id));
 
 -- D9: the position is kept for a limited time, then the worker empties it. That is the only change
@@ -184,9 +254,12 @@ select core.hide_hashes_from_app('core.delivery_codes');
 
 create policy delivery_codes_select on core.delivery_codes for select to fastgo_app
   using (core.staff_reads_customers());
+-- The code of a COD order (D8) is created with the order by its owner, so the owner may insert while the
+-- order is `received`; after that only staff do. Nobody reads the hash back.
 create policy delivery_codes_insert on core.delivery_codes for insert to fastgo_app
   with check (core.staff_writes_customers()
-    and exists (select 1 from core.parcels p where p.id = parcel_id));
+    or exists (select 1 from core.parcels p join core.orders o on o.id = p.order_id
+                where p.id = parcel_id and o.status = 'received'));
 
 create table core.recipient_links (
   id uuid primary key default gen_random_uuid(),

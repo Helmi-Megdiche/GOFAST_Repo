@@ -21,7 +21,8 @@ select core.protect('gestion.audit_events', 'insert, select', false);
 
 -- An event is written as the actor of the request (or as nobody: a system job).
 create policy audit_insert_app on gestion.audit_events for insert to fastgo_app
-  with check (actor_id is not distinct from core.app_user_id());
+  with check (actor_id is not distinct from core.app_user_id()
+    and actor_role is not distinct from core.app_role());
 create policy audit_select_app on gestion.audit_events for select to fastgo_app
   using (core.staff_reads_audit());
 

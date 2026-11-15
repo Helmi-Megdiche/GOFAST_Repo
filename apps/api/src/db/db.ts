@@ -46,7 +46,14 @@ export class Db {
          case when exists (
            select 1 from pg_class c join pg_namespace n on n.oid = c.relnamespace
             where n.nspname in ('core', 'gestion') and c.relowner = r.oid
-         ) then 'owns a table of core or gestion' end
+         ) then 'owns a table of core or gestion' end,
+         case when r.rolcreaterole then 'has CREATEROLE' end,
+         -- Membership of these two would let the login SET ROLE to the owner of the tables or of the
+         -- definer functions (and read what RLS hides): no application login may be a member.
+         case when exists (
+           select 1 from pg_auth_members m join pg_roles g on g.oid = m.roleid
+            where m.member = r.oid and g.rolname in ('fastgo_migrator', 'fastgo_public_reader')
+         ) then 'is a member of fastgo_migrator or fastgo_public_reader' end
        ], null) as problems
        from pg_roles r where r.rolname = current_user`,
     );
@@ -62,6 +69,7 @@ export class Db {
 
   private async run<T>(fn: (tx: Tx) => Promise<T>, identity: [string, string, string]): Promise<T> {
     const client = await this.pool.connect();
+    let failure: unknown;
     try {
       await client.query("begin");
       await client.query(
@@ -73,9 +81,11 @@ export class Db {
       return result;
     } catch (error) {
       await client.query("rollback").catch(() => undefined);
+      failure = error;
       throw error;
     } finally {
-      client.release();
+      // After a failure the connection is dropped, not reused: its state is not trusted.
+      client.release(failure === undefined ? undefined : (failure as Error));
     }
   }
 }

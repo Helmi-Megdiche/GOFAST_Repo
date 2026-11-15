@@ -24,10 +24,10 @@ afterAll(async () => {
 });
 
 // Every table of core and gestion must be listed here: a new table without a decision fails.
-// app = rights of fastgo_app; ro = what fastgo_readonly may read; rls = false only for reference
-// tables and idempotency_keys (no row of a person).
-type Expect = { app: string[]; ro: "no-hash" | "all" | "none"; rls: boolean };
-const SIGN_UP_TABLES = ["core.accounts", "core.companies", "core.company_members"];
+// app = table-level rights of fastgo_app; appCols = rights granted column by column (INSERT, UPDATE);
+// ro = what fastgo_readonly may read; rls = false only for reference tables and idempotency_keys.
+type Cols = Partial<Record<"SELECT" | "INSERT" | "UPDATE", string[]>>;
+type Expect = { app: string[]; appCols?: Cols; ro: "no-hash" | "all" | "none"; rls: boolean };
 const REFERENCE: Expect = { app: ["SELECT"], ro: "all", rls: false };
 const OWNED: Expect = { app: ["INSERT", "SELECT", "UPDATE"], ro: "no-hash", rls: true };
 const EXPECTED: Record<string, Expect> = {
@@ -35,13 +35,38 @@ const EXPECTED: Record<string, Expect> = {
   "core.services": REFERENCE,
   "core.prices": REFERENCE,
   // Column grants only (no table-level right): hash hidden from the app, 4 columns updatable.
-  "core.accounts": { app: [], ro: "no-hash", rls: true },
+  "core.accounts": { app: [], appCols: { UPDATE: ["email", "full_name", "locale", "updated_at"] }, ro: "no-hash", rls: true },
   "core.companies": OWNED,
   "core.company_members": OWNED,
   "core.addresses": OWNED,
   "core.recipients": OWNED,
-  "core.orders": OWNED,
-  "core.parcels": OWNED,
+  // RV-21: no table-level UPDATE on orders and no INSERT or UPDATE on parcels, only these columns.
+  "core.orders": {
+    app: ["INSERT", "SELECT"],
+    appCols: { UPDATE: ["pickup_address_id", "recipient_id", "status", "updated_at"] },
+    ro: "no-hash",
+    rls: true,
+  },
+  "core.parcels": {
+    app: ["SELECT"],
+    appCols: {
+      INSERT: ["cod_millimes", "declared_value_millimes", "order_id", "proof_level", "size", "weight_declared_g"],
+      UPDATE: [
+        "attempts",
+        "barcode",
+        "cod_millimes",
+        "declared_value_millimes",
+        "proof_level",
+        "size",
+        "status",
+        "updated_at",
+        "weight_declared_g",
+        "weight_measured_g",
+      ],
+    },
+    ro: "no-hash",
+    rls: true,
+  },
   "core.missions": OWNED,
   "core.status_events": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
   "core.proofs": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
@@ -55,8 +80,83 @@ const EXPECTED: Record<string, Expect> = {
   "gestion.audit_events": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
 };
 
+// What the worker and the public reader (owner of the definer functions) may do. A table that is not
+// listed gives them nothing.
+type Rights = { t?: string[]; c?: Cols };
+const WORKER: Record<string, Rights> = {
+  "core.zones": { t: ["SELECT"] },
+  "core.services": { t: ["SELECT"] },
+  "core.prices": { t: ["SELECT"] },
+  "core.idempotency_keys": { t: ["DELETE", "SELECT"] },
+  "gestion.audit_events": { t: ["INSERT"] },
+  "core.status_events": { t: ["SELECT"], c: { UPDATE: ["location"] } },
+  "core.outbox": { t: ["SELECT"], c: { UPDATE: ["attempts", "processed_at"] } },
+  // Frees the scope of an expired key (R202); the freeze trigger lets only the worker null it.
+  "core.orders": { c: { SELECT: ["id", "idempotency_scope"], UPDATE: ["idempotency_scope"] } },
+};
+const PUBLIC_READER: Record<string, Rights> = {
+  "core.orders": {
+    c: { SELECT: ["created_at", "id", "pickup_address_id", "recipient_id", "status", "tracking_number", "updated_at"] },
+  },
+  "core.addresses": { c: { SELECT: ["id", "zone_id"] } },
+  "core.recipients": { c: { SELECT: ["address_id", "id"] } },
+  "core.zones": { c: { SELECT: ["id", "name"] } },
+  "core.status_events": { c: { SELECT: ["occurred_at", "order_id", "subject_type", "to_status"] } },
+  "core.recipient_links": { t: ["SELECT"] },
+  // Sign-up (core.create_account) inserts into these three identity tables and nowhere else.
+  "core.accounts": { t: ["INSERT", "SELECT"] },
+  "core.companies": { t: ["INSERT"] },
+  "core.company_members": { t: ["INSERT", "SELECT"] },
+};
+
+const TABLE_PRIVS = ["DELETE", "INSERT", "REFERENCES", "SELECT", "TRIGGER", "TRUNCATE", "UPDATE"];
+
+/** The rights of one login on every table, as the database computes them (table level, then column level). */
+async function rightsOf(role: string): Promise<Record<string, Required<Rights>>> {
+  const tables = (
+    await db.superClient.query<{ name: string; oid: number }>(
+      `select n.nspname || '.' || c.relname as name, c.oid from pg_class c
+         join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname in ('core', 'gestion') and c.relkind in ('r', 'p') order by 1`,
+    )
+  ).rows;
+  const out: Record<string, Required<Rights>> = {};
+  for (const t of tables) {
+    const tableLevel = (
+      await db.superClient.query<{ p: string }>(
+        `select p from unnest($2::text[]) p where has_table_privilege($1, $3::oid, p) order by p`,
+        [role, TABLE_PRIVS, t.oid],
+      )
+    ).rows.map((r) => r.p);
+    const c: Cols = {};
+    for (const priv of ["SELECT", "INSERT", "UPDATE"] as const) {
+      if (tableLevel.includes(priv)) continue;
+      const cols = (
+        await db.superClient.query<{ attname: string }>(
+          `select attname from pg_attribute where attrelid = $1::oid and attnum > 0 and not attisdropped
+              and has_column_privilege($2, $1::oid, attname, $3) order by attname`,
+          [t.oid, role, priv],
+        )
+      ).rows.map((r) => r.attname);
+      if (cols.length > 0) c[priv] = cols;
+    }
+    out[t.name] = { t: tableLevel, c };
+  }
+  return out;
+}
+
+const roleList = async (names: string[]) =>
+  (
+    await db.superClient.query<{ rolname: string; members_of: string[] }>(
+      `select r.rolname, coalesce(array(select g.rolname from pg_auth_members m join pg_roles g on g.oid = m.roleid
+                                         where m.member = r.oid order by 1), '{}')::text[] as members_of
+         from pg_roles r where r.rolname = any($1) order by 1`,
+      [names],
+    )
+  ).rows;
+
 describe("grant test: every table, as it is in the database", () => {
-  it("has RLS on and forced, no right for PUBLIC, and exactly the expected rights", async () => {
+  it("has RLS on and forced, no right for PUBLIC, and exactly the expected rights for the app", async () => {
     const tables = (
       await db.superClient.query<{ name: string; oid: number; rls: boolean; force: boolean }>(
         `select n.nspname || '.' || c.relname as name, c.oid, c.relrowsecurity as rls, c.relforcerowsecurity as force
@@ -66,13 +166,13 @@ describe("grant test: every table, as it is in the database", () => {
     ).rows;
     expect(tables.map((t) => t.name).sort()).toEqual(Object.keys(EXPECTED).sort());
 
+    const app = await rightsOf("fastgo_app");
     for (const t of tables) {
       const want = EXPECTED[t.name]!;
       if (want.rls) expect([t.rls, t.force], `${t.name}: RLS enabled and forced`).toEqual([true, true]);
       const grants = (
-        await db.superClient.query<{ grantee: string; privilege_type: string }>(
-          `select grantee, privilege_type from information_schema.role_table_grants
-            where table_schema || '.' || table_name = $1`,
+        await db.superClient.query<{ grantee: string }>(
+          `select grantee from information_schema.role_table_grants where table_schema || '.' || table_name = $1`,
           [t.name],
         )
       ).rows;
@@ -80,25 +180,16 @@ describe("grant test: every table, as it is in the database", () => {
         grants.filter((g) => g.grantee === "PUBLIC"),
         `${t.name}: nothing for PUBLIC`,
       ).toEqual([]);
+      expect(app[t.name]!.t, `${t.name}: table rights of fastgo_app`).toEqual(want.app);
+      // Column rights: the writes are compared in full; SELECT by column only has to hide the hashes.
+      const { SELECT: selectCols = [], ...writes } = app[t.name]!.c;
+      expect(writes, `${t.name}: column rights of fastgo_app`).toEqual(
+        Object.fromEntries(Object.entries(want.appCols ?? {}).filter(([k]) => k !== "SELECT")),
+      );
       expect(
-        grants
-          .filter((g) => g.grantee === "fastgo_app")
-          .map((g) => g.privilege_type)
-          .sort(),
-        `${t.name}: rights of fastgo_app`,
-      ).toEqual(want.app);
-      expect(
-        grants.filter((g) => g.grantee === "fastgo_readonly" && g.privilege_type !== "SELECT"),
-        `${t.name}: no write right for fastgo_readonly`,
+        selectCols.filter((c) => c.endsWith("_hash")),
+        `${t.name}: fastgo_app cannot read a hash`,
       ).toEqual([]);
-      // fastgo_public_reader owns the definer functions: read-only, except sign-up (core.create_account)
-      // which inserts into these three identity tables and nowhere else.
-      expect(
-        grants
-          .filter((g) => g.grantee === "fastgo_public_reader" && g.privilege_type !== "SELECT")
-          .map((g) => g.privilege_type),
-        `${t.name}: writes of fastgo_public_reader`,
-      ).toEqual(SIGN_UP_TABLES.includes(t.name) ? ["INSERT"] : []);
 
       const cols = (
         await db.superClient.query<{ attname: string; ro: boolean }>(
@@ -114,6 +205,65 @@ describe("grant test: every table, as it is in the database", () => {
     }
   });
 
+  it("fastgo_readonly has no write right of any kind, by table or by column", async () => {
+    for (const [table, r] of Object.entries(await rightsOf("fastgo_readonly"))) {
+      expect(
+        r.t.filter((p) => p !== "SELECT"),
+        `${table}: table rights of fastgo_readonly`,
+      ).toEqual([]);
+      expect(Object.keys(r.c).filter((p) => p !== "SELECT"), `${table}: column rights of fastgo_readonly`).toEqual([]);
+    }
+  });
+
+  it("fastgo_worker has exactly the rights of the map, and nothing on any other table", async () => {
+    const got = await rightsOf("fastgo_worker");
+    for (const [table, r] of Object.entries(got)) {
+      const want = WORKER[table] ?? {};
+      expect({ t: r.t, c: r.c }, `${table} for fastgo_worker`).toEqual({ t: want.t ?? [], c: want.c ?? {} });
+    }
+    expect(Object.keys(WORKER).filter((t) => !(t in got))).toEqual([]);
+  });
+
+  it("fastgo_public_reader (owner of the definer functions) has exactly the rights of the map", async () => {
+    const got = await rightsOf("fastgo_public_reader");
+    for (const [table, r] of Object.entries(got)) {
+      const want = PUBLIC_READER[table] ?? {};
+      expect({ t: r.t, c: r.c }, `${table} for fastgo_public_reader`).toEqual({ t: want.t ?? [], c: want.c ?? {} });
+    }
+    expect(Object.keys(PUBLIC_READER).filter((t) => !(t in got))).toEqual([]);
+  });
+
+  it("app, worker and readonly belong to no role; no login has a dangerous attribute", async () => {
+    const members = await roleList(["fastgo_app", "fastgo_worker", "fastgo_readonly"]);
+    expect(members).toEqual([
+      { rolname: "fastgo_app", members_of: [] },
+      { rolname: "fastgo_readonly", members_of: [] },
+      { rolname: "fastgo_worker", members_of: [] },
+    ]);
+    const attrs = (
+      await db.superClient.query(
+        `select rolname, rolsuper, rolcreaterole, rolcreatedb, rolbypassrls, rolreplication, rolcanlogin
+           from pg_roles where rolname like 'fastgo\\_%' order by 1`,
+      )
+    ).rows;
+    const safe = { rolsuper: false, rolcreaterole: false, rolcreatedb: false, rolbypassrls: false, rolreplication: false };
+    expect(attrs).toEqual([
+      { rolname: "fastgo_app", rolcanlogin: true, ...safe },
+      { rolname: "fastgo_migrator", rolcanlogin: true, ...safe },
+      { rolname: "fastgo_public_reader", rolcanlogin: false, ...safe },
+      { rolname: "fastgo_readonly", rolcanlogin: true, ...safe },
+      { rolname: "fastgo_worker", rolcanlogin: true, ...safe },
+    ]);
+  });
+
+  it("the migrator may SET ROLE to the public reader but does not inherit its rights", async () => {
+    const r = await db.superClient.query(
+      `select pg_has_role('fastgo_migrator', 'fastgo_public_reader', 'SET') as can_set,
+              pg_has_role('fastgo_migrator', 'fastgo_public_reader', 'USAGE') as inherits`,
+    );
+    expect(r.rows[0]).toEqual({ can_set: true, inherits: false });
+  });
+
   it("only the migrator owns tables", async () => {
     const owners = (
       await db.superClient.query<{ owner: string }>(
@@ -122,6 +272,20 @@ describe("grant test: every table, as it is in the database", () => {
       )
     ).rows;
     expect(owners).toEqual([{ owner: "fastgo_migrator" }]);
+  });
+
+  it("the migration helpers (protect, reference, hide_hashes_from_app) are not executable by the app", async () => {
+    const r = await db.superClient.query(
+      `select p.proname, has_function_privilege('fastgo_app', p.oid, 'execute') as app,
+              has_function_privilege('fastgo_worker', p.oid, 'execute') as worker
+         from pg_proc p where p.pronamespace = 'core'::regnamespace
+          and p.proname in ('protect', 'reference', 'hide_hashes_from_app') order by 1`,
+    );
+    expect(r.rows).toEqual([
+      { proname: "hide_hashes_from_app", app: false, worker: false },
+      { proname: "protect", app: false, worker: false },
+      { proname: "reference", app: false, worker: false },
+    ]);
   });
 });
 
@@ -169,6 +333,17 @@ describe("audit_events is append-only", () => {
       app.withActor(staff("agent"), (tx) =>
         tx.execute(sql`insert into gestion.audit_events (actor_id, action, entity)
                        values ('00000000-0000-4000-8000-0000000000bb', 'a', 'b')`),
+      ),
+      /row-level security/,
+    );
+  });
+
+  it("refuses an event that claims another role than the actor's", async () => {
+    const app = open(db.url("fastgo_app"));
+    await expectDbError(
+      app.withActor(staff("agent"), (tx) =>
+        tx.execute(sql`insert into gestion.audit_events (actor_id, actor_role, action, entity)
+                       values (${USER}, 'admin', 'a', 'b')`),
       ),
       /row-level security/,
     );

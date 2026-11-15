@@ -6,6 +6,9 @@
 -- one bound `select set_config(name, value, true)` per transaction (the cahier's SET LOCAL):
 -- app.user_id, app.company_id, app.role. After a local set_config on a pooled connection the
 -- setting reads '' (not NULL) in the next transaction, so every reader goes through nullif.
+--
+-- This file runs BEFORE the versioned migrations, on every start: it must only create or replace
+-- functions and never read a table (none exists yet on a new database).
 
 create schema if not exists core;
 create schema if not exists gestion;
@@ -26,7 +29,9 @@ create or replace function core.actor_has(variadic roles text[]) returns boolean
   language sql stable parallel safe set search_path = pg_catalog, core
   as $$ select coalesce(core.app_role() = any (roles), false) $$;
 
--- The rows of a customer: his own, or his company's.
+-- The rows of a customer: his own, or his company's. A function with a SET clause is never inlined,
+-- so a policy on a big table (orders) writes the two tests inline, as
+-- `owner_company_id = (select core.app_company_id())`, to keep the owner indexes usable.
 create or replace function core.owns(owner_account_id uuid, owner_company_id uuid) returns boolean
   language sql stable parallel safe set search_path = pg_catalog, core
   as $$
@@ -43,6 +48,17 @@ create or replace function core.staff_reads_customers() returns boolean
 create or replace function core.staff_writes_customers() returns boolean
   language sql stable parallel safe set search_path = pg_catalog, core
   as $$ select core.actor_has('agent', 'operations', 'admin') $$;
+
+-- Orders follow technique-api.md: who reads them, and who moves them (confirm, assign, cancel...).
+-- Accountant and management do not read orders (finance reads invoices and COD, PR 3b); logistics
+-- may cancel. Provisional until the rights matrix is detailed (flagged for Ala).
+create or replace function core.staff_reads_orders() returns boolean
+  language sql stable parallel safe set search_path = pg_catalog, core
+  as $$ select core.actor_has('agent', 'operations', 'logistics', 'customer_service', 'admin') $$;
+
+create or replace function core.staff_moves_orders() returns boolean
+  language sql stable parallel safe set search_path = pg_catalog, core
+  as $$ select core.actor_has('agent', 'operations', 'logistics', 'admin') $$;
 
 create or replace function core.staff_handles_tickets() returns boolean
   language sql stable parallel safe set search_path = pg_catalog, core
@@ -108,3 +124,9 @@ begin
   execute format('revoke select on %s from fastgo_app', tbl);
   execute format('grant select (%s) on %s to fastgo_app', cols, tbl);
 end $$;
+
+-- The three helpers are for the migrator: nobody else may call them (a function is executable by
+-- PUBLIC unless revoked).
+revoke execute on function core.protect(regclass, text, boolean) from public;
+revoke execute on function core.reference(regclass) from public;
+revoke execute on function core.hide_hashes_from_app(regclass) from public;

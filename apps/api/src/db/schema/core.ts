@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { getTableColumns, sql } from "drizzle-orm";
 import {
   bigint,
   boolean,
@@ -236,6 +236,22 @@ export const recipientLinks = core.table("recipient_links", {
   expiresAt: tstz("expires_at").notNull(),
   createdAt: createdAt(),
 });
+
+/**
+ * The app login cannot read a `*_hash` column, so `select().from(accounts)` and `.returning()` (which
+ * list every column) fail as `fastgo_app`. Query code uses these column sets instead:
+ * `tx.select(accountColumns).from(accounts)`, `.returning(deliveryCodeColumns)`.
+ */
+function withoutHashes<T extends Record<string, { name: string }>, K extends keyof T>(
+  columns: T,
+  ...hashes: K[]
+): Omit<T, K> {
+  const drop = new Set<PropertyKey>(hashes);
+  return Object.fromEntries(Object.entries(columns).filter(([key]) => !drop.has(key))) as Omit<T, K>;
+}
+export const accountColumns = withoutHashes(getTableColumns(accounts), "passwordHash");
+export const deliveryCodeColumns = withoutHashes(getTableColumns(deliveryCodes), "codeHash");
+export const recipientLinkColumns = withoutHashes(getTableColumns(recipientLinks), "tokenHash");
 
 export const outbox = core.table("outbox", {
   id: uuid("id").primaryKey().defaultRandom(),

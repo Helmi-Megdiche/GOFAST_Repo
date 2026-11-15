@@ -31,8 +31,8 @@ export type Begin =
  */
 export abstract class IdempotencyStore {
   abstract begin(scope: string, fingerprint: string): Promise<Begin>;
-  /** Stores the answer of the call that got `new`. */
-  abstract complete(scope: string, token: string, answer: Answer): Promise<void>;
+  /** Stores the answer of the call that got `new`. False when the lease was lost (another call took over). */
+  abstract complete(scope: string, token: string, answer: Answer): Promise<boolean>;
   /** The call failed: forget the key so the same key can be tried again. */
   abstract abort(scope: string, token: string): Promise<void>;
   /** RV-18: the stored answers of a closed account are erased. Returns how many. */
@@ -81,7 +81,9 @@ export class MemoryIdempotencyStore extends IdempotencyStore {
   }
   override async complete(scope: string, token: string, answer: Answer) {
     const e = this.entries.get(scope);
-    if (e?.token === token) e.answer = answer;
+    if (e?.token !== token) return false;
+    e.answer = answer;
+    return true;
   }
   override async abort(scope: string, token: string) {
     if (this.entries.get(scope)?.token === token) this.entries.delete(scope);

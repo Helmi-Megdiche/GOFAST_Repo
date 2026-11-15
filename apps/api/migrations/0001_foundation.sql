@@ -142,7 +142,11 @@ create table core.addresses (
   is_pickup_point boolean not null default false,
   archived_at timestamptz,
   created_at timestamptz not null default now(),
-  check (num_nonnulls(owner_account_id, owner_company_id) = 1)
+  check (num_nonnulls(owner_account_id, owner_company_id) = 1),
+  -- Targets of the tenant-safe foreign keys of orders and recipients: a row can only be pointed at
+  -- together with its owner (a NULL owner column makes MATCH SIMPLE skip that key).
+  unique (id, owner_account_id),
+  unique (id, owner_company_id)
 );
 create index addresses_owner_account on core.addresses (owner_account_id);
 create index addresses_owner_company on core.addresses (owner_company_id);
@@ -166,6 +170,22 @@ create policy companies_update on core.companies for update to fastgo_app
       select 1 from core.addresses a
        where a.id = billing_address_id and a.owner_company_id = core.companies.id)));
 
+-- A merchant edits the name and billing address of their company, not its status or tax number
+-- (staff decide those). legal_name stays editable until GOFAST answers (open question in the PR).
+-- Only the app login is held to this: the migrator and maintenance are not an app path.
+create function core.companies_guard() returns trigger
+  language plpgsql set search_path = pg_catalog, core as $$
+begin
+  if current_user = 'fastgo_app' and not core.staff_writes_customers()
+     and (new.status is distinct from old.status or new.tax_number is distinct from old.tax_number) then
+    raise exception 'status and tax_number of a company are changed by staff only'
+      using errcode = 'insufficient_privilege';
+  end if;
+  return new;
+end $$;
+create trigger companies_guard before update on core.companies
+  for each row execute function core.companies_guard();
+
 create table core.recipients (
   id uuid primary key default gen_random_uuid(),
   owner_account_id uuid references core.accounts (id),
@@ -176,7 +196,9 @@ create table core.recipients (
   locale text not null default 'fr' check (locale in ('fr', 'ar', 'en')),
   archived_at timestamptz,
   created_at timestamptz not null default now(),
-  check (num_nonnulls(owner_account_id, owner_company_id) = 1)
+  check (num_nonnulls(owner_account_id, owner_company_id) = 1),
+  unique (id, owner_account_id),
+  unique (id, owner_company_id)
 );
 create index recipients_owner_account on core.recipients (owner_account_id);
 create index recipients_owner_company on core.recipients (owner_company_id);

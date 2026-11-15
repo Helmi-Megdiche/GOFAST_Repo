@@ -85,6 +85,10 @@ Source: PR B round 1, `closeAccount` closed a merchant row when given a session 
 List the writers (search for `accountId` in lib/data), and test each one against a closed account, with nothing written.
 Source: PR B round 1, an address could still be saved, and an order or claim created, with the session of a closed account.
 
+**RV-21. RLS writes: a customer or merchant never gets table-level UPDATE or INSERT on a table with status, money, owner or tracking columns.**
+Use column grants plus WITH CHECK, or a definer function, and test every protected column as that role: the write is refused (or changes 0 rows) and a read-back shows the data unchanged. A policy that hides a row makes UPDATE a silent no-op, so "no error" proves nothing.
+Source: PR 3 round 1, `orders_update` gave the owner table-level UPDATE (status, total, owner), parcels could change after confirmation, and a merchant could insert an order as `confirmed` or a `delivered` status event.
+
 ### Money and values
 
 **RV-06. Test money parsing at the edges in each language.**

@@ -28,7 +28,7 @@ export function idempotencyContract(label: string, make: MakeStore, reset: () =>
       const s = make(clock, 300_000);
       const t = token(await s.begin("a|k", "fp1"));
       expect((await s.begin("a|k", "fp1")).kind).toBe("running");
-      await s.complete("a|k", t, ans);
+      expect(await s.complete("a|k", t, ans)).toBe(true);
       expect(await s.begin("a|k", "fp1")).toEqual({ kind: "replay", answer: ans });
       expect(await s.begin("a|k", "fp2")).toEqual({ kind: "conflict" });
     });
@@ -61,9 +61,9 @@ export function idempotencyContract(label: string, make: MakeStore, reset: () =>
       clock.now += 1001;
       const second = token(await s.begin("a|k", "fp"));
       expect(second).not.toBe(slow);
-      await s.complete("a|k", second, ans);
-      // the slow call ends late: neither its answer nor its abort changes the row
-      await s.complete("a|k", slow, { status: 500, body: "late" });
+      expect(await s.complete("a|k", second, ans)).toBe(true);
+      // the slow call ends late: neither its answer nor its abort changes the row, and it is told so
+      expect(await s.complete("a|k", slow, { status: 500, body: "late" })).toBe(false);
       await s.abort("a|k", slow);
       expect(await s.begin("a|k", "fp")).toEqual({ kind: "replay", answer: ans });
     });

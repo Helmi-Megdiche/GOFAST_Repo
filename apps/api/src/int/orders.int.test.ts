@@ -4,7 +4,7 @@ import { sql } from "drizzle-orm";
 import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { parse } from "yaml";
-import { Db } from "../db/index.ts";
+import { Db, tables } from "../db/index.ts";
 import type { Actor } from "../http/session.ts";
 import { expectDbError, seedMerchants, startTestDb, type TestDb } from "./harness.ts";
 
@@ -96,12 +96,12 @@ describe("orders: a merchant sees their own and cannot point at another tenant's
     const app = open(db.url("fastgo_app"));
     await expectDbError(
       app.withActor(merchant(ids.userA, ids.companyA), (tx) =>
-        tx.execute(sql`insert into core.orders (tracking_number, owner_company_id, service, payment_mode,
+        tx.execute(sql`insert into core.orders (tracking_number, owner_company_id, created_by, service, payment_mode,
                          freight_payer, total_millimes, pickup_address_id, recipient_id)
-                       values ('FG-AAAA-0003', ${ids.companyA}, 'standard', 'cashPickup', 'sender', 0,
+                       values ('FG-AAAA-0003', ${ids.companyA}, ${ids.userA}, 'standard', 'cashPickup', 'sender', 0,
                                ${ids.addressB}, ${recipientA})`),
       ),
-      /row-level security/,
+      /foreign key/,
     );
   });
 
@@ -253,10 +253,67 @@ describe("definer functions", () => {
   it("R406: recipient_link finds a live link and returns nothing once it has expired", async () => {
     await q(`insert into core.recipient_links (order_id, token_hash, locale, expires_at) values
                ($1, 'live-hash', 'ar', now() + interval '1 hour'), ($1, 'dead-hash', 'fr', now() - interval '1 second')`, [orderB]);
-    const live = await app().withActor(nobody, (tx) => tx.execute(sql`select * from core.recipient_link('live-hash')`));
+    const at = new Date();
+    const live = await app().withActor(nobody, (tx) =>
+      tx.execute(sql`select * from core.recipient_link('live-hash', ${at}::timestamptz)`),
+    );
     expect(live.rows).toMatchObject([{ tracking_number: "FG-BBBB-0002", locale: "ar" }]);
-    const dead = await app().withActor(nobody, (tx) => tx.execute(sql`select * from core.recipient_link('dead-hash')`));
+    const dead = await app().withActor(nobody, (tx) =>
+      tx.execute(sql`select * from core.recipient_link('dead-hash', ${at}::timestamptz)`),
+    );
     expect(dead.rows).toEqual([]);
+  });
+
+  it("R406: a delivered order with a live link returns no row once 24 h have passed", async () => {
+    const order = randomUUID();
+    const delivered = new Date("2026-11-10T10:00:00Z");
+    await q(
+      `insert into core.orders (id, tracking_number, owner_company_id, service, payment_mode, freight_payer,
+                                total_millimes, pickup_address_id, recipient_id, status, updated_at)
+       values ($1, 'FG-DLVR-0001', $2, 'standard', 'cashPickup', 'sender', 0, $3, $4, 'delivered', $5)`,
+      [order, ids.companyA, ids.addressA, recipientA, delivered],
+    );
+    await q(
+      `insert into core.recipient_links (order_id, token_hash, expires_at) values ($1, 'delivered-hash', $2)`,
+      [order, new Date("2027-01-01T00:00:00Z")],
+    );
+    const at = (h: number) => new Date(delivered.getTime() + h * 3_600_000);
+    const find = (when: Date) =>
+      app().withActor(nobody, (tx) =>
+        tx.execute(sql`select * from core.recipient_link('delivered-hash', ${when}::timestamptz)`),
+      );
+    expect((await find(at(23))).rows).toMatchObject([{ tracking_number: "FG-DLVR-0001" }]);
+    expect((await find(at(25))).rows).toEqual([]);
+  });
+
+  it("account_for_login takes exactly one identifier and returns phone_verified_at", async () => {
+    const a = app();
+    await expectDbError(
+      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login('+21620000051', 'c@example.test')`)),
+      /exactly one/,
+    );
+    await expectDbError(
+      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login(null, null)`)),
+      /exactly one/,
+    );
+    await a.withActor(nobody, (tx) =>
+      tx.execute(sql`select * from core.create_account('individual', 'Client Test D', '+21620000051', null, 'h')`),
+    );
+    const r = await a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login('+21620000051', null)`));
+    expect(r.rows).toHaveLength(1);
+    expect(Object.keys(r.rows[0] as object)).toContain("phone_verified_at");
+  });
+
+  it("create_account needs a role and a phone number", async () => {
+    const a = app();
+    await expectDbError(
+      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.create_account(null, 'Z', '+21620000041', null, 'h')`)),
+      /cannot sign up/,
+    );
+    await expectDbError(
+      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.create_account('individual', 'Z', null, null, 'h')`)),
+      /phone number is required/,
+    );
   });
 
   it("create_account signs up an individual or a merchant, refuses staff roles, and login finds them", async () => {
@@ -281,5 +338,276 @@ describe("definer functions", () => {
     );
     // Nothing was left behind by the refused calls.
     expect((await q("select count(*)::int as n from core.accounts where phone_e164 in ('+21620000032')")).rows[0].n).toBe(0);
+  });
+});
+
+// RV-21: a customer or merchant never gets a raw write on a status, money, owner or tracking column.
+describe("RV-21: protected columns", () => {
+  let n = 0;
+  /** A fresh order and parcel, written as the superuser, so a test can change them without touching the others. */
+  const fresh = async (status = "received", company = ids.companyA, address = ids.addressA, recipient = recipientA) => {
+    n += 1;
+    const order = randomUUID();
+    const parcel = randomUUID();
+    const tracking = `FG-F${String(n).padStart(3, "0")}-0000`;
+    await q(
+      `insert into core.orders (id, tracking_number, owner_company_id, service, payment_mode, freight_payer,
+                                total_millimes, pickup_address_id, recipient_id, status)
+       values ($1, $2, $3, 'standard', 'cashPickup', 'sender', 48500, $4, $5, $6)`,
+      [order, tracking, company, address, recipient, status],
+    );
+    await q(
+      `insert into core.parcels (id, order_id, size, weight_declared_g, cod_millimes, declared_value_millimes, proof_level)
+       values ($1, $2, 'small', 800, 20000, 30000, 'codeOrPhotoWithPosition')`,
+      [parcel, order],
+    );
+    return { order, parcel, tracking };
+  };
+  const orderRow = async (id: string) => (await q("select * from core.orders where id = $1", [id])).rows[0];
+  const parcelRow = async (id: string) => (await q("select * from core.parcels where id = $1", [id])).rows[0];
+  const rowCount = (r: unknown) => (r as { rowCount: number | null }).rowCount;
+  const app = () => open(db.url("fastgo_app"));
+  const A = () => merchant(ids.userA, ids.companyA);
+
+  describe("orders", () => {
+    // [column, a valid value for it, granted to the app login?]
+    const columns: Array<[string, string, boolean]> = [
+      ["id", "gen_random_uuid()", false],
+      ["tracking_number", "'FG-HACK-0001'", false],
+      ["owner_account_id", "null::uuid", false],
+      ["owner_company_id", `'${randomUUID()}'::uuid`, false],
+      ["created_by", "null::uuid", false],
+      ["idempotency_scope", "'x'", false],
+      ["service", "'standard'", false],
+      ["payment_mode", "'cashPickup'", false],
+      ["freight_payer", "'recipient'", false],
+      ["recipient_locale", "'ar'", false],
+      ["total_millimes", "1", false],
+      ["created_at", "now()", false],
+      ["status", "'delivered'", true],
+      ["updated_at", "now() + interval '1 day'", true],
+      ["pickup_address_id", "null::uuid", true],
+      ["recipient_id", "null::uuid", true],
+    ];
+    it("lists every column of the table, so a new column cannot be forgotten", async () => {
+      const r = await q(
+        "select column_name from information_schema.columns where table_schema = 'core' and table_name = 'orders'",
+      );
+      expect(r.rows.map((c) => c.column_name).sort()).toEqual(columns.map(([c]) => c).sort());
+    });
+    it.each(columns)("a merchant cannot update %s on their own order (%s, granted: %s)", async (column, value, granted) => {
+      const { order } = await fresh();
+      const before = await orderRow(order);
+      const update = app().withActor(A(), (tx) =>
+        tx.execute(sql.raw(`update core.orders set ${column} = ${value} where id = '${order}'`)),
+      );
+      if (granted) {
+        // The column is granted to the login but the policy is staff only: no error, no row.
+        expect(rowCount(await update)).toBe(0);
+      } else {
+        await expectDbError(update, /permission denied/);
+      }
+      expect(await orderRow(order)).toEqual(before);
+    });
+    it("an agent cannot re-point an order to another company's recipient or address", async () => {
+      const { order } = await fresh();
+      const before = await orderRow(order);
+      await expectDbError(
+        app().withActor(staff("agent"), (tx) =>
+          tx.execute(sql`update core.orders set recipient_id = ${recipientB} where id = ${order}`),
+        ),
+        /foreign key/,
+      );
+      await expectDbError(
+        app().withActor(staff("agent"), (tx) =>
+          tx.execute(sql`update core.orders set pickup_address_id = ${ids.addressB} where id = ${order}`),
+        ),
+        /foreign key/,
+      );
+      expect(await orderRow(order)).toEqual(before);
+    });
+    it("CONTROL: an agent can move the status of the same order", async () => {
+      const { order } = await fresh();
+      const r = await app().withActor(staff("agent"), (tx) =>
+        tx.execute(sql`update core.orders set status = 'confirmed' where id = ${order}`),
+      );
+      expect(rowCount(r)).toBe(1);
+      expect((await orderRow(order)).status).toBe("confirmed");
+    });
+    it("tracking number, owner and creator never change, whoever writes", async () => {
+      const { order } = await fresh();
+      for (const set of [
+        "tracking_number = 'FG-NEW0-0001'",
+        `owner_company_id = '${ids.companyB}'`,
+        `created_by = '${staffId}'`,
+      ]) {
+        await expect(q(`update core.orders set ${set} where id = $1`, [order]), set).rejects.toThrow(/never change/);
+      }
+    });
+    it("a merchant inserts an order as `received` with themselves as creator, and nothing else", async () => {
+      const insert = (tracking: string, status: string, createdBy: string) =>
+        app().withActor(A(), (tx) =>
+          tx.execute(sql`insert into core.orders (tracking_number, owner_company_id, created_by, service, payment_mode,
+                           freight_payer, total_millimes, pickup_address_id, recipient_id, status)
+                         values (${tracking}, ${ids.companyA}, ${createdBy}, 'standard', 'cashPickup', 'sender', 0,
+                                 ${ids.addressA}, ${recipientA}, ${status})`),
+        );
+      await expectDbError(insert("FG-INSR-0001", "confirmed", ids.userA), /row-level security/);
+      await expectDbError(insert("FG-INSR-0002", "received", ids.userB), /row-level security/);
+      expect(rowCount(await insert("FG-INSR-0003", "received", ids.userA))).toBe(1);
+      expect((await q("select count(*)::int as n from core.orders where tracking_number in ('FG-INSR-0001', 'FG-INSR-0002')")).rows[0].n).toBe(0);
+    });
+    it("a merchant listing reads orders through the owner indexes", async () => {
+      // Enough rows for the planner to prefer an index, and the sequential scan switched off so the test
+      // fails only if the policy hides the owner test from the planner.
+      await q(
+        `insert into core.orders (tracking_number, owner_company_id, service, payment_mode, freight_payer,
+                                  total_millimes, pickup_address_id, recipient_id)
+         select 'FG-X' || lpad(g::text, 3, '0') || '-0000', $1, 'standard', 'cashPickup', 'sender', 0, $2, $3
+           from generate_series(1, 300) g`,
+        [ids.companyB, ids.addressB, recipientB],
+      );
+      await q("analyze core.orders");
+      const plan = await app().withActor(merchant(ids.userB, ids.companyB), async (tx) => {
+        await tx.execute(sql`set local enable_seqscan = off`);
+        const r = await tx.execute(sql`explain select id from core.orders where owner_company_id = ${ids.companyB} order by created_at desc limit 10`);
+        return (r.rows as Array<Record<string, string>>).map((x) => x["QUERY PLAN"]).join("\n");
+      });
+      expect(plan).toMatch(/orders_owner_company/);
+    });
+  });
+
+  describe("parcels", () => {
+    const columns: Array<[string, string, boolean]> = [
+      ["id", "gen_random_uuid()", false],
+      ["order_id", `'${randomUUID()}'::uuid`, false],
+      ["created_at", "now()", false],
+      ["barcode", "'GF000001'", true],
+      ["size", "'large'", true],
+      ["weight_declared_g", "1", true],
+      ["weight_measured_g", "1", true],
+      ["declared_value_millimes", "1", true],
+      ["cod_millimes", "1", true],
+      ["proof_level", "'codeOrPhotoWithPosition'", true],
+      ["attempts", "1", true],
+      ["status", "'delivered'", true],
+      ["updated_at", "now() + interval '1 day'", true],
+    ];
+    it("lists every column of the table", async () => {
+      const r = await q("select column_name from information_schema.columns where table_schema = 'core' and table_name = 'parcels'");
+      expect(r.rows.map((c) => c.column_name).sort()).toEqual(columns.map(([c]) => c).sort());
+    });
+    it.each(columns)("a merchant cannot update %s on a parcel of their order (granted to the login: %s)", async (column, value, granted) => {
+      const { parcel } = await fresh();
+      const before = await parcelRow(parcel);
+      const update = app().withActor(A(), (tx) =>
+        tx.execute(sql.raw(`update core.parcels set ${column} = ${value} where id = '${parcel}'`)),
+      );
+      if (granted) expect(rowCount(await update)).toBe(0);
+      else await expectDbError(update, /permission denied/);
+      expect(await parcelRow(parcel)).toEqual(before);
+    });
+    it("a merchant adds a parcel while the order is received, never after, and never sets the status", async () => {
+      const open1 = await fresh("received");
+      const done = await fresh("delivered");
+      const insert = (order: string, extra = "") =>
+        app().withActor(A(), (tx) =>
+          tx.execute(sql.raw(`insert into core.parcels (order_id, size, weight_declared_g, proof_level${extra ? ", status" : ""})
+                              values ('${order}', 'small', 500, 'codeOrPhotoWithPosition'${extra ? `, ${extra}` : ""})`)),
+        );
+      expect(rowCount(await insert(open1.order))).toBe(1);
+      await expectDbError(insert(done.order), /row-level security/);
+      await expectDbError(insert(open1.order, "'delivered'"), /permission denied/);
+      expect((await q("select count(*)::int as n from core.parcels where order_id = $1", [done.order])).rows[0].n).toBe(1);
+    });
+    it("staff cannot change the money of a parcel once the order is confirmed, and a parcel never changes order", async () => {
+      const { order, parcel } = await fresh("confirmed");
+      const before = await parcelRow(parcel);
+      for (const set of ["cod_millimes = 5", "declared_value_millimes = 5"]) {
+        await expectDbError(
+          app().withActor(staff("agent"), (tx) => tx.execute(sql.raw(`update core.parcels set ${set} where id = '${parcel}'`))),
+          /frozen/,
+        );
+      }
+      const other = await fresh("received");
+      await expect(q("update core.parcels set order_id = $1 where id = $2", [other.order, parcel])).rejects.toThrow(
+        /stays on its order/,
+      );
+      expect(await parcelRow(parcel)).toEqual(before);
+      // CONTROL: before confirmation the same change is allowed.
+      const open1 = await fresh("received");
+      const ok = await app().withActor(staff("agent"), (tx) =>
+        tx.execute(sql`update core.parcels set cod_millimes = 5 where id = ${open1.parcel}`),
+      );
+      expect(rowCount(ok)).toBe(1);
+      expect(order).toBeTruthy();
+    });
+  });
+
+  describe("status_events", () => {
+    it("a merchant cannot write a `delivered` event, and the tracking does not move", async () => {
+      const { order, tracking } = await fresh();
+      await expectDbError(
+        app().withActor(A(), (tx) =>
+          tx.execute(sql`insert into core.status_events (order_id, subject_type, subject_id, to_status, actor_id)
+                         values (${order}, 'order', ${order}, 'delivered', ${ids.userA})`),
+        ),
+        /row-level security/,
+      );
+      expect((await q("select count(*)::int as n from core.status_events where order_id = $1", [order])).rows[0].n).toBe(0);
+      const t = await app().withActor({ userId: "", accountId: "", role: "individual" }, (tx) =>
+        tx.execute(sql`select core.tracking(${tracking}) as t`),
+      );
+      expect((t.rows[0] as { t: { status: string } }).t.status).toBe("received");
+    });
+  });
+
+  describe("companies", () => {
+    it("a merchant cannot change the status or the tax number of their company", async () => {
+      const before = (await q("select status, tax_number from core.companies where id = $1", [ids.companyA])).rows[0];
+      for (const set of ["status = 'suspended'", "tax_number = '1234567/A/M/000'"]) {
+        await expectDbError(
+          app().withActor(A(), (tx) => tx.execute(sql.raw(`update core.companies set ${set} where id = '${ids.companyA}'`))),
+          /staff only/,
+        );
+      }
+      expect((await q("select status, tax_number from core.companies where id = $1", [ids.companyA])).rows[0]).toEqual(before);
+    });
+  });
+
+  describe("delivery codes", () => {
+    it("the owner creates the code while the order is received, not after; the hash is never readable", async () => {
+      const open1 = await fresh("received");
+      const done = await fresh("delivered");
+      const insert = (parcel: string) =>
+        app().withActor(A(), (tx) =>
+          tx.execute(sql`insert into core.delivery_codes (parcel_id, code_hash, expires_at)
+                         values (${parcel}, 'hmac-owner', now() + interval '1 day')`),
+        );
+      expect(rowCount(await insert(open1.parcel))).toBe(1);
+      await expectDbError(insert(done.parcel), /row-level security/);
+      // The Drizzle column set leaves the hash out; a plain select of the table does not work as the app.
+      const ok = await app().withActor(staff("agent"), (tx) =>
+        tx.select(tables.deliveryCodeColumns).from(tables.deliveryCodes).where(sql`parcel_id = ${open1.parcel}`),
+      );
+      expect(ok).toHaveLength(1);
+      expect(ok[0]).not.toHaveProperty("codeHash");
+      await expectDbError(
+        app().withActor(staff("agent"), (tx) => tx.select().from(tables.deliveryCodes)),
+        /permission denied/,
+      );
+    });
+  });
+
+  describe("hash-free column sets", () => {
+    it("accountColumns and recipientLinkColumns select as the app, the full table does not", async () => {
+      const admin = staff("admin");
+      const accounts = await app().withActor(admin, (tx) => tx.select(tables.accountColumns).from(tables.accounts));
+      expect(accounts.length).toBeGreaterThan(0);
+      for (const a of accounts) expect(a).not.toHaveProperty("passwordHash");
+      const links = await app().withActor(admin, (tx) => tx.select(tables.recipientLinkColumns).from(tables.recipientLinks));
+      for (const l of links) expect(l).not.toHaveProperty("tokenHash");
+      await expectDbError(app().withActor(admin, (tx) => tx.select().from(tables.accounts)), /permission denied/);
+    });
   });
 });

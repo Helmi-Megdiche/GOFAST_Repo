@@ -41,6 +41,28 @@ describe("boot check (RLS cannot be skipped by the login)", () => {
     await expect(open(db.url("postgres")).assertSafeRole()).rejects.toThrow(/superuser/);
     await expect(open(db.url("fastgo_migrator")).assertSafeRole()).rejects.toThrow(/owns a table/);
   });
+  it("refuses a login with CREATEROLE or a membership of the migrator or the definer owner", async () => {
+    const make = async (name: string, attrs: string, after = "") => {
+      await db.superClient.query(`create role ${name} login password 'pw' ${attrs}`);
+      if (after) await db.superClient.query(after);
+    };
+    await make("rv_createrole", "createrole");
+    await make("rv_in_migrator", "", "grant fastgo_migrator to rv_in_migrator");
+    await make("rv_in_reader", "", "grant fastgo_public_reader to rv_in_reader");
+    try {
+      const url = (user: string) => db.url("fastgo_app").replace(/\/\/[^:]+:[^@]+@/, `//${user}:pw@`);
+      await expect(open(url("rv_createrole")).assertSafeRole()).rejects.toThrow(/CREATEROLE/);
+      await expect(open(url("rv_in_migrator")).assertSafeRole()).rejects.toThrow(/member of fastgo_migrator/);
+      await expect(open(url("rv_in_reader")).assertSafeRole()).rejects.toThrow(/member of fastgo_migrator or fastgo_public_reader/);
+      // CONTROL: the same helper builds a url the check accepts for a clean login.
+      await db.superClient.query("create role rv_clean login password 'pw'");
+      await expect(open(url("rv_clean")).assertSafeRole()).resolves.toBeUndefined();
+    } finally {
+      for (const r of ["rv_createrole", "rv_in_migrator", "rv_in_reader", "rv_clean"]) {
+        await db.superClient.query(`drop role if exists ${r}`);
+      }
+    }
+  });
 });
 
 describe("fail closed: no actor, no rows", () => {
@@ -157,9 +179,50 @@ describe("drift: the Drizzle schema matches the migrated database", () => {
   });
 });
 
+describe("R202: an expired key frees the idempotency scope of its order", () => {
+  it("purgeExpired nulls orders.idempotency_scope, so the same key can create an order again", async () => {
+    const clock = { now: Date.UTC(2026, 10, 14, 10) };
+    const store = new DbIdempotencyStore(
+      open(db.url("fastgo_app")),
+      () => clock.now,
+      300_000,
+      open(db.url("fastgo_worker")),
+    );
+    const scope = `${ids.companyA}|POST /v1/orders|purge-key`;
+    const address = (await db.superClient.query("select id from core.addresses where owner_company_id = $1", [ids.companyA])).rows[0].id;
+    const recipient = (
+      await db.superClient.query(
+        "insert into core.recipients (owner_company_id, name, phone_e164) values ($1, 'Destinataire Purge', '+21620000061') returning id",
+        [ids.companyA],
+      )
+    ).rows[0].id;
+    const order = (tracking: string) =>
+      db.superClient.query(
+        `insert into core.orders (tracking_number, owner_company_id, idempotency_scope, service, payment_mode,
+                                  freight_payer, total_millimes, pickup_address_id, recipient_id)
+         values ($1, $2, $3, 'standard', 'cashPickup', 'sender', 0, $4, $5)`,
+        [tracking, ids.companyA, scope, address, recipient],
+      );
+    await db.superClient.query("truncate core.idempotency_keys");
+    await store.begin(scope, "fp");
+    await order("FG-PRG1-0001");
+    // While the key lives the scope is taken.
+    await expect(order("FG-PRG1-0002")).rejects.toThrow(/idempotency_scope/);
+    clock.now += 25 * 3_600_000;
+    expect(await store.purgeExpired()).toBe(1);
+    await order("FG-PRG1-0002");
+    const r = await db.superClient.query("select tracking_number, idempotency_scope from core.orders where tracking_number like 'FG-PRG1-%' order by 1");
+    expect(r.rows).toEqual([
+      { tracking_number: "FG-PRG1-0001", idempotency_scope: null },
+      { tracking_number: "FG-PRG1-0002", idempotency_scope: scope },
+    ]);
+  });
+});
+
 idempotencyContract(
   "database store",
-  (clock, lockMs) => new DbIdempotencyStore(open(db.url("fastgo_app")), () => clock.now, lockMs),
+  (clock, lockMs) =>
+    new DbIdempotencyStore(open(db.url("fastgo_app")), () => clock.now, lockMs, open(db.url("fastgo_worker"))),
   async () => {
     await db.superClient.query("truncate core.idempotency_keys");
   },

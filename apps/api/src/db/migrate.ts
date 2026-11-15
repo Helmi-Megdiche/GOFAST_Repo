@@ -34,6 +34,8 @@ export async function migrate(url: string, dir = MIGRATIONS_DIR): Promise<string
       `create table if not exists ${TABLE} (name text primary key, checksum text not null,
          applied_at timestamptz not null default now())`,
     );
+    // R__ files run FIRST, so they may create or replace functions and must never read a table: on a
+    // new database no table exists yet.
     for (const name of [...repeatable, ...versioned]) {
       const text = readFileSync(join(dir, name), "utf8");
       const checksum = sha(text);

@@ -47,7 +47,8 @@ export async function startTestDb(): Promise<TestDb> {
   }
   await superClient.query("create role fastgo_public_reader nologin");
   // Needed to hand the definer functions to that role (migration 0005); infra/servers does the same.
-  await superClient.query("grant fastgo_public_reader to fastgo_migrator");
+  // SET only: the migrator does not inherit the rights of the role.
+  await superClient.query("grant fastgo_public_reader to fastgo_migrator with inherit false, set true");
   // The postgis image already creates the extension in POSTGRES_DB; a real host does it in the infra script.
   await superClient.query("create extension if not exists postgis");
   await superClient.query("grant create on database fastgo to fastgo_migrator");

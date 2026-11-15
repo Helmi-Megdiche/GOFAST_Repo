@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { Logger } from "@nestjs/common";
 import { sql } from "drizzle-orm";
 import type { Db } from "../db/index.ts";
 import { PROVISIONAL } from "../provisional.ts";
@@ -16,6 +17,8 @@ export class DbIdempotencyStore extends IdempotencyStore {
     private readonly db: Db,
     private readonly now: () => number = Date.now,
     private readonly lockMs = 300_000,
+    /** The purge frees order scopes, which only the `fastgo_worker` login may do: the worker process passes its own Db. */
+    private readonly workerDb: Db = db,
   ) {
     super();
   }
@@ -58,14 +61,18 @@ export class DbIdempotencyStore extends IdempotencyStore {
     });
   }
 
-  override async complete(scope: string, token: string, answer: Answer): Promise<void> {
-    await this.db.withNoActor((tx) =>
+  override async complete(scope: string, token: string, answer: Answer): Promise<boolean> {
+    const r = await this.db.withNoActor((tx) =>
       tx.execute(sql`
         update core.idempotency_keys
            set status = 'done', response_status = ${answer.status},
                body = ${JSON.stringify(answer.body ?? null)}::jsonb
          where scope = ${scope} and token = ${token}`),
     );
+    const stored = (r.rowCount ?? 0) > 0;
+    // The lease was lost (the lock time ran out and another call took over): the answer is not stored.
+    if (!stored) new Logger("idempotency").warn("lease lost: the answer was not stored (no scope in the log)");
+    return stored;
   }
 
   override async abort(scope: string, token: string): Promise<void> {
@@ -83,9 +90,14 @@ export class DbIdempotencyStore extends IdempotencyStore {
 
   override async purgeExpired(): Promise<number> {
     const now = new Date(this.now());
-    const r = await this.db.withWorker((tx) =>
-      tx.execute(sql`delete from core.idempotency_keys where expires_at <= ${now}`),
-    );
-    return r.rowCount ?? 0;
+    return this.workerDb.withWorker(async (tx) => {
+      // An order keeps its scope (unique) only as long as the key lives: free the scope first, so the
+      // same key can create an order again once it has expired (R202).
+      await tx.execute(sql`
+        update core.orders set idempotency_scope = null
+         where idempotency_scope in (select scope from core.idempotency_keys where expires_at <= ${now})`);
+      const r = await tx.execute(sql`delete from core.idempotency_keys where expires_at <= ${now}`);
+      return r.rowCount ?? 0;
+    });
   }
 }
