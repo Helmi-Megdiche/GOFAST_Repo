@@ -34,6 +34,9 @@ const EXPECTED: Record<string, Expect> = {
   "core.zones": REFERENCE,
   "core.services": REFERENCE,
   "core.prices": REFERENCE,
+  "core.pricing_settings": REFERENCE,
+  // GH-10: a public quote has no owner; the app inserts and reads it, never updates or deletes (no hash column).
+  "core.quotes": { app: ["INSERT", "SELECT"], ro: "no-hash", rls: true },
   // Column grants only (no table-level right): hash hidden from the app, 7 columns updatable.
   "core.accounts": { app: [], appCols: { UPDATE: ["email", "full_name", "locale", "notify_email", "notify_offers", "notify_sms", "updated_at"] }, ro: "no-hash", rls: true },
   "core.companies": OWNED,
@@ -111,6 +114,7 @@ const WORKER: Record<string, Rights> = {
   "core.zones": { t: ["SELECT"] },
   "core.services": { t: ["SELECT"] },
   "core.prices": { t: ["SELECT"] },
+  "core.pricing_settings": { t: ["SELECT"] },
   "core.idempotency_keys": { t: ["DELETE", "SELECT"] },
   "gestion.audit_events": { t: ["INSERT"] },
   "core.status_events": { t: ["SELECT"], c: { UPDATE: ["location"] } },
