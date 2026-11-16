@@ -67,8 +67,12 @@ describe("GET /v1/services", () => {
       { code: "express", from_price_millimes: 15000, packaging_price_millimes: 2000, cutoff_time: null },
       { code: "standard", from_price_millimes: 10000, packaging_price_millimes: 2000, cutoff_time: null },
     ]);
-    expect(body.zones.map((z: { name: string }) => z.name)).toEqual(["Bravo", "Alpha"]);
-    expect(JSON.stringify(body)).not.toContain("Charlie");
+    // The 48 real délégations (migration 0009) and the two active synthetic squares; the paused one is absent.
+    const names = body.zones.map((z: { name: string }) => z.name);
+    expect(names).toHaveLength(50);
+    expect(names).toEqual(expect.arrayContaining(["Alpha", "Bravo"]));
+    expect(names).not.toContain("Charlie");
+    expect(body.zones.filter((z: { governorate: string }) => z.governorate === "Manouba")).toHaveLength(8);
     expect(body.extras).toContainEqual({ code: "fragile", fee_millimes: null });
   });
 });
