@@ -242,9 +242,8 @@ export class PricingService {
       if (base?.millimes == null) missing.push({ name: "service", reason: "priceUnavailable" });
       if (body.fragile && settings.fragileFeeMillimes == null)
         missing.push({ name: "fragile", reason: "priceUnavailable" });
-      // A declared value has no line in the price yet (no fee given): it cannot be priced.
-      if ((body.declared_value_millimes ?? 0) > 0)
-        missing.push({ name: "declared_value_millimes", reason: "priceUnavailable" });
+      // A declared value is not a price element (R204 has no such line): it is stored, it serves the
+      // R802 cap, and it never changes the price.
       if (body.packaging && packagingRow?.millimes == null)
         missing.push({ name: "packaging", reason: "priceUnavailable" });
       if (settings.rainActive && settings.rainSurchargeMillimes == null)

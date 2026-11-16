@@ -271,14 +271,20 @@ describe("parcel limits and unavailable prices", () => {
     expect(e.fields).toEqual([{ name: "service", reason: "priceUnavailable" }]);
     expect(store.saved).toEqual([]);
   });
-  it("priceUnavailable: fragile has no fee, declared value has no fee, packaging has no price", async () => {
+  it("priceUnavailable: fragile has no fee, packaging has no price", async () => {
     let e = await refusal(service().createQuote(request({ fragile: true }), ctx));
     expect(e.fields).toEqual([{ name: "fragile", reason: "priceUnavailable" }]);
-    e = await refusal(service().createQuote(request({ declared_value_millimes: 50_000 }), ctx));
-    expect(e.fields).toEqual([{ name: "declared_value_millimes", reason: "priceUnavailable" }]);
     store.grid = GRID.filter((r) => !(r.serviceCode === "standard" && r.withPackaging));
     e = await refusal(service().createQuote(request({ packaging: true }), ctx));
     expect(e.fields).toEqual([{ name: "packaging", reason: "priceUnavailable" }]);
+  });
+  it("R204_T01_declared_value: a declared value is not a price element: it is kept, and the total does not change (R802)", async () => {
+    const without = await service().createQuote(request({ declared_value_millimes: 0 }), ctx);
+    const withValue = await service().createQuote(request({ declared_value_millimes: 50_000 }), ctx);
+    expect(withValue.total_millimes).toBe(without.total_millimes);
+    expect(withValue.lines.map((l) => l.millimes)).toEqual(without.lines.map((l) => l.millimes));
+    expect(store.saved[1]!.declaredValueMillimes).toBe(50_000);
+    expect(store.saved[0]!.declaredValueMillimes).toBe(0);
   });
   it("a fragile fee that is set is a line of the price", async () => {
     store.settings = { ...SETTINGS, fragileFeeMillimes: 1500 };
