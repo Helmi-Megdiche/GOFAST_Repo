@@ -93,6 +93,9 @@ export type StoredQuote = {
   expiresAt: Date;
 };
 
+/** A quote as it is read: the arrival zone's name is joined from `core.zones`, it is not stored. */
+export type ReadQuote = StoredQuote & { arrivalZoneName: string };
+
 /** What the service needs from the database. `Tx` stays opaque here: only the repo knows it. */
 export interface PricingStore<Tx = never> {
   run<T>(fn: (tx: Tx) => Promise<T>): Promise<T>;
@@ -102,7 +105,7 @@ export interface PricingStore<Tx = never> {
   settingsRow(tx: Tx): Promise<Settings>;
   priceList(tx: Tx, at: Date, zoneId: string | null): Promise<PriceRow[]>;
   saveQuote(tx: Tx, quote: StoredQuote): Promise<void>;
-  readQuote(tx: Tx, id: string): Promise<StoredQuote | null>;
+  readQuote(tx: Tx, id: string): Promise<ReadQuote | null>;
 }
 
 export type Deps = {
@@ -312,7 +315,7 @@ export class PricingService {
         expiresAt,
       };
       await this.d.store.saveQuote(tx, stored);
-      return toQuote(stored);
+      return toQuote(stored, arrival.zone.name);
     });
   }
 
@@ -325,7 +328,7 @@ export class PricingService {
     // R205: valid until the last millisecond before expires_at.
     if (!isQuoteValid({ expiresAt: stored.expiresAt.toISOString() }, at.getTime()))
       throw new ApiError("QUOTE_EXPIRED");
-    return toQuote(stored);
+    return toQuote(stored, stored.arrivalZoneName);
   }
 }
 
@@ -341,11 +344,13 @@ function lineOut(lines: PriceLines, settings: Settings): LineOut[] {
   });
 }
 
-function toQuote(s: StoredQuote): QuoteOut {
+function toQuote(s: StoredQuote, zoneName: string): QuoteOut {
   return {
     id: s.id,
     service: s.service,
     parcel_type: s.parcelType,
+    zone_id: s.arrivalZoneId,
+    zone_name: zoneName,
     parcels: s.parcels as QuoteOut["parcels"],
     packaging: s.packaging,
     fragile: s.fragile,

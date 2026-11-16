@@ -381,6 +381,14 @@ describe("GH-10 pricing contract (Plan PR 4b-1)", () => {
     expect(required("AddressInput")).not.toContain("zone_id");
   });
 
+  it("R204: a quote names the zone it is priced for (offre et zone): zone_id and zone_name, required", () => {
+    const quote = props("Quote");
+    expect(Object.keys(quote)).toEqual(expect.arrayContaining(["zone_id", "zone_name"]));
+    expect(required("Quote")).toEqual(expect.arrayContaining(["zone_id", "zone_name"]));
+    expect(quote.zone_id).toMatchObject({ $ref: "#/components/schemas/ResourceId" });
+    expect(quote.zone_name).toMatchObject({ type: "string" });
+  });
+
   it("R204: a quote has a packaging line, the tax basis and the two taxed totals", () => {
     const kinds = ((props("AmountLine").kind as Json).enum as string[]) ?? [];
     expect(kinds.indexOf("packaging")).toBe(kinds.indexOf("options") + 1);

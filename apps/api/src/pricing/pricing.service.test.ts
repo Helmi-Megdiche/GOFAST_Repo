@@ -96,7 +96,10 @@ class FakeStore implements PricingStore {
     this.saved.push(q);
   }
   async readQuote(_tx: never, id: string) {
-    return (this.saved.find((q) => q.id === id) as never) ?? null;
+    const q = this.saved.find((x) => x.id === id) as { arrivalZoneId: string } | undefined;
+    if (!q) return null;
+    // as the SQL does: the name is joined on read, it is not stored
+    return { ...q, arrivalZoneName: this.zonesList.find((z) => z.id === q.arrivalZoneId)?.name ?? "" } as never;
   }
 }
 
@@ -173,6 +176,16 @@ describe("R204_T01 the quote lines", () => {
     // no weight supplement (Helmi): 0 for every parcel
     expect(by.weight).toEqual({ kind: "weight", unit_millimes: 0, count: 3, millimes: 0 });
     expect(q.total_millimes).toBe(36000);
+  });
+  it("R204_T01_zone: the quote names the arrival zone used for the price, when created and when read back", async () => {
+    const svc = service();
+    const q = await svc.createQuote(request(), ctx);
+    expect(q).toMatchObject({ zone_id: BRAVO.id, zone_name: "Bravo" });
+    expect(await svc.getQuote(q.id)).toMatchObject({ zone_id: BRAVO.id, zone_name: "Bravo" });
+    // only the id is kept in the row
+    expect(JSON.stringify(store.saved[0])).not.toContain("Bravo");
+    const back = await svc.createQuote(request({ departure: pinned(10.15, 36.05), arrival: pinned(10.05, 36.05) }), ctx);
+    expect(back).toMatchObject({ zone_id: ALPHA.id, zone_name: "Alpha" });
   });
   it("tax_basis null gives HT and TTC null, and the quote says which addresses were pinned", async () => {
     const q = await service().createQuote(

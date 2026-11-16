@@ -841,6 +841,10 @@ export interface components {
             tax_basis: ("ttc" | "ht") | null;
             /** @description Sum (all parcels) of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT). */
             total_millimes: components["schemas"]["Money"];
+            /** @description R204 (offre et zone): the délégation the price was read for, the arrival address's. A price list of its zone beats the default. */
+            zone_id: components["schemas"]["ResourceId"];
+            /** @description The name of that délégation. Only the id is stored; the name is read from the zone. */
+            zone_name: string;
         };
         /** @description The body of a QUOTE_EXPIRED answer. The code is fixed by the status. */
         QuoteExpiredBody: {

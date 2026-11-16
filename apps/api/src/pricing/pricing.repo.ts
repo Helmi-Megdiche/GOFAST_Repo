@@ -1,6 +1,6 @@
 import { sql } from "drizzle-orm";
 import type { Db, Tx } from "../db/index.ts";
-import type { PriceRow, PricingStore, Settings, StoredQuote, ZoneRow } from "./pricing.service.ts";
+import type { PriceRow, PricingStore, ReadQuote, Settings, StoredQuote, ZoneRow } from "./pricing.service.ts";
 
 type Raw = Record<string, unknown>;
 /** bigint and numeric come back from the driver as strings: millimes stay integers. */
@@ -109,17 +109,21 @@ export class PricingRepo implements PricingStore<Tx> {
     );
   }
 
-  async readQuote(tx: Tx, id: string): Promise<StoredQuote | null> {
-    const r = await tx.execute(sql`select * from core.quotes where id = ${id}`);
+  async readQuote(tx: Tx, id: string): Promise<ReadQuote | null> {
+    const r = await tx.execute(
+      sql`select q.*, z.name as arrival_zone_name from core.quotes q
+            join core.zones z on z.id = q.arrival_zone_id where q.id = ${id}`,
+    );
     const q = (r.rows as Raw[])[0];
     if (!q) return null;
     return {
       id: q.id as string,
+      arrivalZoneName: q.arrival_zone_name as string,
       departureKeyHmac: q.departure_key_hmac as string,
       arrivalKeyHmac: q.arrival_key_hmac as string,
-      service: q.service_code as StoredQuote["service"],
-      parcelType: q.parcel_type as StoredQuote["parcelType"],
-      parcels: q.parcels as StoredQuote["parcels"],
+      service: q.service_code as ReadQuote["service"],
+      parcelType: q.parcel_type as ReadQuote["parcelType"],
+      parcels: q.parcels as ReadQuote["parcels"],
       packaging: Boolean(q.packaging),
       fragile: Boolean(q.fragile),
       declaredValueMillimes: intOrNull(q.declared_value_millimes),
@@ -127,12 +131,12 @@ export class PricingRepo implements PricingStore<Tx> {
       arrivalZoneId: q.arrival_zone_id as string,
       departurePinned: Boolean(q.departure_pinned),
       arrivalPinned: Boolean(q.arrival_pinned),
-      lines: q.lines as StoredQuote["lines"],
+      lines: q.lines as ReadQuote["lines"],
       totalMillimes: int(q.total_millimes),
-      taxBasis: (q.tax_basis as StoredQuote["taxBasis"]) ?? null,
+      taxBasis: (q.tax_basis as ReadQuote["taxBasis"]) ?? null,
       amountHtMillimes: intOrNull(q.amount_ht_millimes),
       amountTtcMillimes: intOrNull(q.amount_ttc_millimes),
-      surcharge: (q.surcharge as StoredQuote["surcharge"]) ?? null,
+      surcharge: (q.surcharge as ReadQuote["surcharge"]) ?? null,
       priceListValidFrom: new Date(q.price_list_valid_from as string | Date),
       quotedAt: new Date(q.quoted_at as string | Date),
       expiresAt: new Date(q.expires_at as string | Date),
