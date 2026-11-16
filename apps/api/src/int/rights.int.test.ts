@@ -122,8 +122,11 @@ const PUBLIC_READER: Record<string, Rights> = {
   "core.status_events": { c: { SELECT: ["occurred_at", "order_id", "subject_type", "to_status"] } },
   "core.recipient_links": { t: ["SELECT"] },
   // Sign-up (core.create_account) inserts into these three identity tables and nowhere else.
-  // mark_phone_verified, set_password and rehash_password change only these three columns.
-  "core.accounts": { t: ["INSERT", "SELECT"], c: { UPDATE: ["password_hash", "phone_verified_at", "updated_at"] } },
+  // mark_phone_verified, set_password and rehash_password change only these four columns.
+  "core.accounts": {
+    t: ["INSERT", "SELECT"],
+    c: { UPDATE: ["password_hash", "phone_verified_at", "sessions_valid_from", "updated_at"] },
+  },
   "core.companies": { t: ["INSERT"] },
   "core.company_members": { t: ["INSERT", "SELECT"] },
 };

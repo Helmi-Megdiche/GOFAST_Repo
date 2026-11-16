@@ -6,6 +6,8 @@
 export const PROVISIONAL = {
   /** Customer session, sliding (days). */
   customerSessionDays: 30,
+  /** A customer session never lives longer than this, even when used every hour (days). */
+  customerSessionMaxDays: 90,
   /** Staff session (hours). */
   staffSessionHours: 12,
   /** Most parcels in one order. */

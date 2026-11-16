@@ -15,8 +15,12 @@ const Env = z.object({
   /** Health port of the `worker` process. */
   WORKER_PORT: port(4002),
   HOST: z.string().min(1).default("0.0.0.0"),
-  /** Behind the reverse proxy (X-Forwarded-*). */
-  TRUST_PROXY: flag,
+  /**
+   * How many reverse proxies stand between the internet and this process (0 = none). The client
+   * address is the one that many hops from the socket in X-Forwarded-For; entries further left are
+   * client-written and never read. `true` would trust them all, so it is refused.
+   */
+  TRUST_PROXY: z.coerce.number().int().min(0).max(10).default(0),
   /** Login `fastgo_app` (api) or `fastgo_worker` (worker). No default: a secret. */
   DATABASE_URL: z.string().min(1).optional(),
   REDIS_URL: z.string().min(1).optional(),
@@ -36,7 +40,8 @@ export type Config = {
   workerPort: number;
   host: string;
   nodeEnv: "development" | "test" | "production";
-  trustProxy: boolean;
+  /** Proxy hops to trust; 0 trusts none and `req.ip` is the socket address. */
+  trustProxy: number;
   databaseUrl?: string;
   redisUrl?: string;
   authSecret?: string;

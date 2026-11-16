@@ -38,7 +38,8 @@ export class AuthController {
     @Req() req: FastifyRequest,
     @Res({ passthrough: true }) reply: FastifyReply,
   ): Promise<Schemas["Me"]> {
-    const s = await this.auth.signIn(body, ctxOf(req));
+    const previousSession = (req.cookies ?? {})[this.cookie.cookieName];
+    const s = await this.auth.signIn(body, { ...ctxOf(req), previousSession });
     this.setSession(reply, s);
     return s.me;
   }

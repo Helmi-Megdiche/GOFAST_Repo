@@ -60,6 +60,7 @@ export const accounts = core.table("accounts", {
   fullName: text("full_name"),
   phoneE164: text("phone_e164").unique(),
   phoneVerifiedAt: timestamp("phone_verified_at", { withTimezone: true }),
+  sessionsValidFrom: timestamp("sessions_valid_from", { withTimezone: true }).notNull().default(sql`'epoch'`),
   email: text("email"),
   googleSub: text("google_sub").unique(),
   passwordHash: text("password_hash"),

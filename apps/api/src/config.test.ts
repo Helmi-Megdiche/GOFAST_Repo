@@ -7,15 +7,16 @@ describe("loadConfig", () => {
       port: 4000,
       wsPort: 4001,
       workerPort: 4002,
-      trustProxy: false,
+      trustProxy: 0,
     });
   });
-  it("reads true and false", () => {
-    expect(loadConfig({ TRUST_PROXY: "true" }).trustProxy).toBe(true);
-    expect(loadConfig({ TRUST_PROXY: "false" }).trustProxy).toBe(false);
+  it("reads TRUST_PROXY as a number of proxy hops", () => {
+    expect(loadConfig({ TRUST_PROXY: "1" }).trustProxy).toBe(1);
+    expect(loadConfig({ TRUST_PROXY: "2" }).trustProxy).toBe(2);
   });
-  it("refuses TRUST_PROXY=yes, a bad port and a bad NODE_ENV at start-up", () => {
-    expect(() => loadConfig({ TRUST_PROXY: "yes" })).toThrow(/TRUST_PROXY/);
+  it("refuses TRUST_PROXY=true (trusts every hop), a bad port and a bad NODE_ENV at start-up", () => {
+    expect(() => loadConfig({ TRUST_PROXY: "true" })).toThrow(/TRUST_PROXY/);
+    expect(() => loadConfig({ TRUST_PROXY: "-1" })).toThrow(/TRUST_PROXY/);
     expect(() => loadConfig({ PORT: "99999" })).toThrow(/PORT/);
     expect(() => loadConfig({ NODE_ENV: "staging" })).toThrow(/NODE_ENV/);
   });

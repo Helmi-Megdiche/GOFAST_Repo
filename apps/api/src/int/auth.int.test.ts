@@ -5,6 +5,9 @@ import { createApp } from "../app.ts";
 import { runSmsOutbox } from "../auth/outbox-worker.ts";
 import { createRedis, type Redis } from "../auth/redis.ts";
 import { SmsSender } from "../auth/sms.ts";
+import { Passwords } from "../auth/password.ts";
+import { Logger } from "@nestjs/common";
+import { vi } from "vitest";
 import { SessionStore } from "../auth/sessions.ts";
 import { authOptions } from "../auth/wiring.ts";
 import { Db } from "../db/index.ts";
@@ -44,12 +47,15 @@ let sessions: SessionStore;
 const sms = new CaptureSms();
 const opened: Db[] = [];
 
-const build = async (db: Db) =>
+const build = async (
+  db: Db,
+  extra: { trustProxy?: number; now?: () => Date; passwords?: Passwords; staffSignIn?: boolean } = {},
+) =>
   createApp(
-    { trustProxy: false },
+    { trustProxy: extra.trustProxy ?? false },
     authOptions(
-      { nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: false },
-      { db, redis, authSecret: "s".repeat(40) },
+      { nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: extra.staffSignIn ?? false },
+      { db, redis, authSecret: "s".repeat(40), now: extra.now, passwords: extra.passwords },
     ),
   );
 
@@ -79,6 +85,9 @@ afterAll(async () => {
   await testDb?.stop();
 });
 
+/** The IP every `call` comes from. The per-IP limits are shared, so each new test picks its own. */
+let currentIp = "127.0.0.1";
+
 type Res = { statusCode: number; headers: Record<string, unknown>; json: () => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 const call = (
   method: "GET" | "POST" | "PATCH" | "DELETE",
@@ -88,6 +97,7 @@ const call = (
   app.inject({
     method,
     url,
+    remoteAddress: currentIp,
     payload: opts.body as object | undefined,
     headers: {
       ...(opts.cookie ? { cookie: `session=${opts.cookie}` } : {}),
@@ -106,7 +116,7 @@ const sessionOf = (res: Res): string => {
 async function verifiedCheck(phone: string, purpose: "signUp" | "reset"): Promise<string> {
   const sent = await call("POST", "/v1/phone-checks", { body: { phone, purpose } });
   expect(sent.statusCode).toBe(202);
-  await runSmsOutbox(workerDb, sms);
+  for (let i = 0; i < 6; i += 1) await runSmsOutbox(workerDb, sms);
   const ok = await call("POST", "/v1/phone-checks/verify", { body: { phone, purpose, code: sms.codeFor(phone) } });
   expect(ok.statusCode).toBe(200);
   return ok.json().phone_check_id as string;
@@ -233,7 +243,8 @@ describe("password reset (R102)", () => {
     const old = sessionOf(created);
     const other = sessionOf(await call("POST", "/v1/sessions", { body: { identifier: PHONE, password: PASSWORD } }));
 
-    const wrongPurpose = await verifiedCheck("+21620222002", "signUp");
+    // A verified check for THIS phone, but for the purpose signUp: it must not reset the password.
+    const wrongPurpose = await verifiedCheck(PHONE, "signUp");
     const refused = await call("POST", "/v1/password-resets", {
       body: { phone: PHONE, phone_check_id: wrongPurpose, new_password: "a brand new secret" },
     });
@@ -268,7 +279,7 @@ describe("definers return no secret", () => {
     const cols = (await q("select * from core.session_account((select id from core.accounts limit 1))")).fields.map(
       (f) => f.name,
     );
-    expect(cols.sort()).toEqual(["company_id", "role", "status"]);
+    expect(cols.sort()).toEqual(["company_id", "role", "sessions_valid_from", "status"]);
     const r = await q("select pg_get_function_result('core.set_password(text,text,timestamptz)'::regprocedure) as t");
     expect(r.rows[0].t).toBe("uuid");
   });
@@ -300,5 +311,259 @@ describe("no actor, no leak", () => {
     await appDb.withNoActor((tx) =>
       tx.execute(sql`insert into gestion.audit_events (actor_id, actor_role, action, entity) values (null, null, 'test.noactor', 'account')`),
     );
+  });
+});
+
+// ---- supervisor round 1 (RV-18, RV-19, T59, T60) -----------------------------------------------
+
+const rawInject = (
+  a: NestFastifyApplication,
+  ip: string,
+  method: "GET" | "POST",
+  url: string,
+  opts: { body?: unknown; headers?: Record<string, string>; cookie?: string } = {},
+) =>
+  a.inject({
+    method,
+    url,
+    remoteAddress: ip,
+    payload: opts.body as object | undefined,
+    headers: { ...(opts.cookie ? { cookie: `session=${opts.cookie}`, origin: ORIGIN } : {}), ...opts.headers },
+  }) as unknown as Promise<Res>;
+
+async function newCustomer(phone: string): Promise<{ id: string; cookie: string }> {
+  const res = await signUp(phone, await verifiedCheck(phone, "signUp"));
+  expect(res.statusCode).toBe(201);
+  const id = (await q("select id from core.accounts where phone_e164 = $1", [phone])).rows[0].id as string;
+  return { id, cookie: sessionOf(res) };
+}
+
+describe("a reset kills every older session (Blocking 1)", () => {
+  it("even when the Redis index of the account is gone", async () => {
+    currentIp = "10.1.0.1";
+    const phone = "+21620333001";
+    const { id, cookie } = await newCustomer(phone);
+    await redis.del(`sess-by:${id}`);
+    const done = await call("POST", "/v1/password-resets", {
+      body: { phone, phone_check_id: await verifiedCheck(phone, "reset"), new_password: "a brand new secret" },
+    });
+    expect(done.statusCode).toBe(204);
+    expect((await call("GET", "/v1/me", { cookie })).statusCode).toBe(401);
+  });
+
+  it("a sign-in that started before a reset commits cannot keep its session", async () => {
+    currentIp = "10.1.0.2";
+    const phone = "+21620333002";
+    await newCustomer(phone);
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    let entered!: () => void;
+    const inVerify = new Promise<void>((r) => (entered = r));
+    class Slow extends Passwords {
+      override async verify(stored: string, password: string): Promise<boolean> {
+        const ok = await super.verify(stored, password);
+        if (ok) {
+          entered();
+          await gate;
+        }
+        return ok;
+      }
+    }
+    const slowApp = await build(appDb, { passwords: new Slow() });
+    try {
+      const signingIn = rawInject(slowApp, currentIp, "POST", "/v1/sessions", {
+        body: { identifier: phone, password: PASSWORD },
+      });
+      await inVerify;
+      const reset = await call("POST", "/v1/password-resets", {
+        body: { phone, phone_check_id: await verifiedCheck(phone, "reset"), new_password: "a brand new secret" },
+      });
+      expect(reset.statusCode).toBe(204);
+      release();
+      const res = await signingIn;
+      if (res.statusCode === 201) {
+        const me = await rawInject(slowApp, currentIp, "GET", "/v1/me", { cookie: sessionOf(res) });
+        expect(me.statusCode).toBe(401);
+      } else {
+        expect(res.statusCode).toBe(401);
+      }
+    } finally {
+      await slowApp.close();
+    }
+  });
+});
+
+describe("session lifetime: sliding, cap, no resurrection", () => {
+  const DAY = 86_400_000;
+  it("slides for months while used, then dies at the 90-day cap", async () => {
+    const t0 = Date.now();
+    let t = t0;
+    const store = new SessionStore(redis, () => t);
+    const id = await store.create("00000000-0000-4000-8000-0000000000aa", false);
+    for (const days of [25, 50, 75]) {
+      t = t0 + days * DAY;
+      expect(await store.get(id)).not.toBeNull();
+    }
+    t = t0 + 91 * DAY;
+    expect(await store.get(id)).toBeNull();
+    expect(await store.get(id)).toBeNull();
+  });
+
+  it("a refresh never brings back a session destroyed while it ran (SET XX)", async () => {
+    let t = Date.now();
+    const racing = new Proxy(redis, {
+      get(target, prop, receiver) {
+        if (prop === "get") {
+          return async (key: string) => {
+            const value = await target.get(key);
+            await target.del(key); // a logout lands between the read and the refresh
+            return value;
+          };
+        }
+        const v = Reflect.get(target, prop, receiver);
+        return typeof v === "function" ? v.bind(target) : v;
+      },
+    });
+    const id = await new SessionStore(redis, () => t).create("00000000-0000-4000-8000-0000000000bb", false);
+    t += 2 * 3_600_000;
+    expect(await new SessionStore(racing, () => t).get(id)).toBeNull();
+    expect(await new SessionStore(redis, () => t).get(id)).toBeNull();
+  });
+});
+
+describe("proxy hops (Blocking 2)", () => {
+  const send = (a: NestFastifyApplication, ip: string, i: number, xff: string) =>
+    rawInject(a, ip, "POST", "/v1/phone-checks", {
+      body: { phone: `+2162034${String(i).padStart(4, "0")}`, purpose: "signUp" },
+      headers: { "x-forwarded-for": xff },
+    });
+
+  it("trust proxy 0: X-Forwarded-For is ignored, one counter for the socket address", async () => {
+    for (let i = 1; i <= 10; i += 1) expect((await send(app, "10.2.0.1", i, `9.9.${i}.1`)).statusCode).toBe(202);
+    expect((await send(app, "10.2.0.1", 11, "9.9.99.1")).statusCode).toBe(429);
+  });
+
+  it("trust proxy 1: only the hop the proxy appended counts, a forged first entry does not", async () => {
+    const one = await build(appDb, { trustProxy: 1 });
+    try {
+      for (let i = 1; i <= 10; i += 1) {
+        expect((await send(one, "10.2.0.2", 100 + i, `${i}.${i}.${i}.${i}, 2.2.2.2`)).statusCode).toBe(202);
+      }
+      expect((await send(one, "10.2.0.2", 111, "7.7.7.7, 2.2.2.2")).statusCode).toBe(429);
+      expect((await send(one, "10.2.0.2", 112, "7.7.7.7, 3.3.3.3")).statusCode).toBe(202);
+    } finally {
+      await one.close();
+    }
+  });
+});
+
+describe("the log of an unexpected error (Blocking 3)", () => {
+  it("names the failure and leaks no phone, password or hash", async () => {
+    currentIp = "10.3.0.1";
+    const phone = "+21620335001";
+    const check = await verifiedCheck(phone, "signUp");
+    const spy = vi.spyOn(Logger.prototype, "error").mockImplementation(() => undefined);
+    try {
+      // A NUL byte cannot be stored in a text column: Postgres refuses (22021) and the request is a 500.
+      const res = await signUp(phone, check, { name: "Client\u0000Test" });
+      expect(res.statusCode).toBe(500);
+      const logged = spy.mock.calls.map((c) => c.map(String).join(" ")).join("\n");
+      expect(logged).toContain("22021");
+      expect(logged).not.toContain(phone);
+      expect(logged).not.toContain(PASSWORD);
+      expect(logged).not.toContain("$argon2");
+      expect(JSON.stringify(res.json())).not.toContain("22021");
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+describe("staff accounts, RV-19 and the audit throttle", () => {
+  it("a staff account with the right password is refused when staff sign-in is off (T60)", async () => {
+    currentIp = "10.4.0.1";
+    const phone = "+21620336001";
+    const { id } = await newCustomer(phone);
+    await q("update core.accounts set role = 'operations' where id = $1", [id]);
+    const res = await call("POST", "/v1/sessions", { body: { identifier: phone, password: PASSWORD } });
+    expect(res.statusCode).toBe(401);
+    expect(res.json().error.fields[0]).toMatchObject({ name: "identifier", reason: "invalidCredentials" });
+  });
+
+  it("a customer session on an account that became staff is refused", async () => {
+    currentIp = "10.4.0.2";
+    const { id, cookie } = await newCustomer("+21620336002");
+    expect((await call("GET", "/v1/me", { cookie })).statusCode).toBe(200);
+    await q("update core.accounts set role = 'admin' where id = $1", [id]);
+    expect((await call("GET", "/v1/me", { cookie })).statusCode).toBe(401);
+  });
+
+  it("a closed account is refused on the next request (RV-19)", async () => {
+    currentIp = "10.4.0.3";
+    const { id, cookie } = await newCustomer("+21620336003");
+    await q("update core.accounts set status = 'closed', closed_at = now() where id = $1", [id]);
+    expect((await call("GET", "/v1/me", { cookie })).statusCode).toBe(401);
+  });
+
+  it("T59: the 429 of a known identifier equals the one of an unknown identifier, trace_id apart", async () => {
+    currentIp = "10.4.0.4";
+    const phone = "+21620336004";
+    await newCustomer(phone);
+    const last = async (identifier: string) => {
+      let res!: Res;
+      for (let i = 0; i < 6; i += 1) {
+        res = await call("POST", "/v1/sessions", { body: { identifier, password: "wrong password!" } });
+      }
+      return res;
+    };
+    const known = await last(phone);
+    const unknown = await last("+21620336999");
+    expect(known.statusCode).toBe(429);
+    expect(unknown.statusCode).toBe(429);
+    const shape = (r: Res) => ({ ...r.json().error, trace_id: undefined });
+    expect(shape(known)).toEqual(shape(unknown));
+  });
+
+  it("signin.limited is audited once per window, not once per refused call", async () => {
+    currentIp = "10.4.0.5";
+    const body = { identifier: "+21620336555", password: "wrong password!" };
+    const count = async () =>
+      Number((await q("select count(*)::int as n from gestion.audit_events where action = 'signin.limited'")).rows[0].n);
+    const before = await count();
+    for (let i = 0; i < 15; i += 1) await call("POST", "/v1/sessions", { body });
+    expect((await count()) - before).toBe(1);
+  });
+
+  it("a hash made with old settings is replaced at sign-in", async () => {
+    currentIp = "10.4.0.6";
+    const phone = "+21620336006";
+    const { id } = await newCustomer(phone);
+    const { hash } = await import("@node-rs/argon2");
+    const weak = await hash(PASSWORD, { algorithm: 2, memoryCost: 8192, timeCost: 1, parallelism: 1 });
+    await q("update core.accounts set password_hash = $1 where id = $2", [weak, id]);
+    const res = await call("POST", "/v1/sessions", { body: { identifier: phone, password: PASSWORD } });
+    expect(res.statusCode).toBe(201);
+    const now = (await q("select password_hash from core.accounts where id = $1", [id])).rows[0].password_hash as string;
+    expect(now).not.toBe(weak);
+    expect(now).toMatch(/m=19456,t=2,p=1/);
+  });
+});
+
+describe("the outbox payload is scrubbed (RV-21)", () => {
+  it("the worker cannot set processed_at and keep the payload", async () => {
+    currentIp = "10.5.0.1";
+    const sent = await call("POST", "/v1/phone-checks", { body: { phone: "+21620337001", purpose: "signUp" } });
+    expect(sent.statusCode).toBe(202);
+    const row = (
+      await q("select id from core.outbox where topic = 'sms.code' and processed_at is null order by created_at desc limit 1")
+    ).rows[0];
+    expect(row).toBeDefined();
+    await expect(
+      workerDb.withWorker((tx) => tx.execute(sql`update core.outbox set processed_at = now() where id = ${row.id}::uuid`)),
+    ).rejects.toThrow();
+    await runSmsOutbox(workerDb, sms);
+    const done = (await q("select payload, processed_at from core.outbox where id = $1", [row.id])).rows[0];
+    expect(done.processed_at).not.toBeNull();
+    expect(done.payload).toEqual({});
   });
 });

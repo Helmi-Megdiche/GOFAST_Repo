@@ -1101,6 +1101,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["ValidationFailed"];
+            403: components["responses"]["AccessDenied"];
             422: components["responses"]["RuleRefused"];
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];
@@ -1596,6 +1597,7 @@ export interface operations {
                 content?: never;
             };
             400: components["responses"]["ValidationFailed"];
+            403: components["responses"]["AccessDenied"];
             422: components["responses"]["RuleRefused"];
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];
@@ -1624,6 +1626,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["ValidationFailed"];
+            403: components["responses"]["AccessDenied"];
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ProviderUnavailable"];
@@ -1652,6 +1655,7 @@ export interface operations {
                 };
             };
             400: components["responses"]["ValidationFailed"];
+            403: components["responses"]["AccessDenied"];
             422: components["responses"]["RuleRefused"];
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];
@@ -1756,6 +1760,7 @@ export interface operations {
             };
             400: components["responses"]["ValidationFailed"];
             401: components["responses"]["AuthRequired"];
+            403: components["responses"]["AccessDenied"];
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];
         };
@@ -1777,6 +1782,7 @@ export interface operations {
                 content?: never;
             };
             401: components["responses"]["AuthRequired"];
+            403: components["responses"]["AccessDenied"];
             500: components["responses"]["InternalError"];
         };
     };

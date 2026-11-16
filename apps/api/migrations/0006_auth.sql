@@ -12,8 +12,15 @@ alter table core.accounts
 grant select (notify_sms, notify_email, notify_offers) on core.accounts to fastgo_app, fastgo_readonly;
 grant update (notify_sms, notify_email, notify_offers) on core.accounts to fastgo_app;
 
--- What the definer functions below may change on an account: three columns, nothing else.
-grant update (phone_verified_at, password_hash, updated_at) on core.accounts to fastgo_public_reader;
+-- No session created before this instant is valid. A password reset moves it forward, so an old
+-- session dies even when its Redis index has expired or a sign-in raced the reset. The default is the
+-- epoch, not now(): a session is dated by the API clock, and only a reset (also dated by the API
+-- clock) moves this forward, so the database clock never decides whether a session is valid.
+alter table core.accounts add column sessions_valid_from timestamptz not null default 'epoch';
+grant select (sessions_valid_from) on core.accounts to fastgo_app, fastgo_readonly;
+
+-- What the definer functions below may change on an account: four columns, nothing else.
+grant update (phone_verified_at, password_hash, updated_at, sessions_valid_from) on core.accounts to fastgo_public_reader;
 create policy definer_update on core.accounts for update to fastgo_public_reader using (true) with check (true);
 
 -- The phone was proved with a code (R101, R102). Only moves a missing proof forward, never back.
@@ -36,7 +43,7 @@ create function core.set_password(p_phone text, p_hash text, p_at timestamptz) r
 declare v_id uuid;
 begin
   update core.accounts
-     set password_hash = p_hash, updated_at = p_at
+     set password_hash = p_hash, updated_at = p_at, sessions_valid_from = p_at
    where phone_e164 = p_phone and status = 'active' and role in ('individual', 'merchant')
   returning id into v_id;
   return v_id;
@@ -56,11 +63,12 @@ end $$;
 -- RV-19: a session carries no role. At each request the API asks what the account is now, so a
 -- role change or a closed account applies at once. No hash, no phone, no name.
 create function core.session_account(p_id uuid)
-  returns table (role text, status text, company_id uuid)
+  returns table (role text, status text, company_id uuid, sessions_valid_from timestamptz)
   language sql stable security definer set search_path = pg_catalog, core, pg_temp as $$
   select a.role, a.status,
          (select m.company_id from core.company_members m where m.account_id = a.id
-           order by m.created_at, m.company_id limit 1)
+           order by m.created_at, m.company_id limit 1),
+         a.sessions_valid_from
     from core.accounts a where a.id = p_id
 $$;
 

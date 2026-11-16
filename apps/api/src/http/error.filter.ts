@@ -26,6 +26,22 @@ function clientStatus(error: unknown): number | undefined {
   return typeof status === "number" && status >= 400 && status < 500 ? status : undefined;
 }
 
+/**
+ * What an unknown error may say in the logs: its class, the Postgres code and the constraint, nothing
+ * else. Never the message, the stack or the SQL: a Drizzle query error carries the statement and its
+ * parameters (phone, e-mail, name, password hash).
+ */
+export function describe(error: unknown): string {
+  const parts = [error instanceof Error ? error.constructor.name : typeof error];
+  for (let e: unknown = error, depth = 0; e && typeof e === "object" && depth < 4; depth++) {
+    const { code, constraint, cause } = e as { code?: unknown; constraint?: unknown; cause?: unknown };
+    if (typeof code === "string" && /^[0-9A-Z]{5}$/.test(code)) parts.push(`pg=${code}`);
+    if (typeof constraint === "string" && /^[\w.]{1,80}$/.test(constraint)) parts.push(`constraint=${constraint}`);
+    e = cause;
+  }
+  return parts.join(" ");
+}
+
 /** One error body for every failure (`ErrorBody` of the contract). Unknown errors are logged, never shown. */
 @Catch()
 export class ErrorFilter implements ExceptionFilter {
@@ -55,10 +71,7 @@ export class ErrorFilter implements ExceptionFilter {
         fields = [{ name: "body", reason: "invalidBody" }];
       } else status = STATUS_OF[code];
     } else {
-      this.log.error(
-        `${req.method} ${req.url} ${req.id}`,
-        error instanceof Error ? error.stack : String(error),
-      );
+      this.log.error(`${req.method} ${req.url.split("?")[0]} ${req.id} ${describe(error)}`);
     }
 
     if (retryAfter !== undefined) void reply.header("Retry-After", String(retryAfter));

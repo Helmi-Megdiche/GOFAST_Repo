@@ -11,12 +11,17 @@ const HOUR = 3_600_000;
 const CUSTOMER_MS = PROVISIONAL.customerSessionDays * 24 * HOUR;
 const STAFF_MS = PROVISIONAL.staffSessionHours * HOUR;
 
-type Stored = { accountId: string; lastRefresh: number; fixed: boolean };
+/** A customer session dies this long after sign-in even if it is used every hour. */
+const CAP_MS = PROVISIONAL.customerSessionMaxDays * 24 * HOUR;
+
+type Stored = { accountId: string; createdAt: number; lastRefresh: number; fixed: boolean };
+export type Session = { accountId: string; createdAt: number; fixed: boolean };
 
 /**
  * Sessions in Redis. The browser holds a random id; Redis holds `sess:<sha256(id)>` with the account
- * id and two dates, nothing else (no role: RV-19, no phone: RV-18). A customer session slides (renewed
- * at most once an hour); a staff session is fixed.
+ * id and three facts, nothing else (no role: RV-19, no phone: RV-18). A customer session slides (renewed
+ * at most once an hour) up to an absolute cap; a staff session is fixed. `createdAt` is compared with
+ * the account's `sessions_valid_from`, so a reset kills every older session whatever Redis still holds.
  */
 export class SessionStore {
   constructor(
@@ -24,21 +29,22 @@ export class SessionStore {
     private readonly now: () => number = Date.now,
   ) {}
 
-  async create(accountId: string, staff: boolean): Promise<string> {
+  /** `createdAt` is when the sign-in began, so a sign-in that raced a reset is older than the reset. */
+  async create(accountId: string, staff: boolean, createdAt: number = this.now()): Promise<string> {
     const id = newSessionId();
     const ttl = staff ? STAFF_MS : CUSTOMER_MS;
     const key = sessionKeyOf(id);
-    const value: Stored = { accountId, lastRefresh: this.now(), fixed: staff };
+    const value: Stored = { accountId, createdAt, lastRefresh: this.now(), fixed: staff };
     await this.redis
       .multi()
       .set(key, JSON.stringify(value), "PX", ttl)
       .sadd(indexKey(accountId), key)
-      .pexpire(indexKey(accountId), CUSTOMER_MS)
+      .pexpire(indexKey(accountId), CAP_MS)
       .exec();
     return id;
   }
 
-  async get(id: string): Promise<{ accountId: string } | null> {
+  async get(id: string): Promise<Session | null> {
     const key = sessionKeyOf(id);
     const raw = await this.redis.get(key);
     if (!raw) return null;
@@ -49,11 +55,19 @@ export class SessionStore {
       return null;
     }
     const now = this.now();
+    if (!s.fixed && now - s.createdAt >= CAP_MS) {
+      await this.destroy(id);
+      return null;
+    }
     if (!s.fixed && now - s.lastRefresh >= HOUR) {
       s.lastRefresh = now;
-      await this.redis.set(key, JSON.stringify(s), "PX", CUSTOMER_MS);
+      const ttl = Math.min(CUSTOMER_MS, CAP_MS - (now - s.createdAt));
+      // XX: a session destroyed while this request ran stays destroyed.
+      const done = await this.redis.set(key, JSON.stringify(s), "PX", ttl, "XX");
+      if (done !== "OK") return null;
+      await this.redis.pexpire(indexKey(s.accountId), CAP_MS);
     }
-    return { accountId: s.accountId };
+    return { accountId: s.accountId, createdAt: s.createdAt, fixed: s.fixed };
   }
 
   async destroy(id: string): Promise<void> {
@@ -93,7 +107,9 @@ export function sessionCookieOptions(staff: boolean): CookieSerializeOptions {
     secure: true,
     sameSite: "lax",
     path: "/",
-    maxAge: (staff ? STAFF_MS : CUSTOMER_MS) / 1000,
+    // Set once at sign-in, so it is the longest the session can live; the server enforces the idle
+    // window (sliding) and the cap.
+    maxAge: (staff ? STAFF_MS : CAP_MS) / 1000,
   };
 }
 
@@ -126,10 +142,20 @@ export class RedisSessions extends SessionResolver {
     if (!session) return null;
     const row = (
       await this.db.withNoActor((tx) =>
-        tx.execute(sql`select role, status, company_id from core.session_account(${session.accountId}::uuid)`),
+        tx.execute(
+          sql`select role, status, company_id, sessions_valid_from from core.session_account(${session.accountId}::uuid)`,
+        ),
       )
-    ).rows[0] as { role: Role; status: string; company_id: string | null } | undefined;
-    if (!row || row.status !== "active") {
+    ).rows[0] as
+      | { role: Role; status: string; company_id: string | null; sessions_valid_from: Date | string }
+      | undefined;
+    if (
+      !row ||
+      row.status !== "active" ||
+      session.createdAt < new Date(row.sessions_valid_from).getTime() ||
+      // Staff sign in through their own route (T60); a customer session that became staff is refused.
+      (STAFF_ROLES.has(row.role) && !session.fixed)
+    ) {
       await this.store.destroy(id);
       return null;
     }

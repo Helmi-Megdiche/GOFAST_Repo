@@ -46,7 +46,7 @@ export type Deps = {
   now?: () => Date;
 };
 
-export type Ctx = { ip: string; requestId: string; locale?: string };
+export type Ctx = { ip: string; requestId: string; locale?: string; previousSession?: string };
 
 const secs = (ms: number) => Math.max(1, Math.ceil(ms / 1000));
 const iso = (ms: number) => new Date(ms).toISOString();
@@ -137,11 +137,13 @@ export class AuthService {
     const ip = await this.limit("signup-ip", ctx.ip, LIMITS.signUpPerIp);
     if (!ip.allowed) throw this.tooMany(ip.retryAfterMs);
     const phone = this.phoneOf(body.phone);
+    // A too-short password is refused before the proof is spent: the person can fix it and retry.
+    this.checkPassword(body.password, "password");
     // The check is used up first: a refused sign-up cannot be retried with the same proof.
     if (!(await this.d.checks.consume(body.phone_check_id, phone, "signUp"))) {
       throw new ApiError("RULE_REFUSED", [{ name: "phone_check_id", reason: "invalid" }]);
     }
-    this.checkPassword(body.password, "password");
+    const startedAt = this.now().getTime();
     const hash = await this.d.passwords.hash(body.password);
     const role = body.kind === "merchant" ? "merchant" : "individual";
     let accountId: string;
@@ -162,7 +164,7 @@ export class AuthService {
     await this.d.db.withNoActor((tx) =>
       tx.execute(sql`select core.mark_phone_verified(${accountId}::uuid, ${this.now()})`),
     );
-    return this.open(accountId, role, true);
+    return this.open(accountId, role, startedAt);
   }
 
   /** R101: a taken phone or e-mail is a refusal of the rule, with the field that is taken. */
@@ -186,6 +188,9 @@ export class AuthService {
   // ---- sign-in -------------------------------------------------------------------------------
 
   async signIn(body: { identifier: string; password: string }, ctx: Ctx): Promise<SignedIn> {
+    // The session is dated from here: a reset that lands while the password is being checked moves
+    // `sessions_valid_from` past this instant, and the session this sign-in opens is refused.
+    const startedAt = this.now().getTime();
     const identifier = body.identifier.trim();
     const isEmail = identifier.includes("@");
     const phone = isEmail ? null : normalizePhone(identifier);
@@ -195,7 +200,13 @@ export class AuthService {
     const byId = await this.limit("login-id", subject, LIMITS.signInPerIdentifier);
     const byIp = await this.limit("login-ip", ctx.ip, LIMITS.signInPerIp);
     if (!byId.allowed || !byIp.allowed) {
-      await this.audit(ctx, "signin.limited", null, { scope: byId.allowed ? "ip" : "identifier" });
+      // One audit row per window and subject, not one per refused call (a flood would fill the table).
+      const scope = byId.allowed ? "ip" : "identifier";
+      const first = await this.limit(`audit-${scope}`, scope === "ip" ? ctx.ip : subject, {
+        limit: 1,
+        windowMs: LIMITS.signInPerIdentifier.windowMs,
+      });
+      if (first.allowed) await this.audit(ctx, "signin.limited", null, { scope });
       throw this.tooMany(Math.max(byId.allowed ? 0 : byId.retryAfterMs, byIp.allowed ? 0 : byIp.retryAfterMs));
     }
 
@@ -233,13 +244,15 @@ export class AuthService {
         tx.execute(sql`select core.rehash_password(${row.id}::uuid, ${row.password_hash}, ${fresh})`),
       );
     }
-    return this.open(row.id, row.role, false);
+    // The session of the cookie the browser sent is closed: signing in again does not leave it open.
+    if (ctx.previousSession) await this.d.sessions.destroy(ctx.previousSession);
+    return this.open(row.id, row.role, startedAt);
   }
 
   /** A fresh session id every time (no fixation), and the profile that goes with it. */
-  private async open(accountId: string, role: Role, _created: boolean): Promise<SignedIn> {
+  private async open(accountId: string, role: Role, startedAt: number): Promise<SignedIn> {
     const staff = STAFF_ROLES.has(role);
-    const sessionId = await this.d.sessions.create(accountId, staff);
+    const sessionId = await this.d.sessions.create(accountId, staff, startedAt);
     const actor = await this.actorOf(accountId);
     return { me: await this.me(actor), sessionId, staff };
   }

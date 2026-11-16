@@ -18,15 +18,18 @@ describe("CsrfGuard", () => {
   it("lets a write without a session cookie through (sign-in, sign-up)", () =>
     expect(run({ method: "POST", cookies: {}, headers: {} })).toBe(true));
   it("accepts an allowed origin with JSON", () => expect(run(post())).toBe(true));
+  const denied = { code: "ACCESS_DENIED" };
   it("refuses a write with a cookie and a foreign origin", () =>
-    expect(() => run(post({}, { origin: "https://evil.example" }))).toThrow());
+    expect(() => run(post({}, { origin: "https://evil.example" }))).toThrow(expect.objectContaining({ code: denied.code })));
   it("refuses a missing Origin", () => {
     const r = post();
     delete (r.headers as Record<string, string>).origin;
-    expect(() => run(r)).toThrow();
+    expect(() => run(r)).toThrow(expect.objectContaining({ code: denied.code }));
   });
   it("refuses a form content type when there is a body", () =>
-    expect(() => run(post({}, { "content-type": "application/x-www-form-urlencoded" }))).toThrow());
+    expect(() => run(post({}, { "content-type": "application/x-www-form-urlencoded" }))).toThrow(
+      expect.objectContaining({ code: denied.code }),
+    ));
   it("accepts a DELETE with no body and no content type", () => {
     const r = post({ method: "DELETE" });
     delete (r.headers as Record<string, string>)["content-type"];
@@ -37,7 +40,7 @@ describe("CsrfGuard", () => {
     const g = new CsrfGuard({ cookieName: "session", allowedOrigins: [] });
     expect(() =>
       g.canActivate({ switchToHttp: () => ({ getRequest: () => post() }) } as unknown as ExecutionContext),
-    ).toThrow();
+    ).toThrow(expect.objectContaining({ code: denied.code }));
   });
 });
 
@@ -50,7 +53,9 @@ describe("cookie", () => {
     const o = sessionCookieOptions(false);
     expect(o).toMatchObject({ httpOnly: true, secure: true, sameSite: "lax", path: "/" });
     expect(o.domain).toBeUndefined();
-    expect(o.maxAge).toBe(30 * 86400);
+    // The cookie is set once, so it lasts as long as the session can (the 90-day cap); the server
+    // enforces the sliding idle window.
+    expect(o.maxAge).toBe(90 * 86400);
     expect(sessionCookieOptions(true).maxAge).toBe(12 * 3600);
   });
 });
