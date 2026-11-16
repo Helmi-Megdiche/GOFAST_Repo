@@ -124,6 +124,35 @@ describe("draft v2: a v1 draft is migrated, never dropped (GH-10, RV-08)", () =>
     expect(loaded?.version).toBe(2);
     expect(loaded?.parcel.weights).toEqual(["2,5"]);
   });
+
+  // RV-18: a lost submit must stay retryable. A quote with a pending submit is never dropped, even
+  // when it lacks a price line, because the fingerprint (and the stored body) were made from it.
+  it.each([
+    ["without a stored body", undefined],
+    ["with a stored body", '{"sent":"as-is"}'],
+  ])("GH-10-D7 a pending submit %s keeps its quote when a price line is missing", (_name, body) => {
+    const ready = readyDraft(T0);
+    const stored = asV1(ready);
+    delete stored.quote!.lines.stamp;
+    const pending = body === undefined ? { fingerprint: "fp" } : { fingerprint: "fp", body };
+    store.set(
+      DRAFT_KEY,
+      JSON.stringify({
+        ...stored,
+        pendingSubmit: pending,
+        submitAttemptedAt: T0,
+        acceptedQuoteId: ready.quote!.id,
+        previousTotalMillimes: 1234,
+      }),
+    );
+    const loaded = loadDraft(T0);
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.pendingSubmit).toEqual(pending);
+    expect(loaded?.quote).toEqual(stored.quote);
+    expect(loaded?.quote?.totalMillimes).toBe(ready.quote!.totalMillimes);
+    expect(loaded?.acceptedQuoteId).toBe(ready.quote!.id);
+    expect(loaded?.previousTotalMillimes).toBe(1234);
+  });
 });
 
 describe("order draft (CMD-07)", () => {

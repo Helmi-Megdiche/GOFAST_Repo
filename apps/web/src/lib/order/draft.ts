@@ -261,10 +261,13 @@ function migrate(value: unknown): unknown {
 }
 
 /**
- * A quote that lacks a price line (saved before the line existed) cannot be shown or summed, and no
- * value is invented for the missing line: the quote is dropped so W14 prices the order again.
+ * A quote that lacks a price line (saved before the line existed) is dropped so W14 prices the order
+ * again; no value is invented for the missing line. Never while a submit waits for its answer: the
+ * retry (R202, RV-18) must send the same quote, and the order may already exist on the server. The
+ * screens skip a line the quote does not have (presentPriceLines).
  */
 function dropIncompleteQuote(draft: OrderDraft): OrderDraft {
+  if (draft.pendingSubmit) return draft;
   const lines = draft.quote?.lines as Record<string, unknown> | undefined;
   if (!draft.quote || PRICE_LINES.every((line) => lines?.[line] !== undefined)) return draft;
   return { ...draft, quote: null, acceptedQuoteId: null, previousTotalMillimes: null };

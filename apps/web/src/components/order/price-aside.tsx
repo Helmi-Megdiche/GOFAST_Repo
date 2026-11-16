@@ -5,8 +5,9 @@ import { useTranslations } from "next-intl";
 import { Card, KeyValue } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { EXAMPLE_PRICE_ROWS } from "@/lib/data/fixtures/pricing";
-import { PRICE_LINES, type LineAmount, type PriceLine, type Quote } from "@fastgo/domain";
+import { type LineAmount, type PriceLine, type Quote } from "@fastgo/domain";
 import { exampleMakeQuote } from "@/lib/order/example-data";
+import { presentPriceLines } from "@/lib/order/price-lines";
 
 /** Lowest example total, shown as "Dès …" once the delivery address is known (W12, W13). */
 function lowestExample(zone: string): number {
@@ -119,14 +120,14 @@ export function PriceLines({ quote, serviceName }: { quote: Quote; serviceName: 
 
   return (
     <KeyValue
-      items={PRICE_LINES.map((line) => ({
+      items={presentPriceLines(quote).map(([line, found]) => ({
         term: (
           <>
             {terms[line]}
-            <PriceLineCount line={quote.lines[line]} />
+            <PriceLineCount line={found} />
           </>
         ),
-        value: <Money millimes={quote.lines[line].totalMillimes} />,
+        value: <Money millimes={found.totalMillimes} />,
       }))}
     />
   );
