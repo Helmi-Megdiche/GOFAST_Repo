@@ -6,7 +6,8 @@ import { sendCode, verifyCode } from "../data/otp";
 import { useMemoryStorage, writeJson } from "../storage";
 import { setClock } from "./clock";
 import { CODE_VERIFIED_WINDOW_MS } from "@fastgo/domain";
-import { loadDraft, saveDraft, type OrderDraft } from "./draft";
+import { DRAFT_KEY, loadDraft, saveDraft, type OrderDraft } from "./draft";
+import { buildOrderRequest, fingerprint } from "./request";
 import { resolveLostSubmit, submitOrder } from "./submit";
 import { readyDraft, TEST_PHONE } from "./test-draft";
 
@@ -78,6 +79,36 @@ describe("submitOrder (R202)", () => {
     expect(await submitOrder(different)).toEqual({ status: "created", code });
     expect(loadDraft()).toBeNull();
   });
+});
+
+describe("a lost submit whose quote lacks a price line (GH-10-D7, RV-18)", () => {
+  // A v1 draft saved before PRICE_LINES gained a key: the fingerprint was made from that quote.
+  const pendingWithMissingLine = (withBody: boolean) => {
+    const ready = readyDraft(T0);
+    const quote = structuredClone(ready.quote!);
+    delete (quote.lines as Record<string, unknown>).stamp;
+    const request = buildOrderRequest({ ...ready, quote }, ready.termsAccepted)!;
+    const body = withBody ? "stored-bytes" : undefined;
+    const pendingSubmit =
+      body === undefined
+        ? { fingerprint: fingerprint(request) }
+        : { fingerprint: fingerprint(request), body };
+    return { ...ready, quote, pendingSubmit, submitAttemptedAt: T0, version: 1 };
+  };
+
+  it.each([false, true])(
+    "re-sends the same fingerprint, no conflict (body stored: %s)",
+    async (withBody) => {
+      const stored = pendingWithMissingLine(withBody);
+      writeJson(DRAFT_KEY, stored);
+      const loaded = loadDraft(T0)!;
+      expect(loaded.quote).toEqual(stored.quote);
+      expect(loaded.pendingSubmit).toEqual(stored.pendingSubmit);
+      const result = await submitOrder(loaded);
+      expect(result.status).toBe("created");
+      expect(await findOrderByKey(stored.idempotencyKey)).not.toBeNull();
+    },
+  );
 });
 
 describe("resolveLostSubmit", () => {

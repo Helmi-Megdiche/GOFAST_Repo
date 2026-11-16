@@ -200,6 +200,36 @@ test("a lost answer, a reload and a retry give one order, and edits wait for the
   expect(await orders(page)).toBe(1);
 });
 
+test("GH-10-D7 a lost answer with a v1 quote lacking a price line still shows the lost state and the other lines", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  await signInAs(page, KNOWN_PHONE);
+  await page.goto("/fr/commander");
+  await toReview(page, KNOWN_PHONE);
+  await payAndAccept(page);
+  await page.evaluate(() => localStorage.setItem("fg.mock.failNextOrderResponse", "true"));
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+  await expect(page.getByText("La connexion a été coupée.")).toBeVisible();
+
+  // The draft as a v1 build saved it, before a price line existed.
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem("fg.order.draft.v1")!);
+    delete saved.quote.lines.stamp;
+    saved.version = 1;
+    localStorage.setItem("fg.order.draft.v1", JSON.stringify(saved));
+  });
+  await page.reload();
+  await expect(page.getByText("La connexion a été coupée.")).toBeVisible();
+  const detail = page.getByRole("complementary", { name: "Détail du prix" });
+  await expect(detail).toContainText("TVA");
+  await expect(detail).not.toContainText("Timbre");
+  const after = await draft(page);
+  expect(after.version).toBe(2);
+  expect(after.quote).not.toBeNull();
+  expect(after.pendingSubmit).not.toBeNull();
+});
+
 // ── Price (R204, R205, R207) ─────────────────────────────────────────────────────────────────
 test("W14 shows a price on every card, and the chosen card is the quote (R207 surcharge)", async ({
   page,

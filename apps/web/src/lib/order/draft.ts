@@ -19,7 +19,9 @@ import { now } from "./clock";
  * Addresses and names never go in the URL. Nothing here is a password or a code.
  */
 export const DRAFT_KEY = "fg.order.draft.v1";
-const VERSION = 1;
+// v2 (GH-10): a quote may lack a price line that PRICE_LINES gained later (e.g. "packaging").
+// The storage key keeps its name so a stored v1 draft is found and migrated, never dropped.
+const VERSION = 2;
 
 export type AddressDraft = {
   text: string;
@@ -169,7 +171,8 @@ const quoteShape = z
       from: z.string(),
       to: z.string(),
     }),
-    lines: z.record(
+    // partialRecord: a key missing from PRICE_LINES is allowed (older quote), an unknown key is not.
+    lines: z.partialRecord(
       z.enum(PRICE_LINES),
       z.object({
         unitMillimes: millimes.nullable(),
@@ -231,7 +234,7 @@ const draftShape = z.object({
  * the weight of its parcel; its quote (priced the old way) is dropped, so W14 prices it again.
  * Any other old draft is not migrated: it fails the shape check and is cleared.
  */
-function migrate(value: unknown): unknown {
+function migrateWeights(value: unknown): unknown {
   if (typeof value !== "object" || value === null) return value;
   const draft = value as { parcel?: Record<string, unknown> };
   const parcel = draft.parcel;
@@ -247,6 +250,29 @@ function migrate(value: unknown): unknown {
   };
 }
 
+/** v1 to v2: everything the customer typed is kept, only the version number moves. */
+function migrateVersion(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  return (value as { version?: unknown }).version === 1 ? { ...value, version: 2 } : value;
+}
+
+function migrate(value: unknown): unknown {
+  return migrateVersion(migrateWeights(value));
+}
+
+/**
+ * A quote that lacks a price line (saved before the line existed) is dropped so W14 prices the order
+ * again; no value is invented for the missing line. Never while a submit waits for its answer: the
+ * retry (R202, RV-18) must send the same quote, and the order may already exist on the server. The
+ * screens skip a line the quote does not have (presentPriceLines).
+ */
+function dropIncompleteQuote(draft: OrderDraft): OrderDraft {
+  if (draft.pendingSubmit) return draft;
+  const lines = draft.quote?.lines as Record<string, unknown> | undefined;
+  if (!draft.quote || PRICE_LINES.every((line) => lines?.[line] !== undefined)) return draft;
+  return { ...draft, quote: null, acceptedQuoteId: null, previousTotalMillimes: null };
+}
+
 function isDraft(value: unknown): value is OrderDraft {
   return draftShape.safeParse(value).success;
 }
@@ -258,11 +284,12 @@ function isDraft(value: unknown): value is OrderDraft {
 export function loadDraft(at: number = now()): OrderDraft | null {
   const stored = readJson(DRAFT_KEY);
   if (stored == null) return null;
-  const value = migrate(stored);
-  if (!isDraft(value) || at >= value.expiresAt) {
+  const migrated = migrate(stored);
+  if (!isDraft(migrated) || at >= migrated.expiresAt) {
     removeKey(DRAFT_KEY);
     return null;
   }
+  const value = dropIncompleteQuote(migrated);
   if (value !== stored) writeJson(DRAFT_KEY, value);
   return value;
 }
