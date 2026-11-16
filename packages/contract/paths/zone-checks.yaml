@@ -1,0 +1,26 @@
+post:
+  operationId: createZoneCheck
+  summary: Is this point or délégation served?
+  description: >-
+    Addition to the cahier. R201: answers from a pin or from a picked délégation, never both. The
+    answer never carries a polygon. Out of zone is a normal answer (200 `out_of_zone`, `reason`
+    `outOfZone`), not an error. Attempts are limited per IP (`TOO_MANY_ATTEMPTS`).
+  tags: [pricing]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: addition
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/quote.yaml#/ZoneCheckRequest" }
+  responses:
+    "200":
+      description: The zone and the services offered there.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/quote.yaml#/ZoneCheck" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

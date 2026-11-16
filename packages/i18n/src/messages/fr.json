@@ -1738,7 +1738,8 @@
     "TOO_MANY_ATTEMPTS": "Trop de tentatives, réessayez plus tard.",
     "PROVIDER_UNAVAILABLE": "Un service externe est indisponible.",
     "INTERNAL_ERROR": "Erreur interne.",
-    "SAME_ACTOR": "Vous ne pouvez pas valider votre propre travail."
+    "SAME_ACTOR": "Vous ne pouvez pas valider votre propre travail.",
+    "outOfZone": "Cette adresse n'est pas encore desservie."
   },
   "apiSms": {
     "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne."

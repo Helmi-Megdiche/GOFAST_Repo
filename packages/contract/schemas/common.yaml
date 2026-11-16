@@ -100,8 +100,9 @@ Pin:
 AddressInput:
   type: object
   description: >-
-    An address as the customer typed or picked it. The server resolves the zone itself (R201); the
-    client never sends one.
+    An address as the customer typed or picked it. The server resolves the zone itself (R201). The
+    client may send the délégation it picked from the list (`zone_id`); if a pin is sent too, the
+    pin decides the zone.
   required: [text]
   additionalProperties: false
   properties:
@@ -115,6 +116,9 @@ AddressInput:
       oneOf:
         - $ref: "#/Pin"
         - type: "null"
+    zone_id:
+      description: The délégation picked from the list (`zones` of the catalog). Optional.
+      $ref: "#/ResourceId"
 TimeWindow:
   type: object
   description: A pickup window, as two UTC instants (R503 lists the windows GOFAST offers).

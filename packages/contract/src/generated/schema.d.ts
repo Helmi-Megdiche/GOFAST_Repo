@@ -323,7 +323,7 @@ export interface paths {
         put?: never;
         /**
          * Check the zone and price a delivery
-         * @description R201: an address outside the zone is refused before any price is calculated, and so is an address the server cannot confirm. Both answer 422 RULE_REFUSED with `fields` holding one entry per address, `name` `departure` or `arrival`, and `reason` `outOfZone` or `addressUnconfirmed`. This replaces a zone check route (`/v1/zones` is staff only). R204: every price line is kept. R205: the quote is valid for the time in the settings (15 min).
+         * @description R201: an address outside the zone is refused before any price is calculated, and so is an address the server cannot confirm (no pin and no picked `zone_id`). Both answer 422 RULE_REFUSED with `fields` holding one entry per address, `name` `departure` or `arrival`, and `reason` `outOfZone` or `addressUnconfirmed`. `POST /v1/zone-checks` answers the same question without a price (`/v1/zones` is staff only). R204: every price line is kept. R205: the quote is valid for the time in the settings (15 min).
          */
         post: operations["createQuote"];
         delete?: never;
@@ -433,6 +433,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/zone-checks": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Is this point or délégation served?
+         * @description Addition to the cahier. R201: answers from a pin or from a picked délégation, never both. The answer never carries a polygon. Out of zone is a normal answer (200 `out_of_zone`, `reason` `outOfZone`), not an error. Attempts are limited per IP (`TOO_MANY_ATTEMPTS`).
+         */
+        post: operations["createZoneCheck"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -444,19 +464,21 @@ export interface components {
                 code?: "ACCESS_DENIED";
             };
         };
-        /** @description An address as the customer typed or picked it. The server resolves the zone itself (R201); the client never sends one. */
+        /** @description An address as the customer typed or picked it. The server resolves the zone itself (R201). The client may send the délégation it picked from the list (`zone_id`); if a pin is sent too, the pin decides the zone. */
         AddressInput: {
             /** @default  */
             landmark: string;
             pin?: components["schemas"]["Pin"] | null;
             text: string;
+            /** @description The délégation picked from the list (`zones` of the catalog). Optional. */
+            zone_id?: components["schemas"]["ResourceId"];
         };
         /** @description One line of the price. `millimes` is `unit_millimes` times `count`, except for `weight` when the parcels differ: `unit_millimes` is then null and `millimes` is the sum of each parcel's own price. `millimes` is null while GOFAST has not confirmed the line (vat and stamp, see reponses-gofast.md). `base`, `weight` and `options` are per parcel (`count` is the number of parcels; `unit_millimes` is null for `weight` when the parcels differ). `distance`, `surcharge` and `stamp` are once per order (`count` is 1). `vat` is unchanged: null until the accountant confirms. */
         AmountLine: {
             /** @description The number of parcels for a per-parcel line; 1 for a once-per-order line. */
             count: number;
             /** @enum {string} */
-            kind: "base" | "distance" | "weight" | "options" | "surcharge" | "vat" | "stamp";
+            kind: "base" | "distance" | "weight" | "options" | "packaging" | "surcharge" | "vat" | "stamp";
             millimes: components["schemas"]["Money"] | null;
             /** @description Price of one unit: one parcel for `base`, `weight` and `options`, the whole line for `distance`, `surcharge`, `vat` and `stamp` (`count` is 1). Null when the parcels differ (`weight`) or while the line is not confirmed. */
             unit_millimes: components["schemas"]["Money"] | null;
@@ -792,10 +814,18 @@ export interface components {
         };
         /** @description R204 and R205. Valid for the time in the settings (15 min), then recalculated and revalidated. */
         Quote: {
+            /** @description Null while the tax basis or the VAT is unknown. */
+            amount_ht_millimes: components["schemas"]["Money"] | null;
+            /** @description Null while the tax basis or the VAT is unknown. */
+            amount_ttc_millimes: components["schemas"]["Money"] | null;
+            /** @description True when the arrival address came with a pin. */
+            arrival_pinned: boolean;
+            /** @description True when the departure address came with a pin. Without one the order stays "à confirmer" (#22). */
+            departure_pinned: boolean;
             expires_at: components["schemas"]["UtcTimestamp"];
             fragile: boolean;
             id: components["schemas"]["ResourceId"];
-            /** @description R204. One entry for each of base, distance, weight, options, surcharge, discount, vat and stamp, in that order, even at 0. */
+            /** @description R204. One entry for each of base, distance, weight, options, packaging, surcharge, discount, vat and stamp, in that order, even at 0. */
             lines: components["schemas"]["PriceLine"][];
             packaging: boolean;
             parcel_type: components["schemas"]["ParcelTypeCode"];
@@ -807,6 +837,8 @@ export interface components {
                 /** @enum {string} */
                 code: "rain";
             };
+            /** @description Whether the prices are TTC or HT. Null while the admin has not set it (the current state). */
+            tax_basis: ("ttc" | "ht") | null;
             /** @description Sum (all parcels) of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT). */
             total_millimes: components["schemas"]["Money"];
         };
@@ -828,7 +860,7 @@ export interface components {
             /** @default false */
             fragile: boolean;
             /**
-             * @description GOFAST packaging (reponses-gofast.md), for every parcel. Its price is in the `options` line.
+             * @description GOFAST packaging (reponses-gofast.md), for every parcel. Its price is in the `packaging` line.
              * @default false
              */
             packaging: boolean;
@@ -887,10 +919,18 @@ export interface components {
                 /** @description Local time of day, HH:MM, Africa/Tunis. */
                 cutoff_time: string | null;
                 from_price_millimes: components["schemas"]["Money"] | null;
+                /** @description Added per parcel when the customer asks for GOFAST packaging. Null while not set. */
+                packaging_price_millimes: components["schemas"]["Money"] | null;
             }[];
             parcel_types: {
                 code: components["schemas"]["ParcelTypeCode"];
                 limit: string | null;
+            }[];
+            /** @description The active délégations, for the picker. Never a polygon. */
+            zones: {
+                governorate: string;
+                id: components["schemas"]["ResourceId"];
+                name: string;
             }[];
         };
         /** @enum {string} */
@@ -954,6 +994,21 @@ export interface components {
                 /** @constant */
                 code?: "VALIDATION_FAILED";
             };
+        };
+        /** @description R201. `zone_id` and `zone_name` are null when out of zone, and then `services` is empty and `reason` is `outOfZone` (an `apiErrors` key in fr, ar and en). */
+        ZoneCheck: {
+            reason: "outOfZone" | null;
+            services: components["schemas"]["ServiceCode"][];
+            /** @enum {string} */
+            status: "in_zone" | "out_of_zone";
+            zone_id: components["schemas"]["ResourceId"] | null;
+            zone_name: string | null;
+        };
+        /** @description Exactly one of `pin` or `zone_id`. */
+        ZoneCheckRequest: {
+            pin: components["schemas"]["Pin"];
+        } | {
+            zone_id: components["schemas"]["ResourceId"];
         };
     };
     responses: {
@@ -1839,6 +1894,33 @@ export interface operations {
             };
             400: components["responses"]["ValidationFailed"];
             404: components["responses"]["NotFound"];
+            429: components["responses"]["TooManyAttempts"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    createZoneCheck: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ZoneCheckRequest"];
+            };
+        };
+        responses: {
+            /** @description The zone and the services offered there. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ZoneCheck"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];
         };

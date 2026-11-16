@@ -3,18 +3,21 @@ ServiceCatalog:
   description: >-
     Prices, cut-off times, limits and fees are null until GOFAST sets them; the pages then show the
     placeholder ([PRIX], [HEURE], [LIMITE], [TARIF]). Nothing is invented.
-  required: [offers, parcel_types, extras]
+  required: [offers, parcel_types, extras, zones]
   additionalProperties: false
   properties:
     offers:
       type: array
       items:
         type: object
-        required: [code, from_price_millimes, cutoff_time]
+        required: [code, from_price_millimes, packaging_price_millimes, cutoff_time]
         additionalProperties: false
         properties:
           code: { $ref: "common.yaml#/ServiceCode" }
           from_price_millimes:
+            oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+          packaging_price_millimes:
+            description: Added per parcel when the customer asks for GOFAST packaging. Null while not set.
             oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
           cutoff_time:
             type: [string, "null"]
@@ -40,6 +43,53 @@ ServiceCatalog:
             enum: [fragile, declaredValue, retry, return]
           fee_millimes:
             oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    zones:
+      type: array
+      description: The active délégations, for the picker. Never a polygon.
+      items:
+        type: object
+        required: [id, name, governorate]
+        additionalProperties: false
+        properties:
+          id: { $ref: "common.yaml#/ResourceId" }
+          name: { type: string }
+          governorate: { type: string }
+ZoneCheckRequest:
+  description: Exactly one of `pin` or `zone_id`.
+  oneOf:
+    - type: object
+      required: [pin]
+      additionalProperties: false
+      properties:
+        pin: { $ref: "common.yaml#/Pin" }
+    - type: object
+      required: [zone_id]
+      additionalProperties: false
+      properties:
+        zone_id: { $ref: "common.yaml#/ResourceId" }
+ZoneCheck:
+  type: object
+  description: >-
+    R201. `zone_id` and `zone_name` are null when out of zone, and then `services` is empty and
+    `reason` is `outOfZone` (an `apiErrors` key in fr, ar and en).
+  required: [status, zone_id, zone_name, services, reason]
+  additionalProperties: false
+  properties:
+    status:
+      type: string
+      enum: [in_zone, out_of_zone]
+    zone_id:
+      oneOf: [{ $ref: "common.yaml#/ResourceId" }, { type: "null" }]
+    zone_name:
+      type: [string, "null"]
+    services:
+      type: array
+      items: { $ref: "common.yaml#/ServiceCode" }
+    reason:
+      oneOf:
+        - type: string
+          const: outOfZone
+        - type: "null"
 QuoteParcels:
   type: array
   minItems: 1
@@ -68,7 +118,7 @@ QuoteRequest:
     packaging:
       type: boolean
       default: false
-      description: GOFAST packaging (reponses-gofast.md), for every parcel. Its price is in the `options` line.
+      description: GOFAST packaging (reponses-gofast.md), for every parcel. Its price is in the `packaging` line.
     fragile:
       type: boolean
       default: false
@@ -91,7 +141,7 @@ AmountLine:
   properties:
     kind:
       type: string
-      enum: [base, distance, weight, options, surcharge, vat, stamp]
+      enum: [base, distance, weight, options, packaging, surcharge, vat, stamp]
     unit_millimes:
       description: >-
         Price of one unit: one parcel for `base`, `weight` and `options`, the whole line for
@@ -136,6 +186,11 @@ Quote:
       fragile,
       lines,
       total_millimes,
+      tax_basis,
+      amount_ht_millimes,
+      amount_ttc_millimes,
+      departure_pinned,
+      arrival_pinned,
       surcharge,
       quoted_at,
       expires_at,
@@ -150,11 +205,29 @@ Quote:
     fragile: { type: boolean }
     lines:
       type: array
-      description: R204. One entry for each of base, distance, weight, options, surcharge, discount, vat and stamp, in that order, even at 0.
+      description: R204. One entry for each of base, distance, weight, options, packaging, surcharge, discount, vat and stamp, in that order, even at 0.
       items: { $ref: "#/PriceLine" }
     total_millimes:
       description: Sum (all parcels) of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT).
       $ref: "common.yaml#/Money"
+    tax_basis:
+      description: Whether the prices are TTC or HT. Null while the admin has not set it (the current state).
+      oneOf:
+        - type: string
+          enum: [ttc, ht]
+        - type: "null"
+    amount_ht_millimes:
+      description: Null while the tax basis or the VAT is unknown.
+      oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    amount_ttc_millimes:
+      description: Null while the tax basis or the VAT is unknown.
+      oneOf: [{ $ref: "common.yaml#/Money" }, { type: "null" }]
+    departure_pinned:
+      type: boolean
+      description: True when the departure address came with a pin. Without one the order stays "à confirmer" (#22).
+    arrival_pinned:
+      type: boolean
+      description: True when the arrival address came with a pin.
     surcharge:
       oneOf:
         - type: "null"

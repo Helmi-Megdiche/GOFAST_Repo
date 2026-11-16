@@ -339,3 +339,64 @@ describe("generated types", () => {
     expect(committed).toBe(fresh);
   });
 });
+
+describe("GH-10 pricing contract (Plan PR 4b-1)", () => {
+  const props = (name: string) => (schemas[name]?.properties ?? {}) as Record<string, Json>;
+  const required = (name: string) => (schemas[name]?.required ?? []) as string[];
+  const op = (id: string) => operations.find((o) => o.id === id);
+
+  it("R201_T04: POST /v1/zone-checks is a public, limited addition", () => {
+    const check = op("createZoneCheck");
+    expect(check).toMatchObject({ method: "POST", path: "/v1/zone-checks" });
+    expect(check?.op["x-roles"]).toEqual(["public"]);
+    expect(check?.op["x-replay"]).toBe("none");
+    expect(check?.op["x-cahier"]).toBe("addition");
+    const responses = check?.op.responses as Record<string, Json>;
+    expect(Object.keys(responses)).toEqual(expect.arrayContaining(["200", "400", "429", "500"]));
+  });
+
+  it("R201_T04: a zone check takes exactly one of pin or zone_id, and answers all fields", () => {
+    const request = schemas.ZoneCheckRequest as Json;
+    expect(request.oneOf).toHaveLength(2);
+    const answer = schemas.ZoneCheck as Json;
+    expect(answer.required).toEqual(
+      expect.arrayContaining(["status", "zone_id", "zone_name", "services", "reason"]),
+    );
+    expect((props("ZoneCheck").status as Json).enum).toEqual(["in_zone", "out_of_zone"]);
+    expect(JSON.stringify(props("ZoneCheck").reason)).toContain("outOfZone");
+    expect(JSON.stringify(props("ZoneCheck").reason)).toContain('"null"');
+  });
+
+  it("the catalog lists the active zones and a packaging price per offer", () => {
+    expect(props("ServiceCatalog").zones).toBeDefined();
+    expect(JSON.stringify(props("ServiceCatalog").zones)).toContain("governorate");
+    expect(required("ServiceCatalog")).toContain("zones");
+    const offer = ((props("ServiceCatalog").offers as Json).items as Json) ?? {};
+    expect(Object.keys(offer.properties as Json)).toContain("packaging_price_millimes");
+    expect(offer.required).toContain("packaging_price_millimes");
+  });
+
+  it("an address may carry the picked zone_id", () => {
+    expect(Object.keys(props("AddressInput"))).toContain("zone_id");
+    expect(required("AddressInput")).not.toContain("zone_id");
+  });
+
+  it("R204: a quote has a packaging line, the tax basis and the two taxed totals", () => {
+    const kinds = ((props("AmountLine").kind as Json).enum as string[]) ?? [];
+    expect(kinds.indexOf("packaging")).toBe(kinds.indexOf("options") + 1);
+    const quote = props("Quote");
+    for (const key of [
+      "tax_basis",
+      "amount_ht_millimes",
+      "amount_ttc_millimes",
+      "departure_pinned",
+      "arrival_pinned",
+    ]) {
+      expect(Object.keys(quote), key).toContain(key);
+      expect(required("Quote"), key).toContain(key);
+    }
+    expect(JSON.stringify(quote.tax_basis)).toContain('"ttc"');
+    expect(JSON.stringify(quote.tax_basis)).toContain('"ht"');
+    expect(JSON.stringify(quote.tax_basis)).toContain('"null"');
+  });
+});
