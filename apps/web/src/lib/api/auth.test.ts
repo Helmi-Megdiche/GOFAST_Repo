@@ -126,6 +126,24 @@ describe("api auth adapter: sign-in (W18)", () => {
     expect(getSession()).toBeNull();
   });
 
+  it("a 401 for a wrong password does not drop the copy of an existing session (finding 6)", async () => {
+    const copy: Session = {
+      accountId: "acc-keep",
+      userId: "acc-keep",
+      role: null,
+      kind: "customer",
+      contract: null,
+      phoneVerified: true,
+      maskedPhone: "+216 ** *** 456",
+    };
+    setSession(copy);
+    const { auth } = setup(() =>
+      json(401, err("AUTH_REQUIRED", [{ name: "x", reason: "invalidCredentials" }])),
+    );
+    expect(await auth.signIn("20 123 456", "bad")).toEqual({ status: "invalidCredentials" });
+    expect(getSession()).toEqual(copy);
+  });
+
   it("a staff account is refused as a customer session and its cookie is dropped", async () => {
     const { auth, sent } = setup((request) =>
       request.method === "DELETE" ? noBody(204) : json(201, me({ kind: "staff", role: "ops" })),
@@ -317,6 +335,49 @@ describe("api auth adapter: sign-up (W19)", () => {
       throw new TypeError("offline");
     });
     expect(await auth.signUp(signUpInput, CHECK_ID)).toEqual({ status: "unavailable" });
+  });
+
+  const stale: Session = {
+    accountId: "acc-old",
+    userId: "acc-old",
+    role: null,
+    kind: "customer",
+    contract: null,
+    phoneVerified: true,
+    maskedPhone: "+216 ** *** 456",
+  };
+
+  it("Change A: a stale local copy never makes 'created' when both calls are cut (RV-12)", async () => {
+    setSession(stale);
+    const { auth } = setup(() => {
+      throw new TypeError("offline");
+    });
+    expect(await auth.signUp(signUpInput, CHECK_ID)).toEqual({ status: "unavailable" });
+  });
+
+  it("Change A: a stale local copy and a 503 on /v1/me gives unavailable", async () => {
+    setSession(stale);
+    const { auth } = setup((request) => {
+      if (request.method === "POST") throw new TypeError("offline");
+      return json(503, err("INTERNAL_ERROR"));
+    });
+    expect(await auth.signUp(signUpInput, CHECK_ID)).toEqual({ status: "unavailable" });
+  });
+
+  it("Change A: another account's cookie (a different phone) gives unavailable, not created", async () => {
+    const { auth } = setup((request) => {
+      if (request.method === "POST") throw new TypeError("offline");
+      return json(200, me({ account_id: "acc-other", phone: "+21699999999" }));
+    });
+    expect(await auth.signUp(signUpInput, CHECK_ID)).toEqual({ status: "unavailable" });
+    expect(getSession()?.accountId).not.toBe("acc-other");
+  });
+
+  it("a 400 or a 403 goes back to the form (notVerified), so a retry cannot loop", async () => {
+    for (const status of [400, 403]) {
+      const { auth } = setup(() => json(status, err("VALIDATION_FAILED")));
+      expect(await auth.signUp(signUpInput, CHECK_ID)).toEqual({ status: "notVerified" });
+    }
   });
 });
 

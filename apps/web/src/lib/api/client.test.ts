@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 import { createApiClient } from "./client";
-import { SESSION_KEY, getSession, setSession } from "../data/session";
-import { useMemoryStorage as freshStorage } from "../storage";
+import { GOOGLE_PENDING_KEY, SESSION_KEY, getSession, setSession } from "../data/session";
+import { DRAFT_KEY } from "../order/draft";
+import { readJson, useMemoryStorage as freshStorage, writeJson } from "../storage";
 import { NetworkError } from "./errors";
 
 const json = (status: number, data: unknown) =>
@@ -72,6 +73,36 @@ describe("api client (fake fetch, no network)", () => {
     it("any 401 from any /v1 call removes the copy when the auth domain is on the API", async () => {
       await call(401, true);
       expect(getSession()).toBeNull();
+    });
+
+    it("a 401 also drops the order draft and a pending Google sign-in, like sign-out", async () => {
+      freshStorage();
+      setSession(session);
+      writeJson(DRAFT_KEY, { step: "colis" });
+      writeJson(GOOGLE_PENDING_KEY, { id: "g-1" });
+      const client = createApiClient({
+        fetch: vi.fn(async () => json(401, { error: { code: "AUTH_REQUIRED" } })),
+        baseUrl: "http://web.test",
+        clearSessionOn401: true,
+      });
+      await client.GET("/v1/me");
+      expect(getSession()).toBeNull();
+      expect(readJson(DRAFT_KEY)).toBeNull();
+      expect(readJson(GOOGLE_PENDING_KEY)).toBeNull();
+    });
+
+    it("a 401 from POST /v1/sessions (wrong password) keeps everything", async () => {
+      freshStorage();
+      setSession(session);
+      writeJson(DRAFT_KEY, { step: "colis" });
+      const client = createApiClient({
+        fetch: vi.fn(async () => json(401, { error: { code: "AUTH_REQUIRED" } })),
+        baseUrl: "http://web.test",
+        clearSessionOn401: true,
+      });
+      await client.POST("/v1/sessions", { body: { identifier: "x", password: "y" } });
+      expect(getSession()).toEqual(session);
+      expect(readJson(DRAFT_KEY)).not.toBeNull();
     });
 
     it("another status keeps the copy", async () => {

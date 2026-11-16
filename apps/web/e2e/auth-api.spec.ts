@@ -441,6 +441,24 @@ test("reset: a known and an unknown phone get the same screens, then the new pas
   noUnexpected(api);
 });
 
+test("reset: a double click sends one request, so the proof is not spent twice", async ({
+  page,
+}) => {
+  const api = await fakeApi(page);
+  let n = 0;
+  // A second call with the same proof would be refused: 204 first, then 422.
+  api.state.on["POST /v1/password-resets"] = () =>
+    ++n === 1 ? { status: 204 } : { status: 422, body: refused("notVerified") };
+  await reachNewPassword(page, PHONE);
+  await input(page, "password").fill("a-new-long-password");
+  await submit(page).dblclick();
+  await expect(
+    page.getByText("Mot de passe enregistré. Vous pouvez vous connecter."),
+  ).toBeVisible();
+  await expect(page).toHaveURL(/\/fr\/mot-de-passe\/nouveau$/);
+  expect(api.calls("POST /v1/password-resets")).toHaveLength(1);
+});
+
 test("reset: a lost answer, then a 422 on the retry says the password may already be changed", async ({
   page,
 }) => {

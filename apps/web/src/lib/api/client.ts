@@ -17,6 +17,11 @@ export type ApiClientOptions = {
   clearSessionOn401?: boolean;
 };
 
+/** A 401 from POST /v1/sessions is a wrong password, not an ended session: it keeps the copy. */
+function isSignInAttempt(request: Request): boolean {
+  return request.method === "POST" && new URL(request.url).pathname === "/v1/sessions";
+}
+
 /** Typed client on the contract. A cut or a timeout becomes NetworkError (the "lost answer" path). */
 export function createApiClient(options: ApiClientOptions = {}) {
   const { locale, cookie, timeoutMs = 10_000 } = options;
@@ -30,7 +35,7 @@ export function createApiClient(options: ApiClientOptions = {}) {
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     try {
       const response = await send(new Request(input, { signal: controller.signal }));
-      if (response.status === 401 && clearOn401) clearSessionCopy();
+      if (response.status === 401 && clearOn401 && !isSignInAttempt(input)) clearSessionCopy();
       return response;
     } catch {
       throw new NetworkError();

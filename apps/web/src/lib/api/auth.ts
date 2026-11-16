@@ -83,6 +83,21 @@ export function createApiAuth(client: Client, options: { now?: () => number } = 
     }
   };
 
+  /** GET /v1/me, no fallback to the copy. A session only when the cookie belongs to this phone. */
+  const confirmCreated = async (phone: string): Promise<SignUpResult | null> => {
+    try {
+      const { data, response } = await client.GET("/v1/me");
+      if (response.status !== 200 || !data || data.phone !== phone) return null;
+      const session = toSession(data);
+      if (!session) return null;
+      setSession(session);
+      return { status: "created", session };
+    } catch (error) {
+      if (error instanceof NetworkError) return null;
+      throw error;
+    }
+  };
+
   return {
     kind: "api",
     googleAvailable: false,
@@ -173,6 +188,8 @@ export function createApiAuth(client: Client, options: { now?: () => number } = 
           return { status: "created", session };
         }
         if (response.status === 429) return wait(response);
+        // 400 and 403: the proof or the form is refused. Back to the form, so a retry cannot loop.
+        if (response.status === 400 || response.status === 403) return { status: "notVerified" };
         if (response.status === 422) {
           const field = firstField(error);
           if (field?.reason === "phoneTaken") return { status: "phoneTaken" };
@@ -182,9 +199,9 @@ export function createApiAuth(client: Client, options: { now?: () => number } = 
         return unavailable;
       } catch (error) {
         if (!(error instanceof NetworkError)) throw error;
-        // Change A: the answer may have been lost after the account was created. The cookie decides.
-        const session = await refreshSession();
-        return session ? { status: "created", session } : unavailable;
+        // Change A: the answer may have been lost after the account was created. Only the server
+        // decides: the local copy is not evidence. Created needs a 200 for this very phone.
+        return (await confirmCreated(phone)) ?? unavailable;
       }
     },
 
