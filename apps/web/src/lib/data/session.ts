@@ -57,6 +57,18 @@ export function setSession(session: Session): void {
 }
 
 /**
+ * Api mode: the cookie is the authority, so a 401 or a sign-out drops the display copy, and, like
+ * signOut, a Google sign-in left half-way and the order draft (personal data). The same tab does
+ * not get a "storage" event from its own write, so one is sent for use-session.
+ */
+export function clearSessionCopy(): void {
+  removeKey(SESSION_KEY);
+  removeKey(GOOGLE_PENDING_KEY);
+  removeKey(DRAFT_KEY);
+  if (typeof window !== "undefined") window.dispatchEvent(new Event("storage"));
+}
+
+/**
  * Ends the session, forgets a Google sign-in left half-way and the order draft (it holds personal
  * data). The fg.mock.* tables are the "server": they are never touched.
  */

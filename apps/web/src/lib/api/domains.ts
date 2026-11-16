@@ -20,6 +20,9 @@ export function apiDomains(raw: string | undefined): ApiDomain[] {
 }
 
 /** `raw` defaults to the build-time flag. Next inlines the literal `process.env.NEXT_PUBLIC_*` access. */
-export function usesApi(domain: ApiDomain, raw: string | undefined = process.env.NEXT_PUBLIC_API_DOMAINS): boolean {
+export function usesApi(
+  domain: ApiDomain,
+  raw: string | undefined = process.env.NEXT_PUBLIC_API_DOMAINS,
+): boolean {
   return apiDomains(raw).includes(domain);
 }

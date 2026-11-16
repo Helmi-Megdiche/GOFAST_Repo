@@ -10,18 +10,37 @@ describe("mapOrderFailure: ErrorBody to the existing UI errors", () => {
     [409, "KEY_REUSED", [], "idempotencyConflict"],
     [410, "QUOTE_EXPIRED", [], "quoteExpired"],
     [422, "RULE_REFUSED", [{ name: "departure", reason: "outOfZone" }], "outOfZone"],
-    [422, "RULE_REFUSED", [{ name: "phone_check_id", reason: "phoneRequired" }], "phoneNotVerified"],
-    [422, "RULE_REFUSED", [{ name: "accepted_total_millimes", reason: "quoteChanged" }], "quoteNotAccepted"],
+    [
+      422,
+      "RULE_REFUSED",
+      [{ name: "phone_check_id", reason: "phoneRequired" }],
+      "phoneNotVerified",
+    ],
+    [
+      422,
+      "RULE_REFUSED",
+      [{ name: "accepted_total_millimes", reason: "quoteChanged" }],
+      "quoteNotAccepted",
+    ],
   ];
   it.each(table)("%i %s %j gives %s", (status, code, fields, expected) => {
-    expect(mapOrderFailure(status, body(code, fields))).toEqual({ kind: "refused", error: expected });
+    expect(mapOrderFailure(status, body(code, fields))).toEqual({
+      kind: "refused",
+      error: expected,
+    });
   });
 
   it("an unknown 422 reason, or any other code, is a generic server error (no server text)", () => {
-    const unknown = mapOrderFailure(422, body("RULE_REFUSED", [{ name: "x", reason: "newReason" }]));
+    const unknown = mapOrderFailure(
+      422,
+      body("RULE_REFUSED", [{ name: "x", reason: "newReason" }]),
+    );
     expect(unknown).toEqual({ kind: "server", traceId: "tr-1" });
     expect(JSON.stringify(unknown)).not.toContain("Texte du serveur");
-    expect(mapOrderFailure(500, body("INTERNAL_ERROR"))).toEqual({ kind: "server", traceId: "tr-1" });
+    expect(mapOrderFailure(500, body("INTERNAL_ERROR"))).toEqual({
+      kind: "server",
+      traceId: "tr-1",
+    });
   });
 
   it("401 asks for sign-in, 429 is too many attempts", () => {
@@ -30,7 +49,10 @@ describe("mapOrderFailure: ErrorBody to the existing UI errors", () => {
   });
 
   it("an answer that is not an ErrorBody is a server error without trace id", () => {
-    expect(mapOrderFailure(502, "<html>bad gateway</html>")).toEqual({ kind: "server", traceId: null });
+    expect(mapOrderFailure(502, "<html>bad gateway</html>")).toEqual({
+      kind: "server",
+      traceId: null,
+    });
   });
 
   it("keeps the trace id for the error screen or the log", () => {

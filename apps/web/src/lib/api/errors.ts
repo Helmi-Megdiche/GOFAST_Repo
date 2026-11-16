@@ -44,7 +44,7 @@ export type OrderFailure =
   | { kind: "tooManyAttempts" }
   | { kind: "server"; traceId: string | null };
 
-function asErrorBody(value: unknown): ErrorBody | null {
+export function asErrorBody(value: unknown): ErrorBody | null {
   if (typeof value !== "object" || value === null) return null;
   const error = (value as { error?: unknown }).error;
   if (typeof error !== "object" || error === null) return null;

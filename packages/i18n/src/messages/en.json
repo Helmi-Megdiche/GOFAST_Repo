@@ -1078,6 +1078,12 @@
       "signUp": "Create an account",
       "invalid": "Wrong phone, email or password."
     },
+    "notices": {
+      "retry": "Try again",
+      "wait": "Too many attempts. Try again in {seconds} s.",
+      "unavailable": "The service is not answering right now. Your details are kept: try again in a moment.",
+      "maybeChanged": "Your password may already be changed. Try signing in with the new one."
+    },
     "signUp": {
       "title": "Create an account",
       "kindLegend": "Account type",

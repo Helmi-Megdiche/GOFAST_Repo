@@ -155,4 +155,5 @@ draft, `?next=`, and every code case. Tests use `page.clock` and the fixture cod
 - `NEXT_PUBLIC_API_DOMAINS` (comma list: auth, orders, pricing, account). Empty = all mock (CI, e2e). An unknown name throws.
 - Same origin: the browser calls `/v1/...`; `next.config.ts` rewrites it to the server-side `API_ORIGIN`. `proxy.ts` skips `/v1`. No CORS, no `NEXT_PUBLIC_API_URL`.
 - R202 on the api adapter: the draft stores the exact request body next to the key (`pendingSubmit.body`); a retry re-sends those bytes. Over 24 h (key purged) nothing is sent and the "lost" message stays.
+- Api-mode e2e: files named `e2e/*-api.spec.ts` run only with `pnpm --filter @fastgo/web test:e2e:api` (`playwright.api.config.ts`: own build in `.next-api` through `NEXT_DIST_DIR`, port 3200, `NEXT_PUBLIC_API_DOMAINS=auth`, `/v1` faked with `page.route`). The default config ignores them. CI job `e2e-api`.
 - Server text is never shown, only `trace_id` is kept. A 401 goes to `/connexion?next=` with a same-site path only (`signInUrl`).

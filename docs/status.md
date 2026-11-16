@@ -14,6 +14,7 @@ Snapshot of 8 Nov 2026, 18:00 Tunis time (week S1). Client priority: public site
 | Server setup script: SSH keys only, firewall, auto updates, Docker | PR #68, needs servers |
 | Test matrix, 118 scenarios: 10 covered, 15 partial, 22 not built yet, 71 blocked | PR #69, Moataz reviews |
 | Host shortlist: Ooredoo Business, Orange Tunisie, Tunisie Telecom | `infra/servers/README.md` in PR #68 |
+| #20 PR 4a: sign-in, sign-up, phone code and password reset on the API adapter, behind the `auth` flag (default stays mock). In review, not pushed. Do not set `auth=api` for real use until `account` is switched | Branch `web/GH-20-auth-api` |
 
 ## Blocked
 

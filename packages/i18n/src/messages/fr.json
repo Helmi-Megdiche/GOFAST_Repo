@@ -1078,6 +1078,12 @@
       "signUp": "Créer un compte",
       "invalid": "Identifiant ou mot de passe incorrect."
     },
+    "notices": {
+      "retry": "Réessayer",
+      "wait": "Trop de tentatives. Réessayez dans {seconds} s.",
+      "unavailable": "Le service ne répond pas pour le moment. Vos informations sont conservées : réessayez dans un instant.",
+      "maybeChanged": "Votre mot de passe a peut-être déjà été changé. Essayez de vous connecter avec le nouveau."
+    },
     "signUp": {
       "title": "Créer un compte",
       "kindLegend": "Type de compte",

@@ -272,13 +272,79 @@ jobs:
           path: e2e-tree
           retention-days: 7
 
+  # Api-mode e2e (#20): the same app built with NEXT_PUBLIC_API_DOMAINS=auth, every /v1 call faked
+  # in the spec. Own config, port and build folder; runs once (not sharded). The "E2E" check below
+  # includes its result.
+  e2e-api:
+    name: E2E api mode (auth)
+    needs: [checks, changes, e2e-prior]
+    if: >-
+      ${{ !cancelled() && needs.checks.result == 'success' && needs.changes.outputs.code == 'true'
+      && needs.e2e-prior.outputs.passed != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm (version from package.json)
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Playwright version
+        id: pw
+        working-directory: apps/web
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium and its system libraries
+        working-directory: apps/web
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+
+      # playwright.api.config.ts builds apps/web with the auth flag on and serves it on port 3200.
+      - name: Run the api-mode spec
+        run: pnpm --filter @fastgo/web test:e2e:api
+
+      - name: Upload traces and screenshots of failed tests
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-api-failures
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report-api
+          retention-days: 14
+
   # The check name seen on a PR. Green when every shard passed, or when the shards were
   # skipped because only docs and infra changed, or (push to main) because the same tree
   # already passed e2e on its PR. Red on a failed or cancelled shard, and
   # also when the shards did not run although code changed (a failed `checks` job).
   e2e:
     name: E2E (Playwright, axe-core)
-    needs: [changes, e2e-shard, e2e-prior]
+    needs: [changes, e2e-shard, e2e-api, e2e-prior]
     if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 5
@@ -287,10 +353,15 @@ jobs:
         env:
           CODE: ${{ needs.changes.outputs.code }}
           SHARDS: ${{ needs.e2e-shard.result }}
+          API: ${{ needs.e2e-api.result }}
           PRIOR: ${{ needs.e2e-prior.outputs.passed }}
         run: |
-          echo "code=$CODE shards=$SHARDS prior=$PRIOR"
-          if [ "$SHARDS" = "success" ]; then exit 0; fi
+          echo "code=$CODE shards=$SHARDS api=$API prior=$PRIOR"
+          if [ "$API" = "failure" ] || [ "$API" = "cancelled" ]; then
+            echo "The api-mode e2e did not pass."
+            exit 1
+          fi
+          if [ "$SHARDS" = "success" ] && [ "$API" = "success" ]; then exit 0; fi
           if [ "$SHARDS" = "skipped" ] && [ "$CODE" = "false" ]; then
             echo "Only docs, Markdown or infra changed: e2e skipped."
             exit 0

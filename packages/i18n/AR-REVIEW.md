@@ -144,6 +144,10 @@ native-speaker review before release (CLAUDE.md).
 | `auth.newPassword.submit` | حفظ | Enregistrer | [ ] |
 | `auth.newPassword.title` | اختر كلمة مرور جديدة | Choisissez un nouveau mot de passe | [ ] |
 | `auth.noJs` | تحتاج هذه الصفحة إلى JavaScript. فعّله في متصفحك. | Cette page a besoin de JavaScript. Activez-le dans votre navigateur. | [ ] |
+| `auth.notices.maybeChanged` | ربما تم تغيير كلمة المرور بالفعل. جرّب تسجيل الدخول بكلمة المرور الجديدة. | Votre mot de passe a peut-être déjà été changé. Essayez de vous connecter avec le nouveau. | [ ] |
+| `auth.notices.retry` | أعد المحاولة | Réessayer | [ ] |
+| `auth.notices.unavailable` | الخدمة لا تستجيب حاليًا. بياناتك محفوظة: أعد المحاولة بعد قليل. | Le service ne répond pas pour le moment. Vos informations sont conservées : réessayez dans un instant. | [ ] |
+| `auth.notices.wait` | محاولات كثيرة. أعد المحاولة بعد {seconds} ث. | Trop de tentatives. Réessayez dans {seconds} s. | [ ] |
 | `auth.or` | أو | ou | [ ] |
 | `auth.signIn.forgot` | نسيت كلمة المرور | Mot de passe oublié | [ ] |
 | `auth.signIn.identifier` | الهاتف أو البريد الإلكتروني | Téléphone ou e-mail | [ ] |
