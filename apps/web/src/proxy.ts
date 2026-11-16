@@ -24,5 +24,5 @@ export function proxy(request: NextRequest) {
 
 export const config = {
   // Everything except API routes, Next internals and files with an extension (logos, icons).
-  matcher: ["/((?!api|trpc|_next|_vercel|brand|.*\\..*).*)"],
+  matcher: ["/((?!api|trpc|_next|_vercel|v1/|brand|.*\\..*).*)"],
 };

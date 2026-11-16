@@ -1,5 +1,7 @@
 import { consumeVerification } from "../data/otp";
-import { createOrder, findOrderByKey, NetworkError, type OrderError } from "../data/orders";
+import { AuthRequiredError, NetworkError, ServerError } from "../api/errors";
+import { ordersPort } from "../data/index";
+import type { OrderError } from "../data/orders";
 import { now } from "./clock";
 import { clearDraft, loadDraft, saveDraft, type OrderDraft } from "./draft";
 import { buildOrderRequest, fingerprint } from "./request";
@@ -8,13 +10,15 @@ export type SubmitResult =
   | { status: "created"; code: string }
   | { status: "refused"; error: OrderError }
   | { status: "lost" }
+  /** 401: the session is gone. The draft is kept; the caller goes to sign-in and back. */
+  | { status: "signIn" }
   | { status: "incomplete" }
   /** Another tab changed the order since this tab showed it: nothing was sent, show what is saved. */
   | { status: "changed" };
 
 /** An order exists for this key (placed here or in another tab): the draft is done. */
 async function existingOrder(idempotencyKey: string): Promise<SubmitResult | null> {
-  const code = await findOrderByKey(idempotencyKey);
+  const code = await ordersPort().findOrderByKey(idempotencyKey);
   if (!code) return null;
   clearDraft();
   return { status: "created", code };
@@ -45,18 +49,31 @@ export async function submitOrder(draft: OrderDraft): Promise<SubmitResult> {
   const saved = buildOrderRequest(stored, stored.termsAccepted);
   if (!pending && (!saved || fingerprint(saved) !== print)) return { status: "changed" };
 
+  const port = ordersPort();
+  const attemptedAt = stored.submitAttemptedAt ?? draft.submitAttemptedAt ?? now();
+  // A retry re-sends the stored bytes, never a new serialization (R202). The key is purged by the
+  // server after keyLifetimeMs: a replay then would create a second order, so nothing is sent and
+  // the existing "lost" message stays.
+  const body = pending?.body ?? port.prepare(request);
+  if (pending && port.keyLifetimeMs !== null && now() - attemptedAt > port.keyLifetimeMs) {
+    return { status: "lost" };
+  }
+
   saveDraft({
     ...stored,
-    submitAttemptedAt: stored.submitAttemptedAt ?? draft.submitAttemptedAt ?? now(),
+    submitAttemptedAt: attemptedAt,
     expiresAt: stored.expiresAt,
-    pendingSubmit: { fingerprint: print },
+    pendingSubmit: body === undefined ? { fingerprint: print } : { fingerprint: print, body },
   });
 
   let result;
   try {
-    result = await createOrder(request, draft.idempotencyKey);
+    result = await port.createOrder(request, draft.idempotencyKey, body);
   } catch (error) {
     if (error instanceof NetworkError) return { status: "lost" };
+    if (error instanceof AuthRequiredError) return { status: "signIn" };
+    // 5xx or 429: the order may exist. Retrying with the same key and bytes is safe.
+    if (error instanceof ServerError) return { status: "lost" };
     throw error;
   }
 
@@ -91,7 +108,7 @@ export async function submitOrder(draft: OrderDraft): Promise<SubmitResult> {
 export async function resolveLostSubmit(
   draft: OrderDraft,
 ): Promise<{ code: string } | { draft: OrderDraft }> {
-  const code = await findOrderByKey(draft.idempotencyKey);
+  const code = await ordersPort().findOrderByKey(draft.idempotencyKey);
   if (code) {
     clearDraft();
     return { code };
