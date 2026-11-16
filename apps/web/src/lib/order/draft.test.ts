@@ -7,6 +7,7 @@ import {
   DRAFT_KEY,
   editDraft,
   emptyDraft,
+  type OrderDraft,
   loadDraft,
   saveDraft,
   seedFromHome,
@@ -55,6 +56,76 @@ describe("a draft saved before the parcel count (PR 1b)", () => {
   });
 });
 
+describe("draft v2: a v1 draft is migrated, never dropped (GH-10, RV-08)", () => {
+  // One ready draft per test (each call makes a new idempotency key and quote id).
+  const asV1 = (ready: OrderDraft = readyDraft(T0)) =>
+    ({ ...JSON.parse(JSON.stringify(ready)), version: 1 }) as Record<string, unknown> & {
+      quote: { lines: Record<string, unknown> } | null;
+    };
+
+  it("GH-10-D1 a stored v1 draft loads as v2 with the same addresses, parcels and choices", () => {
+    const ready = readyDraft(T0);
+    store.set(DRAFT_KEY, JSON.stringify(asV1(ready)));
+    const loaded = loadDraft(T0);
+    expect(loaded).not.toBeNull();
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.sender).toEqual(ready.sender);
+    expect(loaded?.recipient).toEqual(ready.recipient);
+    expect(loaded?.parcel).toEqual(ready.parcel);
+    expect(loaded?.service).toEqual(ready.service);
+    expect(loaded?.payment).toEqual(ready.payment);
+    expect(loaded?.idempotencyKey).toBe(ready.idempotencyKey);
+    expect(JSON.parse(store.get(DRAFT_KEY)!).version).toBe(2);
+  });
+
+  it("GH-10-D2 a draft missing one price line is kept, its quote dropped so W14 prices it again", () => {
+    const ready = readyDraft(T0);
+    const stored = asV1(ready);
+    expect(stored.quote).not.toBeNull();
+    delete stored.quote!.lines.stamp;
+    store.set(DRAFT_KEY, JSON.stringify({ ...stored, version: 2 }));
+    const loaded = loadDraft(T0);
+    expect(loaded).not.toBeNull();
+    expect(loaded?.sender).toEqual(ready.sender);
+    expect(loaded?.parcel).toEqual(ready.parcel);
+    expect(loaded?.quote).toBeNull();
+    expect(loaded?.acceptedQuoteId).toBeNull();
+    expect(loaded?.previousTotalMillimes).toBeNull();
+  });
+
+  it("GH-10-D3 a complete quote survives the migration unchanged", () => {
+    const ready = readyDraft(T0);
+    store.set(DRAFT_KEY, JSON.stringify(asV1(ready)));
+    expect(loadDraft(T0)?.quote).toEqual(ready.quote);
+  });
+
+  it("GH-10-D4 an unknown price line key is refused and the draft is cleared", () => {
+    const stored = asV1();
+    stored.quote!.lines.teleport = { unitMillimes: 1, count: 1, totalMillimes: 1 };
+    store.set(DRAFT_KEY, JSON.stringify({ ...stored, version: 2 }));
+    expect(loadDraft(T0)).toBeNull();
+    expect(store.has(DRAFT_KEY)).toBe(false);
+  });
+
+  it("GH-10-D5 an unknown version is still cleared", () => {
+    store.set(DRAFT_KEY, JSON.stringify({ ...asV1(), version: 3 }));
+    expect(loadDraft(T0)).toBeNull();
+    expect(store.has(DRAFT_KEY)).toBe(false);
+  });
+
+  it("GH-10-D6 a PR 1b draft (weightKg, version 1) still migrates to v2", () => {
+    const old = asV1() as unknown as { parcel: Record<string, unknown> };
+    const { weights, packaging, ...rest } = old.parcel;
+    void weights;
+    void packaging;
+    old.parcel = { ...rest, count: "1", weightKg: "2,5" };
+    store.set(DRAFT_KEY, JSON.stringify(old));
+    const loaded = loadDraft(T0);
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.parcel.weights).toEqual(["2,5"]);
+  });
+});
+
 describe("order draft (CMD-07)", () => {
   it("keeps everything under one key", () => {
     saveDraft(emptyDraft(T0), T0);
@@ -92,7 +163,7 @@ describe("order draft (CMD-07)", () => {
   });
 
   it("reads a draft with the right version but a broken shape as empty, and deletes it", () => {
-    const base = { version: 1, expiresAt: T0 + 60_000, idempotencyKey: "k" };
+    const base = { version: 2, expiresAt: T0 + 60_000, idempotencyKey: "k" };
     const broken = [
       { ...base, sender: null, recipient: null, parcel: null, service: null },
       { ...base, sender: {}, recipient: {}, parcel: {}, service: {} },
