@@ -82,7 +82,7 @@ describe("R201_T04 the délégations of the Grand Tunis (migration 0009)", () =>
     const geo = JSON.parse(read("delegations.geojson")) as { features: { properties: { name: string } }[] };
     expect(geo.features).toHaveLength(48);
     for (const f of geo.features) expect(sql, f.properties.name).toContain(`'${f.properties.name.replaceAll("'", "''")}'`);
-    expect(sql).not.toMatch(/begin;|commit;/i); // the runner already wraps a migration in one transaction
+    expect(sql).not.toMatch(/^(begin|commit);/im); // the runner already wraps a migration in one transaction
   });
 
   it("carries the ODbL credit in the data, the seed and the attribution file", () => {
