@@ -22,6 +22,7 @@ post:
         application/json:
           schema: { $ref: "../schemas/account.yaml#/PhoneCheckVerified" }
     "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
     "422": { $ref: "../responses/errors.yaml#/RuleRefused" }
     "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
     "500": { $ref: "../responses/errors.yaml#/InternalError" }

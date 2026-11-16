@@ -34,8 +34,8 @@ const EXPECTED: Record<string, Expect> = {
   "core.zones": REFERENCE,
   "core.services": REFERENCE,
   "core.prices": REFERENCE,
-  // Column grants only (no table-level right): hash hidden from the app, 4 columns updatable.
-  "core.accounts": { app: [], appCols: { UPDATE: ["email", "full_name", "locale", "updated_at"] }, ro: "no-hash", rls: true },
+  // Column grants only (no table-level right): hash hidden from the app, 7 columns updatable.
+  "core.accounts": { app: [], appCols: { UPDATE: ["email", "full_name", "locale", "notify_email", "notify_offers", "notify_sms", "updated_at"] }, ro: "no-hash", rls: true },
   "core.companies": OWNED,
   "core.company_members": OWNED,
   "core.addresses": OWNED,
@@ -106,7 +106,7 @@ const WORKER: Record<string, Rights> = {
   "core.idempotency_keys": { t: ["DELETE", "SELECT"] },
   "gestion.audit_events": { t: ["INSERT"] },
   "core.status_events": { t: ["SELECT"], c: { UPDATE: ["location"] } },
-  "core.outbox": { t: ["SELECT"], c: { UPDATE: ["attempts", "processed_at"] } },
+  "core.outbox": { t: ["SELECT"], c: { UPDATE: ["attempts", "payload", "processed_at"] } },
   // Frees the scope of an expired key (R202); the freeze trigger lets only the worker null it.
   "core.orders": { c: { SELECT: ["id", "idempotency_scope"], UPDATE: ["idempotency_scope"] } },
 };
@@ -122,7 +122,11 @@ const PUBLIC_READER: Record<string, Rights> = {
   "core.status_events": { c: { SELECT: ["occurred_at", "order_id", "subject_type", "to_status"] } },
   "core.recipient_links": { t: ["SELECT"] },
   // Sign-up (core.create_account) inserts into these three identity tables and nowhere else.
-  "core.accounts": { t: ["INSERT", "SELECT"] },
+  // mark_phone_verified, set_password and rehash_password change only these four columns.
+  "core.accounts": {
+    t: ["INSERT", "SELECT"],
+    c: { UPDATE: ["password_hash", "phone_verified_at", "sessions_valid_from", "updated_at"] },
+  },
   "core.companies": { t: ["INSERT"] },
   "core.company_members": { t: ["INSERT", "SELECT"] },
 };

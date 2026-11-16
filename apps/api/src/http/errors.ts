@@ -25,6 +25,8 @@ export class ApiError extends Error {
     readonly code: ErrorCode,
     readonly fields: FieldError[] = [],
     readonly retryAfterSeconds?: number,
+    /** Integers the client may show (`attempts_left`). */
+    readonly details?: Record<string, number>,
   ) {
     super(code);
     this.status = STATUS_OF[code];
