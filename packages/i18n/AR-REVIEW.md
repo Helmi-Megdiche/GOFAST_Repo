@@ -877,6 +877,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.price.lines.discount` | تخفيض | Remise | [ ] |
 | `order.price.lines.distance` | المسافة | Distance | [ ] |
 | `order.price.lines.options` | الخيارات | Options | [ ] |
+| `order.price.lines.packaging` | تغليف GOFAST | Emballage GOFAST | [ ] |
 | `order.price.lines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
 | `order.price.lines.surcharge` | رسوم إضافية: {name} (الحد الأقصى: <ceiling></ceiling>) | Majoration {name} (plafond : <ceiling></ceiling>) | [ ] |
 | `order.price.lines.vat` | الأداء على القيمة المضافة | TVA | [ ] |
@@ -1029,6 +1030,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.detail.priceLines.discount` | خصم | Remise | [ ] |
 | `orders.detail.priceLines.distance` | المسافة | Distance | [ ] |
 | `orders.detail.priceLines.options` | خيارات | Options | [ ] |
+| `orders.detail.priceLines.packaging` | تغليف GOFAST | Emballage GOFAST | [ ] |
 | `orders.detail.priceLines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
 | `orders.detail.priceLines.surcharge` | زيادة | Majoration | [ ] |
 | `orders.detail.priceLines.vat` | الأداء على القيمة المضافة | TVA | [ ] |

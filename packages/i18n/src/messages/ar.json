@@ -929,7 +929,8 @@
         "surcharge": "رسوم إضافية: {name} (الحد الأقصى: <ceiling></ceiling>)",
         "discount": "تخفيض",
         "vat": "الأداء على القيمة المضافة",
-        "stamp": "الطابع الجبائي"
+        "stamp": "الطابع الجبائي",
+        "packaging": "تغليف GOFAST"
       },
       "surchargeNames": {
         "rain": "المطر"
@@ -1254,7 +1255,8 @@
         "surcharge": "زيادة",
         "discount": "خصم",
         "vat": "الأداء على القيمة المضافة",
-        "stamp": "الطابع الجبائي"
+        "stamp": "الطابع الجبائي",
+        "packaging": "تغليف GOFAST"
       },
       "total": "المجموع مع احتساب الأداءات",
       "payment": "الدفع",

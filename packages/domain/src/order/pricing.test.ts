@@ -166,7 +166,8 @@ describe("parcel count (PR 1b)", () => {
       const lines = priceLines(input({ parcels: same(n, 3), packaging: true }));
       expect(lines.base).toEqual({ unitMillimes: 6_000, count: n, totalMillimes: 6_000 * n });
       expect(lines.weight).toEqual({ unitMillimes: 500, count: n, totalMillimes: 500 * n });
-      expect(lines.options).toEqual({ unitMillimes: 2_000, count: n, totalMillimes: 2_000 * n });
+      expect(lines.options).toEqual({ unitMillimes: 0, count: n, totalMillimes: 0 });
+      expect(lines.packaging).toEqual({ unitMillimes: 2_000, count: n, totalMillimes: 2_000 * n });
       // once per order: never multiplied
       expect(lines.distance).toEqual({ unitMillimes: 2_500, count: 1, totalMillimes: 2_500 });
       expect(lines.surcharge).toEqual({ unitMillimes: 1_000, count: 1, totalMillimes: 1_000 });
@@ -194,16 +195,22 @@ describe("parcel count (PR 1b)", () => {
     expect(lines.weight).toEqual({ unitMillimes: 0, count: 2, totalMillimes: 0 });
   });
 
-  it("packaging adds the table's amount per parcel to the options line, fragile adds its own", () => {
-    const plain = priceLines(input({ parcels: parcels(1, 1, 1) })).options;
-    const packed = priceLines(input({ parcels: parcels(1, 1, 1), packaging: true })).options;
-    expect(plain).toEqual({ unitMillimes: 0, count: 3, totalMillimes: 0 });
-    expect(packed).toEqual({ unitMillimes: 2_000, count: 3, totalMillimes: 6_000 });
+  it("R204: packaging is its own line (the table's amount per parcel); options holds fragile only", () => {
+    const plain = priceLines(input({ parcels: parcels(1, 1, 1) }));
+    const packed = priceLines(input({ parcels: parcels(1, 1, 1), packaging: true }));
+    expect(plain.packaging).toEqual({ unitMillimes: 0, count: 3, totalMillimes: 0 });
+    expect(packed.packaging).toEqual({ unitMillimes: 2_000, count: 3, totalMillimes: 6_000 });
+    expect(packed.options).toEqual({ unitMillimes: 0, count: 3, totalMillimes: 0 });
     const both = priceLinesWith(input({ parcels: parcels(1, 1), fragile: true, packaging: true }), {
       ...TABLE,
       optionsFragile: 700,
-    }).options;
-    expect(both).toEqual({ unitMillimes: 2_700, count: 2, totalMillimes: 5_400 });
+    });
+    expect(both.options).toEqual({ unitMillimes: 700, count: 2, totalMillimes: 1_400 });
+    expect(both.packaging).toEqual({ unitMillimes: 2_000, count: 2, totalMillimes: 4_000 });
+  });
+
+  it("R204: packaging comes right after options in the line order", () => {
+    expect(PRICE_LINES.indexOf("packaging")).toBe(PRICE_LINES.indexOf("options") + 1);
   });
 
   it("the quote total is the sum of the line totals", () => {
@@ -232,7 +239,7 @@ describe("parcel count (PR 1b)", () => {
 
   it("packaging is the row's own amount; a row without a price refuses it", () => {
     const priced = (service: ServiceCode) =>
-      priceLines(input({ service, packaging: true, parcels: same(2, 1) })).options;
+      priceLines(input({ service, packaging: true, parcels: same(2, 1) })).packaging;
     expect(priced("standard")).toEqual({ unitMillimes: 2_000, count: 2, totalMillimes: 4_000 });
     const table: PriceTable = {
       ...TABLE,
@@ -242,7 +249,7 @@ describe("parcel count (PR 1b)", () => {
       },
     };
     expect(
-      priceLinesWith(input({ service: "express", packaging: true }), table).options.unitMillimes,
+      priceLinesWith(input({ service: "express", packaging: true }), table).packaging.unitMillimes,
     ).toBe(3_000);
     // Scheduled has no packaging price ([PRIX]): refused, and the same order without it is fine.
     expect(packagingPriced(TABLE, "scheduled", "small")).toBe(false);

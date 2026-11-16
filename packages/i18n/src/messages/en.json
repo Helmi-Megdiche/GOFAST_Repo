@@ -929,7 +929,8 @@
         "surcharge": "{name} surcharge (cap: <ceiling></ceiling>)",
         "discount": "Discount",
         "vat": "VAT",
-        "stamp": "Fiscal stamp"
+        "stamp": "Fiscal stamp",
+        "packaging": "GOFAST packaging"
       },
       "surchargeNames": {
         "rain": "Rain"
@@ -1254,7 +1255,8 @@
         "surcharge": "Surcharge",
         "discount": "Discount",
         "vat": "VAT",
-        "stamp": "Fiscal stamp"
+        "stamp": "Fiscal stamp",
+        "packaging": "GOFAST packaging"
       },
       "total": "Total incl. tax",
       "payment": "Payment",

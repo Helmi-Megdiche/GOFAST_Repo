@@ -929,7 +929,8 @@
         "surcharge": "Majoration {name} (plafond : <ceiling></ceiling>)",
         "discount": "Remise",
         "vat": "TVA",
-        "stamp": "Timbre fiscal"
+        "stamp": "Timbre fiscal",
+        "packaging": "Emballage GOFAST"
       },
       "surchargeNames": {
         "rain": "pluie"
@@ -1254,7 +1255,8 @@
         "surcharge": "Majoration",
         "discount": "Remise",
         "vat": "TVA",
-        "stamp": "Timbre fiscal"
+        "stamp": "Timbre fiscal",
+        "packaging": "Emballage GOFAST"
       },
       "total": "Total TTC",
       "payment": "Règlement",
