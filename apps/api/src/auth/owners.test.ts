@@ -16,10 +16,25 @@ describe("AuthOwners: deny by default (PR 4a)", () => {
     for (const id of ["getOrder", "listOrders", "createOrder", ""]) expect(await owners.allows(actor, op(id))).toBe(false);
   });
 
-  it("allows exactly three of the operations of the contract, whatever the contract grows to", async () => {
+  it.each(["listServices", "createZoneCheck", "createQuote", "getQuote"])(
+    "GH-10: %s (public pricing) is on the allow-list",
+    async (id) => {
+      expect(await new AuthOwners().allows(actor, op(id))).toBe(true);
+    },
+  );
+
+  it("allows exactly these seven of the operations of the contract, whatever the contract grows to", async () => {
     const owners = new AuthOwners();
     const allowed: string[] = [];
     for (const id of loadOperations().keys()) if (await owners.allows(actor, op(id))) allowed.push(id);
-    expect(allowed.sort()).toEqual(["deleteSession", "getMe", "updateMe"]);
+    expect(allowed.sort()).toEqual([
+      "createQuote",
+      "createZoneCheck",
+      "deleteSession",
+      "getMe",
+      "getQuote",
+      "listServices",
+      "updateMe",
+    ]);
   });
 });
