@@ -6,7 +6,7 @@ import { codeText, type SmsSender } from "./sms.ts";
 export const SMS_TOPIC = "sms.code";
 export const MAX_SMS_ATTEMPTS = 3;
 
-type Row = { id: string; attempts: number; payload: { phone?: string; code?: string; locale?: string } };
+type Row = { id: string; attempts: number; payload: { phone?: string; code?: string; locale?: string; skip?: boolean } };
 
 /**
  * One pass over the SMS rows of the outbox. After a send, or after the last failed try, the payload
@@ -24,6 +24,14 @@ export async function runSmsOutbox(db: Db, sender: SmsSender, now: () => Date = 
     let closed = 0;
     for (const row of rows) {
       let sent = false;
+      if (row.payload.skip === true) {
+        // Nothing to send (a reset code for a phone with no account): the row is closed and emptied.
+        await tx.execute(
+          sql`update core.outbox set attempts = ${row.attempts + 1}, processed_at = ${now()}, payload = '{}'::jsonb where id = ${row.id}`,
+        );
+        closed += 1;
+        continue;
+      }
       try {
         const { phone, code, locale } = row.payload;
         if (!phone || !code) throw new Error("incomplete payload");

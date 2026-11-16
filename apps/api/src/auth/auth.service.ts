@@ -6,6 +6,7 @@ import { ApiError } from "../http/errors.ts";
 import type { Actor } from "../http/session.ts";
 import type { Role } from "../http/spec.ts";
 import { type Keys, sixDigitCode } from "./crypto.ts";
+import { ipKey } from "./ip.ts";
 import { SMS_TOPIC } from "./outbox-worker.ts";
 import type { Passwords } from "./password.ts";
 import type { PhoneChecks, Purpose } from "./phone-check.ts";
@@ -33,6 +34,7 @@ type LoginRow = {
   locale: string;
   status: string;
   company_id: string | null;
+  valid_from: string;
 };
 
 export type Deps = {
@@ -92,27 +94,39 @@ export class AuthService {
     body: { phone: string; purpose: Purpose },
     ctx: Ctx,
   ): Promise<{ expires_at: string; resend_at: string }> {
-    const ip = await this.limit("code-ip", ctx.ip, LIMITS.codeSendPerIp);
+    const ip = await this.limit("code-ip", ipKey(ctx.ip), LIMITS.codeSendPerIp);
     if (!ip.allowed) throw this.tooMany(ip.retryAfterMs);
     const phone = this.phoneOf(body.phone);
+    // Q1: a reset code goes to a phone that has an account to reset, and to no other. The lookup and
+    // the outbox row are the same work in both cases (and the limits are counted before it), so the
+    // answer, the limits and the time do not tell which phones have an account; for an unknown phone
+    // the row carries `skip` and no phone and no code, and the worker closes it without sending.
+    const skip = body.purpose === "reset" && !(await this.canReset(phone));
     const code = sixDigitCode(CODE_LENGTH);
     const sent = await this.d.checks.send(phone, body.purpose, code);
     if (!sent.ok) throw this.tooMany(sent.retryAfterMs);
     // The SMS goes through the outbox; the worker sends it and then empties the payload.
+    const payload = skip
+      ? { kind: "code", purpose: body.purpose, skip: true }
+      : { kind: "code", purpose: body.purpose, phone, code, locale: ctx.locale ?? "fr" };
     await this.d.db.withNoActor((tx) =>
-      tx.execute(
-        sql`insert into core.outbox (topic, payload) values (${SMS_TOPIC},
-            ${JSON.stringify({ kind: "code", purpose: body.purpose, phone, code, locale: ctx.locale ?? "fr" })}::jsonb)`,
-      ),
+      tx.execute(sql`insert into core.outbox (topic, payload) values (${SMS_TOPIC}, ${JSON.stringify(payload)}::jsonb)`),
     );
     return { expires_at: iso(sent.expiresAt), resend_at: iso(sent.resendAt) };
+  }
+
+  private async canReset(phone: string): Promise<boolean> {
+    const row = (
+      await this.d.db.withNoActor((tx) => tx.execute(sql`select core.can_reset_password(${phone}) as ok`))
+    ).rows[0] as { ok: boolean } | undefined;
+    return row?.ok === true;
   }
 
   async verifyCode(
     body: { phone: string; purpose: Purpose; code: string },
     ctx: Ctx,
   ): Promise<{ phone_check_id: string; valid_until: string }> {
-    const ip = await this.limit("verify-ip", ctx.ip, LIMITS.codeVerifyPerIp);
+    const ip = await this.limit("verify-ip", ipKey(ctx.ip), LIMITS.codeVerifyPerIp);
     if (!ip.allowed) throw this.tooMany(ip.retryAfterMs);
     const r = await this.d.checks.verify(this.phoneOf(body.phone), body.purpose, body.code);
     if (r.ok) return { phone_check_id: r.checkId, valid_until: iso(r.validUntil) };
@@ -134,7 +148,7 @@ export class AuthService {
     body: components["schemas"]["SignUpRequest"],
     ctx: Ctx,
   ): Promise<SignedIn> {
-    const ip = await this.limit("signup-ip", ctx.ip, LIMITS.signUpPerIp);
+    const ip = await this.limit("signup-ip", ipKey(ctx.ip), LIMITS.signUpPerIp);
     if (!ip.allowed) throw this.tooMany(ip.retryAfterMs);
     const phone = this.phoneOf(body.phone);
     // A too-short password is refused before the proof is spent: the person can fix it and retry.
@@ -143,7 +157,6 @@ export class AuthService {
     if (!(await this.d.checks.consume(body.phone_check_id, phone, "signUp"))) {
       throw new ApiError("RULE_REFUSED", [{ name: "phone_check_id", reason: "invalid" }]);
     }
-    const startedAt = this.now().getTime();
     const hash = await this.d.passwords.hash(body.password);
     const role = body.kind === "merchant" ? "merchant" : "individual";
     let accountId: string;
@@ -164,7 +177,7 @@ export class AuthService {
     await this.d.db.withNoActor((tx) =>
       tx.execute(sql`select core.mark_phone_verified(${accountId}::uuid, ${this.now()})`),
     );
-    return this.open(accountId, role, startedAt);
+    return this.open(accountId, role);
   }
 
   /** R101: a taken phone or e-mail is a refusal of the rule, with the field that is taken. */
@@ -188,9 +201,6 @@ export class AuthService {
   // ---- sign-in -------------------------------------------------------------------------------
 
   async signIn(body: { identifier: string; password: string }, ctx: Ctx): Promise<SignedIn> {
-    // The session is dated from here: a reset that lands while the password is being checked moves
-    // `sessions_valid_from` past this instant, and the session this sign-in opens is refused.
-    const startedAt = this.now().getTime();
     const identifier = body.identifier.trim();
     const isEmail = identifier.includes("@");
     const phone = isEmail ? null : normalizePhone(identifier);
@@ -198,11 +208,11 @@ export class AuthService {
     // Counted BEFORE anything is compared, and for an identifier that has no account as well as for
     // one that has: the limit and the answer do not tell which exist.
     const byId = await this.limit("login-id", subject, LIMITS.signInPerIdentifier);
-    const byIp = await this.limit("login-ip", ctx.ip, LIMITS.signInPerIp);
+    const byIp = await this.limit("login-ip", ipKey(ctx.ip), LIMITS.signInPerIp);
     if (!byId.allowed || !byIp.allowed) {
       // One audit row per window and subject, not one per refused call (a flood would fill the table).
       const scope = byId.allowed ? "ip" : "identifier";
-      const first = await this.limit(`audit-${scope}`, scope === "ip" ? ctx.ip : subject, {
+      const first = await this.limit(`audit-${scope}`, scope === "ip" ? ipKey(ctx.ip) : subject, {
         limit: 1,
         windowMs: LIMITS.signInPerIdentifier.windowMs,
       });
@@ -215,8 +225,8 @@ export class AuthService {
       row = (
         await this.d.db.withNoActor((tx) =>
           tx.execute(
-            sql`select id, role, password_hash, locale, status, company_id
-                  from core.account_for_login(${isEmail ? null : phone}, ${isEmail ? subject : null})`,
+            sql`select id, role, password_hash, locale, status, company_id, valid_from
+                  from core.login_account(${isEmail ? null : phone}, ${isEmail ? subject : null})`,
           ),
         )
       ).rows[0] as LoginRow | undefined;
@@ -246,26 +256,27 @@ export class AuthService {
     }
     // The session of the cookie the browser sent is closed: signing in again does not leave it open.
     if (ctx.previousSession) await this.d.sessions.destroy(ctx.previousSession);
-    return this.open(row.id, row.role, startedAt);
+    return this.open(row.id, row.role, row.valid_from);
   }
 
   /** A fresh session id every time (no fixation), and the profile that goes with it. */
-  private async open(accountId: string, role: Role, startedAt: number): Promise<SignedIn> {
+  private async open(accountId: string, role: Role, validFrom?: string): Promise<SignedIn> {
     const staff = STAFF_ROLES.has(role);
-    const sessionId = await this.d.sessions.create(accountId, staff, startedAt);
-    const actor = await this.actorOf(accountId);
+    const { actor, validFrom: current } = await this.actorOf(accountId);
+    // Sign-in passes the value read with the hash; a new account has no earlier read, so it takes the current one.
+    const sessionId = await this.d.sessions.create(accountId, staff, validFrom ?? current);
     return { me: await this.me(actor), sessionId, staff };
   }
 
-  private async actorOf(accountId: string): Promise<Actor> {
+  private async actorOf(accountId: string): Promise<{ actor: Actor; validFrom: string }> {
     const row = (
       await this.d.db.withNoActor((tx) =>
-        tx.execute(sql`select role, company_id from core.session_account(${accountId}::uuid)`),
+        tx.execute(sql`select role, company_id, valid_from from core.session_account(${accountId}::uuid)`),
       )
-    ).rows[0] as { role: Role; company_id: string | null } | undefined;
+    ).rows[0] as { role: Role; company_id: string | null; valid_from: string } | undefined;
     const actor = row ? toActor(accountId, row.role, row.company_id) : null;
-    if (!actor) throw new ApiError("INTERNAL_ERROR");
-    return actor;
+    if (!actor || !row) throw new ApiError("INTERNAL_ERROR");
+    return { actor, validFrom: row.valid_from };
   }
 
   async signOut(sessionId: string): Promise<void> {
@@ -278,7 +289,7 @@ export class AuthService {
     body: { phone: string; phone_check_id: string; new_password: string },
     ctx: Ctx,
   ): Promise<void> {
-    const ip = await this.limit("reset-ip", ctx.ip, LIMITS.resetPerIp);
+    const ip = await this.limit("reset-ip", ipKey(ctx.ip), LIMITS.resetPerIp);
     if (!ip.allowed) throw this.tooMany(ip.retryAfterMs);
     const phone = this.phoneOf(body.phone);
     if (!(await this.d.checks.consume(body.phone_check_id, phone, "reset"))) {

@@ -14,14 +14,15 @@ const STAFF_MS = PROVISIONAL.staffSessionHours * HOUR;
 /** A customer session dies this long after sign-in even if it is used every hour. */
 const CAP_MS = PROVISIONAL.customerSessionMaxDays * 24 * HOUR;
 
-type Stored = { accountId: string; createdAt: number; lastRefresh: number; fixed: boolean };
-export type Session = { accountId: string; createdAt: number; fixed: boolean };
+type Stored = { accountId: string; createdAt: number; lastRefresh: number; fixed: boolean; validFrom: string };
+export type Session = { accountId: string; fixed: boolean; validFrom: string };
 
 /**
  * Sessions in Redis. The browser holds a random id; Redis holds `sess:<sha256(id)>` with the account
  * id and three facts, nothing else (no role: RV-19, no phone: RV-18). A customer session slides (renewed
- * at most once an hour) up to an absolute cap; a staff session is fixed. `createdAt` is compared with
- * the account's `sessions_valid_from`, so a reset kills every older session whatever Redis still holds.
+ * at most once an hour) up to an absolute cap; a staff session is fixed. `validFrom` is the account's
+ * `sessions_valid_from` as read together with the password hash at sign-in: a reset changes it, so a
+ * reset kills every older session whatever Redis still holds, and no clock is compared.
  */
 export class SessionStore {
   constructor(
@@ -29,12 +30,12 @@ export class SessionStore {
     private readonly now: () => number = Date.now,
   ) {}
 
-  /** `createdAt` is when the sign-in began, so a sign-in that raced a reset is older than the reset. */
-  async create(accountId: string, staff: boolean, createdAt: number = this.now()): Promise<string> {
+  /** `validFrom` comes from the same read as the password hash, so a sign-in that raced a reset carries the old value. */
+  async create(accountId: string, staff: boolean, validFrom: string): Promise<string> {
     const id = newSessionId();
     const ttl = staff ? STAFF_MS : CUSTOMER_MS;
     const key = sessionKeyOf(id);
-    const value: Stored = { accountId, createdAt, lastRefresh: this.now(), fixed: staff };
+    const value: Stored = { accountId, createdAt: this.now(), lastRefresh: this.now(), fixed: staff, validFrom };
     await this.redis
       .multi()
       .set(key, JSON.stringify(value), "PX", ttl)
@@ -67,7 +68,7 @@ export class SessionStore {
       if (done !== "OK") return null;
       await this.redis.pexpire(indexKey(s.accountId), CAP_MS);
     }
-    return { accountId: s.accountId, createdAt: s.createdAt, fixed: s.fixed };
+    return { accountId: s.accountId, fixed: s.fixed, validFrom: s.validFrom };
   }
 
   async destroy(id: string): Promise<void> {
@@ -143,16 +144,16 @@ export class RedisSessions extends SessionResolver {
     const row = (
       await this.db.withNoActor((tx) =>
         tx.execute(
-          sql`select role, status, company_id, sessions_valid_from from core.session_account(${session.accountId}::uuid)`,
+          sql`select role, status, company_id, valid_from from core.session_account(${session.accountId}::uuid)`,
         ),
       )
     ).rows[0] as
-      | { role: Role; status: string; company_id: string | null; sessions_valid_from: Date | string }
+      | { role: Role; status: string; company_id: string | null; valid_from: string }
       | undefined;
     if (
       !row ||
       row.status !== "active" ||
-      session.createdAt < new Date(row.sessions_valid_from).getTime() ||
+      session.validFrom !== row.valid_from ||
       // Staff sign in through their own route (T60); a customer session that became staff is refused.
       (STAFF_ROLES.has(row.role) && !session.fixed)
     ) {

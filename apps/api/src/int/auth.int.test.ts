@@ -264,9 +264,14 @@ describe("password reset (R102)", () => {
     expect(audit).toHaveLength(1);
   });
 
-  it("an unknown phone gets the same answer (204)", async () => {
+  it("a phone with no active account gets the same answer (204)", async () => {
+    currentIp = "10.7.0.1";
+    // An unknown phone is sent no code (Q1), so the proof exists only for a phone that had an account:
+    // close it between the proof and the reset.
     const phone = "+21620222009";
+    const { id } = await newCustomer(phone);
     const check = await verifiedCheck(phone, "reset");
+    await q("update core.accounts set status = 'closed', closed_at = now() where id = $1", [id]);
     const res = await call("POST", "/v1/password-resets", {
       body: { phone, phone_check_id: check, new_password: "a brand new secret" },
     });
@@ -279,7 +284,7 @@ describe("definers return no secret", () => {
     const cols = (await q("select * from core.session_account((select id from core.accounts limit 1))")).fields.map(
       (f) => f.name,
     );
-    expect(cols.sort()).toEqual(["company_id", "role", "sessions_valid_from", "status"]);
+    expect(cols.sort()).toEqual(["company_id", "role", "status", "valid_from"]);
     const r = await q("select pg_get_function_result('core.set_password(text,text,timestamptz)'::regprocedure) as t");
     expect(r.rows[0].t).toBe("uuid");
   });
@@ -292,8 +297,8 @@ describe("T55: two merchants in parallel through PgBouncer", () => {
       `insert into core.company_members (company_id, account_id, role) values ($1, $2, 'owner'), ($3, $4, 'owner')`,
       [ids.companyA, ids.userA, ids.companyB, ids.userB],
     );
-    const a =await sessions.create(ids.userA, false);
-    const b = await sessions.create(ids.userB, false);
+    const a = await sessions.create(ids.userA, false, await validFromOf(ids.userA));
+    const b = await sessions.create(ids.userB, false, await validFromOf(ids.userB));
     const get = (cookie: string) =>
       bouncerApp.inject({ method: "GET", url: "/v1/me", headers: { cookie: `session=${cookie}` } }) as unknown as Promise<Res>;
     const results = await Promise.all(Array.from({ length: 40 }, (_, i) => (i % 2 === 0 ? get(a) : get(b))));
@@ -330,6 +335,9 @@ const rawInject = (
     payload: opts.body as object | undefined,
     headers: { ...(opts.cookie ? { cookie: `session=${opts.cookie}`, origin: ORIGIN } : {}), ...opts.headers },
   }) as unknown as Promise<Res>;
+
+const validFromOf = async (id: string) =>
+  (await q("select extract(epoch from sessions_valid_from)::text as v from core.accounts where id = $1", [id])).rows[0].v as string;
 
 async function newCustomer(phone: string): Promise<{ id: string; cookie: string }> {
   const res = await signUp(phone, await verifiedCheck(phone, "signUp"));
@@ -399,7 +407,7 @@ describe("session lifetime: sliding, cap, no resurrection", () => {
     const t0 = Date.now();
     let t = t0;
     const store = new SessionStore(redis, () => t);
-    const id = await store.create("00000000-0000-4000-8000-0000000000aa", false);
+    const id = await store.create("00000000-0000-4000-8000-0000000000aa", false, "0");
     for (const days of [25, 50, 75]) {
       t = t0 + days * DAY;
       expect(await store.get(id)).not.toBeNull();
@@ -424,7 +432,7 @@ describe("session lifetime: sliding, cap, no resurrection", () => {
         return typeof v === "function" ? v.bind(target) : v;
       },
     });
-    const id = await new SessionStore(redis, () => t).create("00000000-0000-4000-8000-0000000000bb", false);
+    const id = await new SessionStore(redis, () => t).create("00000000-0000-4000-8000-0000000000bb", false, "0");
     t += 2 * 3_600_000;
     expect(await new SessionStore(racing, () => t).get(id)).toBeNull();
     expect(await new SessionStore(redis, () => t).get(id)).toBeNull();
@@ -565,5 +573,130 @@ describe("the outbox payload is scrubbed (RV-21)", () => {
     const done = (await q("select payload, processed_at from core.outbox where id = $1", [row.id])).rows[0];
     expect(done.processed_at).not.toBeNull();
     expect(done.payload).toEqual({});
+  });
+});
+
+// ---- supervisor round 2 (Q1, scrub, validFrom, minors) ------------------------------------------
+
+const drain = async (sender: SmsSender = sms) => {
+  for (let i = 0; i < 6; i += 1) await runSmsOutbox(workerDb, sender);
+};
+const pendingSms = async () =>
+  (await q("select payload, attempts, processed_at from core.outbox where topic = 'sms.code' order by created_at")).rows;
+
+describe("Q1: no SMS to an unknown phone (Helmi, comment 6896735959)", () => {
+  it("a known and an unknown phone get the same answer and limits; only the known one reaches the sender", async () => {
+    currentIp = "10.6.0.1";
+    const known = "+21620338001";
+    const unknown = "+21620338999";
+    await newCustomer(known);
+    await drain();
+    await q("delete from core.outbox where topic = 'sms.code'");
+    sms.sent.length = 0;
+
+    const ask = (phone: string) => call("POST", "/v1/phone-checks", { body: { phone, purpose: "reset" } });
+    const [a, b] = [await ask(known), await ask(unknown)];
+    expect(a.statusCode).toBe(202);
+    expect(b.statusCode).toBe(a.statusCode);
+    expect(Object.keys(b.json()).sort()).toEqual(Object.keys(a.json()).sort());
+
+    // the same limit, counted the same way: the immediate second ask is refused for both, alike
+    const [a2, b2] = [await ask(known), await ask(unknown)];
+    expect(a2.statusCode).toBe(429);
+    expect(b2.statusCode).toBe(429);
+    const shape = (r: Res) => ({ ...r.json().error, trace_id: undefined });
+    expect(shape(b2)).toEqual(shape(a2));
+
+    // the same work: one outbox row each, the unknown one flagged and without phone or code
+    const rows = await pendingSms();
+    expect(rows).toHaveLength(2);
+    const skipped = rows.filter((r) => (r.payload as { skip?: boolean }).skip === true);
+    expect(skipped).toHaveLength(1);
+    expect(JSON.stringify(skipped[0].payload)).not.toContain("+216");
+    expect(Object.keys(skipped[0].payload as object)).not.toContain("code");
+
+    await drain();
+    expect(sms.sent.map((s) => s.phone)).toEqual([known]);
+    const after = await pendingSms();
+    expect(after.every((r) => r.processed_at !== null && JSON.stringify(r.payload) === "{}")).toBe(true);
+  });
+
+  it("a sign-up code still goes to a phone with no account", async () => {
+    currentIp = "10.6.0.2";
+    const phone = "+21620338002";
+    sms.sent.length = 0;
+    await call("POST", "/v1/phone-checks", { body: { phone, purpose: "signUp" } });
+    await drain();
+    expect(sms.sent.map((s) => s.phone)).toEqual([phone]);
+  });
+});
+
+describe("the scrub after the last failed send (RV-21)", () => {
+  class Failing extends SmsSender {
+    override async send(): Promise<void> {
+      throw new Error("provider down");
+    }
+  }
+  it("keeps the payload for 2 failed tries and empties it at the 3rd", async () => {
+    currentIp = "10.6.0.3";
+    await drain();
+    await q("delete from core.outbox where topic = 'sms.code'");
+    await call("POST", "/v1/phone-checks", { body: { phone: "+21620338003", purpose: "signUp" } });
+    const one = async () => (await pendingSms())[0];
+    await runSmsOutbox(workerDb, new Failing());
+    await runSmsOutbox(workerDb, new Failing());
+    let row = await one();
+    expect(row.attempts).toBe(2);
+    expect(row.processed_at).toBeNull();
+    expect((row.payload as { phone?: string }).phone).toBe("+21620338003");
+    await runSmsOutbox(workerDb, new Failing());
+    row = await one();
+    expect(row.attempts).toBe(3);
+    expect(row.processed_at).not.toBeNull();
+    expect(row.payload).toEqual({});
+  });
+});
+
+describe("the session keeps the cut-off read with the hash (no clock)", () => {
+  it("a session with another value than the account's is refused", async () => {
+    currentIp = "10.6.0.4";
+    const { id } = await newCustomer("+21620338004");
+    const stale = await sessions.create(id, false, "1");
+    expect((await call("GET", "/v1/me", { cookie: stale })).statusCode).toBe(401);
+    const fresh = await sessions.create(id, false, await validFromOf(id));
+    expect((await call("GET", "/v1/me", { cookie: fresh })).statusCode).toBe(200);
+  });
+
+  it("a reset always changes the value, even dated before it (same millisecond, skewed clock)", async () => {
+    currentIp = "10.6.0.5";
+    const phone = "+21620338005";
+    const { id } = await newCustomer(phone);
+    await q("update core.accounts set sessions_valid_from = '2030-01-01T00:00:00Z' where id = $1", [id]);
+    const before = await validFromOf(id);
+    await q("select core.set_password($1, $2, '2020-01-01T00:00:00Z')", [phone, "$argon2id$placeholder"]);
+    expect(await validFromOf(id)).not.toBe(before);
+  });
+});
+
+describe("minor: sign-in and sign-up", () => {
+  it("the old cookie's session is dead after a new sign-in", async () => {
+    currentIp = "10.6.0.6";
+    const phone = "+21620338006";
+    const { cookie: old } = await newCustomer(phone);
+    const res = await call("POST", "/v1/sessions", { body: { identifier: phone, password: PASSWORD }, cookie: old });
+    expect(res.statusCode).toBe(201);
+    expect((await call("GET", "/v1/me", { cookie: old })).statusCode).toBe(401);
+    expect((await call("GET", "/v1/me", { cookie: sessionOf(res) })).statusCode).toBe(200);
+  });
+
+  it("a too-short password leaves the phone check usable", async () => {
+    currentIp = "10.6.0.7";
+    const phone = "+21620338007";
+    const check = await verifiedCheck(phone, "signUp");
+    const short = await signUp(phone, check, { password: "short" });
+    expect(short.statusCode).toBeGreaterThanOrEqual(400);
+    expect(short.statusCode).toBeLessThan(500);
+    expect(JSON.stringify(short.json())).toContain("passwordTooShort");
+    expect((await signUp(phone, check)).statusCode).toBe(201);
   });
 });

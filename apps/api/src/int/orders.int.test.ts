@@ -231,7 +231,9 @@ describe("definer functions", () => {
     );
     expect(r.rows.map((x) => x.proname)).toEqual([
       "account_for_login",
+      "can_reset_password",
       "create_account",
+      "login_account",
       "mark_phone_verified",
       "recipient_link",
       "rehash_password",
