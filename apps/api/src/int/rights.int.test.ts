@@ -84,7 +84,15 @@ const EXPECTED: Record<string, Expect> = {
     rls: true,
   },
   "core.missions": OWNED,
-  "core.status_events": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
+  // GH-96: no table-level SELECT, so the driver's position and the actor stay hidden from the app.
+  "core.status_events": {
+    app: ["INSERT"],
+    appCols: {
+      SELECT: ["event_id", "from_status", "id", "occurred_at", "order_id", "received_at", "subject_id", "subject_type", "to_status"],
+    },
+    ro: "none",
+    rls: true,
+  },
   "core.proofs": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
   // Hash columns are hidden from the app: column grants only, so no table-level SELECT.
   "core.delivery_codes": { app: ["INSERT"], ro: "none", rls: true },

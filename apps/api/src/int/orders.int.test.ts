@@ -606,6 +606,28 @@ describe("RV-21: protected columns", () => {
       await expectDbError(insert(open1.order, "'delivered'"), /permission denied/);
       expect((await q("select count(*)::int as n from core.parcels where order_id = $1", [done.order])).rows[0].n).toBe(1);
     });
+    it("GH-96 RV-21: only the owner or staff who move orders add a parcel to a received order", async () => {
+      const insert = (actor: Actor, order: string) =>
+        app().withActor(actor, (tx) =>
+          tx.execute(sql`insert into core.parcels (order_id, size, weight_declared_g, proof_level)
+                         values (${order}, 'small', 500, 'codeOrPhotoWithPosition')`),
+        );
+      const count = async (order: string) =>
+        (await q("select count(*)::int as n from core.parcels where order_id = $1", [order])).rows[0].n;
+      // Customer service reads every order but does not move them: refused.
+      const cs = await fresh("received");
+      await expectDbError(insert(staff("customer_service"), cs.order), /row-level security/);
+      expect(await count(cs.order)).toBe(1);
+      // Another merchant: refused (the order is not even visible to them).
+      const other = await fresh("received");
+      await expectDbError(insert(merchant(ids.userB, ids.companyB), other.order), /row-level security/);
+      expect(await count(other.order)).toBe(1);
+      // CONTROL: the owner and operations are allowed.
+      const own = await fresh("received");
+      expect(rowCount(await insert(A(), own.order))).toBe(1);
+      expect(rowCount(await insert(staff("operations"), own.order))).toBe(1);
+      expect(await count(own.order)).toBe(3);
+    });
     it("staff cannot change the money of a parcel once the order is confirmed, and a parcel never changes order", async () => {
       const { order, parcel } = await fresh("confirmed");
       const before = await parcelRow(parcel);
@@ -631,6 +653,29 @@ describe("RV-21: protected columns", () => {
   });
 
   describe("status_events", () => {
+    it("GH-96: the app reads status and time of an event, never the driver position or the actor", async () => {
+      const { order } = await fresh();
+      await q(
+        `insert into core.status_events (order_id, subject_type, subject_id, to_status, actor_id, location)
+         values ($1, 'order', $1, 'confirmed', $2, 'SRID=4326;POINT(10.18 36.8)')`,
+        [order, staffId],
+      );
+      for (const column of ["location", "actor_id"]) {
+        for (const actor of [A(), staff("admin")]) {
+          await expectDbError(
+            app().withActor(actor, (tx) =>
+              tx.execute(sql.raw(`select ${column} from core.status_events where order_id = '${order}'`)),
+            ),
+            /permission denied/,
+          );
+        }
+      }
+      // CONTROL: status and time stay readable by the owner.
+      const ok = await app().withActor(A(), (tx) =>
+        tx.execute(sql`select to_status, occurred_at from core.status_events where order_id = ${order}`),
+      );
+      expect((ok.rows as { to_status: string }[]).map((r) => r.to_status)).toContain("confirmed");
+    });
     it("a merchant cannot write a `delivered` event, and the tracking does not move", async () => {
       const { order, tracking } = await fresh();
       await expectDbError(
