@@ -137,3 +137,11 @@ Source: PR 0 round 1, the public tracking parcel line wrote `{t("parcel")} 1 :` 
 **RV-16. A required mark must also be heard.**
 Where the control is not a native input (a file picker, a group), the required state is in the accessible name or in a described text taken from the catalog, and a test reads it from the accessibility tree.
 Source: PR #73, the six document groups showed only an aria-hidden star.
+
+**RV-17. A new spec file is checked against every Playwright config.**
+Run each config's `--list` and confirm the file runs only where it should.
+Source: #20 PR 4a round 1, auth-api.spec.ts would have run in the mock shards.
+
+**RV-18. A "did it work?" check after a lost answer asks the server and matches the subject.**
+Never fall back to a local copy, and compare the id or phone the request was about. Same for every write: a double submit guard where a second call with a used proof turns success into failure.
+Source: #20 PR 4a round 1, Change A returned the stale copy; the reset form sent two requests.
