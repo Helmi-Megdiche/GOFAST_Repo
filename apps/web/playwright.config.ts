@@ -4,6 +4,8 @@ const PORT = 3100;
 
 export default defineConfig({
   testDir: "./e2e",
+  // The api-mode spec has its own config and build (playwright.api.config.ts): the shards stay as they are.
+  testIgnore: "**/*-api.spec.ts",
   // Playwright empties outputDir before each run. Screenshots go to test-results/shots,
   // a sibling folder, so they survive.
   outputDir: "./test-results/artifacts",

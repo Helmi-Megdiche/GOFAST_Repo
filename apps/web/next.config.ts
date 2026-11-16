@@ -7,6 +7,8 @@ const withNextIntl = createNextIntlPlugin("./src/i18n/request.ts");
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  // Only the api e2e build (playwright.api.config.ts) sets this, so it does not overwrite .next.
+  distDir: process.env.NEXT_DIST_DIR ?? ".next",
   // Workspace packages ship TypeScript source: Next compiles them.
   transpilePackages: ["@fastgo/ui", "@fastgo/i18n", "@fastgo/domain"],
   // Same origin (#20): the browser calls /v1/... on this host, Next forwards it to the API. No CORS,

@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { formatDate, type Locale } from "@fastgo/i18n";
 import { Alert, Button, Card, CodeInput, Ltr } from "@fastgo/ui";
 import { sendCode, verifyCode, type CodePurpose, type CodeTarget } from "@/lib/data/otp";
+import type { AuthPort } from "@/lib/data/ports";
 import { CODE_LENGTH, CODE_VALIDITY_MS } from "@fastgo/domain";
 import { useNow } from "@/components/order/use-now";
 
@@ -21,21 +22,27 @@ export function CodeVerification({
   purpose,
   onVerified,
   footer,
+  auth,
 }: {
   target: CodeTarget;
   maskedTarget: string;
   purpose: CodePurpose;
   /** Called once the code is right. May return something to show instead of the form. */
-  onVerified: () => Promise<ReactNode | void>;
+  onVerified: (checkId?: string) => Promise<ReactNode | void>;
   footer?: ReactNode;
+  /** Sign-up and reset: send and verify through the auth port (mock or api). Otherwise the mock otp. */
+  auth?: { port: AuthPort; purpose: "signUp" | "reset" };
 }) {
   const t = useTranslations("auth.code");
+  const tNotice = useTranslations("auth.notices");
   const locale = useLocale() as Locale;
   const current = useNow();
   const [code, setCode] = useState("");
   const [resendAt, setResendAt] = useState<number | null>(null);
   const [notice, setNotice] = useState<Notice>(null);
   const [busy, setBusy] = useState(false);
+  /** One countdown for a 429 (the api): the message and the resend button follow it. */
+  const [waitUntil, setWaitUntil] = useState<number | null>(null);
   const [after, setAfter] = useState<ReactNode | null>(null);
   const sent = useRef(false);
   const input = useRef<HTMLInputElement>(null);
@@ -43,8 +50,18 @@ export function CodeVerification({
   const time = (iso: string) => formatDate(iso, locale, "time");
 
   async function send(isResend: boolean) {
-    const result = await sendCode(target, purpose);
-    if (result.status === "sent") {
+    const result = auth
+      ? await auth.port.sendCode(target.value, auth.purpose)
+      : await sendCode(target, purpose);
+    if (result.status === "wait") {
+      const until = Date.parse(result.retryAt);
+      setWaitUntil(until);
+      setResendAt(until);
+      setNotice(null);
+    } else if (result.status === "unavailable") {
+      setNotice({ tone: "error", text: tNotice("unavailable") });
+    } else if (result.status === "sent") {
+      setWaitUntil(null);
       setResendAt(Date.parse(result.resendAt));
       if (isResend) {
         setCode("");
@@ -78,10 +95,12 @@ export function CodeVerification({
       return;
     }
     setBusy(true);
-    const result = await verifyCode(target, code, purpose);
+    const result = auth
+      ? await auth.port.verifyCode(target.value, auth.purpose, code)
+      : await verifyCode(target, code, purpose);
     if (result.status === "ok") {
       setNotice(null);
-      const shown = await onVerified();
+      const shown = await onVerified((result as { checkId?: string }).checkId);
       if (shown) setAfter(shown);
       setBusy(false);
       return;
@@ -89,7 +108,8 @@ export function CodeVerification({
     setBusy(false);
     setCode("");
     input.current?.focus();
-    if (result.status === "wrong")
+    if (result.status === "unavailable") setNotice({ tone: "error", text: tNotice("unavailable") });
+    else if (result.status === "wrong")
       setNotice({ tone: "error", text: t("results.wrong", { count: result.attemptsLeft }) });
     else if (result.status === "expired") setNotice({ tone: "error", text: t("results.expired") });
     else if (result.status === "locked")
@@ -126,7 +146,13 @@ export function CodeVerification({
         />
       </div>
       <div id={noticeId} aria-live="polite" className="w-full">
-        {notice ? <Alert tone={notice.tone}>{notice.text}</Alert> : null}
+        {waitUntil != null && waitUntil > current ? (
+          <Alert tone="error">
+            {tNotice("wait", { seconds: Math.ceil((waitUntil - current) / 1000) })}
+          </Alert>
+        ) : notice ? (
+          <Alert tone={notice.tone}>{notice.text}</Alert>
+        ) : null}
       </div>
       <Button type="submit" size="lg" fullWidth aria-disabled={busy || undefined}>
         {busy ? t("verifying") : t("verify")}

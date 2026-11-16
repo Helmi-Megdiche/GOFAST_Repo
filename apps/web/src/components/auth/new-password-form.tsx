@@ -6,7 +6,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Field, Input } from "@fastgo/ui";
 import { Link, useRouter } from "@/i18n/navigation";
-import { setNewPassword } from "@/lib/data/auth";
+import { sharedAuthPort } from "@/lib/data";
+import { useNow } from "@/components/order/use-now";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { currentFlow, endFlow } from "@/lib/auth/flow";
 import { withNext } from "@/lib/auth/next";
@@ -17,6 +18,10 @@ import { newPasswordSchema } from "@/lib/order/schemas";
 export function NewPasswordForm({ next }: { next: string | null }) {
   const t = useTranslations("auth.newPassword");
   const s = useTranslations("auth.signUp");
+  const n = useTranslations("auth.notices");
+  const [notice, setNotice] = useState<"unavailable" | "maybeChanged" | null>(null);
+  const [waitUntil, setWaitUntil] = useState<number | null>(null);
+  const now = useNow();
   const message = useErrorMessage();
   const router = useRouter();
   const [done, setDone] = useState(false);
@@ -32,8 +37,17 @@ export function NewPasswordForm({ next }: { next: string | null }) {
   const onSubmit = handleSubmit(async (values) => {
     const flow = currentFlow();
     if (flow?.kind !== "reset") return;
-    const result = await setNewPassword(flow.phone, values.password);
-    if (result.status === "tooShort") setError("password", { message: "passwordTooShort" });
+    setNotice(null);
+    const result = await sharedAuthPort().resetPassword(
+      flow.phone,
+      flow.phoneCheckId,
+      values.password,
+    );
+    if (result.status === "wait") {
+      setWaitUntil(Date.parse(result.retryAt));
+    } else if (result.status === "unavailable") setNotice("unavailable");
+    else if (result.status === "maybeChanged") setNotice("maybeChanged");
+    else if (result.status === "tooShort") setError("password", { message: "passwordTooShort" });
     else if (result.status === "notVerified") router.replace(withNext("/mot-de-passe", next));
     else {
       endFlow();
@@ -66,6 +80,20 @@ export function NewPasswordForm({ next }: { next: string | null }) {
           >
             <Input {...register("password")} type="password" autoComplete="new-password" />
           </Field>
+          <div aria-live="polite">
+            {waitUntil != null && waitUntil > now ? (
+              <Alert tone="error">
+                {n("wait", { seconds: Math.ceil((waitUntil - now) / 1000) })}
+              </Alert>
+            ) : notice ? (
+              <Alert tone="error">{n(notice)}</Alert>
+            ) : null}
+          </div>
+          {notice === "maybeChanged" ? (
+            <Button as={Link} href={withNext("/connexion", next)} variant="ghost">
+              {t("signIn")}
+            </Button>
+          ) : null}
           <Button type="submit" size="lg" fullWidth>
             {t("submit")}
           </Button>
