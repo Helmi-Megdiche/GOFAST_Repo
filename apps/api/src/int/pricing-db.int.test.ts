@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Db } from "../db/index.ts";
+import { PricingRepo } from "../pricing/pricing.repo.ts";
 import { expectDbError, startTestDb, type TestDb } from "./harness.ts";
 
 let db: TestDb;
@@ -119,6 +120,25 @@ describe("R206_T52 core.prices: versioned and per zone", () => {
       ),
       /duplicate key|unique/,
     );
+  });
+  it("R206_T52_precedence: an OLD zone row beats a NEWER default row that is already in force", async () => {
+    // express: the Bravo row dates from 6 Nov, the default row from 10 Nov, the quote is made on 12 Nov.
+    await q(
+      `insert into core.prices (service_code, with_packaging, millimes, zone_id, valid_from) values
+         ('express', false, 14000, $1, '2026-11-06T00:00:00Z'), ('express', false, 16000, null, '2026-11-10T00:00:00Z')`,
+      [ZONES.bravo],
+    );
+    try {
+      const repo = new PricingRepo(app);
+      const at = new Date("2026-11-12T10:00:00Z");
+      const express = (rows: { serviceCode: string; withPackaging: boolean; millimes: number | null; zoneId: string | null }[]) =>
+        rows.find((r) => r.serviceCode === "express" && !r.withPackaging);
+      expect(express(await app.withNoActor((tx) => repo.priceList(tx, at, ZONES.bravo)))).toMatchObject({ millimes: 14000, zoneId: ZONES.bravo });
+      // another zone has no row of its own: the default in force (the newer one) applies
+      expect(express(await app.withNoActor((tx) => repo.priceList(tx, at, ZONES.alpha)))).toMatchObject({ millimes: 16000, zoneId: null });
+    } finally {
+      await q("delete from core.prices where service_code = 'express' and not with_packaging and millimes in (14000, 16000)");
+    }
   });
   it("the app reads prices and cannot change them", async () => {
     const r = await app.withNoActor((tx) => tx.execute(sql`select count(*)::int as n from core.prices`));
