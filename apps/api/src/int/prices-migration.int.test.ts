@@ -20,7 +20,7 @@ beforeAll(async () => {
   await q("insert into core.services (code, active) values ('standard', true), ('express', true), ('scheduled', true)");
   await q(`insert into core.prices (service_code, with_packaging, millimes) values
     ('standard', false, 10000), ('standard', true, 12000), ('express', false, 15000), ('express', true, 17000),
-    ('scheduled', false, null), ('scheduled', true, null)`);
+    ('scheduled', true, 9000)`); // scheduled: a packaging row and NO base row
   await migrate(db.url("fastgo_migrator"));
 }, 120_000);
 afterAll(async () => {
@@ -28,6 +28,10 @@ afterAll(async () => {
 });
 
 describe("R206_T52 0008 on a database that already has prices", () => {
+  it("R206_T52: a packaging row with no base row of its service becomes null, never a supplement of its full price", async () => {
+    const r = await q("select millimes from core.prices where service_code = 'scheduled' and with_packaging");
+    expect(r.rows).toEqual([{ millimes: null }]);
+  });
   it("dates the old rows 6 Nov 2026 and turns the full packaging prices into the +2000 supplement", async () => {
     const rows = (
       await q(

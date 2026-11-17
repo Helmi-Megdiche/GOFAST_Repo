@@ -45,12 +45,16 @@ alter table core.prices add column zone_id uuid references core.zones (id);
 alter table core.prices add column valid_from timestamptz not null default '2026-11-06T00:00:00Z';
 alter table core.prices alter column valid_from drop default;
 -- Before this migration `with_packaging = true` held the FULL price with packaging (12000, 17000). It is now
--- the supplement per parcel: full minus the base price of the same service, or null when either is missing.
+-- the supplement per parcel: full minus the base price of the same service, and null when either is missing
+-- (a packaging row with no base row of its service has nothing to subtract: it must not stay a full price).
 update core.prices p
    set millimes = case when p.millimes is not null and b.millimes is not null and p.millimes >= b.millimes
                        then p.millimes - b.millimes end
   from core.prices b
  where p.with_packaging and not b.with_packaging and b.service_code = p.service_code;
+update core.prices p set millimes = null
+ where p.with_packaging
+   and not exists (select 1 from core.prices b where b.service_code = p.service_code and not b.with_packaging);
 -- One row per key and date, a null zone counting as one value (PostgreSQL 15 and later).
 alter table core.prices add constraint prices_version_key
   unique nulls not distinct (service_code, with_packaging, zone_id, valid_from);
