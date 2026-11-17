@@ -244,7 +244,7 @@ describe("core.quotes: public, insert and select only, no address text (RV-18)",
     const r = await q("select total_millimes::int as t from core.quotes where id = $1", [id]);
     expect(r.rows[0].t).toBe(10000);
   });
-  it("the read-only login cannot read the address key hashes (the names end in _hash)", async () => {
+  it("R204 RV-18: the read-only login cannot read the address key hashes (the names end in _hash)", async () => {
     const ro = new Db(db.url("fastgo_readonly"), 1);
     try {
       await expectDbError(ro.withNoActor((tx) => tx.execute(sql`select departure_key_hash from core.quotes`)), /permission denied/);
