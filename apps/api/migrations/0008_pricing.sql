@@ -62,13 +62,16 @@ insert into core.prices (service_code, with_packaging, millimes, zone_id, valid_
 create table core.pricing_settings (
   id boolean primary key default true check (id),
   distance_millimes bigint not null default 0 check (distance_millimes >= 0),
-  weight_included_g integer not null default 2000 check (weight_included_g > 0),
+  weight_included_g integer not null default 2000 check (weight_included_g > 0 and weight_included_g % 1000 = 0),
   weight_per_kg_millimes bigint not null default 0 check (weight_per_kg_millimes >= 0),
   retry_fee_millimes bigint not null default 0 check (retry_fee_millimes >= 0),
   return_fee_millimes bigint not null default 5000 check (return_fee_millimes >= 0),
-  quote_validity_ms bigint not null default 900000 check (quote_validity_ms > 0),
-  max_parcels integer not null default 10 check (max_parcels > 0),
-  max_parcel_weight_g integer check (max_parcel_weight_g > 0),
+  -- 2147483647 ms is a technical bound (a date the API can still write), not a business value.
+  quote_validity_ms bigint not null default 900000 check (quote_validity_ms > 0 and quote_validity_ms <= 2147483647),
+  -- The domain prices 1 to 10 parcels of 1 to 999900 g (MAX_PARCELS, MAX_PARCEL_WEIGHT_G in packages/domain):
+  -- a setting beyond them is refused here, so the API never has to clamp it.
+  max_parcels integer not null default 10 check (max_parcels between 1 and 10),
+  max_parcel_weight_g integer check (max_parcel_weight_g between 1 and 999900),
   tax_basis text check (tax_basis in ('ttc', 'ht')),
   vat_millimes bigint check (vat_millimes >= 0),
   stamp_millimes bigint check (stamp_millimes >= 0),

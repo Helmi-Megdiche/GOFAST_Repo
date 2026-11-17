@@ -133,6 +133,13 @@ describe("POST /v1/quotes and GET /v1/quotes/{id}", () => {
     expect(res.json().error).toMatchObject({ code: "RULE_REFUSED", fields: [{ name: "departure", reason: "outOfZone" }] });
     expect(await count()).toBe(before);
   });
+  it("R204: 20 parcels is 422 tooManyParcels, never 500, and nothing is stored", async () => {
+    const before = await count();
+    const res = await post("/v1/quotes", quoteBody({ parcels: Array.from({ length: 20 }, () => ({ weight_g: 1000 })) }));
+    expect(res.statusCode).toBe(422);
+    expect(res.json().error.fields).toEqual([{ name: "parcels", reason: "tooManyParcels" }]);
+    expect(await count()).toBe(before);
+  });
   it("R201_T04: a picked délégation works without a pin, and an unpinned address is flagged", async () => {
     const res = await post("/v1/quotes", quoteBody({ departure: { text: "Rue sans pin", zone_id: ZONES.alpha } }));
     expect(res.statusCode).toBe(201);
