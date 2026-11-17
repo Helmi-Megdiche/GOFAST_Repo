@@ -39,7 +39,7 @@ type LineOut = QuoteOut["lines"][number];
 /** PROVISIONAL (not in the cahier): the limit of the two public routes that cost a lookup, per IP. */
 export const PRICING_LIMITS = { perIp: { limit: 120, windowMs: 60_000 } } as const;
 
-export type ZoneRow = { id: string; name: string; governorate: string | null };
+export type ZoneRow = { id: string; name: string; nameAr: string; nameEn: string; governorate: string | null };
 /** One row of `core.prices` in force. `withPackaging` true is the packaging supplement per parcel. */
 export type PriceRow = {
   serviceCode: ServiceCode;
@@ -93,8 +93,8 @@ export type StoredQuote = {
   expiresAt: Date;
 };
 
-/** A quote as it is read: the arrival zone's name is joined from `core.zones`, it is not stored. */
-export type ReadQuote = StoredQuote & { arrivalZoneName: string };
+/** A quote as it is read: the zone names are joined from `core.zones`, they are not stored. */
+export type ReadQuote = StoredQuote & { departureZoneName: string; arrivalZoneName: string };
 
 /** What the service needs from the database. `Tx` stays opaque here: only the repo knows it. */
 export interface PricingStore<Tx = never> {
@@ -170,11 +170,12 @@ export class PricingService {
         parcel_types: PARCEL_TYPES.map((code) => ({ code, limit: null })),
         extras: [
           { code: "fragile", fee_millimes: settings.fragileFeeMillimes },
-          { code: "declaredValue", fee_millimes: settings.declaredValueFeeMillimes },
+          // A declared value is not a price element (R204): the catalog never advertises a fee for it.
+          { code: "declaredValue", fee_millimes: null },
           { code: "retry", fee_millimes: settings.retryFeeMillimes },
           { code: "return", fee_millimes: settings.returnFeeMillimes },
         ],
-        zones: zones.map((z) => ({ id: z.id, name: z.name, governorate: z.governorate ?? "" })),
+        zones: zones.map((z) => ({ id: z.id, name: z.name, name_ar: z.nameAr, name_en: z.nameEn, governorate: z.governorate ?? "" })),
       };
     });
   }
@@ -310,12 +311,13 @@ export class PricingService {
         amountHtMillimes: null,
         amountTtcMillimes: null,
         surcharge: settings.rainActive ? { code: "rain", ceiling_millimes: settings.rainCeilingMillimes } : null,
-        priceListValidFrom: base.validFrom,
+        // R206: the latest start of every row the price used (the base row, and the packaging row when asked).
+        priceListValidFrom: new Date(Math.max(base.validFrom.getTime(), packaging ? packagingRow!.validFrom.getTime() : 0)),
         quotedAt,
         expiresAt,
       };
       await this.d.store.saveQuote(tx, stored);
-      return toQuote(stored, arrival.zone.name);
+      return toQuote(stored, departure.zone.name, arrival.zone.name);
     });
   }
 
@@ -328,7 +330,7 @@ export class PricingService {
     // R205: valid until the last millisecond before expires_at.
     if (!isQuoteValid({ expiresAt: stored.expiresAt.toISOString() }, at.getTime()))
       throw new ApiError("QUOTE_EXPIRED");
-    return toQuote(stored, stored.arrivalZoneName);
+    return toQuote(stored, stored.departureZoneName, stored.arrivalZoneName);
   }
 }
 
@@ -344,13 +346,13 @@ function lineOut(lines: PriceLines, settings: Settings): LineOut[] {
   });
 }
 
-function toQuote(s: StoredQuote, zoneName: string): QuoteOut {
+function toQuote(s: StoredQuote, departureName: string, arrivalName: string): QuoteOut {
   return {
     id: s.id,
     service: s.service,
     parcel_type: s.parcelType,
-    zone_id: s.arrivalZoneId,
-    zone_name: zoneName,
+    departure: { zone_id: s.departureZoneId, zone_name: departureName },
+    arrival: { zone_id: s.arrivalZoneId, zone_name: arrivalName },
     parcels: s.parcels as QuoteOut["parcels"],
     packaging: s.packaging,
     fragile: s.fragile,

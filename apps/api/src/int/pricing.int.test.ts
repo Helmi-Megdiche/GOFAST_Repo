@@ -74,6 +74,12 @@ describe("GET /v1/services", () => {
     expect(names).not.toContain("Charlie");
     expect(body.zones.filter((z: { governorate: string }) => z.governorate === "Manouba")).toHaveLength(8);
     expect(body.extras).toContainEqual({ code: "fragile", fee_millimes: null });
+    expect(body.extras).toContainEqual({ code: "declaredValue", fee_millimes: null });
+    // every zone names itself in the three languages (French, Arabic, English)
+    const alpha = body.zones.find((z: { name: string }) => z.name === "Alpha");
+    expect(alpha).toMatchObject({ name_ar: "ألفا", name_en: "Alpha" });
+    const sidi = body.zones.find((z: { name: string }) => z.name === "Sidi Thabet");
+    expect(sidi.name_ar).toMatch(/[\u0600-\u06FF]/);
   });
 });
 
@@ -122,6 +128,11 @@ describe("POST /v1/quotes and GET /v1/quotes/{id}", () => {
       "base", "distance", "weight", "options", "packaging", "surcharge", "discount", "vat", "stamp",
     ]);
     expect(quote).toMatchObject({ tax_basis: null, amount_ht_millimes: null, amount_ttc_millimes: null, departure_pinned: true, arrival_pinned: true });
+    expect(quote).toMatchObject({
+      departure: { zone_id: ZONES.alpha, zone_name: "Alpha" },
+      arrival: { zone_id: ZONES.bravo, zone_name: "Bravo" },
+    });
+    expect(quote).not.toHaveProperty("zone_id");
     const read = await app.inject({ method: "GET", url: `/v1/quotes/${quote.id}` });
     expect(read.statusCode).toBe(200);
     expect(read.json()).toEqual(quote);
@@ -150,6 +161,10 @@ describe("POST /v1/quotes and GET /v1/quotes/{id}", () => {
     expect(res.statusCode).toBe(201);
     const row = (await q("select departure_zone_id from core.quotes where id = $1", [res.json().id])).rows[0];
     expect(row.departure_zone_id).toBe(ZONES.alpha);
+    // the RESPONSE too (created and read back): the pin's zone, not the picked one
+    expect(res.json().departure).toEqual({ zone_id: ZONES.alpha, zone_name: "Alpha" });
+    const back = await app.inject({ method: "GET", url: `/v1/quotes/${res.json().id}` });
+    expect(back.json().departure).toEqual({ zone_id: ZONES.alpha, zone_name: "Alpha" });
     const bad = await post("/v1/quotes", quoteBody({ arrival: { text: "Quelque part" } }));
     expect(bad.statusCode).toBe(422);
     expect(bad.json().error.fields).toEqual([{ name: "arrival", reason: "addressUnconfirmed" }]);

@@ -31,6 +31,8 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 export const zones = core.table("zones", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
+  nameAr: text("name_ar").notNull(),
+  nameEn: text("name_en").notNull(),
   governorate: text("governorate"),
   area: geography("area", "MultiPolygon"),
   active: boolean("active").notNull().default(true),

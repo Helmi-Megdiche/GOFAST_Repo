@@ -22,7 +22,7 @@ export class PricingRepo implements PricingStore<Tx> {
   /** The active délégations, for the picker (never the polygon). */
   async zones(tx: Tx): Promise<ZoneRow[]> {
     const r = await tx.execute(
-      sql`select id, name, governorate from core.zones
+      sql`select id, name, name_ar, name_en, governorate from core.zones
            where active and governorate is not null order by governorate, name`,
     );
     return (r.rows as Raw[]).map(zoneRow);
@@ -31,7 +31,7 @@ export class PricingRepo implements PricingStore<Tx> {
   /** R201: `core.zone_at` (ST_Covers, active zones, one zone on a shared border). x = longitude. */
   async zoneAt(tx: Tx, pin: { x: number; y: number }): Promise<ZoneRow | null> {
     const r = await tx.execute(
-      sql`select z.id, z.name, z.governorate from core.zones z where z.id = core.zone_at(${pin.x}, ${pin.y})`,
+      sql`select z.id, z.name, z.name_ar, z.name_en, z.governorate from core.zones z where z.id = core.zone_at(${pin.x}, ${pin.y})`,
     );
     const row = (r.rows as Raw[])[0];
     return row ? zoneRow(row) : null;
@@ -39,7 +39,7 @@ export class PricingRepo implements PricingStore<Tx> {
 
   async activeZone(tx: Tx, id: string): Promise<ZoneRow | null> {
     const r = await tx.execute(
-      sql`select id, name, governorate from core.zones where id = ${id} and active`,
+      sql`select id, name, name_ar, name_en, governorate from core.zones where id = ${id} and active`,
     );
     const row = (r.rows as Raw[])[0];
     return row ? zoneRow(row) : null;
@@ -111,13 +111,15 @@ export class PricingRepo implements PricingStore<Tx> {
 
   async readQuote(tx: Tx, id: string): Promise<ReadQuote | null> {
     const r = await tx.execute(
-      sql`select q.*, z.name as arrival_zone_name from core.quotes q
-            join core.zones z on z.id = q.arrival_zone_id where q.id = ${id}`,
+      sql`select q.*, dz.name as departure_zone_name, az.name as arrival_zone_name from core.quotes q
+            join core.zones dz on dz.id = q.departure_zone_id
+            join core.zones az on az.id = q.arrival_zone_id where q.id = ${id}`,
     );
     const q = (r.rows as Raw[])[0];
     if (!q) return null;
     return {
       id: q.id as string,
+      departureZoneName: q.departure_zone_name as string,
       arrivalZoneName: q.arrival_zone_name as string,
       departureKeyHash: q.departure_key_hash as string,
       arrivalKeyHash: q.arrival_key_hash as string,
@@ -147,5 +149,7 @@ export class PricingRepo implements PricingStore<Tx> {
 const zoneRow = (z: Raw): ZoneRow => ({
   id: z.id as string,
   name: z.name as string,
+  nameAr: z.name_ar as string,
+  nameEn: z.name_en as string,
   governorate: (z.governorate as string | null) ?? null,
 });

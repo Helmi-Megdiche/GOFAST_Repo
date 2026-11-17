@@ -10,8 +10,8 @@ import {
   PRICING_LIMITS,
 } from "./pricing.service.ts";
 
-const ALPHA: ZoneRow = { id: "11111111-1111-4111-8111-111111111111", name: "Alpha", governorate: "Tunis" };
-const BRAVO: ZoneRow = { id: "22222222-2222-4222-8222-222222222222", name: "Bravo", governorate: "Ariana" };
+const ALPHA: ZoneRow = { id: "11111111-1111-4111-8111-111111111111", name: "Alpha", nameAr: "ألفا", nameEn: "Alpha", governorate: "Tunis" };
+const BRAVO: ZoneRow = { id: "22222222-2222-4222-8222-222222222222", name: "Bravo", nameAr: "برافو", nameEn: "Bravo", governorate: "Ariana" };
 const PAUSED_ID = "33333333-3333-4333-8333-333333333333";
 
 const SETTINGS: Settings = {
@@ -99,7 +99,9 @@ class FakeStore implements PricingStore {
     const q = this.saved.find((x) => x.id === id) as { arrivalZoneId: string } | undefined;
     if (!q) return null;
     // as the SQL does: the name is joined on read, it is not stored
-    return { ...q, arrivalZoneName: this.zonesList.find((z) => z.id === q.arrivalZoneId)?.name ?? "" } as never;
+    const named = (zid: string) => this.zonesList.find((z) => z.id === zid)?.name ?? "";
+    const r = q as { arrivalZoneId: string; departureZoneId: string };
+    return { ...q, departureZoneName: named(r.departureZoneId), arrivalZoneName: named(r.arrivalZoneId) } as never;
   }
 }
 
@@ -177,15 +179,48 @@ describe("R204_T01 the quote lines", () => {
     expect(by.weight).toEqual({ kind: "weight", unit_millimes: 0, count: 3, millimes: 0 });
     expect(q.total_millimes).toBe(36000);
   });
-  it("R204_T01_zone: the quote names the arrival zone used for the price, when created and when read back", async () => {
+  it("R204_T01_zone: the quote names the zone of the departure and of the arrival (the arrival one is priced), created and read back", async () => {
     const svc = service();
     const q = await svc.createQuote(request(), ctx);
-    expect(q).toMatchObject({ zone_id: BRAVO.id, zone_name: "Bravo" });
-    expect(await svc.getQuote(q.id)).toMatchObject({ zone_id: BRAVO.id, zone_name: "Bravo" });
-    // only the id is kept in the row
+    const both = {
+      departure: { zone_id: ALPHA.id, zone_name: "Alpha" },
+      arrival: { zone_id: BRAVO.id, zone_name: "Bravo" },
+    };
+    expect(q).toMatchObject(both);
+    expect(q).not.toHaveProperty("zone_id");
+    expect(await svc.getQuote(q.id)).toMatchObject(both);
+    // only the ids are kept in the row
     expect(JSON.stringify(store.saved[0])).not.toContain("Bravo");
     const back = await svc.createQuote(request({ departure: pinned(10.15, 36.05), arrival: pinned(10.05, 36.05) }), ctx);
-    expect(back).toMatchObject({ zone_id: ALPHA.id, zone_name: "Alpha" });
+    expect(back).toMatchObject({ departure: { zone_id: BRAVO.id }, arrival: { zone_id: ALPHA.id, zone_name: "Alpha" } });
+  });
+  it("R201_T04: when a pin and a zone_id disagree, the RESPONSE shows the pin's zone, for the quote and for the read-back", async () => {
+    const svc = service();
+    const q = await svc.createQuote(
+      request({
+        departure: { text: "Rue", pin: { x: 10.05, y: 36.05 }, zone_id: BRAVO.id }, // pin in Alpha, picked Bravo
+        arrival: { text: "Rue", pin: { x: 10.15, y: 36.05 }, zone_id: ALPHA.id }, // pin in Bravo, picked Alpha
+      }),
+      ctx,
+    );
+    const pinZones = { departure: { zone_id: ALPHA.id, zone_name: "Alpha" }, arrival: { zone_id: BRAVO.id, zone_name: "Bravo" } };
+    expect(q).toMatchObject(pinZones);
+    expect(await svc.getQuote(q.id)).toMatchObject(pinZones);
+    expect(q).toMatchObject({ departure_pinned: true, arrival_pinned: true });
+  });
+  it("R206_T52: price_list_valid_from is the latest start of every row the price used", async () => {
+    const svc = service();
+    store.grid = [...GRID, row("standard", true, 2000, null, "2026-11-10T00:00:00Z")];
+    // packaging used: its row (10 Nov) is newer than the base row (6 Nov)
+    expect((await svc.createQuote(request({ packaging: true }), ctx)).quoted_at).toBeDefined();
+    expect(store.saved.at(-1)!.priceListValidFrom).toEqual(new Date("2026-11-10T00:00:00Z"));
+    // packaging not asked: only the base row counts
+    await svc.createQuote(request({ packaging: false }), ctx);
+    expect(store.saved.at(-1)!.priceListValidFrom).toEqual(new Date("2026-11-06T00:00:00Z"));
+    // a newer base row wins as well
+    store.grid = [...GRID.filter((r) => !(r.serviceCode === "standard" && !r.withPackaging)), row("standard", false, 10500, null, "2026-11-12T00:00:00Z")];
+    await svc.createQuote(request({ packaging: true }), ctx);
+    expect(store.saved.at(-1)!.priceListValidFrom).toEqual(new Date("2026-11-12T00:00:00Z"));
   });
   it("tax_basis null gives HT and TTC null, and the quote says which addresses were pinned", async () => {
     const q = await service().createQuote(
@@ -361,6 +396,11 @@ describe("R205_T05 the quote lives 15 minutes", () => {
 });
 
 describe("the catalog and the zone check", () => {
+  it("R204: the catalog never advertises a declared-value fee, even when the settings hold a value (it is not a price element)", async () => {
+    store.settings = { ...SETTINGS, declaredValueFeeMillimes: 1500 };
+    const c = await service().listServices();
+    expect(c.extras.find((e) => e.code === "declaredValue")).toEqual({ code: "declaredValue", fee_millimes: null });
+  });
   it("offers a service only when it is active and has a base price in force", async () => {
     const c = await service().listServices();
     expect(c.offers).toEqual([
@@ -368,8 +408,8 @@ describe("the catalog and the zone check", () => {
       { code: "standard", from_price_millimes: 10000, packaging_price_millimes: 2000, cutoff_time: null },
     ]);
     expect(c.zones).toEqual([
-      { id: ALPHA.id, name: "Alpha", governorate: "Tunis" },
-      { id: BRAVO.id, name: "Bravo", governorate: "Ariana" },
+      { id: ALPHA.id, name: "Alpha", name_ar: "ألفا", name_en: "Alpha", governorate: "Tunis" },
+      { id: BRAVO.id, name: "Bravo", name_ar: "برافو", name_en: "Bravo", governorate: "Ariana" },
     ]);
     expect(c.extras).toEqual([
       { code: "fragile", fee_millimes: null },
