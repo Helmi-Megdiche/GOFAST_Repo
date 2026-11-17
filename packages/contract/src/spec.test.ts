@@ -381,12 +381,22 @@ describe("GH-10 pricing contract (Plan PR 4b-1)", () => {
     expect(required("AddressInput")).not.toContain("zone_id");
   });
 
-  it("R204: a quote names the zone it is priced for (offre et zone): zone_id and zone_name, required", () => {
+  it("R204: a quote names the zone of each address (offre et zone): departure and arrival, each zone_id and zone_name", () => {
     const quote = props("Quote");
-    expect(Object.keys(quote)).toEqual(expect.arrayContaining(["zone_id", "zone_name"]));
-    expect(required("Quote")).toEqual(expect.arrayContaining(["zone_id", "zone_name"]));
-    expect(quote.zone_id).toMatchObject({ $ref: "#/components/schemas/ResourceId" });
-    expect(quote.zone_name).toMatchObject({ type: "string" });
+    expect(Object.keys(quote)).toEqual(expect.arrayContaining(["departure", "arrival"]));
+    expect(Object.keys(quote)).not.toContain("zone_id");
+    expect(Object.keys(quote)).not.toContain("zone_name");
+    expect(required("Quote")).toEqual(expect.arrayContaining(["departure", "arrival"]));
+    for (const side of ["departure", "arrival"]) expect(quote[side]).toMatchObject({ $ref: "#/components/schemas/QuoteZone" });
+    expect(required("QuoteZone")).toEqual(["zone_id", "zone_name"]);
+    expect(props("QuoteZone").zone_id).toMatchObject({ $ref: "#/components/schemas/ResourceId" });
+    expect(props("QuoteZone").zone_name).toMatchObject({ type: "string" });
+  });
+
+  it("the catalog zones carry the name in French, Arabic and English", () => {
+    const zone = (((props("ServiceCatalog").zones as Json).items as Json) ?? {}) as Json;
+    expect(zone.required).toEqual(expect.arrayContaining(["id", "name", "name_ar", "name_en", "governorate"]));
+    expect(Object.keys(zone.properties as Json)).toEqual(expect.arrayContaining(["name_ar", "name_en"]));
   });
 
   it("R204: a quote has a packaging line, the tax basis and the two taxed totals", () => {

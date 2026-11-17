@@ -48,11 +48,19 @@ ServiceCatalog:
       description: The active délégations, for the picker. Never a polygon.
       items:
         type: object
-        required: [id, name, governorate]
+        required: [id, name, name_ar, name_en, governorate]
         additionalProperties: false
         properties:
           id: { $ref: "common.yaml#/ResourceId" }
-          name: { type: string }
+          name:
+            type: string
+            description: The name in French, the one a zone check and a quote return.
+          name_ar:
+            type: string
+            description: The name in Arabic (OpenStreetMap name:ar).
+          name_en:
+            type: string
+            description: The name in English (OpenStreetMap name:en, else the French name).
           governorate: { type: string }
 ZoneCheckRequest:
   description: Exactly one of `pin` or `zone_id`.
@@ -173,6 +181,14 @@ PriceLine:
   oneOf:
     - $ref: "#/AmountLine"
     - $ref: "#/DiscountLine"
+QuoteZone:
+  type: object
+  description: The délégation of an address of a quote. Only the id is stored; the name (French) is read from the zone.
+  required: [zone_id, zone_name]
+  additionalProperties: false
+  properties:
+    zone_id: { $ref: "common.yaml#/ResourceId" }
+    zone_name: { type: string }
 Quote:
   type: object
   description: R204 and R205. Valid for the time in the settings (15 min), then recalculated and revalidated.
@@ -181,8 +197,8 @@ Quote:
       id,
       service,
       parcel_type,
-      zone_id,
-      zone_name,
+      departure,
+      arrival,
       parcels,
       packaging,
       fragile,
@@ -202,14 +218,15 @@ Quote:
     id: { $ref: "common.yaml#/ResourceId" }
     service: { $ref: "common.yaml#/ServiceCode" }
     parcel_type: { $ref: "common.yaml#/ParcelTypeCode" }
-    zone_id:
+    departure:
       description: >-
-        R204 (offre et zone): the délégation the price was read for, the arrival address's. A price list of
-        its zone beats the default.
-      $ref: "common.yaml#/ResourceId"
-    zone_name:
-      type: string
-      description: The name of that délégation. Only the id is stored; the name is read from the zone.
+        R204 (offre et zone), the délégation of the departure address.
+      $ref: "#/QuoteZone"
+    arrival:
+      description: >-
+        R204 (offre et zone), the délégation of the arrival address. The price is read for THIS zone: a price
+        list of the zone beats the default.
+      $ref: "#/QuoteZone"
     parcels: { $ref: "#/QuoteParcels" }
     packaging: { type: boolean }
     fragile: { type: boolean }

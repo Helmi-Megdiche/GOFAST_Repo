@@ -818,8 +818,12 @@ export interface components {
             amount_ht_millimes: components["schemas"]["Money"] | null;
             /** @description Null while the tax basis or the VAT is unknown. */
             amount_ttc_millimes: components["schemas"]["Money"] | null;
+            /** @description R204 (offre et zone), the délégation of the arrival address. The price is read for THIS zone: a price list of the zone beats the default. */
+            arrival: components["schemas"]["QuoteZone"];
             /** @description True when the arrival address came with a pin. */
             arrival_pinned: boolean;
+            /** @description R204 (offre et zone), the délégation of the departure address. */
+            departure: components["schemas"]["QuoteZone"];
             /** @description True when the departure address came with a pin. Without one the order stays "à confirmer" (#22). */
             departure_pinned: boolean;
             expires_at: components["schemas"]["UtcTimestamp"];
@@ -841,10 +845,6 @@ export interface components {
             tax_basis: ("ttc" | "ht") | null;
             /** @description Sum (all parcels) of the lines that have a value. Whether it includes vat and stamp is open (TTC or HT). */
             total_millimes: components["schemas"]["Money"];
-            /** @description R204 (offre et zone): the délégation the price was read for, the arrival address's. A price list of its zone beats the default. */
-            zone_id: components["schemas"]["ResourceId"];
-            /** @description The name of that délégation. Only the id is stored; the name is read from the zone. */
-            zone_name: string;
         };
         /** @description The body of a QUOTE_EXPIRED answer. The code is fixed by the status. */
         QuoteExpiredBody: {
@@ -872,6 +872,11 @@ export interface components {
             /** @description One entry for each parcel, with its own weight (2 kg are included in the base price of each parcel). The maximum number (provisional 10) comes from the settings; more gives RULE_REFUSED `tooManyParcels` (so the schema sets no upper bound). */
             parcels: components["schemas"]["QuoteParcels"];
             service: components["schemas"]["ServiceCode"];
+        };
+        /** @description The délégation of an address of a quote. Only the id is stored; the name (French) is read from the zone. */
+        QuoteZone: {
+            zone_id: components["schemas"]["ResourceId"];
+            zone_name: string;
         };
         /** Format: uuid */
         ResourceId: string;
@@ -934,7 +939,12 @@ export interface components {
             zones: {
                 governorate: string;
                 id: components["schemas"]["ResourceId"];
+                /** @description The name in French, the one a zone check and a quote return. */
                 name: string;
+                /** @description The name in Arabic (OpenStreetMap name:ar). */
+                name_ar: string;
+                /** @description The name in English (OpenStreetMap name:en, else the French name). */
+                name_en: string;
             }[];
         };
         /** @enum {string} */
