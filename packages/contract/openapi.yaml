@@ -57,6 +57,8 @@ paths:
     $ref: paths/password-resets.yaml
   /v1/services:
     $ref: paths/services.yaml
+  /v1/zone-checks:
+    $ref: paths/zone-checks.yaml
   /v1/quotes:
     $ref: paths/quotes.yaml
   /v1/quotes/{id}:

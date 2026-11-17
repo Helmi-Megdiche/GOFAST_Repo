@@ -96,6 +96,11 @@ native-speaker review before release (CLAUDE.md).
 | `apiErrors.STATE_CONFLICT` | هذا الإجراء غير ممكن في الحالة الحالية. | Cette action n'est pas possible dans l'état actuel. | [ ] |
 | `apiErrors.TOO_MANY_ATTEMPTS` | محاولات كثيرة جدًا، حاول لاحقًا. | Trop de tentatives, réessayez plus tard. | [ ] |
 | `apiErrors.VALIDATION_FAILED` | بعض الحقول مفقودة أو غير صالحة. | Certains champs sont manquants ou invalides. | [ ] |
+| `apiErrors.addressUnconfirmed` | تعذّر تحديد هذا العنوان على الخريطة: اختر المعتمدية من القائمة. | Cette adresse n'a pas pu être placée sur la carte : choisissez la délégation dans la liste. | [ ] |
+| `apiErrors.outOfZone` | هذا العنوان غير مشمول بالخدمة بعد. | Cette adresse n'est pas encore desservie. | [ ] |
+| `apiErrors.priceUnavailable` | سعر هذا الخيار غير متوفر بعد. | Le prix de cette option n'est pas encore disponible. | [ ] |
+| `apiErrors.tooHeavy` | أحد الطرود يتجاوز الوزن الأقصى. | Un colis dépasse le poids maximal. | [ ] |
+| `apiErrors.tooManyParcels` | عدد الطرود كبير جدًا لطلب واحد. | Il y a trop de colis pour une seule commande. | [ ] |
 | `apiSms.code` | GOFAST: رمزك هو {code}. صالح لمدة {minutes} دقائق. لا تشاركه مع أحد. | GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne. | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
@@ -877,6 +882,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.price.lines.discount` | تخفيض | Remise | [ ] |
 | `order.price.lines.distance` | المسافة | Distance | [ ] |
 | `order.price.lines.options` | الخيارات | Options | [ ] |
+| `order.price.lines.packaging` | تغليف GOFAST | Emballage GOFAST | [ ] |
 | `order.price.lines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
 | `order.price.lines.surcharge` | رسوم إضافية: {name} (الحد الأقصى: <ceiling></ceiling>) | Majoration {name} (plafond : <ceiling></ceiling>) | [ ] |
 | `order.price.lines.vat` | الأداء على القيمة المضافة | TVA | [ ] |
@@ -1029,6 +1035,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.detail.priceLines.discount` | خصم | Remise | [ ] |
 | `orders.detail.priceLines.distance` | المسافة | Distance | [ ] |
 | `orders.detail.priceLines.options` | خيارات | Options | [ ] |
+| `orders.detail.priceLines.packaging` | تغليف GOFAST | Emballage GOFAST | [ ] |
 | `orders.detail.priceLines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
 | `orders.detail.priceLines.surcharge` | زيادة | Majoration | [ ] |
 | `orders.detail.priceLines.vat` | الأداء على القيمة المضافة | TVA | [ ] |

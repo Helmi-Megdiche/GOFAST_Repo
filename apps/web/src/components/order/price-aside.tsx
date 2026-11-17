@@ -112,6 +112,7 @@ export function PriceLines({ quote, serviceName }: { quote: Quote; serviceName: 
     distance: t("lines.distance"),
     weight: t("lines.weight"),
     options: t("lines.options"),
+    packaging: t("lines.packaging"),
     surcharge: t.rich("lines.surcharge", { name, ceiling: () => ceiling }),
     discount: t("lines.discount"),
     vat: t("lines.vat"),

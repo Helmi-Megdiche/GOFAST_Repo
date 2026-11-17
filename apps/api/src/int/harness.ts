@@ -26,7 +26,7 @@ export type TestDb = {
  * Starts PostGIS, then does what `infra/servers` does on a real host (roles, extension), then runs
  * the migrations as `fastgo_migrator`. The migrations themselves create no role and no password.
  */
-export async function startTestDb(): Promise<TestDb> {
+export async function startTestDb(opts: { migrationsDir?: string } = {}): Promise<TestDb> {
   const network = await new Network().start();
   const container = await new GenericContainer("postgis/postgis:17-3.5")
     .withNetwork(network)
@@ -55,7 +55,7 @@ export async function startTestDb(): Promise<TestDb> {
   await superClient.query("grant create on schema public to fastgo_migrator");
   await superClient.query("grant usage on schema public to fastgo_app, fastgo_readonly, fastgo_worker");
 
-  await migrate(url("fastgo_migrator"));
+  await migrate(url("fastgo_migrator"), opts.migrationsDir);
 
   return {
     host,

@@ -39,6 +39,18 @@ describe("message catalogs", () => {
   });
 });
 
+describe("apiErrors", () => {
+  it("R201_T04: outOfZone, the zone check reason, is an apiErrors key in fr, en and ar", () => {
+    for (const [locale, entries] of Object.entries(flat))
+      expect(entries["apiErrors.outOfZone"], locale).toBeTruthy();
+  });
+  it("R204: every RULE_REFUSED reason of a quote has a message in fr, en and ar", () => {
+    for (const reason of ["outOfZone", "addressUnconfirmed", "tooManyParcels", "tooHeavy", "priceUnavailable"])
+      for (const [locale, entries] of Object.entries(flat))
+        expect(entries[`apiErrors.${reason}`], `${locale} ${reason}`).toBeTruthy();
+  });
+});
+
 describe("business placeholders", () => {
   it("stay visible in square brackets in fr, en and ar", () => {
     const keys = Object.keys(flat.fr).filter((key) => key.startsWith("placeholders."));

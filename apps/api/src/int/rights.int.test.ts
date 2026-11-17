@@ -34,6 +34,9 @@ const EXPECTED: Record<string, Expect> = {
   "core.zones": REFERENCE,
   "core.services": REFERENCE,
   "core.prices": REFERENCE,
+  "core.pricing_settings": REFERENCE,
+  // GH-10: a public quote has no owner; the app inserts and reads it, never updates or deletes (no hash column).
+  "core.quotes": { app: ["INSERT", "SELECT"], ro: "no-hash", rls: true },
   // Column grants only (no table-level right): hash hidden from the app, 7 columns updatable.
   "core.accounts": { app: [], appCols: { UPDATE: ["email", "full_name", "locale", "notify_email", "notify_offers", "notify_sms", "updated_at"] }, ro: "no-hash", rls: true },
   "core.companies": OWNED,
@@ -84,7 +87,15 @@ const EXPECTED: Record<string, Expect> = {
     rls: true,
   },
   "core.missions": OWNED,
-  "core.status_events": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
+  // GH-96: no table-level SELECT, so the driver's position and the actor stay hidden from the app.
+  "core.status_events": {
+    app: ["INSERT"],
+    appCols: {
+      SELECT: ["event_id", "from_status", "id", "occurred_at", "order_id", "received_at", "subject_id", "subject_type", "to_status"],
+    },
+    ro: "none",
+    rls: true,
+  },
   "core.proofs": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
   // Hash columns are hidden from the app: column grants only, so no table-level SELECT.
   "core.delivery_codes": { app: ["INSERT"], ro: "none", rls: true },
@@ -103,6 +114,9 @@ const WORKER: Record<string, Rights> = {
   "core.zones": { t: ["SELECT"] },
   "core.services": { t: ["SELECT"] },
   "core.prices": { t: ["SELECT"] },
+  "core.pricing_settings": { t: ["SELECT"] },
+  // GH-10: the purge of expired quotes (hourly): it reads the id and the expiry, and deletes; nothing else.
+  "core.quotes": { t: ["DELETE"], c: { SELECT: ["expires_at", "id"] } },
   "core.idempotency_keys": { t: ["DELETE", "SELECT"] },
   "gestion.audit_events": { t: ["INSERT"] },
   "core.status_events": { t: ["SELECT"], c: { UPDATE: ["location"] } },
@@ -308,6 +322,20 @@ describe("grant test: every table, as it is in the database", () => {
       { proname: "protect", app: false, worker: false },
       { proname: "reference", app: false, worker: false },
     ]);
+  });
+});
+
+describe("core.zone_at (R201): only the app calls it", () => {
+  it("fastgo_app may execute it; fastgo_readonly, fastgo_worker and PUBLIC may not", async () => {
+    const r = await db.superClient.query(
+      `select has_function_privilege('fastgo_app', p.oid, 'execute') as app,
+              has_function_privilege('fastgo_readonly', p.oid, 'execute') as ro,
+              has_function_privilege('fastgo_worker', p.oid, 'execute') as worker,
+              has_function_privilege('fastgo_public_reader', p.oid, 'execute') as public_reader,
+              coalesce((select bool_or(a.grantee = 0) from aclexplode(p.proacl) a), false) as public_grant
+         from pg_proc p where p.oid = 'core.zone_at(double precision, double precision)'::regprocedure`,
+    );
+    expect(r.rows).toEqual([{ app: true, ro: false, worker: false, public_reader: false, public_grant: false }]);
   });
 });
 

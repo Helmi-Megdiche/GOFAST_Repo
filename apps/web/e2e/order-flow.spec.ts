@@ -260,6 +260,7 @@ test("W15 lists every price line, even at 0,000, and they add up (R204, R207)", 
     ["Distance", "2,500"],
     ["Poids", "0,000"],
     ["Options", "0,000"],
+    ["Emballage GOFAST", "0,000"],
     ["Majoration pluie (plafond : [PLAFOND])", "1,000"],
     ["Remise", "0,000"],
     ["TVA", "1,805"],
@@ -685,14 +686,16 @@ test.describe("order logic", () => {
     await page.getByRole("button", { name: "Vérifier ma commande" }).click();
     await expect(page).toHaveURL(/\/commander\/verification$/);
     const detail = page.getByRole("complementary", { name: "Détail du prix" });
-    // base 3 x 6,000, weight 0 + 500 + 1,000, packaging 3 x 2,000, distance, rain and VAT once
+    // base 3 x 6,000, weight 0 + 500 + 1,000, packaging on its own line (3 x 2,000), distance, rain and VAT once
     await expect(detail).toContainText("30,805 TND");
     const row = (term: string) => detail.locator("dl > div").filter({ has: page.getByText(term) });
     await expect(row("Service et zone")).toContainText("18,000");
     await expect(row("Service et zone")).toContainText("6,000 TND × 3");
     await expect(row("Poids")).toContainText("1,500");
     await expect(row("Poids")).toContainText("Poids différent selon le colis");
-    await expect(row("Options")).toContainText("6,000");
+    await expect(row("Options")).toContainText("0,000");
+    await expect(row("Emballage GOFAST")).toContainText("6,000");
+    await expect(row("Emballage GOFAST")).toContainText("2,000 TND × 3");
     await expect(row("Distance")).toContainText("2,500");
     await expect(row("Distance")).not.toContainText("×");
     await expect(row("Majoration pluie")).not.toContainText("×");

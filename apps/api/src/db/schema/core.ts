@@ -31,6 +31,9 @@ const createdAt = () => timestamp("created_at", { withTimezone: true }).notNull(
 export const zones = core.table("zones", {
   id: uuid("id").primaryKey().defaultRandom(),
   name: text("name").notNull().unique(),
+  nameAr: text("name_ar").notNull(),
+  nameEn: text("name_en").notNull(),
+  governorate: text("governorate"),
   area: geography("area", "MultiPolygon"),
   active: boolean("active").notNull().default(true),
 });
@@ -40,18 +43,75 @@ export const services = core.table("services", {
   active: boolean("active").notNull().default(true),
 });
 
-export const prices = core.table(
-  "prices",
-  {
-    serviceCode: text("service_code")
-      .notNull()
-      .references(() => services.code),
-    withPackaging: boolean("with_packaging").notNull(),
-    millimes: millimes("millimes"),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
-  },
-  (t) => [primaryKey({ columns: [t.serviceCode, t.withPackaging] })],
-);
+/**
+ * Versioned and per zone (R204, R206). `zoneId` null = every zone. `withPackaging = false` is the base
+ * price; `true` is the packaging supplement per parcel. A unique index on the key and `valid_from`
+ * (with a coalesce on the zone) lives in the migration.
+ */
+export const prices = core.table("prices", {
+  id: bigint("id", { mode: "number" }).primaryKey().generatedAlwaysAsIdentity(),
+  serviceCode: text("service_code")
+    .notNull()
+    .references(() => services.code),
+  withPackaging: boolean("with_packaging").notNull(),
+  millimes: millimes("millimes"),
+  zoneId: uuid("zone_id").references(() => zones.id),
+  validFrom: timestamp("valid_from", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** One row (`id` is always true). A null is a value GOFAST has not given. */
+export const pricingSettings = core.table("pricing_settings", {
+  id: boolean("id").primaryKey().default(true),
+  distanceMillimes: millimes("distance_millimes").notNull().default(0),
+  weightIncludedG: integer("weight_included_g").notNull().default(2000),
+  weightPerKgMillimes: millimes("weight_per_kg_millimes").notNull().default(0),
+  retryFeeMillimes: millimes("retry_fee_millimes").notNull().default(0),
+  returnFeeMillimes: millimes("return_fee_millimes").notNull().default(5000),
+  quoteValidityMs: millimes("quote_validity_ms").notNull().default(900000),
+  maxParcels: integer("max_parcels").notNull().default(10),
+  maxParcelWeightG: integer("max_parcel_weight_g"),
+  taxBasis: text("tax_basis"),
+  vatMillimes: millimes("vat_millimes"),
+  stampMillimes: millimes("stamp_millimes"),
+  fragileFeeMillimes: millimes("fragile_fee_millimes"),
+  declaredValueFeeMillimes: millimes("declared_value_fee_millimes"),
+  rainActive: boolean("rain_active").notNull().default(false),
+  rainSurchargeMillimes: millimes("rain_surcharge_millimes"),
+  rainCeilingMillimes: millimes("rain_ceiling_millimes"),
+});
+
+/** A public quote: no owner, a keyed hash of each address and no address text. */
+export const quotes = core.table("quotes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  departureKeyHash: text("departure_key_hash").notNull(),
+  arrivalKeyHash: text("arrival_key_hash").notNull(),
+  serviceCode: text("service_code")
+    .notNull()
+    .references(() => services.code),
+  parcelType: text("parcel_type").notNull(),
+  parcels: jsonb("parcels").notNull(),
+  packaging: boolean("packaging").notNull(),
+  fragile: boolean("fragile").notNull(),
+  declaredValueMillimes: millimes("declared_value_millimes"),
+  departureZoneId: uuid("departure_zone_id")
+    .notNull()
+    .references(() => zones.id),
+  arrivalZoneId: uuid("arrival_zone_id")
+    .notNull()
+    .references(() => zones.id),
+  departurePinned: boolean("departure_pinned").notNull(),
+  arrivalPinned: boolean("arrival_pinned").notNull(),
+  lines: jsonb("lines").notNull(),
+  totalMillimes: millimes("total_millimes").notNull(),
+  taxBasis: text("tax_basis"),
+  amountHtMillimes: millimes("amount_ht_millimes"),
+  amountTtcMillimes: millimes("amount_ttc_millimes"),
+  surcharge: jsonb("surcharge"),
+  priceListValidFrom: timestamp("price_list_valid_from", { withTimezone: true }).notNull(),
+  quotedAt: timestamp("quoted_at", { withTimezone: true }).notNull(),
+  expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+});
 
 export const accounts = core.table("accounts", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -242,14 +242,27 @@ describe("definer functions", () => {
       "tracking",
     ]);
     for (const f of r.rows) {
-      expect(f, f.proname).toMatchObject({ owner: "fastgo_public_reader", app: true, ro: false, worker: false });
+      // GH-10 round 2: account_for_login was replaced by login_account (0006); the app may no longer call it.
+      expect(f, f.proname).toMatchObject({
+        owner: "fastgo_public_reader",
+        app: f.proname !== "account_for_login",
+        ro: false,
+        worker: false,
+      });
       expect(f.cfg, f.proname).toContain("search_path=pg_catalog, core");
     }
   });
 
+  it("R101: fastgo_app cannot execute account_for_login (login_account is the door, migration 0010)", async () => {
+    const r = await q(
+      "select has_function_privilege('fastgo_app', 'core.account_for_login(text,text)', 'EXECUTE') as app, has_function_privilege('fastgo_app', 'core.login_account(text,text)', 'EXECUTE') as door",
+    );
+    expect(r.rows).toEqual([{ app: false, door: true }]);
+  });
+
   it("R405: tracking returns state, dates and zone names, and nothing personal", async () => {
     const zone = randomUUID();
-    await q("insert into core.zones (id, name) values ($1, 'Tunis')", [zone]);
+    await q("insert into core.zones (id, name, name_ar, name_en) values ($1, 'Tunis', 'تونس', 'Tunis')", [zone]);
     await q("update core.addresses set zone_id = $1 where id = $2", [zone, ids.addressA]);
     const res = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-AAAA-0001') as t`));
     const t = (res.rows[0] as { t: Record<string, unknown> }).t;
@@ -322,20 +335,14 @@ describe("definer functions", () => {
     expect((await findLink("edited-hash", new Date(row.updated_at.getTime() + 1000))).rows).toEqual([]);
   });
 
-  it("account_for_login takes exactly one identifier and returns phone_verified_at", async () => {
+  it("account_for_login (no longer callable by the app) takes exactly one identifier and returns phone_verified_at", async () => {
     const a = app();
-    await expectDbError(
-      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login('+21620000051', 'c@example.test')`)),
-      /exactly one/,
-    );
-    await expectDbError(
-      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login(null, null)`)),
-      /exactly one/,
-    );
+    await expectDbError(q("select * from core.account_for_login('+21620000051', 'c@example.test')"), /exactly one/);
+    await expectDbError(q("select * from core.account_for_login(null, null)"), /exactly one/);
     await a.withActor(nobody, (tx) =>
       tx.execute(sql`select * from core.create_account('individual', 'Client Test D', '+21620000051', null, 'h')`),
     );
-    const r = await a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login('+21620000051', null)`));
+    const r = await q("select * from core.account_for_login('+21620000051', null)");
     expect(r.rows).toHaveLength(1);
     expect(Object.keys(r.rows[0] as object)).toContain("phone_verified_at");
   });
@@ -361,7 +368,7 @@ describe("definer functions", () => {
     const row = made.rows[0] as { new_account_id: string; new_company_id: string };
     expect(row.new_company_id).toBeTruthy();
     const login = await a.withActor(nobody, (tx) =>
-      tx.execute(sql`select * from core.account_for_login(null, 'c@example.test')`),
+      tx.execute(sql`select * from core.login_account(null, 'c@example.test')`),
     );
     expect(login.rows).toMatchObject([{ id: row.new_account_id, role: "merchant", company_id: row.new_company_id, password_hash: "argon2-test" }]);
     await expectDbError(
@@ -606,6 +613,28 @@ describe("RV-21: protected columns", () => {
       await expectDbError(insert(open1.order, "'delivered'"), /permission denied/);
       expect((await q("select count(*)::int as n from core.parcels where order_id = $1", [done.order])).rows[0].n).toBe(1);
     });
+    it("GH-96 RV-21: only the owner or staff who move orders add a parcel to a received order", async () => {
+      const insert = (actor: Actor, order: string) =>
+        app().withActor(actor, (tx) =>
+          tx.execute(sql`insert into core.parcels (order_id, size, weight_declared_g, proof_level)
+                         values (${order}, 'small', 500, 'codeOrPhotoWithPosition')`),
+        );
+      const count = async (order: string) =>
+        (await q("select count(*)::int as n from core.parcels where order_id = $1", [order])).rows[0].n;
+      // Customer service reads every order but does not move them: refused.
+      const cs = await fresh("received");
+      await expectDbError(insert(staff("customer_service"), cs.order), /row-level security/);
+      expect(await count(cs.order)).toBe(1);
+      // Another merchant: refused (the order is not even visible to them).
+      const other = await fresh("received");
+      await expectDbError(insert(merchant(ids.userB, ids.companyB), other.order), /row-level security/);
+      expect(await count(other.order)).toBe(1);
+      // CONTROL: the owner and operations are allowed.
+      const own = await fresh("received");
+      expect(rowCount(await insert(A(), own.order))).toBe(1);
+      expect(rowCount(await insert(staff("operations"), own.order))).toBe(1);
+      expect(await count(own.order)).toBe(3);
+    });
     it("staff cannot change the money of a parcel once the order is confirmed, and a parcel never changes order", async () => {
       const { order, parcel } = await fresh("confirmed");
       const before = await parcelRow(parcel);
@@ -631,6 +660,29 @@ describe("RV-21: protected columns", () => {
   });
 
   describe("status_events", () => {
+    it("GH-96: the app reads status and time of an event, never the driver position or the actor", async () => {
+      const { order } = await fresh();
+      await q(
+        `insert into core.status_events (order_id, subject_type, subject_id, to_status, actor_id, location)
+         values ($1, 'order', $1, 'confirmed', $2, 'SRID=4326;POINT(10.18 36.8)')`,
+        [order, staffId],
+      );
+      for (const column of ["location", "actor_id"]) {
+        for (const actor of [A(), staff("admin")]) {
+          await expectDbError(
+            app().withActor(actor, (tx) =>
+              tx.execute(sql.raw(`select ${column} from core.status_events where order_id = '${order}'`)),
+            ),
+            /permission denied/,
+          );
+        }
+      }
+      // CONTROL: status and time stay readable by the owner.
+      const ok = await app().withActor(A(), (tx) =>
+        tx.execute(sql`select to_status, occurred_at from core.status_events where order_id = ${order}`),
+      );
+      expect((ok.rows as { to_status: string }[]).map((r) => r.to_status)).toContain("confirmed");
+    });
     it("a merchant cannot write a `delivered` event, and the tracking does not move", async () => {
       const { order, tracking } = await fresh();
       await expectDbError(

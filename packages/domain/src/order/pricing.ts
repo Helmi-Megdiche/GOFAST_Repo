@@ -24,12 +24,16 @@ export type PriceTable = {
   stamp: number;
 };
 
-/** R204: every element of the price, in this order. Each one is always shown, even at 0. */
+/**
+ * R204: every element of the price, in this order. Each one is always shown, even at 0. GOFAST
+ * packaging is its own line (lead, 16 Nov): the same totals as the "avec emballage" prices.
+ */
 export const PRICE_LINES = [
   "base",
   "distance",
   "weight",
   "options",
+  "packaging",
   "surcharge",
   "discount",
   "vat",
@@ -104,7 +108,7 @@ const oncePerOrder = (amount: number): LineAmount => perParcel(amount, 1);
 
 /**
  * The lines of a price, all integers in millimes. Per parcel (times the count): base, weight,
- * options (fragile, packaging). Once per order: distance, surcharge (R207), discount, VAT and
+ * options (fragile), packaging. Once per order: distance, surcharge (R207), discount, VAT and
  * stamp (VAT and stamp are the table's amounts as they are: no rate is calculated).
  * Throws on a count outside 1 to 10, a weight that is not a whole number of grams between 1 and
  * 999,900, or packaging on a row that has no packaging price: callers validate before pricing.
@@ -127,8 +131,8 @@ export function priceLines(input: PriceInput, table: PriceTable): PriceLines {
       Math.max(0, Math.ceil(weightG / 1000) - table.weight.includedKg) * table.weight.perKg,
   );
   const sameWeight = weights.every((amount) => amount === weights[0]);
-  const optionsUnit =
-    (input.fragile ? table.optionsFragile : 0) + (input.packaging ? (row.packaging ?? 0) : 0);
+  const optionsUnit = input.fragile ? table.optionsFragile : 0;
+  const packagingUnit = input.packaging ? (row.packaging ?? 0) : 0;
   return {
     base: perParcel(row.base, count),
     distance: oncePerOrder(table.distance),
@@ -138,6 +142,7 @@ export function priceLines(input: PriceInput, table: PriceTable): PriceLines {
       totalMillimes: weights.reduce((sum, amount) => sum + amount, 0),
     },
     options: perParcel(optionsUnit, count),
+    packaging: perParcel(packagingUnit, count),
     surcharge: oncePerOrder(table.surcharge.amount),
     discount: oncePerOrder(table.discount === 0 ? 0 : -table.discount),
     vat: oncePerOrder(row.vat),
