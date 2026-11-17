@@ -1,6 +1,6 @@
 # GOFAST launch status
 
-Snapshot of 17 Nov 2026, 20:38 Tunis time (week S2). Source: GitHub (merged PRs, open issues and PRs). Update this file when a PR merges or a blocker clears.
+Snapshot of 17 Nov 2026, 22:39 Tunis time (week S2). Source: GitHub (merged PRs, open issues and PRs). Update this file when a PR merges or a blocker clears.
 
 ## Team
 
@@ -52,7 +52,7 @@ Nobody sets `NEXT_PUBLIC_API_DOMAINS=auth` for real use until `account` is switc
 
 | # | Who | Action |
 |---|---|---|
-| 1 | Ala | #22 PR 4b-2a (after the #9 fix PR merges) |
+| 1 | Ala | #22 PR 4b-2a (create, list, get, tracking, SMS) |
 | 2 | Helmi | Order the staging host, then run `infra/servers/setup.sh` |
 | 3 | Helmi | #20 account screens on the API adapter |
 | 4 | Helmi | Merge or close PR #69 after review |
