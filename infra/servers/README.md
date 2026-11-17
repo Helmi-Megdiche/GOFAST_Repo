@@ -1,23 +1,25 @@
 # Servers (#12)
 
-Two servers in Tunisia, from the cahier ("Technique et sécurité"): Docker Compose on two servers, DDoS protection. Owner: Helmi.
+Two servers, from the cahier ("Technique et sécurité"): Docker Compose on two servers, DDoS protection. Hosted abroad (France or similar), agreed with GOFAST on 17 Nov 2026 (the cahier said Tunisia). Owner: Helmi.
+
+The transfer of personal data abroad needs an INPDP authorisation, which GOFAST is asking for (Helmi).
 
 ## 1. Choose the host
 
-Not decided yet (D14). No Tunisian host was found with public online prices that also confirms two data centres and DDoS protection, so the choice needs quotes. Research on 8 Nov 2026:
+Not decided yet (D14). The host is now abroad (France or similar), so the table below, a Tunisian-host survey made on 8 Nov 2026 before the change, is background only. Candidates abroad need quotes or public prices that confirm two data centres and DDoS protection.
 
-| Host | In Tunisia | Two data centres | DDoS protection | Public price | Source |
+| Host | In Tunisia (8 Nov survey) | Two data centres | DDoS protection | Public price | Source |
 |---|---|---|---|---|---|
 | Ooredoo Business | Yes, Mghira data centre | `[À VÉRIFIER]` | Anti-DDoS platform in the data centre (2017 article), an "offre Anti-DDos" for businesses | No: quote | [African Manager](https://africanmanager.com/12_ovh-choisit-ooredoo-tunisie-pour-un-hebergement-securise-et-reglementaire/), [Kapitalis](https://kapitalis.com/tunisie/?p=24837) |
 | Orange Tunisie | Yes, Tier III data centre in Kalaa Kebira, Sousse (May 2025) | `[À VÉRIFIER]` (only this site is documented) | `[À VÉRIFIER]` | No: quote | [WMC](https://www.webmanagercenter.com/2025/05/06/545641/orange-tunisie-inaugure-un-nouveau-data-center-a-sousse-pour-repondre-aux-enjeux-numeriques-de-demain/) |
 | Tunisie Telecom (TT Cloud) | Yes, Carthage data centre, Tunis | `[À VÉRIFIER]` (one site listed) | `[À VÉRIFIER]` | No: quote | [Data Center Map](https://www.datacentermap.com/c/tunisie-telecom/datacenters/), [Webdo](https://www.webdo.tn/fr/actualite/tech/tunisie-telecom-lance-tt-cloud/179756/) |
 | ATI (ati.tn) | Yes, Tunis | `[À VÉRIFIER]` | Not stated | Old "Cloud first" plan, 4 vCPU, 8 GB, 100 GB, 76 TND/month, listed as discontinued | [whtop](https://www.whtop.com/plans/ati.tn/157850) |
 
-Not usable: OVHcloud's "VPS Tunisia" page sells VPS hosted abroad, not in Tunisia ([OVHcloud](https://www.ovhcloud.com/en/vps/vps-tunisia)).
+Note (8 Nov): OVHcloud's "VPS Tunisia" page sells VPS hosted abroad, not in Tunisia ([OVHcloud](https://www.ovhcloud.com/en/vps/vps-tunisia)). Abroad hosting is now allowed, so OVHcloud and similar hosts in France are candidates.
 
 Questions for each quote:
 
-1. Can the two servers be in two different data centres in Tunisia? Which ones?
+1. Can the two servers be in two different data centres (France or similar)? Which ones?
 2. Is DDoS protection included, at what level (network, application), and up to what volume?
 3. Ubuntu 24.04 LTS image, root SSH access, a fixed public IPv4 per server?
 4. Monthly price for the size below, contract length, setup fee, invoice to a company.

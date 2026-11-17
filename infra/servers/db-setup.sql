@@ -1,6 +1,8 @@
 -- One-time database setup for a GOFAST host (#12), done by the PostgreSQL superuser BEFORE the first
--- migration. The migrations create no role and no password. Mirrors apps/api/src/int/harness.ts:
--- change both together. Safe to run again (it sets the passwords again each time).
+-- migration. The migrations create no role and no password. The roles, the PostGIS extension and the
+-- fastgo_public_reader grant mirror apps/api/src/int/harness.ts: change both together. Differs on purpose:
+-- pgbouncer_auth and pgbouncer.get_auth are only here, because the integration tests connect direct to
+-- PostgreSQL and never use PgBouncer. Safe to run again (it sets the passwords again each time).
 --
 -- Real hosts (interactive): the script asks for the 5 passwords (migrator, app, readonly, worker,
 -- pgbouncer_auth) with psql's \password: hidden prompt, typed twice, hashed on the client with

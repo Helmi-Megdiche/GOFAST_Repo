@@ -9,7 +9,7 @@ Staging override, Caddy, the images (api, ws, worker, web) and the `migrate` ser
 cd infra/compose
 docker compose --env-file .env.example up -d --wait   # also runs db-setup once (profile "setup")
 pnpm --filter @fastgo/api db:migrate                    # with DATABASE_MIGRATOR_URL, see below
-./check.sh                                              # 20 checks, exit 1 if one fails
+./check.sh                                              # 25 checks, exit 1 if one fails
 docker compose --env-file .env.example down -v          # stop and erase the data
 ```
 

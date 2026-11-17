@@ -61,7 +61,28 @@ r=$("${DC[@]}" exec -T redis sh -c 'redis-cli ping' 2>&1 | tail -1)
 r=$("${DC[@]}" exec -T redis sh -c 'unset REDISCLI_AUTH; redis-cli ping' 2>&1)
 case "$r" in *NOAUTH*|*"Authentication required"*) ok "redis refuses no password" ;; *) bad "redis without password: $r" ;; esac
 
-# 7. migrations applied (run from the host: pnpm --filter @fastgo/api db:migrate)
+# 7. S3 checks the keys: anonymous requests are refused, the env keys work, a wrong key is refused
+AWSCLI=amazon/aws-cli@sha256:c5d442efed03350a3c3d7a42b23f42a8e7b76acf5dbb4b021f2641bcd36680ea # 2.41.0
+NET="$("${DC[@]}" ps -q s3 | xargs docker inspect --format '{{range $k,$v := .NetworkSettings.Networks}}{{$k}}{{end}}')"
+s3cli() { # secret args...
+  local secret=$1; shift
+  docker run --rm --network "$NET" -e AWS_ACCESS_KEY_ID="$S3_ACCESS_KEY" -e AWS_SECRET_ACCESS_KEY="$secret" \
+    -e AWS_EC2_METADATA_DISABLED=true "$AWSCLI" --endpoint-url http://s3:8333 --region us-east-1 "$@" 2>&1
+}
+c=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${S3_PORT}/")
+[ "$c" = 403 ] && ok "s3 refuses an unsigned GET (403)" || bad "s3 unsigned GET returned $c, expected 403"
+c=$(curl -s -o /dev/null -w '%{http_code}' -X PUT "http://127.0.0.1:${S3_PORT}/anon-check")
+[ "$c" = 403 ] && ok "s3 refuses an unsigned bucket create (403)" || bad "s3 unsigned PUT returned $c, expected 403"
+bucket="check-$$"
+r=$(s3cli "$S3_SECRET_KEY" s3 mb "s3://$bucket" | tail -1)
+case "$r" in "make_bucket: $bucket") ok "s3 signed bucket create works" ;; *) bad "s3 signed create: $r" ;; esac
+r=$(s3cli "$S3_SECRET_KEY" s3 ls | grep -c " $bucket\$")
+[ "$r" = 1 ] && ok "s3 signed list shows the bucket" || bad "s3 signed list: bucket not found"
+r=$(s3cli "wrong-key" s3 ls)
+case "$r" in *SignatureDoesNotMatch*|*InvalidAccessKeyId*|*AccessDenied*) ok "s3 refuses a wrong key" ;; *) bad "s3 with a wrong key: $r" ;; esac
+s3cli "$S3_SECRET_KEY" s3 rb "s3://$bucket" >/dev/null
+
+# 8. migrations applied (run from the host: pnpm --filter @fastgo/api db:migrate)
 r=$(psql_as postgres "$POSTGRES_PASSWORD" postgres 5432 "select count(*) from information_schema.tables where table_schema in ('core','gestion')")
 [ "${r:-0}" -gt 0 ] 2>/dev/null && ok "migrations applied ($r tables in core and gestion)" || bad "no table in core/gestion: run db:migrate (got '$r')"
 
