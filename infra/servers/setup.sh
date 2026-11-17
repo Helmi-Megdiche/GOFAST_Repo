@@ -6,11 +6,11 @@
 #   3. Firewall on (SSH, HTTP, HTTPS only) and automatic security updates.
 #   4. Docker Engine and the Docker Compose plugin.
 #
-# Usage: sudo TEAM="Helmi-Megdiche AlaaSalem12 mootazkraiem" bash setup.sh
+# Usage: sudo TEAM="Helmi-Megdiche AlaaSalem12" bash setup.sh
 # Keep a second SSH session open until the final check passes.
 set -euo pipefail
 
-TEAM="${TEAM:-Helmi-Megdiche AlaaSalem12 mootazkraiem}"
+TEAM="${TEAM:-Helmi-Megdiche AlaaSalem12}"
 GROUP="gofast-admins"
 
 log() { printf '\n== %s\n' "$*"; }
