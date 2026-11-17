@@ -200,7 +200,7 @@ describe("core.pricing_settings: one typed row, the values of the plan", () => {
       ["quote_validity_ms = 2147483648", "quote_validity_ms above 2147483647"],
       [`max_parcels = ${MAX_PARCELS + 1}`, "max_parcels above the domain's MAX_PARCELS (10)"],
     ];
-    for (const [set, why] of bad) await expectDbError(q(`update core.pricing_settings set ${set}`), /violates check/);
+    for (const [set] of bad) await expectDbError(q(`update core.pricing_settings set ${set}`), /violates check/);
     // the limits themselves are accepted, then put back
     await q(`update core.pricing_settings set max_parcel_weight_g = ${MAX_PARCEL_WEIGHT_G}, weight_included_g = 3000, quote_validity_ms = 2147483647, max_parcels = ${MAX_PARCELS}`);
     await q("update core.pricing_settings set max_parcel_weight_g = null, weight_included_g = 2000, quote_validity_ms = 900000");
