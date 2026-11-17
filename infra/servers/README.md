@@ -53,7 +53,7 @@ The repo is private, so copy the script from a clone, from your PC:
 scp infra/servers/setup.sh root@<server-ip>:/root/
 ssh root@<server-ip>
 less /root/setup.sh                             # read it first
-TEAM="Helmi-Megdiche AlaaSalem12 mootazkraiem" bash /root/setup.sh
+TEAM="Helmi-Megdiche AlaaSalem12" bash /root/setup.sh
 ```
 
 Keep the root session open, then log in from another terminal as your user (`ssh <login-in-lowercase>@<server-ip>`, for example `ssh helmi-megdiche@...`). Close the root session only after that works: root login and the image's default user (`ubuntu`) are turned off.
@@ -82,7 +82,11 @@ The migrations create no role and no password. On a new database, the PostgreSQL
 psql "postgres://postgres@127.0.0.1:5432/fastgo" -f infra/servers/db-setup.sql
 ```
 
-The script asks for 4 passwords (migrator, app, readonly, worker) with psql `\password`: hidden prompt, typed twice, hashed on the client with SCRAM-SHA-256, so the plain password never reaches the server, its log or the process list. It stops with an error when it is not run in a terminal or when `password_encryption` is not `scram-sha-256`. It can be run again (it asks again). It mirrors `apps/api/src/int/harness.ts`; change both together. Then run the migrations as `fastgo_migrator`.
+The script asks for 5 passwords (migrator, app, readonly, worker, `pgbouncer_auth`) with psql `\password`: hidden prompt, typed twice, hashed on the client with SCRAM-SHA-256, so the plain password never reaches the server, its log or the process list. It stops with an error when it is not run in a terminal or when `password_encryption` is not `scram-sha-256`. It can be run again (it asks again). It mirrors `apps/api/src/int/harness.ts`; change both together. Then run the migrations as `fastgo_migrator`, direct to PostgreSQL, never through PgBouncer.
+
+`pgbouncer_auth` is the login PgBouncer uses to look up the app logins (`auth_query` on `pgbouncer.get_auth`, created by the script). It sees the hash of `fastgo_app`, `fastgo_readonly` and `fastgo_worker` only. No password or hash is written in a PgBouncer file.
+
+On a laptop or in CI there is no terminal: pass the 5 passwords as psql variables (`-v pw_migrator=x ... -v pw_pgbouncer=x`, fake values only). `infra/compose` does this for you. A real host never uses this mode.
 
 ## Secrets and backups on the host
 
