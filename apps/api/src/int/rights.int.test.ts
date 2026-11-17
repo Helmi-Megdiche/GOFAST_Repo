@@ -325,6 +325,20 @@ describe("grant test: every table, as it is in the database", () => {
   });
 });
 
+describe("core.zone_at (R201): only the app calls it", () => {
+  it("fastgo_app may execute it; fastgo_readonly, fastgo_worker and PUBLIC may not", async () => {
+    const r = await db.superClient.query(
+      `select has_function_privilege('fastgo_app', p.oid, 'execute') as app,
+              has_function_privilege('fastgo_readonly', p.oid, 'execute') as ro,
+              has_function_privilege('fastgo_worker', p.oid, 'execute') as worker,
+              has_function_privilege('fastgo_public_reader', p.oid, 'execute') as public_reader,
+              coalesce((select bool_or(a.grantee = 0) from aclexplode(p.proacl) a), false) as public_grant
+         from pg_proc p where p.oid = 'core.zone_at(double precision, double precision)'::regprocedure`,
+    );
+    expect(r.rows).toEqual([{ app: true, ro: false, worker: false, public_reader: false, public_grant: false }]);
+  });
+});
+
 describe("accounts: column rights of fastgo_app", () => {
   it("cannot read a *_hash column, and can change only name, language and e-mail", async () => {
     const app = open(db.url("fastgo_app"));
