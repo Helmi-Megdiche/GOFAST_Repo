@@ -242,9 +242,22 @@ describe("definer functions", () => {
       "tracking",
     ]);
     for (const f of r.rows) {
-      expect(f, f.proname).toMatchObject({ owner: "fastgo_public_reader", app: true, ro: false, worker: false });
+      // GH-10 round 2: account_for_login was replaced by login_account (0006); the app may no longer call it.
+      expect(f, f.proname).toMatchObject({
+        owner: "fastgo_public_reader",
+        app: f.proname !== "account_for_login",
+        ro: false,
+        worker: false,
+      });
       expect(f.cfg, f.proname).toContain("search_path=pg_catalog, core");
     }
+  });
+
+  it("R101: fastgo_app cannot execute account_for_login (login_account is the door, migration 0010)", async () => {
+    const r = await q(
+      "select has_function_privilege('fastgo_app', 'core.account_for_login(text,text)', 'EXECUTE') as app, has_function_privilege('fastgo_app', 'core.login_account(text,text)', 'EXECUTE') as door",
+    );
+    expect(r.rows).toEqual([{ app: false, door: true }]);
   });
 
   it("R405: tracking returns state, dates and zone names, and nothing personal", async () => {
@@ -322,20 +335,14 @@ describe("definer functions", () => {
     expect((await findLink("edited-hash", new Date(row.updated_at.getTime() + 1000))).rows).toEqual([]);
   });
 
-  it("account_for_login takes exactly one identifier and returns phone_verified_at", async () => {
+  it("account_for_login (no longer callable by the app) takes exactly one identifier and returns phone_verified_at", async () => {
     const a = app();
-    await expectDbError(
-      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login('+21620000051', 'c@example.test')`)),
-      /exactly one/,
-    );
-    await expectDbError(
-      a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login(null, null)`)),
-      /exactly one/,
-    );
+    await expectDbError(q("select * from core.account_for_login('+21620000051', 'c@example.test')"), /exactly one/);
+    await expectDbError(q("select * from core.account_for_login(null, null)"), /exactly one/);
     await a.withActor(nobody, (tx) =>
       tx.execute(sql`select * from core.create_account('individual', 'Client Test D', '+21620000051', null, 'h')`),
     );
-    const r = await a.withActor(nobody, (tx) => tx.execute(sql`select * from core.account_for_login('+21620000051', null)`));
+    const r = await q("select * from core.account_for_login('+21620000051', null)");
     expect(r.rows).toHaveLength(1);
     expect(Object.keys(r.rows[0] as object)).toContain("phone_verified_at");
   });
@@ -361,7 +368,7 @@ describe("definer functions", () => {
     const row = made.rows[0] as { new_account_id: string; new_company_id: string };
     expect(row.new_company_id).toBeTruthy();
     const login = await a.withActor(nobody, (tx) =>
-      tx.execute(sql`select * from core.account_for_login(null, 'c@example.test')`),
+      tx.execute(sql`select * from core.login_account(null, 'c@example.test')`),
     );
     expect(login.rows).toMatchObject([{ id: row.new_account_id, role: "merchant", company_id: row.new_company_id, password_hash: "argon2-test" }]);
     await expectDbError(
