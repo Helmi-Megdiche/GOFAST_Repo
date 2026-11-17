@@ -31,6 +31,10 @@ const VIEWPORTS = [
   { width: 360, height: 800 },
 ] as const;
 
+// For tests that only read server-rendered markup. The default `load` also waits for every JS
+// chunk, font and image; on a busy server that is 20+ s of work the test never looks at (GH-92).
+const open = (page: Page, url: string) => page.goto(url, { waitUntil: "domcontentloaded" });
+
 const noOverflow = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
@@ -95,7 +99,7 @@ test("Main-EN: the home page in English", async ({ page }) => {
 // ── Header, footer, mobile menu ───────────────────────────────────────────────────────────────
 test("the header buttons go to /commander and /connexion", async ({ page }) => {
   for (const code of ["fr", "ar", "en"]) {
-    await page.goto(`/${code}`);
+    await open(page, `/${code}`);
     const header = page.locator("header");
     await expect(header.locator('a[href$="/commander"]').first()).toHaveAttribute(
       "href",
@@ -106,7 +110,7 @@ test("the header buttons go to /commander and /connexion", async ({ page }) => {
       `/${code}/connexion`,
     );
   }
-  await page.goto("/fr");
+  await open(page, "/fr");
   await page.locator("header").getByRole("link", { name: "Commander" }).click();
   // /commander opens the first step of the order (W11).
   await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
@@ -119,12 +123,12 @@ test("the nav marks the current page and nothing on zones, contact, livreur or l
   const current = page
     .getByRole("navigation", { name: "Navigation principale" })
     .locator('[aria-current="page"]');
-  await page.goto("/fr/aide");
+  await open(page, "/fr/aide");
   await expect(current).toHaveText("Aide");
-  await page.goto("/fr");
+  await open(page, "/fr");
   await expect(current).toHaveText("Accueil");
   for (const url of ["/fr/zones", "/fr/contact", "/fr/livreur", "/fr/legal/cgv"]) {
-    await page.goto(url);
+    await open(page, url);
     await expect(current, url).toHaveCount(0);
   }
 });
@@ -140,7 +144,9 @@ for (const code of ["fr", "ar", "en"] as const) {
   for (const width of [900, 1000, 1100, 1200, 1440]) {
     test(`header: one row, no overlap, no overflow at ${width}px (${code})`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await page.goto(`/${code}`);
+      await open(page, `/${code}`);
+      // The widths below depend on the web fonts: measure once they are in.
+      await page.evaluate(() => document.fonts.ready);
       expect(await noOverflow(page), "horizontal overflow in px").toBeLessThanOrEqual(0);
 
       const info = await page.evaluate(() => {
