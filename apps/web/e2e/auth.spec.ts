@@ -1,5 +1,13 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FIRST_CODE, LOCALES, MORNING, SECOND_CODE, VIEWPORTS, checkPage } from "./helpers";
+import {
+  FIRST_CODE,
+  LOCALES,
+  MORNING,
+  SECOND_CODE,
+  VIEWPORTS,
+  checkPage,
+  openForm,
+} from "./helpers";
 
 /** Sign-in and sign-up (W18 to W22, ESP-01, ESP-09) on mock data. Fixture values only. */
 
@@ -14,7 +22,7 @@ const codeBox = (page: Page) => page.locator('main input[autocomplete="one-time-
 const submit = (page: Page) => page.locator('main button[type="submit"]').last();
 
 async function signUp(page: Page, locale: string, phone = NEW_PHONE) {
-  await page.goto(`/${locale}/inscription`);
+  await openForm(page, `/${locale}/inscription`);
   await input(page, "name").fill("Nour H.");
   await input(page, "phone").fill(phone);
   await input(page, "password").fill("long-enough-pass");
@@ -24,14 +32,14 @@ async function signUp(page: Page, locale: string, phone = NEW_PHONE) {
 }
 
 async function googleNew(page: Page, locale: string) {
-  await page.goto(`/${locale}/connexion`);
+  await openForm(page, `/${locale}/connexion`);
   await page.locator("main button").filter({ hasText: "Google" }).first().click();
   await page.getByRole("button", { name: /Amel B\./ }).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}/google-telephone$`));
 }
 
 async function resetFlow(page: Page, locale: string) {
-  await page.goto(`/${locale}/mot-de-passe`);
+  await openForm(page, `/${locale}/mot-de-passe`);
   await input(page, "phone").fill(KNOWN_PHONE);
   await submit(page).click();
   await expect(page).toHaveURL(new RegExp(`/${locale}/code$`));
@@ -79,7 +87,7 @@ test("sign-in: a wrong password and an unknown account get the same message (dec
     ["+216 55 999 999", PASSWORD],
     ["personne@example.tn", PASSWORD],
   ] as const) {
-    await page.goto("/fr/connexion");
+    await openForm(page, "/fr/connexion");
     await input(page, "identifier").fill(identifier);
     await input(page, "password").fill(password);
     await submit(page).click();
@@ -107,7 +115,7 @@ test("sign-in goes to /compte by default, to a path of this site, never to an ex
     ["/%2e%2e//evil.example", /\/fr\/compte$/],
     ["/suivi?n=FG-7K4M-2QXP", /\/fr\/suivi\?n=FG-7K4M-2QXP$/],
   ] as const) {
-    await page.goto(`/fr/connexion${next ? `?next=${encodeURIComponent(next)}` : ""}`);
+    await openForm(page, `/fr/connexion${next ? `?next=${encodeURIComponent(next)}` : ""}`);
     await input(page, "identifier").fill(KNOWN_PHONE);
     await input(page, "password").fill(PASSWORD);
     await submit(page).click();
@@ -118,7 +126,7 @@ test("sign-in goes to /compte by default, to a path of this site, never to an ex
 });
 
 test("/compte is a noindex page", async ({ page }) => {
-  await page.goto("/fr/connexion");
+  await openForm(page, "/fr/connexion");
   await input(page, "identifier").fill(KNOWN_PHONE);
   await input(page, "password").fill(PASSWORD);
   await submit(page).click();
@@ -130,7 +138,7 @@ test("/compte is a noindex page", async ({ page }) => {
 test("the session keeps only id, user, role, kind, contract, verified flag and the masked phone", async ({
   page,
 }) => {
-  await page.goto("/fr/connexion");
+  await openForm(page, "/fr/connexion");
   await input(page, "identifier").fill(KNOWN_PHONE);
   await input(page, "password").fill(PASSWORD);
   await submit(page).click();
@@ -237,7 +245,7 @@ test("forgotten password: same next step for a known and an unknown phone, then 
 }) => {
   await page.clock.install({ time: MORNING });
   for (const phone of ["+216 55 999 999", KNOWN_PHONE]) {
-    await page.goto("/fr/mot-de-passe");
+    await openForm(page, "/fr/mot-de-passe");
     await input(page, "phone").fill(phone);
     await submit(page).click();
     await expect(page).toHaveURL(/\/fr\/code$/);
@@ -275,7 +283,7 @@ test("Google, known e-mail: e-mail code first, then the phone is still required 
   page,
 }) => {
   await page.clock.install({ time: MORNING });
-  await page.goto("/fr/connexion");
+  await openForm(page, "/fr/connexion");
   await page.locator("main button").filter({ hasText: "Google" }).first().click();
   await page.getByRole("button", { name: /Sami T\./ }).click();
   await expect(page).toHaveURL(/\/fr\/google-telephone$/);
@@ -300,7 +308,7 @@ test("?next= is kept through W18, W22 and W20, and the draft comes back intact",
   page,
 }) => {
   await page.clock.install({ time: MORNING });
-  await page.goto("/fr/connexion?next=%2Fsuivi");
+  await openForm(page, "/fr/connexion?next=%2Fsuivi");
   await page.locator("main button").filter({ hasText: "Google" }).first().click();
   await page.getByRole("button", { name: /Amel B\./ }).click();
   await expect(page).toHaveURL(/\/fr\/google-telephone\?next=%2Fsuivi$/);
@@ -329,7 +337,7 @@ test("sign-in: a double click on the button signs in once (item 17)", async ({ p
       return setItem.call(this, key, value);
     };
   });
-  await page.goto("/fr/connexion");
+  await openForm(page, "/fr/connexion");
   await input(page, "identifier").fill(KNOWN_PHONE);
   await input(page, "password").fill(PASSWORD);
   await submit(page).dblclick();
@@ -347,7 +355,7 @@ test("sign-up with an e-mail: the account is created without it and the message 
     ["+216 55 123 457", "nouveau@example.tn"],
   ] as const) {
     await page.evaluate(() => localStorage.removeItem("fg.mock.session")).catch(() => {});
-    await page.goto("/fr/inscription");
+    await openForm(page, "/fr/inscription");
     await input(page, "name").fill("Nour H.");
     await input(page, "phone").fill(phone);
     await input(page, "email").fill(email);
@@ -401,7 +409,7 @@ test("Google, known e-mail: another phone than the account's is refused (item 15
   page,
 }) => {
   await page.clock.install({ time: MORNING });
-  await page.goto("/fr/connexion");
+  await openForm(page, "/fr/connexion");
   await page.locator("main button").filter({ hasText: "Google" }).first().click();
   await page.getByRole("button", { name: /Sami T\./ }).click();
   await page.getByRole("button", { name: "Recevoir le code par e-mail" }).click();
@@ -427,7 +435,7 @@ test("a password reset right after a sign-up code gets its own code and works (i
   await page.clock.install({ time: MORNING });
   await signUp(page, "fr", KNOWN_PHONE);
   await expect(page.getByText(/Renvoyer dans \d+ s/)).toBeVisible(); // the sign-up code was sent
-  await page.goto("/fr/mot-de-passe");
+  await openForm(page, "/fr/mot-de-passe");
   await input(page, "phone").fill(KNOWN_PHONE);
   await submit(page).click();
   await expect(page).toHaveURL(/\/fr\/code$/);

@@ -1,13 +1,12 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LOCALES, VIEWPORTS, checkPage } from "./helpers";
+import { LOCALES, VIEWPORTS, checkPage, openForm } from "./helpers";
 
 const PASSWORD = "fastgo-demo-2026";
 const CUSTOMER = "+216 98 000 001";
 const MB = 1024 * 1024;
 
 async function signInAs(page: Page, phone: string) {
-  await page.goto("/fr/connexion");
-  await page.waitForLoadState("networkidle"); // hydrated: a click before it would submit the form natively
+  await openForm(page, "/fr/connexion");
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(phone);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();

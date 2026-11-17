@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LOCALES, VIEWPORTS, axe, checkPage } from "./helpers";
+import { LOCALES, VIEWPORTS, axe, checkPage, openForm } from "./helpers";
 import { chooseStandard, fillParcel, fillRecipient, fillSender, start } from "./flow";
 
 const PASSWORD = "fastgo-demo-2026";
@@ -11,8 +11,7 @@ const EMPTY_CUSTOMER = "+216 98 000 003"; // Lina M., no order
 const RETURN_DUE = "+216 98 000 005"; // Hana R., owes 7,000 TND for returned parcels
 
 async function signInAs(page: Page, phone: string, next?: string) {
-  await page.goto(`/fr/connexion${next ? `?next=${encodeURIComponent(next)}` : ""}`);
-  await page.waitForLoadState("networkidle"); // hydrated: a click before it would submit the form natively
+  await openForm(page, `/fr/connexion${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(phone);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();
@@ -260,8 +259,15 @@ test.describe("C02 my orders", () => {
     await expect(rows(page)).toHaveCount(1);
     await expect(rows(page).first()).toContainText("Annulée");
     // The chips keep the search: the canceled order is in none of the three filters.
-    for (const chip of ["Livrées", "Échecs et retours", /^En cours/]) {
+    for (const [chip, statut] of [
+      ["Livrées", "livrees"],
+      ["Échecs et retours", "echecs"],
+      [/^En cours/, "en-cours"],
+    ] as const) {
       await page.getByRole("link", { name: chip }).click();
+      // The three chips show the same message: wait for this chip's own URL (RV-10, GH-92), or the
+      // message of the previous chip passes and the next click leaves while this navigation runs.
+      await expect(page).toHaveURL(new RegExp(`statut=${statut}`));
       await expect(
         page.getByText("Aucune commande ne correspond à votre recherche."),
       ).toBeVisible();

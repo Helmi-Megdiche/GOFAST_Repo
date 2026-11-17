@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage } from "./helpers";
+import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage, openForm } from "./helpers";
 import { chooseStandard, fillParcel, start, textbox } from "./flow";
 
 /** C08, C09 and the e-mail screen (ESP-02, CMD-02, R101, R105, R902, T37) on mock data. Fixture values only. */
@@ -12,8 +12,7 @@ const MERCHANT = "+216 71 000 001";
 const TEAM_USER = "+216 71 000 012";
 
 async function signInAs(page: Page, phone: string, locale = "fr") {
-  await page.goto(`/${locale}/connexion`);
-  await page.waitForLoadState("networkidle"); // hydrated: a click before it would submit the form natively
+  await openForm(page, `/${locale}/connexion`);
   await page.locator('main input[name="identifier"]').fill(phone);
   await page.locator('main input[name="password"]').fill(PASSWORD);
   await page.locator('main button[type="submit"]').last().click();

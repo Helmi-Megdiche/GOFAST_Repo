@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage, shot } from "./helpers";
+import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage, formHydrated, openForm, shot } from "./helpers";
 import {
   SENDER_PHONE,
   chooseStandard,
@@ -28,7 +28,7 @@ const draft = (page: Page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("fg.order.draft.v1") ?? "null"));
 
 async function signInAs(page: Page, phone: string) {
-  await page.goto("/fr/connexion");
+  await openForm(page, "/fr/connexion");
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(phone);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();
@@ -339,7 +339,7 @@ test("a phone that already has an account is asked to sign in after the right co
 
   await page.getByRole("link", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/\/fr\/connexion\?next=%2Fcommander%2Fverification$/);
-  await page.waitForLoadState("networkidle"); // hydrated: an earlier click would submit the form natively
+  await formHydrated(page); // an earlier click would submit the form natively
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(KNOWN_PHONE);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();

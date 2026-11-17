@@ -110,7 +110,7 @@ test("the header buttons go to /commander and /connexion", async ({ page }) => {
       `/${code}/connexion`,
     );
   }
-  await open(page, "/fr");
+  await page.goto("/fr"); // default wait: the click below needs the page interactive
   await page.locator("header").getByRole("link", { name: "Commander" }).click();
   // /commander opens the first step of the order (W11).
   await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
@@ -144,7 +144,7 @@ for (const code of ["fr", "ar", "en"] as const) {
   for (const width of [900, 1000, 1100, 1200, 1440]) {
     test(`header: one row, no overlap, no overflow at ${width}px (${code})`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
-      await open(page, `/${code}`);
+      await page.goto(`/${code}`);
       // The widths below depend on the web fonts: measure once they are in.
       await page.evaluate(() => document.fonts.ready);
       expect(await noOverflow(page), "horizontal overflow in px").toBeLessThanOrEqual(0);
