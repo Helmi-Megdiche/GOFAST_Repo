@@ -277,7 +277,8 @@ test("sign-out: sends DELETE /v1/sessions, clears the copy, goes to sign-in", as
   api.state.me = me();
   await page.goto("/fr/compte");
   await expect(page.getByRole("heading", { level: 1, name: "Mon compte" })).toBeVisible();
-  expect(await copy(page)).not.toBeNull();
+  // The heading shows before the page saves the session copy: wait for the copy itself.
+  await expect.poll(() => copy(page)).not.toBeNull();
   await page.getByRole("button", { name: "Se déconnecter" }).click();
   await expect(page).toHaveURL(/\/fr\/connexion$/);
   expect(api.calls("DELETE /v1/sessions")).toHaveLength(1);
