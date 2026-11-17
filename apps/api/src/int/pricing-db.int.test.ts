@@ -21,10 +21,10 @@ beforeAll(async () => {
   db = await startTestDb();
   app = new Db(db.url("fastgo_app"), 2);
   await q(
-    `insert into core.zones (id, name, governorate, area, active) values
-       ($1, 'Alpha', 'Tunis', ${square(10, 36)}, true),
-       ($2, 'Bravo', 'Tunis', ${square(10.1, 36)}, true),
-       ($3, 'Charlie', 'Ariana', ${square(10.3, 36)}, false)`,
+    `insert into core.zones (id, name, name_ar, name_en, governorate, area, active) values
+       ($1, 'Alpha', 'ألفا', 'Alpha', 'Tunis', ${square(10, 36)}, true),
+       ($2, 'Bravo', 'برافو', 'Bravo', 'Tunis', ${square(10.1, 36)}, true),
+       ($3, 'Charlie', 'شارلي', 'Charlie', 'Ariana', ${square(10.3, 36)}, false)`,
     [ZONES.alpha, ZONES.bravo, ZONES.charlie],
   );
 });
@@ -60,7 +60,7 @@ describe("R201_T04 core.zone_at (PostGIS edges)", () => {
     expect(await zoneAt(10.35, 36.05)).toBeNull();
   });
   it("a zone without area never matches, and the index on the area exists", async () => {
-    await q("insert into core.zones (name, governorate, active) values ('Sans polygone', 'Tunis', true)");
+    await q("insert into core.zones (name, name_ar, name_en, governorate, active) values ('Sans polygone', 'بلا مضلع', 'Sans polygone', 'Tunis', true)");
     expect(await zoneAt(10.05, 36.05)).toBe(ZONES.alpha);
     const idx = await q(
       `select indexdef from pg_indexes where schemaname = 'core' and tablename = 'zones' and indexdef ilike '%gist%'`,
@@ -69,7 +69,7 @@ describe("R201_T04 core.zone_at (PostGIS edges)", () => {
   });
   it("only the four governorates of D1 are accepted", async () => {
     await expectDbError(
-      q("insert into core.zones (name, governorate) values ('Hors', 'Sfax')"),
+      q("insert into core.zones (name, name_ar, name_en, governorate) values ('Hors', 'خارج', 'Hors', 'Sfax')"),
       /zones_governorate_check|violates check/,
     );
   });

@@ -28,9 +28,9 @@ beforeAll(async () => {
   db = new Db(testDb.url("fastgo_app"), 4);
   // Not real délégations: two squares, so a generated pin or zone can be in zone as well as out of it.
   await testDb.superClient.query(
-    `insert into core.zones (name, governorate, area) values
-       ('Alpha', 'Tunis', ST_Multi(ST_GeomFromText('POLYGON((10 36, 10.1 36, 10.1 36.1, 10 36.1, 10 36))', 4326))::geography),
-       ('Bravo', 'Ariana', ST_Multi(ST_GeomFromText('POLYGON((10.1 36, 10.2 36, 10.2 36.1, 10.1 36.1, 10.1 36))', 4326))::geography)`,
+    `insert into core.zones (name, name_ar, name_en, governorate, area) values
+       ('Alpha', 'ألفا', 'Alpha', 'Tunis', ST_Multi(ST_GeomFromText('POLYGON((10 36, 10.1 36, 10.1 36.1, 10 36.1, 10 36))', 4326))::geography),
+       ('Bravo', 'برافو', 'Bravo', 'Ariana', ST_Multi(ST_GeomFromText('POLYGON((10.1 36, 10.2 36, 10.2 36.1, 10.1 36.1, 10.1 36))', 4326))::geography)`,
   );
   app = await createApp({ trustProxy: false }, pricingOptions({ db, redis, authSecret: "s".repeat(40) }));
   await app.listen(0, "0.0.0.0");

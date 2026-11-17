@@ -7,6 +7,16 @@
 alter table core.zones add column governorate text
   constraint zones_governorate_check check (governorate in ('Tunis', 'Ariana', 'Ben Arous', 'Manouba'));
 create index zones_area_gist on core.zones using gist (area);
+-- Names in the three languages of the product: `name` is French (the key the API returns), `name_ar` comes
+-- from OpenStreetMap `name:ar`, `name_en` from `name:en`, else the French name. A zone that exists before
+-- this migration gets its French name in both until the data is loaded.
+alter table core.zones add column name_ar text, add column name_en text;
+update core.zones set name_ar = name, name_en = name;
+alter table core.zones
+  alter column name_ar set not null,
+  alter column name_en set not null,
+  add constraint zones_name_ar_check check (btrim(name_ar) <> ''),
+  add constraint zones_name_en_check check (btrim(name_en) <> '');
 
 -- The zone of a point (R201). A point on a border counts as inside (ST_Covers). On a border shared by
 -- two zones, one zone comes back, the first by name. Active zones only, so a paused délégation is out

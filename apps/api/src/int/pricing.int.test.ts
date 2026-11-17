@@ -27,10 +27,10 @@ beforeAll(async () => {
   redis = createRedis(r.url);
   db = new Db(testDb.url("fastgo_app"), 4);
   await q(
-    `insert into core.zones (id, name, governorate, area, active) values
-       ($1, 'Alpha', 'Tunis', ${square(10, 36)}, true),
-       ($2, 'Bravo', 'Ariana', ${square(10.1, 36)}, true),
-       ($3, 'Charlie', 'Manouba', ${square(10.3, 36)}, false)`,
+    `insert into core.zones (id, name, name_ar, name_en, governorate, area, active) values
+       ($1, 'Alpha', 'ألفا', 'Alpha', 'Tunis', ${square(10, 36)}, true),
+       ($2, 'Bravo', 'برافو', 'Bravo', 'Ariana', ${square(10.1, 36)}, true),
+       ($3, 'Charlie', 'شارلي', 'Charlie', 'Manouba', ${square(10.3, 36)}, false)`,
     [ZONES.alpha, ZONES.bravo, ZONES.paused],
   );
   app = await createApp(

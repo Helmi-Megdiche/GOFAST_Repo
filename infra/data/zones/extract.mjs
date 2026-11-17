@@ -3,6 +3,8 @@
 //
 //   node infra/data/zones/extract.mjs                  download from OSM, then write both files
 //   node infra/data/zones/extract.mjs --from-geojson   write the migration again from delegations.geojson
+//   node infra/data/zones/extract.mjs --refresh-names  read the names again from OSM (Overpass only), keep the
+//                                                      boundaries of delegations.geojson, write both files
 //
 // It writes delegations.geojson (the data) and apps/api/migrations/0009_zones_grand_tunis.sql (the
 // migration that loads it into core.zones, so every migrated database has the zones). The app NEVER
@@ -71,21 +73,54 @@ async function boundaries(ids) {
   return out;
 }
 
+// Names: OSM gives "Délégation Ariana Ville", "Délégation de Sidi Thabet" and, here and there, invisible
+// direction marks. The zone name is the place: no "Délégation (de)" prefix, no hidden character. The Arabic
+// name is OSM `name:ar`; the English one is `name:en`, else the French name.
+const clean = (s) => s.replace(/\p{Cf}/gu, "").replace(/\s+/g, " ").trim();
+const placeName = (s) => clean(s).replace(/^D[ée]l[ée]gation\s+(de\s+|d['’]\s*)?/i, "").trim();
+function namesOf(tags) {
+  const fr = tags["name:fr"] ?? tags.name;
+  if (!fr) return null;
+  const name = placeName(fr);
+  const ar = tags["name:ar"] ? clean(tags["name:ar"]) : "";
+  const en = tags["name:en"] ? placeName(tags["name:en"]) : name;
+  return { name, nameAr: ar, nameEn: en || name };
+}
+
 const round = (n) => Math.round(n * 1e7) / 1e7;
 const roundGeometry = (g) =>
   JSON.parse(JSON.stringify(g), (_k, v) => (typeof v === "number" ? round(v) : v));
 const sqlText = (s) => `'${s.replaceAll("'", "''")}'`;
 
 const FROM_GEOJSON = process.argv.includes("--from-geojson");
+const REFRESH_NAMES = process.argv.includes("--refresh-names");
 const GEOJSON = join(HERE, "delegations.geojson");
 const MIGRATION = join(HERE, "../../../apps/api/migrations/0009_zones_grand_tunis.sql");
 let features;
 let osmTimestamp;
 
-if (FROM_GEOJSON) {
+if (FROM_GEOJSON || REFRESH_NAMES) {
   const saved = JSON.parse(readFileSync(GEOJSON, "utf8"));
   features = saved.features;
   osmTimestamp = saved.osm_data_timestamp;
+  if (REFRESH_NAMES) {
+    const byId = new Map();
+    for (const [, iso] of GOVERNORATES) {
+      const { timestamp, relations } = await overpass(iso);
+      osmTimestamp = osmTimestamp < timestamp ? timestamp : osmTimestamp;
+      for (const r of relations) byId.set(r.id, r.tags);
+      await sleep(5000);
+    }
+    for (const f of features) {
+      const tags = byId.get(f.properties.osm_relation);
+      const n = tags && namesOf(tags);
+      if (!n) throw new Error(`Relation ${f.properties.osm_relation} (${f.properties.name}) has no name in OSM`);
+      if (!n.nameAr) throw new Error(`Relation ${f.properties.osm_relation} (${n.name}) has no name:ar`);
+      f.properties = { name: n.name, name_ar: n.nameAr, name_en: n.nameEn, governorate: f.properties.governorate, osm_relation: f.properties.osm_relation };
+    }
+    features.sort((a, b) => a.properties.governorate.localeCompare(b.properties.governorate) || a.properties.name.localeCompare(b.properties.name));
+    writeFileSync(GEOJSON, JSON.stringify({ type: "FeatureCollection", license: saved.license, osm_data_timestamp: osmTimestamp, features }) + "\n");
+  }
 } else {
   osmTimestamp = "";
 // 1. The relations of each governorate (cheap), checked before any boundary is downloaded.
@@ -94,7 +129,7 @@ for (const [governorate, iso] of GOVERNORATES) {
   const { timestamp, relations } = await overpass(iso);
   osmTimestamp = osmTimestamp < timestamp ? timestamp : osmTimestamp;
   for (const r of relations)
-    listed.push({ governorate, id: r.id, codegeo: r.tags["ref:tn:codegeo"] ?? "", name: r.tags["name:fr"] ?? r.tags.name, nameAr: r.tags["name:ar"] ?? null });
+    listed.push({ governorate, id: r.id, codegeo: r.tags["ref:tn:codegeo"] ?? "", ...(namesOf(r.tags) ?? { name: "", nameAr: "", nameEn: "" }) });
   await sleep(5000);
 }
 const count = new Map();
@@ -115,9 +150,10 @@ for (const r of listed) {
   if (!r.name || !g) throw new Error(`Relation ${r.id} has no name or no boundary`);
   if (g.type !== "Polygon" && g.type !== "MultiPolygon")
     throw new Error(`Relation ${r.id} (${r.name}): ${g.type} is not a polygon`);
+  if (!r.nameAr) throw new Error(`Relation ${r.id} (${r.name}) has no name:ar`);
   features.push({
     type: "Feature",
-    properties: { name: r.name, name_ar: r.nameAr, governorate: r.governorate, osm_relation: r.id },
+    properties: { name: r.name, name_ar: r.nameAr, name_en: r.nameEn, governorate: r.governorate, osm_relation: r.id },
     geometry: roundGeometry(g),
   });
 }
@@ -138,13 +174,14 @@ writeFileSync(join(HERE, "delegations.geojson"), JSON.stringify(collection) + "\
 // migration in one transaction.
 const rows = features.map((f) => {
   const geo = JSON.stringify(f.geometry);
-  return `insert into core.zones (name, governorate, area, active) values (${sqlText(f.properties.name)}, ${sqlText(f.properties.governorate)},
+  return `insert into core.zones (name, name_ar, name_en, governorate, area, active) values (${sqlText(f.properties.name)}, ${sqlText(f.properties.name_ar)}, ${sqlText(f.properties.name_en)}, ${sqlText(f.properties.governorate)},
   public.ST_Multi(public.ST_CollectionExtract(public.ST_MakeValid(public.ST_SetSRID(public.ST_GeomFromGeoJSON(${sqlText(geo)}), 4326)), 3))::public.geography, true);`;
 });
 writeFileSync(
   MIGRATION,
   `-- Délégations of the Grand Tunis (Tunis, Ariana, Ben Arous, Manouba; decision D1), all switched on.
--- GENERATED by infra/data/zones/extract.mjs: do not edit by hand.
+-- GENERATED by infra/data/zones/extract.mjs: do not edit by hand. Names: the place without "Délégation",
+-- Arabic from OSM name:ar, English from name:en else the French name.
 -- © OpenStreetMap contributors, ODbL 1.0 (https://www.openstreetmap.org/copyright). OSM data of ${osmTimestamp}.
 -- The app never calls OpenStreetMap: the boundaries live in core.zones.
 ${rows.join("\n")}

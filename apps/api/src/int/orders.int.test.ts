@@ -262,7 +262,7 @@ describe("definer functions", () => {
 
   it("R405: tracking returns state, dates and zone names, and nothing personal", async () => {
     const zone = randomUUID();
-    await q("insert into core.zones (id, name) values ($1, 'Tunis')", [zone]);
+    await q("insert into core.zones (id, name, name_ar, name_en) values ($1, 'Tunis', 'تونس', 'Tunis')", [zone]);
     await q("update core.addresses set zone_id = $1 where id = $2", [zone, ids.addressA]);
     const res = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-AAAA-0001') as t`));
     const t = (res.rows[0] as { t: Record<string, unknown> }).t;

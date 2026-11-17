@@ -69,6 +69,50 @@ describe("R201_T04 the délégations of the Grand Tunis (migration 0009)", () =>
     expect(r.rows).toEqual([]);
   });
 
+  it("R201_T04_gaps: the délégations leave no hole inside the Grand Tunis, except two stretches of water", async () => {
+    // OSM délégation boundaries stop at the shore: Sebkhet Séjoumi (about 25 km2, between El Kabaria,
+    // Ezzouhour and Sidi Hassine) and the south basin of the Lac de Tunis (about 12 km2, between Radès,
+    // Megrine and Bab Bhar) are in no délégation. A point there is out of zone. Any OTHER hole (a sliver or a
+    // missing délégation) fails this test.
+    const WATER = [
+      { name: "Sebkhet Séjoumi", lon: 10.149013, lat: 36.761458 },
+      { name: "Lac de Tunis (south)", lon: 10.243807, lat: 36.792447 },
+    ];
+    const holes = (
+      await db.superClient.query(
+        `with u as (select (public.ST_Dump(public.ST_Union(area::public.geometry))).geom as g from core.zones),
+              rings as (select public.ST_MakePolygon(public.ST_InteriorRingN(g, i)) as h
+                          from u, generate_series(1, public.ST_NumInteriorRings(g)) as i)
+         select round(public.ST_Area(h::public.geography))::int as m2,
+                (select count(*)::int from unnest($1::float8[], $2::float8[]) as w(lon, lat)
+                  where public.ST_Covers(h, public.ST_SetSRID(public.ST_MakePoint(w.lon, w.lat), 4326))) as water
+           from rings where public.ST_Area(h::public.geography) > 1000 order by 1 desc`,
+        [WATER.map((w) => w.lon), WATER.map((w) => w.lat)],
+      )
+    ).rows as { m2: number; water: number }[];
+    expect(holes.filter((h) => h.water === 0)).toEqual([]); // no unexplained hole
+    expect(holes).toHaveLength(WATER.length); // each stretch of water is one hole
+    for (const w of WATER) expect(await zoneAt(w.lon, w.lat), w.name).toBeUndefined();
+  });
+
+  it("names: no 'Délégation' prefix and no hidden character; Arabic and English names present; names unique", async () => {
+    const rows = (await db.superClient.query("select name, name_ar, name_en from core.zones order by name")).rows as {
+      name: string;
+      name_ar: string;
+      name_en: string;
+    }[];
+    expect(rows).toHaveLength(48);
+    for (const z of rows) {
+      expect(z.name, z.name).not.toMatch(/^D[ée]l[ée]gation/i);
+      for (const v of Object.values(z)) expect(v, `${z.name}: control or bidi character`).not.toMatch(/\p{Cf}/u);
+      expect(z.name_ar, z.name).toMatch(/[؀-ۿ]/);
+      expect(z.name_ar, z.name).not.toMatch(/^\s|\s$/);
+      expect(z.name_en.trim(), z.name).not.toBe("");
+    }
+    expect(new Set(rows.map((z) => z.name)).size).toBe(48);
+    expect(rows.map((z) => z.name)).toEqual(expect.arrayContaining(["Sidi Thabet", "Manouba", "Carthage", "Le Kram"]));
+  });
+
   it("the synthetic squares of the other tests (lon 10 to 10.4, lat 36 to 36.1) overlap no real délégation", async () => {
     const r = await db.superClient.query(
       `select name from core.zones
