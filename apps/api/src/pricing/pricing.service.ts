@@ -67,11 +67,11 @@ export type Settings = {
   rainSurchargeMillimes: number | null;
   rainCeilingMillimes: number | null;
 };
-/** A quote as it is kept (`core.quotes`): zone ids and HMACs, never an address text (RV-18). */
+/** A quote as it is kept (`core.quotes`): zone ids and keyed hashes, never an address text. */
 export type StoredQuote = {
   id: string;
-  departureKeyHmac: string;
-  arrivalKeyHmac: string;
+  departureKeyHash: string;
+  arrivalKeyHash: string;
   service: ServiceCode;
   parcelType: ParcelTypeCode;
   parcels: { weight_g: number }[];
@@ -291,8 +291,8 @@ export class PricingService {
       const out = lineOut(lines, settings);
       const stored: StoredQuote = {
         id,
-        departureKeyHmac: this.d.keys.mac("quote-address", addressPriceKey({ text: body.departure.text, pin: body.departure.pin ?? null })),
-        arrivalKeyHmac: this.d.keys.mac("quote-address", addressPriceKey({ text: body.arrival.text, pin: body.arrival.pin ?? null })),
+        departureKeyHash: this.d.keys.mac("quote-address", addressPriceKey({ text: body.departure.text, pin: body.departure.pin ?? null })),
+        arrivalKeyHash: this.d.keys.mac("quote-address", addressPriceKey({ text: body.arrival.text, pin: body.arrival.pin ?? null })),
         service: body.service,
         parcelType: body.parcel_type,
         parcels: body.parcels.map((p) => ({ weight_g: p.weight_g })),

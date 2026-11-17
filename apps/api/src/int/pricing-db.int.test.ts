@@ -3,6 +3,7 @@ import { sql } from "drizzle-orm";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { Db } from "../db/index.ts";
 import { PricingRepo } from "../pricing/pricing.repo.ts";
+import { purgeExpiredQuotes } from "../pricing/quote-purge.ts";
 import { expectDbError, startTestDb, type TestDb } from "./harness.ts";
 
 let db: TestDb;
@@ -205,7 +206,7 @@ describe("core.quotes: public, insert and select only, no address text (RV-18)",
   const id = randomUUID();
   const insert = (quoteId: string) =>
     sql`insert into core.quotes
-          (id, departure_key_hmac, arrival_key_hmac, service_code, parcel_type, parcels, packaging, fragile,
+          (id, departure_key_hash, arrival_key_hash, service_code, parcel_type, parcels, packaging, fragile,
            departure_zone_id, arrival_zone_id, departure_pinned, arrival_pinned, lines, total_millimes,
            tax_basis, price_list_valid_from, quoted_at, expires_at)
         values (${quoteId}, 'hmac-a', 'hmac-b', 'standard', 'small', '[{"weight_g":1000}]'::jsonb, false, false,
@@ -229,11 +230,50 @@ describe("core.quotes: public, insert and select only, no address text (RV-18)",
     const r = await q("select total_millimes::int as t from core.quotes where id = $1", [id]);
     expect(r.rows[0].t).toBe(10000);
   });
+  it("the read-only login cannot read the address key hashes (the names end in _hash)", async () => {
+    const ro = new Db(db.url("fastgo_readonly"), 1);
+    try {
+      await expectDbError(ro.withNoActor((tx) => tx.execute(sql`select departure_key_hash from core.quotes`)), /permission denied/);
+      await expectDbError(ro.withNoActor((tx) => tx.execute(sql`select arrival_key_hash from core.quotes`)), /permission denied/);
+      const r = await ro.withNoActor((tx) => tx.execute(sql`select total_millimes from core.quotes limit 1`));
+      expect(r.rows).toHaveLength(1);
+    } finally {
+      await ro.close();
+    }
+  });
+  it("R205: the worker purges the quotes that expired, keeps the others, and the app still cannot delete", async () => {
+    const worker = new Db(db.url("fastgo_worker"), 1);
+    const old = randomUUID();
+    const live = randomUUID();
+    const base = (qid: string, quoted: string, expires: string) =>
+      q(
+        `insert into core.quotes (id, departure_key_hash, arrival_key_hash, service_code, parcel_type, parcels, packaging, fragile,
+           departure_zone_id, arrival_zone_id, departure_pinned, arrival_pinned, lines, total_millimes, price_list_valid_from, quoted_at, expires_at)
+         values ($1, 'h', 'h', 'standard', 'small', '[]'::jsonb, false, false, $2, $2, true, true, '[]'::jsonb, 1, '2026-11-06T00:00:00Z', ${quoted}, ${expires})`,
+        [qid, ZONES.alpha],
+      );
+    try {
+      await base(old, "now() - interval '2 hours'", "now() - interval '1 hour'");
+      await base(live, "now()", "now() + interval '15 minutes'");
+      expect(await purgeExpiredQuotes(worker)).toBeGreaterThanOrEqual(1);
+      const left = (await q("select id from core.quotes where id = any($1)", [[old, live]])).rows.map((r) => r.id);
+      expect(left).toEqual([live]);
+      // the policy lets the worker delete an expired quote only, whatever the clock it is given
+      await worker.withWorker((tx) => tx.execute(sql`delete from core.quotes where id = ${live}`));
+      expect((await q("select id from core.quotes where id = $1", [live])).rows).toHaveLength(1);
+      await expectDbError(
+        worker.withWorker((tx) => tx.execute(sql`update core.quotes set total_millimes = 2 where id = ${live}`)),
+        /permission denied/,
+      );
+    } finally {
+      await worker.close();
+    }
+  });
   it("has no column that could hold an address text", async () => {
     const cols = (
       await q(`select column_name from information_schema.columns where table_schema = 'core' and table_name = 'quotes'`)
     ).rows.map((c) => c.column_name as string);
     expect(cols.filter((c) => /text|line|address|landmark|label/.test(c) && !/^lines$/.test(c))).toEqual([]);
-    expect(cols).toEqual(expect.arrayContaining(["departure_key_hmac", "arrival_key_hmac"]));
+    expect(cols).toEqual(expect.arrayContaining(["departure_key_hash", "arrival_key_hash"]));
   });
 });

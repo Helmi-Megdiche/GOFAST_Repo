@@ -81,12 +81,14 @@ create table core.pricing_settings (
 insert into core.pricing_settings (id) values (true);
 select core.reference('core.pricing_settings');
 
--- Quotes (R204, R205). The route is public, so a quote has no owner. It keeps an HMAC of each address
--- key, never the address text (RV-18). The app inserts and reads, and never changes or deletes one.
+-- Quotes (R204, R205). The route is public, so a quote has no owner. It keeps a keyed hash of each address
+-- (HMAC), never the address text. The columns end in `_hash` so core.protect hides them from the
+-- read-only login. The app inserts and reads, and never changes or deletes one; only the worker deletes
+-- a quote, once it has expired.
 create table core.quotes (
   id uuid primary key default gen_random_uuid(),
-  departure_key_hmac text not null,
-  arrival_key_hmac text not null,
+  departure_key_hash text not null,
+  arrival_key_hash text not null,
   service_code text not null references core.services (code),
   parcel_type text not null check (parcel_type in ('document', 'small', 'medium', 'large')),
   parcels jsonb not null,
@@ -111,3 +113,8 @@ create table core.quotes (
 select core.protect('core.quotes', 'select, insert');
 create policy quotes_select on core.quotes for select to fastgo_app using (true);
 create policy quotes_insert on core.quotes for insert to fastgo_app with check (true);
+-- The purge (hourly, in the worker): it reads the id and the expiry of a quote and deletes an expired one.
+-- The policy refuses the delete of a quote that is still valid, whatever the worker sends.
+grant select (id, expires_at), delete on core.quotes to fastgo_worker;
+create policy quotes_select_worker on core.quotes for select to fastgo_worker using (true);
+create policy quotes_purge_worker on core.quotes for delete to fastgo_worker using (expires_at < now());

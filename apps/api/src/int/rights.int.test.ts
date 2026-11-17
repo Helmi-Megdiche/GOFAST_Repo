@@ -115,6 +115,8 @@ const WORKER: Record<string, Rights> = {
   "core.services": { t: ["SELECT"] },
   "core.prices": { t: ["SELECT"] },
   "core.pricing_settings": { t: ["SELECT"] },
+  // GH-10: the purge of expired quotes (hourly): it reads the id and the expiry, and deletes; nothing else.
+  "core.quotes": { t: ["DELETE"], c: { SELECT: ["expires_at", "id"] } },
   "core.idempotency_keys": { t: ["DELETE", "SELECT"] },
   "gestion.audit_events": { t: ["INSERT"] },
   "core.status_events": { t: ["SELECT"], c: { UPDATE: ["location"] } },

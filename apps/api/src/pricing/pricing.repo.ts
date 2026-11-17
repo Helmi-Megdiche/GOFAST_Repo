@@ -95,11 +95,11 @@ export class PricingRepo implements PricingStore<Tx> {
   async saveQuote(tx: Tx, q: StoredQuote): Promise<void> {
     await tx.execute(
       sql`insert into core.quotes
-            (id, departure_key_hmac, arrival_key_hmac, service_code, parcel_type, parcels, packaging, fragile,
+            (id, departure_key_hash, arrival_key_hash, service_code, parcel_type, parcels, packaging, fragile,
              declared_value_millimes, departure_zone_id, arrival_zone_id, departure_pinned, arrival_pinned,
              lines, total_millimes, tax_basis, amount_ht_millimes, amount_ttc_millimes, surcharge,
              price_list_valid_from, quoted_at, expires_at)
-          values (${q.id}, ${q.departureKeyHmac}, ${q.arrivalKeyHmac}, ${q.service}, ${q.parcelType},
+          values (${q.id}, ${q.departureKeyHash}, ${q.arrivalKeyHash}, ${q.service}, ${q.parcelType},
                   ${JSON.stringify(q.parcels)}::jsonb, ${q.packaging}, ${q.fragile}, ${q.declaredValueMillimes},
                   ${q.departureZoneId}, ${q.arrivalZoneId}, ${q.departurePinned}, ${q.arrivalPinned},
                   ${JSON.stringify(q.lines)}::jsonb, ${q.totalMillimes}, ${q.taxBasis}, ${q.amountHtMillimes},
@@ -119,8 +119,8 @@ export class PricingRepo implements PricingStore<Tx> {
     return {
       id: q.id as string,
       arrivalZoneName: q.arrival_zone_name as string,
-      departureKeyHmac: q.departure_key_hmac as string,
-      arrivalKeyHmac: q.arrival_key_hmac as string,
+      departureKeyHash: q.departure_key_hash as string,
+      arrivalKeyHash: q.arrival_key_hash as string,
       service: q.service_code as ReadQuote["service"],
       parcelType: q.parcel_type as ReadQuote["parcelType"],
       parcels: q.parcels as ReadQuote["parcels"],

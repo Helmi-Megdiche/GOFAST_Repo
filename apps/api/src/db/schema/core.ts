@@ -79,11 +79,11 @@ export const pricingSettings = core.table("pricing_settings", {
   rainCeilingMillimes: millimes("rain_ceiling_millimes"),
 });
 
-/** A public quote: no owner, an HMAC of each address key and no address text (RV-18). */
+/** A public quote: no owner, a keyed hash of each address and no address text. */
 export const quotes = core.table("quotes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  departureKeyHmac: text("departure_key_hmac").notNull(),
-  arrivalKeyHmac: text("arrival_key_hmac").notNull(),
+  departureKeyHash: text("departure_key_hash").notNull(),
+  arrivalKeyHash: text("arrival_key_hash").notNull(),
   serviceCode: text("service_code")
     .notNull()
     .references(() => services.code),

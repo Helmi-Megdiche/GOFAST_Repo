@@ -208,8 +208,8 @@ describe("R204_T01 the quote lines", () => {
     expect(saved.departureZoneId).toBe(ALPHA.id);
     expect(saved.arrivalZoneId).toBe(BRAVO.id);
     expect(JSON.stringify(saved)).not.toContain("Rue Test 1");
-    expect(String(saved.departureKeyHmac)).toMatch(/^[A-Za-z0-9_-]{43}$/);
-    expect(saved.departureKeyHmac).not.toBe(saved.arrivalKeyHmac);
+    expect(String(saved.departureKeyHash)).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    expect(saved.departureKeyHash).not.toBe(saved.arrivalKeyHash);
   });
 });
 
