@@ -1739,7 +1739,11 @@
     "PROVIDER_UNAVAILABLE": "An external service is unavailable.",
     "INTERNAL_ERROR": "Internal error.",
     "SAME_ACTOR": "You cannot validate your own work.",
-    "outOfZone": "This address is not served yet."
+    "outOfZone": "This address is not served yet.",
+    "addressUnconfirmed": "This address could not be placed on the map: pick the délégation from the list.",
+    "tooManyParcels": "There are too many parcels for one order.",
+    "tooHeavy": "A parcel is over the maximum weight.",
+    "priceUnavailable": "The price of this option is not available yet."
   },
   "apiSms": {
     "code": "GOFAST: your code is {code}. It is valid for {minutes} minutes. Do not share it with anyone."

@@ -1739,7 +1739,11 @@
     "PROVIDER_UNAVAILABLE": "Un service externe est indisponible.",
     "INTERNAL_ERROR": "Erreur interne.",
     "SAME_ACTOR": "Vous ne pouvez pas valider votre propre travail.",
-    "outOfZone": "Cette adresse n'est pas encore desservie."
+    "outOfZone": "Cette adresse n'est pas encore desservie.",
+    "addressUnconfirmed": "Cette adresse n'a pas pu être placée sur la carte : choisissez la délégation dans la liste.",
+    "tooManyParcels": "Il y a trop de colis pour une seule commande.",
+    "tooHeavy": "Un colis dépasse le poids maximal.",
+    "priceUnavailable": "Le prix de cette option n'est pas encore disponible."
   },
   "apiSms": {
     "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne."
