@@ -584,26 +584,29 @@ for (const entry of PAGES.filter((item) => !("status" in item))) {
   });
 }
 
-test("order, sign-in and coming-soon pages are noindex, public pages are not", async ({ page }) => {
-  for (const url of [
-    "/fr/commander",
-    "/fr/commander/expediteur",
-    "/fr/commander/destinataire",
-    "/fr/commander/colis",
-    "/fr/commander/service",
-    "/fr/commander/verification",
-    "/fr/commander/code",
-    "/fr/commander/confirmation",
-    "/fr/commander/hors-zone",
-    "/fr/connexion",
-    "/fr/inscription",
-    "/fr/code",
-    "/fr/mot-de-passe",
-    "/fr/mot-de-passe/nouveau",
-    "/fr/google-telephone",
-    "/fr/compte",
-    "/fr/pro",
-  ]) {
+// GH-92: one test per URL, so the 30 s budget covers one navigation, not eighteen.
+const NOINDEX_URLS = [
+  "/fr/commander",
+  "/fr/commander/expediteur",
+  "/fr/commander/destinataire",
+  "/fr/commander/colis",
+  "/fr/commander/service",
+  "/fr/commander/verification",
+  "/fr/commander/code",
+  "/fr/commander/confirmation",
+  "/fr/commander/hors-zone",
+  "/fr/connexion",
+  "/fr/inscription",
+  "/fr/code",
+  "/fr/mot-de-passe",
+  "/fr/mot-de-passe/nouveau",
+  "/fr/google-telephone",
+  "/fr/compte",
+  "/fr/pro",
+];
+
+for (const url of NOINDEX_URLS) {
+  test(`GH-92 ${url} is noindex`, async ({ page }) => {
     await page.goto(url);
     // A client redirect (e.g. /commander to its first step) can briefly leave the old page's tag
     // next to the new one: every robots tag present must say noindex.
@@ -614,7 +617,10 @@ test("order, sign-in and coming-soon pages are noindex, public pages are not", a
     )) {
       expect(content, url).toMatch(/noindex/);
     }
-  }
+  });
+}
+
+test("GH-92 public pages are not noindex", async ({ page }) => {
   await page.goto("/fr/services");
   await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 });

@@ -1,5 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage, formHydrated, openForm, shot } from "./helpers";
+import {
+  FIRST_CODE,
+  LOCALES,
+  MORNING,
+  VIEWPORTS,
+  checkPage,
+  formHydrated,
+  openForm,
+  shot,
+} from "./helpers";
 import {
   SENDER_PHONE,
   chooseStandard,
