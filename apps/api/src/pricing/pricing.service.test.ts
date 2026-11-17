@@ -396,17 +396,17 @@ describe("the catalog and the zone check", () => {
   });
 });
 
-describe("per-IP limits (PROVISIONAL 60 per minute)", () => {
+describe("per-IP limits (PROVISIONAL 120 per minute)", () => {
   it("answers 429 with Retry-After after the limit, for the zone check and for the quote, by IP", async () => {
-    expect(PRICING_LIMITS.perIp).toEqual({ limit: 60, windowMs: 60_000 });
+    expect(PRICING_LIMITS.perIp).toEqual({ limit: 120, windowMs: 60_000 });
     const svc = service();
-    for (let i = 0; i < 60; i++) await svc.createZoneCheck({ zone_id: ALPHA.id }, ctx);
+    for (let i = 0; i < 120; i++) await svc.createZoneCheck({ zone_id: ALPHA.id }, ctx);
     const e = await refusal(svc.createZoneCheck({ zone_id: ALPHA.id }, ctx));
     expect(e).toMatchObject({ code: "TOO_MANY_ATTEMPTS", retryAfterSeconds: 30 });
     // another address is not affected, and the quote has its own counter
     await svc.createZoneCheck({ zone_id: ALPHA.id }, { ...ctx, ip: "203.0.113.10" });
     await svc.createQuote(request(), ctx);
-    for (let i = 0; i < 59; i++) await svc.createQuote(request(), ctx);
+    for (let i = 0; i < 119; i++) await svc.createQuote(request(), ctx);
     expect((await refusal(svc.createQuote(request(), ctx))).code).toBe("TOO_MANY_ATTEMPTS");
   });
 });

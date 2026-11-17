@@ -100,9 +100,9 @@ describe("R201_T04 POST /v1/zone-checks", () => {
     const body = (await post("/v1/zone-checks", { zone_id: ZONES.alpha })).body;
     expect(body).not.toMatch(/coordinates|POLYGON|area/i);
   });
-  it("answers 429 with Retry-After after 60 requests from one address, and counts another address apart", async () => {
+  it("answers 429 with Retry-After after 120 requests from one address, and counts another address apart", async () => {
     const ip = "198.51.100.77";
-    for (let i = 0; i < 60; i++) expect((await post("/v1/zone-checks", { zone_id: ZONES.alpha }, ip)).statusCode).toBe(200);
+    for (let i = 0; i < 120; i++) expect((await post("/v1/zone-checks", { zone_id: ZONES.alpha }, ip)).statusCode).toBe(200);
     const limited = await post("/v1/zone-checks", { zone_id: ZONES.alpha }, ip);
     expect(limited.statusCode).toBe(429);
     expect(limited.json().error.code).toBe("TOO_MANY_ATTEMPTS");

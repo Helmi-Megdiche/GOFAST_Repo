@@ -37,7 +37,7 @@ export type ZoneCheckOut = Schemas["ZoneCheck"];
 type LineOut = QuoteOut["lines"][number];
 
 /** PROVISIONAL (not in the cahier): the limit of the two public routes that cost a lookup, per IP. */
-export const PRICING_LIMITS = { perIp: { limit: 60, windowMs: 60_000 } } as const;
+export const PRICING_LIMITS = { perIp: { limit: 120, windowMs: 60_000 } } as const;
 
 export type ZoneRow = { id: string; name: string; governorate: string | null };
 /** One row of `core.prices` in force. `withPackaging` true is the packaging supplement per parcel. */
