@@ -30,9 +30,20 @@ grant execute on function core.zone_at(double precision, double precision) to fa
 alter table core.prices drop constraint prices_pkey;
 alter table core.prices add column id bigint generated always as identity primary key;
 alter table core.prices add column zone_id uuid references core.zones (id);
-alter table core.prices add column valid_from timestamptz not null default now();
-create unique index prices_version_key on core.prices
-  (service_code, with_packaging, coalesce(zone_id, '00000000-0000-0000-0000-000000000000'::uuid), valid_from);
+-- A row that exists already gets the date of the seeds below (6 Nov 2026), so it is never "newer" than the
+-- grid. The default is dropped at once: a new row must say from when it holds.
+alter table core.prices add column valid_from timestamptz not null default '2026-11-06T00:00:00Z';
+alter table core.prices alter column valid_from drop default;
+-- Before this migration `with_packaging = true` held the FULL price with packaging (12000, 17000). It is now
+-- the supplement per parcel: full minus the base price of the same service, or null when either is missing.
+update core.prices p
+   set millimes = case when p.millimes is not null and b.millimes is not null and p.millimes >= b.millimes
+                       then p.millimes - b.millimes end
+  from core.prices b
+ where p.with_packaging and not b.with_packaging and b.service_code = p.service_code;
+-- One row per key and date, a null zone counting as one value (PostgreSQL 15 and later).
+alter table core.prices add constraint prices_version_key
+  unique nulls not distinct (service_code, with_packaging, zone_id, valid_from);
 -- The three services of the cahier exist (a service is offered only while it has a base price in force).
 insert into core.services (code, active) values ('standard', true), ('express', true), ('scheduled', true)
   on conflict (code) do nothing;
@@ -43,7 +54,8 @@ insert into core.prices (service_code, with_packaging, millimes, zone_id, valid_
   ('express', false, 15000, null, '2026-11-06T00:00:00Z'),
   ('express', true, 2000, null, '2026-11-06T00:00:00Z'),
   ('scheduled', false, null, null, '2026-11-06T00:00:00Z'),
-  ('scheduled', true, null, null, '2026-11-06T00:00:00Z');
+  ('scheduled', true, null, null, '2026-11-06T00:00:00Z')
+  on conflict do nothing;
 
 -- Settings of the price: ONE row. A null is a value GOFAST has not given (the pages show a placeholder).
 -- Edited later by the back-office, with the audit log (BO-13); the app only reads it.
