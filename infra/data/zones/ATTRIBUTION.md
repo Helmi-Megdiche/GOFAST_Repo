@@ -11,7 +11,7 @@ https://www.openstreetmap.org/copyright
 - A derived database must stay under ODbL and keep this credit. The public zones page (FE-04, web) shows
   "© OpenStreetMap contributors" with the link above.
 - OSM `admin_level` in Tunisia: 4 governorate, 5 délégation (used here), 6 imada (sector, not used).
-- `name` is the French OSM name (`name:fr`) without the "Délégation (de)" prefix; `name_ar` is `name:ar`;
+- `name` is the French OSM name (`name:fr`) without the "Délégation (de)" prefix; `name_ar` is `name:ar` without the word "معتمدية" (délégation);
   `name_en` is `name:en`, else the French name.
 
 ## Load

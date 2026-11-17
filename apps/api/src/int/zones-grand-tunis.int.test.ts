@@ -107,6 +107,7 @@ describe("R201_T04 the délégations of the Grand Tunis (migration 0009)", () =>
       for (const v of Object.values(z)) expect(v, `${z.name}: control or bidi character`).not.toMatch(/\p{Cf}/u);
       expect(z.name_ar, z.name).toMatch(/[؀-ۿ]/);
       expect(z.name_ar, z.name).not.toMatch(/^\s|\s$/);
+      expect(z.name_ar, z.name).not.toMatch(/^معتمدية/); // "معتمدية" (délégation)
       expect(z.name_en.trim(), z.name).not.toBe("");
     }
     expect(new Set(rows.map((z) => z.name)).size).toBe(48);

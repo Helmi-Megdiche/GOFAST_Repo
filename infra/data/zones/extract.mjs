@@ -82,7 +82,8 @@ function namesOf(tags) {
   const fr = tags["name:fr"] ?? tags.name;
   if (!fr) return null;
   const name = placeName(fr);
-  const ar = tags["name:ar"] ? clean(tags["name:ar"]) : "";
+  // Arabic: without the word "معتمدية" (délégation), like the French prefix.
+  const ar = tags["name:ar"] ? clean(tags["name:ar"]).replace(/^معتمدية\s+/, "").trim() : "";
   const en = tags["name:en"] ? placeName(tags["name:en"]) : name;
   return { name, nameAr: ar, nameEn: en || name };
 }
