@@ -81,8 +81,11 @@ grant select (quote_id, lines, null_lines, price_list_valid_from, departure_zone
               delivery_slot_start, delivery_slot_end, delivery_instructions, content, fragile, packaging,
               declared_value_millimes, freight_payer_accepted, terms_accepted_at)
   on core.orders to fastgo_readonly;
--- The barcode is set with the parcel (format: PROVISIONAL, the API builds it).
-grant insert (barcode) on core.parcels to fastgo_app;
+-- The barcode and the position (1 to n, the order of the parcels in the request) are set with the parcel
+-- (barcode format: PROVISIONAL, the API builds it). An old row has no position.
+alter table core.parcels add column position integer check (position >= 1), add unique (order_id, position);
+grant insert (barcode, position) on core.parcels to fastgo_app;
+grant select (position) on core.parcels to fastgo_readonly;
 
 -- ---- the history: a sequence for events that share an instant ------------------------------------------
 
@@ -158,7 +161,7 @@ revoke create on schema core from fastgo_order_writer;
 
 grant select (departure_zone_id, arrival_zone_id) on core.orders to fastgo_public_reader;
 grant select (name_ar, name_en) on core.zones to fastgo_public_reader;
-grant select (id, order_id, status) on core.parcels to fastgo_public_reader;
+grant select (id, order_id, position, status) on core.parcels to fastgo_public_reader;
 grant select (seq) on core.status_events to fastgo_public_reader;
 create policy definer_select on core.parcels for select to fastgo_public_reader using (true);
 
@@ -176,7 +179,7 @@ create function core.tracking(p_number text, p_locale text) returns jsonb
            'from_city', case p_locale when 'ar' then pz.name_ar when 'en' then pz.name_en else pz.name end,
            'to_city', case p_locale when 'ar' then dz.name_ar when 'en' then dz.name_en else dz.name end,
            'parcel_count', (select count(*) from core.parcels p where p.order_id = o.id and p.status <> 'canceled'),
-           'parcel_outcomes', coalesce((select jsonb_agg(p.status order by p.id) from core.parcels p
+           'parcel_outcomes', coalesce((select jsonb_agg(p.status order by p.position, p.id) from core.parcels p
                                          where p.order_id = o.id and p.status <> 'canceled'), '[]'::jsonb))
     from core.orders o
     left join core.addresses pa on pa.id = o.pickup_address_id

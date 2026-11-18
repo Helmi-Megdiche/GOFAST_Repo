@@ -90,7 +90,7 @@ const EXPECTED: Record<string, Expect> = {
   "core.parcels": {
     app: ["SELECT"],
     appCols: {
-      INSERT: ["barcode", "cod_millimes", "declared_value_millimes", "order_id", "proof_level", "size", "weight_declared_g"],
+      INSERT: ["barcode", "cod_millimes", "declared_value_millimes", "order_id", "position", "proof_level", "size", "weight_declared_g"],
       UPDATE: [
         "attempts",
         "barcode",
@@ -166,7 +166,7 @@ const PUBLIC_READER: Record<string, Rights> = {
   "core.zones": { c: { SELECT: ["id", "name", "name_ar", "name_en"] } },
   "core.status_events": { c: { SELECT: ["occurred_at", "order_id", "seq", "subject_type", "to_status"] } },
   // GH-22: the tracking counts and lists the states of the parcels (never a weight, a value or a barcode).
-  "core.parcels": { c: { SELECT: ["id", "order_id", "status"] } },
+  "core.parcels": { c: { SELECT: ["id", "order_id", "position", "status"] } },
   "core.recipient_links": { t: ["SELECT"] },
   // Sign-up (core.create_account) inserts into these three identity tables and nowhere else.
   // mark_phone_verified, set_password and rehash_password change only these four columns.

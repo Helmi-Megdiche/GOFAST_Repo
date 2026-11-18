@@ -611,6 +611,7 @@ describe("RV-21: protected columns", () => {
       ["attempts", "1", true],
       ["updated_at", "now() + interval '1 day'", false],
       ["status", "'delivered'", true],
+      ["position", "9", false], // GH-22: set once, at creation
     ];
     it("lists every column of the table", async () => {
       const r = await q("select column_name from information_schema.columns where table_schema = 'core' and table_name = 'parcels'");
