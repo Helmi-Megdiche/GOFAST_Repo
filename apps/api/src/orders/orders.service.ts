@@ -1,6 +1,6 @@
 import type { components } from "@fastgo/contract";
-import { addressPriceKey, checkOrderSlots, isQuoteValid, isStorableTimestamp, MAX_PARCELS, proofLevelFor, randomTrackingCode } from "@fastgo/domain";
-import type { ProofLevel } from "@fastgo/domain";
+import { addressPriceKey, canAutoConfirm, cancelFeeOf, cancelOption, checkOrderSlots, isQuoteValid, isStorableTimestamp, MAX_PARCELS, proofLevelFor, randomTrackingCode } from "@fastgo/domain";
+import type { CancelFee, OrderStatus, ProofLevel } from "@fastgo/domain";
 import type { Keys } from "../auth/crypto.ts";
 import type { PhoneChecks } from "../auth/phone-check.ts";
 import type { RateLimiter } from "../auth/rate-limit.ts";
@@ -13,6 +13,26 @@ export type OrderCreate = components["schemas"]["OrderCreate"];
 export type OrderOut = components["schemas"]["Order"];
 export type OrderListOut = components["schemas"]["OrderList"];
 export type TrackingOut = components["schemas"]["PublicTracking"];
+export type CancelRequestIn = components["schemas"]["CancelRequest"];
+export type CancelResultOut = components["schemas"]["CancelResult"];
+
+/** What `core.lock_order` says about an order, with the two settings: all the API needs to decide (R212, R209). */
+export type LockedOrder = {
+  status: OrderStatus;
+  totalMillimes: number;
+  addressUnconfirmed: boolean;
+  lines: { kind: string; millimes: number | null }[];
+  /** When the driver arrived at the active pickup mission (null: no mission, or not arrived). */
+  pickupArrivedAt: string | null;
+  cancelFee: CancelFee | null;
+  cancelFeeMillimes: number | null;
+  canceledAt: string | null;
+  settings: { cancelFeeMillimes: number; autoConfirmMaxMillimes: number };
+};
+/** What the API decided under the lock: nothing to write (replay by state), or the compare-and-set to run. */
+export type CancelDecision =
+  | { kind: "replay"; fee: CancelFee }
+  | { kind: "cancel"; expectedStatus: OrderStatus; fee: CancelFee; feeMillimes: number | null };
 type Locale = "fr" | "ar" | "en";
 
 /** PROVISIONAL (supervisor, #22): the public tracking, per IP: all calls, then the numbers that do not exist (T11). */
@@ -42,6 +62,8 @@ export type OrderPlan = {
   nullLines: string[];
   /** The account phone was proved by this order: mark it verified in the same transaction. */
   markPhoneVerified: boolean;
+  /** R209: asked inside the transaction, after the insert, with the facts read under the lock. True confirms the order. */
+  autoConfirm: (facts: LockedOrder) => boolean;
   newTrackingNumber: () => string;
   /** `bodyHashOf` of the request: stored with the scope. */
   bodyHash: string;
@@ -71,6 +93,10 @@ export interface OrdersPort {
   list(actor: Actor, q: ListQuery): Promise<OrderListOut | "badCursor">;
   get(actor: Actor, id: string): Promise<OrderOut | null>;
   tracking(number: string, locale: Locale): Promise<TrackingOut | null>;
+  /** One transaction: lock the order (then its missions), let `decide` choose, run the compare-and-set. A refusal thrown by `decide` rolls back. */
+  cancel(actor: Actor, id: string, decide: (f: LockedOrder) => CancelDecision, at: Date): Promise<CancelResultOut>;
+  /** Same for the confirmation: `replay` answers the order as it is, `confirm` runs the compare-and-set. */
+  confirm(actor: Actor, id: string, decide: (f: LockedOrder) => "replay" | "confirm", at: Date): Promise<OrderOut>;
 }
 
 export type OrdersDeps = {
@@ -220,6 +246,17 @@ export class OrdersService {
       addressUnconfirmed: !(quote.departurePinned && quote.arrivalPinned),
       nullLines: quote.lines.filter((l) => l.millimes === null).map((l) => l.kind),
       markPhoneVerified: needsProof && proofId !== null && account.phone === body.sender.phone,
+      // The phone counts as verified when the account's phone was verified before, or is by this order's proof (same transaction).
+      autoConfirm: (f) =>
+        canAutoConfirm({
+          status: f.status,
+          phoneVerified: account.phoneVerified || (needsProof && proofId !== null && account.phone === body.sender.phone),
+          accountActive: account.status === "active",
+          addressesPinned: !f.addressUnconfirmed,
+          totalMillimes: f.totalMillimes,
+          capMillimes: f.settings.autoConfirmMaxMillimes,
+          lines: f.lines,
+        }),
       newTrackingNumber: this.d.newTrackingNumber ?? randomTrackingCode,
       bodyHash,
     };
@@ -251,6 +288,55 @@ export class OrdersService {
     const order = await this.d.port.get(actor, id);
     if (!order) throw new ApiError("NOT_FOUND");
     return order;
+  }
+
+  // ---- POST /v1/orders/{id}/cancel and /confirm (4b-2b) ------------------------------------------------------------------
+
+  /**
+   * R212, RV-05, R202 (replay by state). Everything is decided under the lock of `core.lock_order`; the definer only
+   * compares and sets. Refusals write nothing.
+   */
+  async cancel(actor: Actor, id: string, body: CancelRequestIn): Promise<CancelResultOut> {
+    const staff = actor.role !== "individual" && actor.role !== "merchant";
+    return this.d.port.cancel(
+      actor,
+      id,
+      (f) => {
+        // Already canceled: the stored fee, whatever `accepted_fee` says, no new event.
+        if (f.status === "canceled" && f.cancelFee) return { kind: "replay", fee: f.cancelFee };
+        const option = cancelOption({ status: f.status }, f.pickupArrivedAt ? { arrivedAt: f.pickupArrivedAt } : null);
+        if (option === "claimOnly") throw new ApiError("STATE_CONFLICT", [{ name: "status", reason: "claimOnly" }]);
+        const fee = cancelFeeOf(option);
+        if (fee === null) throw new ApiError("STATE_CONFLICT", [{ name: "status", reason: "notCancellable" }]);
+        // A customer accepts the fee they saw: any difference needs a new consent. Staff cancel free by default, or record
+        // the fee that applies on purpose (Q10): the choice is kept with their id.
+        const accepted = body.accepted_fee;
+        const allowed = staff ? accepted === "none" || accepted === fee : accepted === fee;
+        if (!allowed) throw refuse("accepted_fee", "feeRequired");
+        const chosen: CancelFee = staff ? accepted : fee;
+        return {
+          kind: "cancel",
+          expectedStatus: f.status,
+          fee: chosen,
+          feeMillimes: chosen === "applies" ? f.settings.cancelFeeMillimes : null,
+        };
+      },
+      this.now(),
+    );
+  }
+
+  /** R209: an agent confirms what the system did not. A confirmed order answers 200 again; any other state is 409. */
+  async confirm(actor: Actor, id: string): Promise<OrderOut> {
+    return this.d.port.confirm(
+      actor,
+      id,
+      (f) => {
+        if (f.status === "confirmed") return "replay";
+        if (f.status !== "received") throw new ApiError("STATE_CONFLICT", [{ name: "status", reason: "notWaitingForConfirmation" }]);
+        return "confirm";
+      },
+      this.now(),
+    );
   }
 
   // ---- GET /v1/tracking/{number} ----------------------------------------------------------------------------

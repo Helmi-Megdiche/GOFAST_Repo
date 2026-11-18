@@ -22,6 +22,7 @@ let db: Db;
 let redis: Redis;
 let stopRedis: () => Promise<void>;
 let sessionCookie = "";
+let staffCookie = "";
 const ORIGIN = "https://gofast.example";
 // The tracking number the contract gives as an example (common.yaml): Schemathesis tries examples first, so with this order in
 // the database the 200 answer is tested too, not only the 404.
@@ -61,6 +62,10 @@ beforeAll(async () => {
   app = await createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers });
   const validFrom = (await q("select extract(epoch from sessions_valid_from)::text as v from core.accounts where id = $1", [account])).rows[0].v as string;
   sessionCookie = await new SessionStore(redis).create(account, false, validFrom);
+  // GH-22 4b-2b: an agent, for confirmOrder (the customer's session is refused it with a documented 403).
+  const agent = (await q(`insert into core.accounts (kind, role, full_name) values ('staff', 'agent', 'Agent Contrat') returning id`)).rows[0].id as string;
+  const agentFrom = (await q("select extract(epoch from sessions_valid_from)::text as v from core.accounts where id = $1", [agent])).rows[0].v as string;
+  staffCookie = await new SessionStore(redis).create(agent, true, agentFrom);
   await app.listen(0, "0.0.0.0");
   port = (app.getHttpServer().address() as AddressInfo).port;
 });
@@ -125,8 +130,16 @@ describe("Schemathesis against the contract", () => {
   // body made by Schemathesis cannot match a stored quote, so its success path is tested there, with a real quote; here it
   // reaches the 404 and 422 answers. Every other check runs, and listOrders and getOrder answer 200 for the seeded order.
   it("finds no difference on the order routes, signed in", async () => {
-    await schemathesis(["createOrder", "listOrders", "getOrder"], ["unsupported_method", "positive_data_acceptance", "negative_data_rejection"], [
+    await schemathesis(["createOrder", "listOrders", "getOrder", "cancelOrder"], ["unsupported_method", "positive_data_acceptance", "negative_data_rejection"], [
       `Cookie: session=${sessionCookie}`,
+      `Origin: ${ORIGIN}`,
+    ]);
+  });
+
+  // confirmOrder is for staff: signed in as an agent, it answers 200 or 409 for the seeded order and 404 for the others.
+  it("finds no difference on confirmOrder, signed in as an agent", async () => {
+    await schemathesis(["confirmOrder"], ["unsupported_method", "positive_data_acceptance", "negative_data_rejection"], [
+      `Cookie: session=${staffCookie}`,
       `Origin: ${ORIGIN}`,
     ]);
   });

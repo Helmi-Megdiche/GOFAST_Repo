@@ -4,7 +4,7 @@ import { Keys } from "../auth/crypto.ts";
 import { ApiError } from "../http/errors.ts";
 import type { Actor } from "../http/session.ts";
 import type { ReadQuote, Settings } from "../pricing/pricing.service.ts";
-import { bodyHashOf, fieldsWithNul, type OrderCreate, type OrderOut, type OrdersPort, OrdersService, ScopeTaken, TRACKING_LIMITS } from "./orders.service.ts";
+import { bodyHashOf, type CancelDecision, fieldsWithNul, type LockedOrder, type OrderCreate, type OrderOut, type OrdersPort, OrdersService, ScopeTaken, TRACKING_LIMITS } from "./orders.service.ts";
 
 // GH-22 (PR 4b-2a): the order of the checks of createOrder, with a fake database. The real one is in orders.api.int.test.ts.
 
@@ -76,6 +76,8 @@ function build(opts: { account?: { status: string; phone: string | null; phoneVe
     list: vi.fn(),
     get: vi.fn(),
     tracking: vi.fn(async () => null),
+    cancel: vi.fn(),
+    confirm: vi.fn(),
   };
   const consume = vi.fn(async () => opts.proofOk ?? true);
   const counts = new Map<string, number>();
@@ -318,5 +320,128 @@ describe("GH-22 T11 R405: the public tracking limits", () => {
     expect((await reasonOf(t.service.malformedTracking({ ip: "5.5.5.5" }))).code).toBe("TOO_MANY_ATTEMPTS");
     // another IP is not affected
     await expect(t.service.malformedTracking({ ip: "6.6.6.6" })).resolves.toBeUndefined();
+  });
+});
+
+// ---- GH-22 PR 4b-2b: cancel, confirm, auto-confirm ----------------------------------------------------------------------------
+
+const facts = (over: Partial<LockedOrder> = {}): LockedOrder => ({
+  status: "received",
+  totalMillimes: 6000,
+  addressUnconfirmed: false,
+  lines: [{ kind: "base", millimes: 6000 }, { kind: "vat", millimes: null }],
+  pickupArrivedAt: null,
+  cancelFee: null,
+  cancelFeeMillimes: null,
+  canceledAt: null,
+  settings: { cancelFeeMillimes: 5000, autoConfirmMaxMillimes: 100_000 },
+  ...over,
+});
+const staffActor: Actor = { accountId: "st", userId: "st", role: "agent" };
+
+/** Runs `cancel` with a port whose lock returns `f`; gives what the service decided, or the refusal. */
+async function decideCancel(f: LockedOrder, accepted: "none" | "applies" | "backOfficeDecides", who: Actor = actor) {
+  const t = build();
+  let decision: CancelDecision | undefined;
+  (t.port.cancel as ReturnType<typeof vi.fn>).mockImplementation(async (_a: Actor, _id: string, decide: (x: LockedOrder) => CancelDecision) => {
+    decision = decide(f);
+    return { status: "canceled", fee: decision.kind === "replay" ? decision.fee : decision.fee };
+  });
+  const res = await t.service.cancel(who, "o1", { accepted_fee: accepted }).then((r) => ({ ok: r })).catch((e) => ({ err: e as ApiError }));
+  return { res, decision };
+}
+
+describe("GH-22 R212 RV-05: cancelOrder decides from the domain rule, under the lock", () => {
+  const arrived = "2026-11-20T09:00:00.000Z";
+  it.each([
+    ["received", null, "none", null],
+    ["confirmed", null, "none", null],
+    ["assigned", null, "none", null],
+    ["assigned", arrived, "applies", 5000],
+    ["pickup_failed", null, "backOfficeDecides", null],
+  ] as const)("a customer who accepts the fee of %s (arrived %s) cancels with %s", async (status, at, fee, amount) => {
+    const { res, decision } = await decideCancel(facts({ status, pickupArrivedAt: at }), fee);
+    expect(res).toHaveProperty("ok");
+    expect(decision).toEqual({ kind: "cancel", expectedStatus: status, fee, feeMillimes: amount });
+  });
+
+  it("a customer who accepts another fee gets feeRequired, even a fee that became free (Q4)", async () => {
+    for (const [f, accepted] of [
+      [facts({ status: "assigned", pickupArrivedAt: "2026-11-20T09:00:00.000Z" }), "none"],
+      [facts({ status: "received" }), "applies"],
+      [facts({ status: "pickup_failed" }), "applies"],
+    ] as const) {
+      const { res } = await decideCancel(f, accepted);
+      expect((res as { err: ApiError }).err.code).toBe("RULE_REFUSED");
+      expect((res as { err: ApiError }).err.fields).toEqual([{ name: "accepted_fee", reason: "feeRequired" }]);
+    }
+  });
+
+  it("from the pickup on it is claimOnly, in a final state notCancellable (409, field status)", async () => {
+    for (const [status, reason] of [["picked_up", "claimOnly"], ["in_transit", "claimOnly"], ["delivered", "notCancellable"], ["lost", "notCancellable"], ["returned", "notCancellable"]] as const) {
+      const { res } = await decideCancel(facts({ status }), "none");
+      expect((res as { err: ApiError }).err.code).toBe("STATE_CONFLICT");
+      expect((res as { err: ApiError }).err.fields).toEqual([{ name: "status", reason }]);
+    }
+  });
+
+  it("R202 replay by state: a canceled order answers its STORED fee, whatever accepted_fee says, and writes nothing", async () => {
+    const { res, decision } = await decideCancel(facts({ status: "canceled", cancelFee: "applies", cancelFeeMillimes: 5000, canceledAt: "2026-11-20T09:30:00.000Z" }), "none");
+    expect(decision).toEqual({ kind: "replay", fee: "applies" });
+    expect(res).toEqual({ ok: { status: "canceled", fee: "applies" } });
+  });
+
+  it("Q10: staff cancel free by default, may record the fee that applies on purpose, nothing else", async () => {
+    const arrivedFacts = facts({ status: "assigned", pickupArrivedAt: "2026-11-20T09:00:00.000Z" });
+    expect((await decideCancel(arrivedFacts, "none", staffActor)).decision).toEqual({ kind: "cancel", expectedStatus: "assigned", fee: "none", feeMillimes: null });
+    expect((await decideCancel(arrivedFacts, "applies", staffActor)).decision).toEqual({ kind: "cancel", expectedStatus: "assigned", fee: "applies", feeMillimes: 5000 });
+    expect(((await decideCancel(arrivedFacts, "backOfficeDecides", staffActor)).res as { err: ApiError }).err.fields).toEqual([{ name: "accepted_fee", reason: "feeRequired" }]);
+    // a free order: the only fee a staff member can record is none
+    expect(((await decideCancel(facts(), "applies", staffActor)).res as { err: ApiError }).err.code).toBe("RULE_REFUSED");
+  });
+});
+
+describe("GH-22 R209: confirmOrder", () => {
+  async function decideConfirm(f: LockedOrder) {
+    const t = build();
+    let decision: string | undefined;
+    (t.port.confirm as ReturnType<typeof vi.fn>).mockImplementation(async (_a: Actor, _id: string, decide: (x: LockedOrder) => string) => {
+      decision = decide(f);
+      return { id: "o1", status: decision === "replay" ? "confirmed" : "confirmed" };
+    });
+    const res = await t.service.confirm(staffActor, "o1").then((r) => ({ ok: r })).catch((e) => ({ err: e as ApiError }));
+    return { res, decision };
+  }
+  it("a received order is confirmed; a confirmed one answers 200 with no new event; any other state is 409 notWaitingForConfirmation", async () => {
+    expect((await decideConfirm(facts({ status: "received" }))).decision).toBe("confirm");
+    expect((await decideConfirm(facts({ status: "confirmed" }))).decision).toBe("replay");
+    for (const status of ["canceled", "assigned", "delivered", "pickup_failed"] as const) {
+      const { res } = await decideConfirm(facts({ status }));
+      expect((res as { err: ApiError }).err.code).toBe("STATE_CONFLICT");
+      expect((res as { err: ApiError }).err.fields).toEqual([{ name: "status", reason: "notWaitingForConfirmation" }]);
+    }
+  });
+});
+
+describe("GH-22 R209 Q1: createOrder gives the insert a way to auto-confirm, decided by the domain rule", () => {
+  async function autoDecision(f: LockedOrder, phoneVerified: boolean) {
+    const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified } });
+    await t.service.create(actor, { ...body(), ...(phoneVerified ? {} : { phone_check_id: "11111111-1111-4111-8111-111111111111" }) }, { scope: null });
+    return (t.inserted[0] as { autoConfirm: (x: LockedOrder) => boolean }).autoConfirm(f);
+  }
+  it("confirms a verified customer under the cap with pinned addresses, and the account just verified by this order's proof counts", async () => {
+    expect(await autoDecision(facts(), true)).toBe(true);
+    expect(await autoDecision(facts(), false)).toBe(true); // the proof was for the account phone: verified in the same transaction
+  });
+  it("stays received over the cap, with an unconfirmed address, or with a null line other than vat and stamp", async () => {
+    expect(await autoDecision(facts({ totalMillimes: 100_001 }), true)).toBe(false);
+    expect(await autoDecision(facts({ addressUnconfirmed: true }), true)).toBe(false);
+    expect(await autoDecision(facts({ lines: [{ kind: "base", millimes: null }] }), true)).toBe(false);
+    expect(await autoDecision(facts({ lines: [{ kind: "vat", millimes: null }, { kind: "stamp", millimes: null }] }), true)).toBe(true);
+  });
+  it("an account verified before but a sender phone proved for another phone: the account is verified, so it counts; an unverified account with another phone does not", async () => {
+    const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: false } });
+    await t.service.create(actor, { ...body(), sender: { ...body().sender, phone: "+21620000009" }, phone_check_id: "11111111-1111-4111-8111-111111111111" }, { scope: null });
+    expect((t.inserted[0] as { autoConfirm: (x: LockedOrder) => boolean }).autoConfirm(facts())).toBe(false);
   });
 });
