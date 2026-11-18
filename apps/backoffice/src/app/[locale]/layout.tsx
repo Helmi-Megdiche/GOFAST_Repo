@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { localeDir } from "@fastgo/i18n";
+import { SessionProvider } from "@/components/session";
 import { routing } from "@/i18n/routing";
 import { fontVariables } from "../fonts";
 import "../globals.css";
@@ -42,7 +43,9 @@ export default async function LocaleLayout({ children, params }: Props) {
         >
           {t("skipToContent")}
         </a>
-        <NextIntlClientProvider>{children}</NextIntlClientProvider>
+        <NextIntlClientProvider>
+          <SessionProvider>{children}</SessionProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   );
