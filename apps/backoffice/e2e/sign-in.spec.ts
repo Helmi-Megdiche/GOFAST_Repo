@@ -77,7 +77,7 @@ test("a code that is not 6 digits, and an empty form, are refused in the browser
   expect(api.calls.filter((c) => c.method === "POST")).toEqual([]);
 });
 
-test("a network error says the service does not answer, with a retry that sends the same values", async ({ page }) => {
+test("a network error says the service does not answer; the retry asks for a NEW code (the first works only once) and sends nothing by itself", async ({ page }) => {
   const api = await fakeApi(page, { signIn: "abort" });
   await page.goto("/fr/connexion");
   await fill(page);
@@ -85,9 +85,18 @@ test("a network error says the service does not answer, with a retry that sends 
   await expect(alertOf(page)).toContainText("Le service ne répond pas");
   api.signIn = { status: 201, body: me("operations") };
   await page.getByRole("button", { name: "Réessayer" }).click();
+  // Nothing was sent again: the old code is spent. The notice is gone, the code is empty and has the focus.
+  await expect(alertOf(page)).toHaveCount(0);
+  await expect(page.getByLabel(/Code de l'application/)).toHaveValue("");
+  await expect(page.getByLabel(/Code de l'application/)).toBeFocused();
+  expect(api.calls.filter((c) => c.method === "POST")).toHaveLength(1);
+  await page.keyboard.type("902144");
+  await submit(page);
   await expect(page).toHaveURL(/\/fr\/tableau-de-bord$/);
-  expect(api.calls.filter((c) => c.method === "POST")).toHaveLength(2);
-  expect(api.calls.filter((c) => c.method === "POST")[1]?.body).toEqual(api.calls.filter((c) => c.method === "POST")[0]?.body);
+  const posts = api.calls.filter((c) => c.method === "POST");
+  expect(posts).toHaveLength(2);
+  expect(posts[0]?.body).toEqual({ identifier: "nadia@fastgo.example", password: "a long password", code: "417823" });
+  expect(posts[1]?.body).toEqual({ identifier: "nadia@fastgo.example", password: "a long password", code: "902144" });
 });
 
 test("a customer who somehow gets a session is signed out at once and sees the neutral refusal", async ({ page }) => {
@@ -129,6 +138,23 @@ test("?next= is honoured for a screen of the role, and refused otherwise", async
   await fill(evil);
   await submit(evil);
   await expect(evil).toHaveURL(/\/fr\/tableau-de-bord$/);
+});
+
+test("A00 with a staff session that has no back-office role (null, hr) goes to the no-role page, not to the form and not to a landing page", async ({ page }) => {
+  const api = await fakeApi(page, { me: me(null) });
+  for (const role of [null, "hr", "root"]) {
+    api.me = me(role);
+    await page.goto("/fr/connexion");
+    await expect(page).toHaveURL(/\/fr\/sans-role$/);
+    await expect(page.locator("main h1")).toHaveText("Aucun rôle attribué");
+  }
+});
+
+test("A00 with a customer session open still shows the form (the person may be signing in as staff)", async ({ page }) => {
+  await fakeApi(page, { me: customer() });
+  await page.goto("/fr/connexion");
+  await expect(page.getByRole("button", { name: "Se connecter" })).toBeVisible();
+  await expect(page).toHaveURL(/\/fr\/connexion$/);
 });
 
 test("A00 with a staff session already open goes straight to the landing page", async ({ page }) => {

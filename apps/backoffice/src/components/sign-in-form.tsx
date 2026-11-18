@@ -31,7 +31,7 @@ export function SignInForm() {
   const [now, setNow] = useState(() => Date.now());
   const alertRef = useRef<HTMLDivElement>(null);
   const busy = useRef(false);
-  const last = useRef<StaffSignInValues | null>(null);
+  const codeInput = useRef<HTMLInputElement>(null);
   const { register, handleSubmit, control, setValue, setError, formState } = useForm<StaffSignInValues>({
     resolver: zodResolver(staffSignInSchema),
     defaultValues: { identifier: "", password: "", code: "" },
@@ -39,11 +39,12 @@ export function SignInForm() {
   const { errors, isSubmitting } = formState;
   const message = (code: string | undefined) => (code ? t(`errors.${code as FormErrorCode}`) : undefined);
 
-  // Already signed in as staff with a back-office role: no form, the landing page.
+  // Already signed in as staff: with a back-office role, no form, the landing page; with none (null, hr, unknown), the no-role page.
   useEffect(() => {
     if (state.phase !== "ready" || !state.me) return;
     const decision = guardDecision(state.me, { kind: "landing" });
     if (decision.action === "landing" && isBackofficeRole(state.me.role)) router.replace(afterSignInPath(state.me.role, next));
+    else if (decision.action === "noRole") router.replace("/sans-role");
   }, [state, router, next]);
 
   const waitUntil = notice?.kind === "wait" ? notice.until : null;
@@ -59,7 +60,6 @@ export function SignInForm() {
   async function submit(values: StaffSignInValues) {
     if (busy.current) return;
     busy.current = true;
-    last.current = values;
     try {
       const outcome = outcomeOf(await signInStaff(client, values));
       if (outcome.kind === "ok") {
@@ -113,9 +113,11 @@ export function SignInForm() {
               size="sm"
               variant="secondary"
               className="mt-2"
+              // The code of the first try works only once: the retry asks for a new one, it does not send the old one again.
               onClick={() => {
                 setNotice(null);
-                if (last.current) void submit(last.current);
+                setValue("code", "");
+                codeInput.current?.focus();
               }}
             >
               {t("errors.retry")}
@@ -134,7 +136,7 @@ export function SignInForm() {
         name="code"
         render={({ field }) => (
           <Field label={t("code")} hint={t("codeHint")} error={message(errors.code?.message)}>
-            <CodeInput length={6} value={field.value} onValueChange={field.onChange} onBlur={field.onBlur} name={field.name} invalid={Boolean(errors.code)} />
+            <CodeInput ref={codeInput} length={6} value={field.value} onValueChange={field.onChange} onBlur={field.onBlur} name={field.name} invalid={Boolean(errors.code)} />
           </Field>
         )}
       />
