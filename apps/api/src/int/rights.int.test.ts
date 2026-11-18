@@ -83,7 +83,7 @@ const EXPECTED: Record<string, Expect> = {
         "total_millimes",
         "tracking_number",
       ],
-      UPDATE: ["pickup_address_id", "recipient_id", "status"],
+      UPDATE: ["pickup_address_id", "recipient_id"], // GH-22 RV-21: no `status`, the definers move it
     },
     ro: "no-hash",
     rls: true,
@@ -184,11 +184,35 @@ const PUBLIC_READER: Record<string, Rights> = {
 const ORDER_WRITER: Record<string, Rights> = {
   "core.orders": {
     c: {
-      SELECT: ["created_at", "created_by", "id", "owner_account_id", "owner_company_id", "recipient_id", "recipient_locale", "status", "tracking_number"],
+      SELECT: [
+        "address_unconfirmed",
+        "cancel_fee",
+        "cancel_fee_millimes",
+        "canceled_at",
+        "created_at",
+        "created_by",
+        "id",
+        "lines",
+        "owner_account_id",
+        "owner_company_id",
+        "recipient_id",
+        "recipient_locale",
+        "status",
+        "total_millimes",
+        "tracking_number",
+      ],
+      UPDATE: ["cancel_fee", "cancel_fee_millimes", "canceled_at", "canceled_by", "status"],
     },
   },
-  "core.parcels": { c: { SELECT: ["id", "order_id", "status"] } },
-  "core.accounts": { c: { SELECT: ["id", "status"] } },
+  "core.parcels": { c: { SELECT: ["id", "order_id", "status"], UPDATE: ["status"] } },
+  "core.missions": {
+    c: {
+      SELECT: ["arrived_at", "created_at", "end_reason", "id", "kind", "offered_at", "order_id", "status"],
+      UPDATE: ["end_reason", "finished_at", "status"],
+    },
+  },
+  "core.pricing_settings": { c: { SELECT: ["cancel_fee_millimes"] } },
+  "core.accounts": { c: { SELECT: ["id", "role", "status"] } },
   "core.recipients": { c: { SELECT: ["id", "phone_e164"] } },
   "core.status_events": {
     c: {
