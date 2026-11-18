@@ -123,6 +123,17 @@ const PARCEL_TYPES: ParcelTypeCode[] = ["document", "small", "medium", "large"];
 const secs = (ms: number) => Math.max(1, Math.ceil(ms / 1000));
 
 type Resolved = { zone: ZoneRow; pinned: boolean };
+/** The inputs of a price (the zones are the ones of the quote, never looked up again). */
+export type PriceSpec = {
+  service: ServiceCode;
+  parcelType: ParcelTypeCode;
+  parcels: { weight_g: number }[];
+  fragile: boolean;
+  packaging: boolean;
+  departureZoneId: string;
+  arrivalZoneId: string;
+};
+export type Priced = { lines: LineOut[]; totalMillimes: number; priceListValidFrom: Date };
 type Grid = Map<string, PriceRow>;
 
 export class PricingService {
@@ -237,59 +248,25 @@ export class PricingService {
       });
       if (heavy.length > 0) throw new ApiError("RULE_REFUSED", heavy);
 
-      // 3. Every price the quote needs must exist. The price list is the one in force at `quotedAt`
-      // for the arrival zone (R206: the grid of the day the quote is made).
-      const grid = await this.grid(tx, quotedAt, arrival.zone.id);
-      const base = grid.get(`${body.service}/false`);
-      const packagingRow = grid.get(`${body.service}/true`);
-      const missing: FieldError[] = [];
-      if (base?.millimes == null) missing.push({ name: "service", reason: "priceUnavailable" });
-      if (body.fragile && settings.fragileFeeMillimes == null)
-        missing.push({ name: "fragile", reason: "priceUnavailable" });
-      // A declared value is not a price element (R204 has no such line): it is stored, it serves the
-      // R802 cap, and it never changes the price.
-      if (body.packaging && packagingRow?.millimes == null)
-        missing.push({ name: "packaging", reason: "priceUnavailable" });
-      if (settings.rainActive && settings.rainSurchargeMillimes == null)
-        missing.push({ name: "surcharge", reason: "priceUnavailable" });
-      if (missing.length > 0 || base?.millimes == null) throw new ApiError("RULE_REFUSED", missing);
-
-      // 4. The price, by the domain rules.
-      const packaging = body.packaging ?? false;
-      const fragile = body.fragile ?? false;
-      const row = { base: base.millimes, vat: settings.vatMillimes ?? 0, packaging: packagingRow?.millimes ?? null };
-      const table: PriceTable = {
-        rows: Object.fromEntries(
-          SERVICES.map((s) => [s, Object.fromEntries(PARCEL_TYPES.map((t) => [t, row]))]),
-        ) as PriceTable["rows"],
-        distance: settings.distanceMillimes,
-        // Whole kilograms: the domain counts every started kilogram above the included weight.
-        weight: { includedKg: Math.floor(settings.weightIncludedG / 1000), perKg: settings.weightPerKgMillimes },
-        optionsFragile: settings.fragileFeeMillimes ?? 0,
-        surcharge: {
-          code: "rain",
-          amount: settings.rainActive ? (settings.rainSurchargeMillimes ?? 0) : 0,
-          ceiling: settings.rainCeilingMillimes,
-        },
-        discount: 0,
-        stamp: settings.stampMillimes ?? 0,
-      };
-      const lines = priceLines(
+      // 3. and 4. The price on the grid in force at `quotedAt` (R206).
+      const priced = await this.compute(
+        tx,
+        settings,
         {
           service: body.service,
           parcelType: body.parcel_type,
-          parcels: body.parcels.map((p) => ({ weightG: p.weight_g })),
-          fragile,
-          packaging,
-          zone: arrival.zone.id,
-          from: departure.zone.id,
-          to: arrival.zone.id,
+          parcels: body.parcels.map((p) => ({ weight_g: p.weight_g })),
+          fragile: body.fragile ?? false,
+          packaging: body.packaging ?? false,
+          departureZoneId: departure.zone.id,
+          arrivalZoneId: arrival.zone.id,
         },
-        table,
+        quotedAt,
       );
+      const packaging = body.packaging ?? false;
+      const fragile = body.fragile ?? false;
       const id = this.newId();
       const expiresAt = new Date(quotedAt.getTime() + settings.quoteValidityMs);
-      const out = lineOut(lines, settings);
       const stored: StoredQuote = {
         id,
         departureKeyHash: this.d.keys.mac("quote-address", addressPriceKey({ text: body.departure.text, pin: body.departure.pin ?? null })),
@@ -304,21 +281,83 @@ export class PricingService {
         arrivalZoneId: arrival.zone.id,
         departurePinned: departure.pinned,
         arrivalPinned: arrival.pinned,
-        lines: out,
-        totalMillimes: sumLines(lines),
+        lines: priced.lines,
+        totalMillimes: priced.totalMillimes,
         taxBasis: settings.taxBasis,
         // No formula for HT and TTC is given yet: both stay null (plan 4b-1).
         amountHtMillimes: null,
         amountTtcMillimes: null,
         surcharge: settings.rainActive ? { code: "rain", ceiling_millimes: settings.rainCeilingMillimes } : null,
-        // R206: the latest start of every row the price used (the base row, and the packaging row when asked).
-        priceListValidFrom: new Date(Math.max(base.validFrom.getTime(), packaging ? packagingRow!.validFrom.getTime() : 0)),
+        priceListValidFrom: priced.priceListValidFrom,
         quotedAt,
         expiresAt,
       };
       await this.d.store.saveQuote(tx, stored);
       return toQuote(stored, departure.zone.name, arrival.zone.name);
     });
+  }
+
+  /**
+   * The price of `spec` on the grid in force at `at` for the arrival zone (R206), by the domain rules. Every price it
+   * needs must exist, else 422 `priceUnavailable` with the field. Shared by the quote and by the order's recheck.
+   */
+  private async compute(tx: never, settings: Settings, spec: PriceSpec, at: Date): Promise<Priced> {
+    const grid = await this.grid(tx, at, spec.arrivalZoneId);
+    const base = grid.get(`${spec.service}/false`);
+    const packagingRow = grid.get(`${spec.service}/true`);
+    const missing: FieldError[] = [];
+    if (base?.millimes == null) missing.push({ name: "service", reason: "priceUnavailable" });
+    if (spec.fragile && settings.fragileFeeMillimes == null)
+      missing.push({ name: "fragile", reason: "priceUnavailable" });
+    // A declared value is not a price element (R204 has no such line): it is stored, it serves the
+    // R802 cap, and it never changes the price.
+    if (spec.packaging && packagingRow?.millimes == null)
+      missing.push({ name: "packaging", reason: "priceUnavailable" });
+    if (settings.rainActive && settings.rainSurchargeMillimes == null)
+      missing.push({ name: "surcharge", reason: "priceUnavailable" });
+    if (missing.length > 0 || base?.millimes == null) throw new ApiError("RULE_REFUSED", missing);
+
+    const row = { base: base.millimes, vat: settings.vatMillimes ?? 0, packaging: packagingRow?.millimes ?? null };
+    const table: PriceTable = {
+      rows: Object.fromEntries(
+        SERVICES.map((s) => [s, Object.fromEntries(PARCEL_TYPES.map((t) => [t, row]))]),
+      ) as PriceTable["rows"],
+      distance: settings.distanceMillimes,
+      // Whole kilograms: the domain counts every started kilogram above the included weight.
+      weight: { includedKg: Math.floor(settings.weightIncludedG / 1000), perKg: settings.weightPerKgMillimes },
+      optionsFragile: settings.fragileFeeMillimes ?? 0,
+      surcharge: {
+        code: "rain",
+        amount: settings.rainActive ? (settings.rainSurchargeMillimes ?? 0) : 0,
+        ceiling: settings.rainCeilingMillimes,
+      },
+      discount: 0,
+      stamp: settings.stampMillimes ?? 0,
+    };
+    const lines = priceLines(
+      {
+        service: spec.service,
+        parcelType: spec.parcelType,
+        parcels: spec.parcels.map((p) => ({ weightG: p.weight_g })),
+        fragile: spec.fragile,
+        packaging: spec.packaging,
+        zone: spec.arrivalZoneId,
+        from: spec.departureZoneId,
+        to: spec.arrivalZoneId,
+      },
+      table,
+    );
+    return {
+      lines: lineOut(lines, settings),
+      totalMillimes: sumLines(lines),
+      // R206: the latest start of every row the price used (the base row, and the packaging row when asked).
+      priceListValidFrom: new Date(Math.max(base.validFrom.getTime(), spec.packaging ? packagingRow!.validFrom.getTime() : 0)),
+    };
+  }
+
+  /** GH-22 (R206): what the same inputs cost today. The order compares it with the quote it was made from. */
+  async priceAt(spec: PriceSpec, at: Date): Promise<Priced> {
+    return this.d.store.run(async (tx) => this.compute(tx, await this.d.store.settingsRow(tx), spec, at));
   }
 
   // ---- GET /v1/quotes/{id} -------------------------------------------------------------------
