@@ -1,4 +1,4 @@
-import pg from "pg";
+import { connectOperator } from "../db/operator.ts";
 import { encryptSecret, newSecret, otpauthUri, parseTotpKey } from "./totp.ts";
 
 // GH-25 T60: the operator's command, with no screen: `pnpm --filter @fastgo/api staff:totp enrol <account-id> [--label <text>]` and
@@ -35,7 +35,8 @@ export function parseArgs(argv: string[]): Command {
   return { cmd, id, by, reason };
 }
 
-type Queryable = Pick<pg.Client, "query">;
+/** What `enrol` and `reset` need: one statement at a time (a pg client, or the db module's operator connection). */
+type Queryable = { query(text: string, values?: unknown[]): Promise<unknown> };
 
 /** Makes the secret, stores it encrypted (bound to the account), and returns the URI for the authenticator app. */
 export async function enrol(client: Queryable, key: Buffer, accountId: string, label?: string): Promise<string> {
@@ -74,9 +75,9 @@ export async function main(argv: string[], env: Record<string, string | undefine
       return 1;
     }
   }
-  const client = new pg.Client({ connectionString: url });
+  let client: Awaited<ReturnType<typeof connectOperator>> | undefined;
   try {
-    await client.connect();
+    client = await connectOperator(url);
     if (command.cmd === "enrol" && key) {
       const uri = await enrol(client, key, command.id, command.label);
       out.log("Enrolled. Scan or type this address in the authenticator app. It is shown once and is not stored:");
@@ -90,6 +91,6 @@ export async function main(argv: string[], env: Record<string, string | undefine
     out.err((error as Error).message);
     return 1;
   } finally {
-    await client.end().catch(() => undefined);
+    await client?.close().catch(() => undefined);
   }
 }

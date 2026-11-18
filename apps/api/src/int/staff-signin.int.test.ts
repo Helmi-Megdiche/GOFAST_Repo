@@ -22,7 +22,7 @@ let redis: Redis;
 let db: Db;
 let operator: pg.Client;
 let app: NestFastifyApplication;
-let now = Date.parse("2026-11-20T10:00:10.000Z"); // 10 s into a 30-second step
+const now = Date.parse("2026-11-20T10:00:10.000Z"); // 10 s into a 30-second step
 const q = (text: string, values: unknown[] = []) => testDb.superClient.query(text, values);
 
 beforeAll(async () => {
@@ -86,7 +86,7 @@ const staffSignIn = (who: Who, code: string, password = PASSWORD, identifier = w
   call("POST", "/v1/staff/sessions", { body: { identifier, password, code } });
 /** The answer of a refusal without its trace id: the same for every cause. */
 const refusal = (res: Res) => {
-  const { trace_id: _t, ...error } = res.json().error;
+  const error = Object.fromEntries(Object.entries(res.json().error as Record<string, unknown>).filter(([k]) => k !== "trace_id"));
   return { status: res.statusCode, error };
 };
 const SAME_401 = { status: 401, error: expect.objectContaining({ code: "AUTH_REQUIRED", fields: [{ name: "identifier", reason: "invalidCredentials" }] }) };
