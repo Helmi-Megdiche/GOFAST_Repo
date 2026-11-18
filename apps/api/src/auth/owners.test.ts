@@ -32,9 +32,9 @@ describe("AuthOwners: deny by default (PR 4a)", () => {
     const allowed: string[] = [];
     for (const id of loadOperations().keys()) if (await owners.allows(actor, op(id))) allowed.push(id);
     expect(allowed.sort()).toEqual([
-      "createOrder",
       "cancelOrder",
       "confirmOrder",
+      "createOrder",
       "createQuote",
       "createZoneCheck",
       "deleteSession",
