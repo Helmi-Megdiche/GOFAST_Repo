@@ -47,6 +47,8 @@ paths:
     $ref: paths/sessions.yaml
   /v1/sessions/google:
     $ref: paths/sessions-google.yaml
+  /v1/staff/sessions:
+    $ref: paths/staff-sessions.yaml
   /v1/phone-checks:
     $ref: paths/phone-checks.yaml
   /v1/phone-checks/verify:

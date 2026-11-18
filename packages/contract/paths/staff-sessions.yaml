@@ -1,0 +1,30 @@
+post:
+  operationId: createStaffSession
+  summary: Sign in to the back-office with a second factor
+  description: >-
+    T60, cahier p.54: the internal teams sign in with a second factor. Sets the session cookie (12 hours, not
+    sliding) and answers with the signed-in person. A wrong password, an unknown account, a customer or a
+    merchant, an account with no second factor enrolled, a closed account, a wrong code, a code outside the
+    window and a code already used all give the same 401 AUTH_REQUIRED with
+    `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer tells nothing more than a
+    wrong password does. Attempts are limited per account and per IP (429 with `Retry-After`).
+  tags: [auth]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: addition
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/account.yaml#/StaffSignInRequest" }
+  responses:
+    "201":
+      description: Signed in.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/account.yaml#/Me" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

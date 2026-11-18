@@ -74,6 +74,23 @@ SignInRequest:
     password:
       type: string
       format: password
+StaffSignInRequest:
+  type: object
+  description: >-
+    The back-office sign-in (T60): the e-mail or phone, the password and the 6 digits of the authenticator app.
+  required: [identifier, password, code]
+  additionalProperties: false
+  properties:
+    identifier:
+      type: string
+      description: The staff member's e-mail address or phone number.
+    password:
+      type: string
+      format: password
+    code:
+      type: string
+      pattern: "^[0-9]{6}$"
+      description: The 6 digits of the authenticator app (TOTP, 30 s).
 GoogleSignInRequest:
   type: object
   required: [credential]

@@ -5,7 +5,9 @@ post:
     Sets the session cookie and answers with the signed-in person. A wrong password and an unknown
     account give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so
     the answer does not tell whether an account exists (a choice of this contract, not a rule of the
-    cahier). Attempts are limited per account and per IP.
+    cahier). Attempts are limited per account and per IP. A staff account (any role of the back-office)
+    is refused here, whatever its password: it signs in with a second factor on `POST /v1/staff/sessions`
+    and gets the same 401 `invalidCredentials` here (T60).
   tags: [auth]
   x-roles: [public]
   x-replay: none

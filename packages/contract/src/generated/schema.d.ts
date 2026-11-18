@@ -383,7 +383,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in with a phone or an e-mail and a password
-         * @description Sets the session cookie and answers with the signed-in person. A wrong password and an unknown account give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer does not tell whether an account exists (a choice of this contract, not a rule of the cahier). Attempts are limited per account and per IP.
+         * @description Sets the session cookie and answers with the signed-in person. A wrong password and an unknown account give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer does not tell whether an account exists (a choice of this contract, not a rule of the cahier). Attempts are limited per account and per IP. A staff account (any role of the back-office) is refused here, whatever its password: it signs in with a second factor on `POST /v1/staff/sessions` and gets the same 401 `invalidCredentials` here (T60).
          */
         post: operations["createSession"];
         /** Sign out */
@@ -407,6 +407,26 @@ export interface paths {
          * @description R103. Public, because the caller has no session yet; the handler refuses a driver or an internal account (403 ACCESS_DENIED), as the cahier lists Particulier and Commerçant only. A new Google account needs a verified phone (`phone_check_id`); without it the answer is 422 RULE_REFUSED with the field `phone_check_id` and the reason `phoneRequired`. A Google e-mail that already has an account joins it after a code sent by SMS to the phone stored on that account. The first call answers 422 RULE_REFUSED with `fields: [{ name: credential, reason: linkCodeRequired }]` and sends the code. The client calls again with the same `credential` and the `link_code`. A wrong code answers 422 RULE_REFUSED with `fields: [{ name: link_code, reason: wrong, details: { attempts_left } }]`; when no attempt is left, 429 TOO_MANY_ATTEMPTS.
          */
         post: operations["createGoogleSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/staff/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sign in to the back-office with a second factor
+         * @description T60, cahier p.54: the internal teams sign in with a second factor. Sets the session cookie (12 hours, not sliding) and answers with the signed-in person. A wrong password, an unknown account, a customer or a merchant, an account with no second factor enrolled, a closed account, a wrong code, a code outside the window and a code already used all give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer tells nothing more than a wrong password does. Attempts are limited per account and per IP (429 with `Retry-After`).
+         */
+        post: operations["createStaffSession"];
         delete?: never;
         options?: never;
         head?: never;
@@ -971,6 +991,15 @@ export interface components {
             phone_check_id: components["schemas"]["PhoneCheckId"];
             /** @constant */
             terms_accepted: true;
+        };
+        /** @description The back-office sign-in (T60): the e-mail or phone, the password and the 6 digits of the authenticator app. */
+        StaffSignInRequest: {
+            /** @description The 6 digits of the authenticator app (TOTP, 30 s). */
+            code: string;
+            /** @description The staff member's e-mail address or phone number. */
+            identifier: string;
+            /** Format: password */
+            password: string;
         };
         /** @description The body of a STATE_CONFLICT answer. The code is fixed by the status. */
         StateConflictBody: {
@@ -1884,6 +1913,34 @@ export interface operations {
             429: components["responses"]["TooManyAttempts"];
             500: components["responses"]["InternalError"];
             503: components["responses"]["ProviderUnavailable"];
+        };
+    };
+    createStaffSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StaffSignInRequest"];
+            };
+        };
+        responses: {
+            /** @description Signed in. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            400: components["responses"]["ValidationFailed"];
+            401: components["responses"]["AuthRequired"];
+            429: components["responses"]["TooManyAttempts"];
+            500: components["responses"]["InternalError"];
         };
     };
     getTracking: {

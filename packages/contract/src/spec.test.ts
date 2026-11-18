@@ -208,6 +208,34 @@ describe("operations", () => {
   });
 });
 
+describe("GH-25 T60: staff sign-in with a second factor", () => {
+  const staff = () => operations.find((o) => o.id === "createStaffSession");
+  const props = (name: string) => (schemas[name]?.properties ?? {}) as Record<string, Json>;
+  const required = (name: string) => (schemas[name]?.required ?? []) as string[];
+
+  it("POST /v1/staff/sessions is a public addition with no replay, and answers Me", () => {
+    const op = staff();
+    expect(op?.method).toBe("POST");
+    expect(op?.path).toBe("/v1/staff/sessions");
+    expect(op?.op["x-roles"]).toEqual(["public"]);
+    expect(op?.op["x-replay"]).toBe("none");
+    expect(op?.op["x-cahier"]).toBe("addition");
+    const responses = Object.keys(op?.op.responses as Json);
+    expect(responses).toEqual(expect.arrayContaining(["201", "400", "401", "429"]));
+  });
+
+  it("takes an identifier, a password and a 6-digit code, and nothing else", () => {
+    expect(required("StaffSignInRequest")).toEqual(["identifier", "password", "code"]);
+    expect(props("StaffSignInRequest").code).toMatchObject({ type: "string", pattern: "^[0-9]{6}$" });
+  });
+
+  it("POST /v1/sessions says that staff accounts are refused there, and the staff route says a wrong code is the same 401", () => {
+    const sessions = operations.find((o) => o.id === "createSession")?.op as Json;
+    expect(String(sessions.description)).toMatch(/staff/i);
+    expect(String(staff()?.op.description)).toMatch(/same 401/);
+  });
+});
+
 describe("the cahier", () => {
   const routes = cahierRoutes();
 
