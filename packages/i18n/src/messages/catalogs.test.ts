@@ -51,6 +51,39 @@ describe("apiErrors", () => {
   });
 });
 
+describe("backoffice (GH-25 25b)", () => {
+  const GROUPS = ["pilotage", "exploitation", "relation", "finance", "gestion", "administration"];
+  const ITEMS = [
+    "tableauDeBord", "direction", "aConfirmer", "dispatch", "commandes", "colis", "incidents", "tournees", "clients", "livreurs",
+    "reclamations", "caisses", "factures", "reglements", "reversements", "comptabilite", "contrats", "zones", "flotte", "documents",
+    "rapports", "utilisateurs", "journal", "parametres",
+  ];
+  const ROLES = ["management", "operations", "agent", "logistics", "customer_service", "accountant", "cashier", "admin"];
+
+  it("every group of the sidebar, each of its 24 items and each of the 8 roles has a label in fr, en and ar", () => {
+    for (const [locale, entries] of Object.entries(flat)) {
+      for (const g of GROUPS) expect(entries[`backoffice.nav.groups.${g}`], `${locale} group ${g}`).toBeTruthy();
+      for (const i of ITEMS) expect(entries[`backoffice.nav.items.${i}`], `${locale} item ${i}`).toBeTruthy();
+      for (const r of ROLES) expect(entries[`backoffice.roles.${r}`], `${locale} role ${r}`).toBeTruthy();
+    }
+  });
+
+  it("the sign-in screen, the refusals and the three guard pages have their texts in fr, en and ar", () => {
+    const keys = [
+      "signIn.title", "signIn.identifier", "signIn.password", "signIn.code", "signIn.submit", "signIn.busy", "signIn.notice",
+      "signIn.errors.invalid", "signIn.errors.wait", "signIn.errors.unavailable", "signIn.errors.retry", "signIn.errors.refused",
+      "signIn.errors.identifierRequired", "signIn.errors.passwordRequired", "signIn.errors.codeInvalid",
+      "noAccess.title", "noAccess.text", "noAccess.link", "noRole.title", "noRole.text", "placeholder.title", "placeholder.text",
+      "guard.busy", "guard.noscript", "shell.menu", "shell.closeMenu", "shell.signOut", "shell.language", "shell.navLabel",
+    ];
+    for (const [locale, entries] of Object.entries(flat)) for (const k of keys) expect(entries[`backoffice.${k}`], `${locale} ${k}`).toBeTruthy();
+  });
+
+  it("the wait message takes the seconds, and the placeholders of fr, en and ar are the same", () => {
+    for (const [locale, entries] of Object.entries(flat)) expect(entries["backoffice.signIn.errors.wait"], locale).toContain("{seconds}");
+  });
+});
+
 describe("business placeholders", () => {
   it("stay visible in square brackets in fr, en and ar", () => {
     const keys = Object.keys(flat.fr).filter((key) => key.startsWith("placeholders."));

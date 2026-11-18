@@ -1747,5 +1747,101 @@
   },
   "apiSms": {
     "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne."
+  },
+  "backoffice": {
+    "meta": {
+      "title": "Espace équipes GOFAST"
+    },
+    "nav": {
+      "groups": {
+        "pilotage": "Pilotage",
+        "exploitation": "Exploitation",
+        "relation": "Relation",
+        "finance": "Finance",
+        "gestion": "Gestion",
+        "administration": "Administration"
+      },
+      "items": {
+        "tableauDeBord": "Tableau de bord",
+        "direction": "Direction",
+        "aConfirmer": "À confirmer",
+        "dispatch": "Dispatch",
+        "commandes": "Commandes",
+        "colis": "Colis et retours",
+        "incidents": "Incidents",
+        "tournees": "Tournées",
+        "clients": "Clients",
+        "livreurs": "Livreurs",
+        "reclamations": "Réclamations",
+        "caisses": "Caisses",
+        "factures": "Factures",
+        "reglements": "Règlements",
+        "reversements": "Reversements COD",
+        "comptabilite": "Comptabilité",
+        "contrats": "Contrats et tarifs",
+        "zones": "Zones",
+        "flotte": "Flotte",
+        "documents": "Documents",
+        "rapports": "Rapports",
+        "utilisateurs": "Utilisateurs et rôles",
+        "journal": "Journal d'audit",
+        "parametres": "Paramètres"
+      }
+    },
+    "roles": {
+      "management": "Direction",
+      "operations": "Responsable des opérations",
+      "agent": "Agent de commandes",
+      "logistics": "Responsable logistique",
+      "customer_service": "Service client",
+      "accountant": "Comptable",
+      "cashier": "Caissier",
+      "admin": "Administrateur"
+    },
+    "signIn": {
+      "title": "Espace équipes",
+      "identifier": "E-mail professionnel ou téléphone",
+      "password": "Mot de passe",
+      "code": "Code de l'application d'authentification",
+      "codeHint": "Les 6 chiffres affichés par l'application.",
+      "submit": "Se connecter",
+      "busy": "Connexion en cours…",
+      "notice": "Accès réservé. Chaque action est enregistrée.",
+      "errors": {
+        "invalid": "Identifiants ou code incorrects.",
+        "wait": "Trop de tentatives. Réessayez dans {seconds} s.",
+        "unavailable": "Le service ne répond pas. Vérifiez votre connexion.",
+        "retry": "Réessayer",
+        "refused": "Accès refusé à cet espace.",
+        "identifierRequired": "Saisissez votre identifiant.",
+        "passwordRequired": "Saisissez votre mot de passe.",
+        "codeInvalid": "Saisissez les 6 chiffres du code."
+      }
+    },
+    "noAccess": {
+      "title": "Accès refusé",
+      "text": "Votre rôle ne donne pas accès à cet écran.",
+      "link": "Aller à ma page d'accueil"
+    },
+    "noRole": {
+      "title": "Aucun rôle attribué",
+      "text": "Votre compte n'a pas encore de rôle. Demandez à un administrateur de vous en attribuer un."
+    },
+    "placeholder": {
+      "title": "Cet écran arrive bientôt",
+      "text": "Il sera ajouté dans une prochaine étape de l'espace équipes."
+    },
+    "guard": {
+      "busy": "Vérification de votre session…",
+      "noscript": "L'espace équipes a besoin de JavaScript."
+    },
+    "shell": {
+      "menu": "Menu",
+      "closeMenu": "Fermer le menu",
+      "signOut": "Se déconnecter",
+      "language": "Langue",
+      "navLabel": "Back-office",
+      "user": "Compte"
+    }
   }
 }

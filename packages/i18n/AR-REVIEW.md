@@ -182,6 +182,76 @@ native-speaker review before release (CLAUDE.md).
 | `auth.signUp.submit` | متابعة | Continuer | [ ] |
 | `auth.signUp.terms` | أوافق على <cgv>شروط البيع</cgv> و<privacy>سياسة الخصوصية</privacy>. | J'accepte les <cgv>CGV</cgv> et la <privacy>politique de confidentialité</privacy>. | [ ] |
 | `auth.signUp.title` | إنشاء حساب | Créer un compte | [ ] |
+| `backoffice.guard.busy` | جارٍ التحقق من جلستك… | Vérification de votre session… | [ ] |
+| `backoffice.guard.noscript` | فضاء الفرق يحتاج إلى JavaScript. | L'espace équipes a besoin de JavaScript. | [ ] |
+| `backoffice.meta.title` | فضاء فرق GOFAST | Espace équipes GOFAST | [ ] |
+| `backoffice.nav.groups.administration` | الإشراف | Administration | [ ] |
+| `backoffice.nav.groups.exploitation` | التشغيل | Exploitation | [ ] |
+| `backoffice.nav.groups.finance` | المالية | Finance | [ ] |
+| `backoffice.nav.groups.gestion` | التسيير | Gestion | [ ] |
+| `backoffice.nav.groups.pilotage` | القيادة | Pilotage | [ ] |
+| `backoffice.nav.groups.relation` | العلاقات | Relation | [ ] |
+| `backoffice.nav.items.aConfirmer` | بانتظار التأكيد | À confirmer | [ ] |
+| `backoffice.nav.items.caisses` | الصناديق | Caisses | [ ] |
+| `backoffice.nav.items.clients` | العملاء | Clients | [ ] |
+| `backoffice.nav.items.colis` | الطرود والمرتجعات | Colis et retours | [ ] |
+| `backoffice.nav.items.commandes` | الطلبات | Commandes | [ ] |
+| `backoffice.nav.items.comptabilite` | المحاسبة | Comptabilité | [ ] |
+| `backoffice.nav.items.contrats` | العقود والأسعار | Contrats et tarifs | [ ] |
+| `backoffice.nav.items.direction` | نظرة الإدارة العليا | Direction | [ ] |
+| `backoffice.nav.items.dispatch` | التوزيع | Dispatch | [ ] |
+| `backoffice.nav.items.documents` | المستندات | Documents | [ ] |
+| `backoffice.nav.items.factures` | الفواتير | Factures | [ ] |
+| `backoffice.nav.items.flotte` | الأسطول | Flotte | [ ] |
+| `backoffice.nav.items.incidents` | الحوادث | Incidents | [ ] |
+| `backoffice.nav.items.journal` | سجل التدقيق | Journal d'audit | [ ] |
+| `backoffice.nav.items.livreurs` | السائقون | Livreurs | [ ] |
+| `backoffice.nav.items.parametres` | الإعدادات | Paramètres | [ ] |
+| `backoffice.nav.items.rapports` | التقارير | Rapports | [ ] |
+| `backoffice.nav.items.reclamations` | الشكاوى | Réclamations | [ ] |
+| `backoffice.nav.items.reglements` | التسويات | Règlements | [ ] |
+| `backoffice.nav.items.reversements` | تحويلات الدفع عند الاستلام | Reversements COD | [ ] |
+| `backoffice.nav.items.tableauDeBord` | لوحة القيادة | Tableau de bord | [ ] |
+| `backoffice.nav.items.tournees` | الجولات | Tournées | [ ] |
+| `backoffice.nav.items.utilisateurs` | المستخدمون والأدوار | Utilisateurs et rôles | [ ] |
+| `backoffice.nav.items.zones` | المناطق | Zones | [ ] |
+| `backoffice.noAccess.link` | الانتقال إلى صفحتي الرئيسية | Aller à ma page d'accueil | [ ] |
+| `backoffice.noAccess.text` | دورك لا يمنح الوصول إلى هذه الشاشة. | Votre rôle ne donne pas accès à cet écran. | [ ] |
+| `backoffice.noAccess.title` | لا يوجد وصول | Accès refusé | [ ] |
+| `backoffice.noRole.text` | ليس لحسابك دور بعد. اطلب من مشرف أن يسنده إليك. | Votre compte n'a pas encore de rôle. Demandez à un administrateur de vous en attribuer un. | [ ] |
+| `backoffice.noRole.title` | لم يُسنَد أي دور | Aucun rôle attribué | [ ] |
+| `backoffice.placeholder.text` | ستُضاف في مرحلة لاحقة من فضاء الفرق. | Il sera ajouté dans une prochaine étape de l'espace équipes. | [ ] |
+| `backoffice.placeholder.title` | هذه الشاشة قادمة قريبًا | Cet écran arrive bientôt | [ ] |
+| `backoffice.roles.accountant` | المحاسب | Comptable | [ ] |
+| `backoffice.roles.admin` | المشرف | Administrateur | [ ] |
+| `backoffice.roles.agent` | موظف الطلبات | Agent de commandes | [ ] |
+| `backoffice.roles.cashier` | أمين الصندوق | Caissier | [ ] |
+| `backoffice.roles.customer_service` | خدمة العملاء | Service client | [ ] |
+| `backoffice.roles.logistics` | مسؤول اللوجستيك | Responsable logistique | [ ] |
+| `backoffice.roles.management` | الإدارة العليا | Direction | [ ] |
+| `backoffice.roles.operations` | مسؤول العمليات | Responsable des opérations | [ ] |
+| `backoffice.shell.closeMenu` | إغلاق القائمة | Fermer le menu | [ ] |
+| `backoffice.shell.language` | اللغة | Langue | [ ] |
+| `backoffice.shell.menu` | القائمة | Menu | [ ] |
+| `backoffice.shell.navLabel` | لوحة الإدارة | Back-office | [ ] |
+| `backoffice.shell.signOut` | تسجيل الخروج | Se déconnecter | [ ] |
+| `backoffice.shell.user` | الحساب | Compte | [ ] |
+| `backoffice.signIn.busy` | جارٍ تسجيل الدخول… | Connexion en cours… | [ ] |
+| `backoffice.signIn.code` | رمز تطبيق المصادقة | Code de l'application d'authentification | [ ] |
+| `backoffice.signIn.codeHint` | الأرقام الستة التي يعرضها التطبيق. | Les 6 chiffres affichés par l'application. | [ ] |
+| `backoffice.signIn.errors.codeInvalid` | أدخل الأرقام الستة للرمز. | Saisissez les 6 chiffres du code. | [ ] |
+| `backoffice.signIn.errors.identifierRequired` | أدخل بريدك أو هاتفك. | Saisissez votre identifiant. | [ ] |
+| `backoffice.signIn.errors.invalid` | بيانات الدخول أو الرمز غير صحيحة. | Identifiants ou code incorrects. | [ ] |
+| `backoffice.signIn.errors.passwordRequired` | أدخل كلمة المرور. | Saisissez votre mot de passe. | [ ] |
+| `backoffice.signIn.errors.refused` | الدخول إلى هذا الفضاء مرفوض. | Accès refusé à cet espace. | [ ] |
+| `backoffice.signIn.errors.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `backoffice.signIn.errors.unavailable` | الخدمة لا تستجيب. تحقق من اتصالك. | Le service ne répond pas. Vérifiez votre connexion. | [ ] |
+| `backoffice.signIn.errors.wait` | محاولات كثيرة. أعد المحاولة بعد {seconds} ثانية. | Trop de tentatives. Réessayez dans {seconds} s. | [ ] |
+| `backoffice.signIn.identifier` | البريد المهني أو الهاتف | E-mail professionnel ou téléphone | [ ] |
+| `backoffice.signIn.notice` | الدخول محصور. يتم تسجيل كل إجراء. | Accès réservé. Chaque action est enregistrée. | [ ] |
+| `backoffice.signIn.password` | كلمة المرور | Mot de passe | [ ] |
+| `backoffice.signIn.submit` | تسجيل الدخول | Se connecter | [ ] |
+| `backoffice.signIn.title` | فضاء الفرق | Espace équipes | [ ] |
 | `claims.category.billing` | اعتراض على فاتورة | Contestation de facture | [ ] |
 | `claims.category.damage` | طرد متضرر | Colis endommagé | [ ] |
 | `claims.category.delay` | تأخر في التسليم | Retard de livraison | [ ] |

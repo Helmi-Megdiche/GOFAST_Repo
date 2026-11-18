@@ -1747,5 +1747,101 @@
   },
   "apiSms": {
     "code": "GOFAST: your code is {code}. It is valid for {minutes} minutes. Do not share it with anyone."
+  },
+  "backoffice": {
+    "meta": {
+      "title": "GOFAST staff area"
+    },
+    "nav": {
+      "groups": {
+        "pilotage": "Overview",
+        "exploitation": "Operations",
+        "relation": "Relations",
+        "finance": "Finance",
+        "gestion": "Management",
+        "administration": "Administration"
+      },
+      "items": {
+        "tableauDeBord": "Dashboard",
+        "direction": "Executive view",
+        "aConfirmer": "To confirm",
+        "dispatch": "Dispatch",
+        "commandes": "Orders",
+        "colis": "Parcels and returns",
+        "incidents": "Incidents",
+        "tournees": "Rounds",
+        "clients": "Customers",
+        "livreurs": "Drivers",
+        "reclamations": "Claims",
+        "caisses": "Cash desks",
+        "factures": "Invoices",
+        "reglements": "Payments",
+        "reversements": "COD payouts",
+        "comptabilite": "Accounting",
+        "contrats": "Contracts and prices",
+        "zones": "Zones",
+        "flotte": "Fleet",
+        "documents": "Documents",
+        "rapports": "Reports",
+        "utilisateurs": "Users and roles",
+        "journal": "Audit log",
+        "parametres": "Settings"
+      }
+    },
+    "roles": {
+      "management": "Management",
+      "operations": "Operations manager",
+      "agent": "Order agent",
+      "logistics": "Logistics manager",
+      "customer_service": "Customer service",
+      "accountant": "Accountant",
+      "cashier": "Cashier",
+      "admin": "Administrator"
+    },
+    "signIn": {
+      "title": "Staff area",
+      "identifier": "Work e-mail or phone",
+      "password": "Password",
+      "code": "Authenticator app code",
+      "codeHint": "The 6 digits shown by the app.",
+      "submit": "Sign in",
+      "busy": "Signing in…",
+      "notice": "Restricted access. Every action is logged.",
+      "errors": {
+        "invalid": "Incorrect details or code.",
+        "wait": "Too many attempts. Try again in {seconds} s.",
+        "unavailable": "The service is not answering. Check your connection.",
+        "retry": "Try again",
+        "refused": "Access to this area is refused.",
+        "identifierRequired": "Enter your e-mail or phone.",
+        "passwordRequired": "Enter your password.",
+        "codeInvalid": "Enter the 6 digits of the code."
+      }
+    },
+    "noAccess": {
+      "title": "No access",
+      "text": "Your role does not give access to this screen.",
+      "link": "Go to my home page"
+    },
+    "noRole": {
+      "title": "No role yet",
+      "text": "Your account has no role yet. Ask an administrator to give you one."
+    },
+    "placeholder": {
+      "title": "This screen is coming soon",
+      "text": "It will be added in a later step of the staff area."
+    },
+    "guard": {
+      "busy": "Checking your session…",
+      "noscript": "The staff area needs JavaScript."
+    },
+    "shell": {
+      "menu": "Menu",
+      "closeMenu": "Close the menu",
+      "signOut": "Sign out",
+      "language": "Language",
+      "navLabel": "Back-office",
+      "user": "Account"
+    }
   }
 }
