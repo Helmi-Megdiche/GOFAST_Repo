@@ -8,7 +8,7 @@ import { Link } from "@/i18n/navigation";
 export function Busy() {
   const t = useTranslations("backoffice.guard");
   return (
-    <div className="flex min-h-[40vh] items-center justify-center p-6">
+    <div className="flex items-center justify-center p-6">
       <p aria-busy="true" role="status" className="text-muted">
         {t("busy")}
       </p>
@@ -23,7 +23,7 @@ export function Busy() {
 export function Unavailable({ onRetry }: { onRetry: () => void }) {
   const t = useTranslations("backoffice.signIn.errors");
   return (
-    <div className="flex min-h-[40vh] flex-col items-center justify-center gap-4 p-6">
+    <div className="flex flex-col items-center justify-center gap-4 p-6">
       <p role="alert" className="text-center">
         {t("unavailable")}
       </p>

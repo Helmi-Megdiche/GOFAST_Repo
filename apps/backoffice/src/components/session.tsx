@@ -8,7 +8,11 @@ import type { Me } from "@/lib/sign-in";
  * The session of the browser, read from GET /v1/me once (the cookie is the authority, the API checks again on every call). `loading`
  * until the first answer; `error` when the network or the service did not answer; `ready` with the person, or null for a 401.
  */
-type State = { phase: "loading" } | { phase: "error" } | { phase: "ready"; me: Me | null };
+type State =
+  | { phase: "loading" }
+  | { phase: "error" }
+  // `leaving`: the person just signed out on purpose, so the guard must not send them to the sign-in page with a ?next= of its own.
+  | { phase: "ready"; me: Me | null; leaving?: boolean };
 
 type Value = {
   state: State;
@@ -17,7 +21,7 @@ type Value = {
   reload: () => void;
   /** After a sign-in: the answer is the person. */
   setMe: (me: Me | null) => void;
-  /** DELETE /v1/sessions, then forget the person. */
+  /** DELETE /v1/sessions, then forget the person (the caller then goes to the page it wants). */
   signOut: () => Promise<void>;
 };
 
@@ -58,7 +62,7 @@ export function SessionProvider({ children, client: given }: { children: ReactNo
       setMe: (me) => setState({ phase: "ready", me }),
       signOut: async () => {
         await signOutStaff(client);
-        setState({ phase: "ready", me: null });
+        setState({ phase: "ready", me: null, leaving: true });
       },
     }),
     [state, client, reload],

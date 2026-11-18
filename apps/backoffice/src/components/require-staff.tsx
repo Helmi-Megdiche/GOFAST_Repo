@@ -24,18 +24,28 @@ export function RequireStaff({ children }: { children: ReactNode }) {
   const action = decision?.action;
   const landing = decision?.action === "landing" ? decision.slug : null;
 
+  const leaving = state.phase === "ready" && state.leaving === true;
+
   useEffect(() => {
-    if (action === "signIn") router.replace(pathname === "/" ? "/connexion" : { pathname: "/connexion", query: { next: pathname } });
-    else if (action === "refuse") void signOut().then(() => router.replace({ pathname: "/connexion", query: { refused: "1" } }));
+    // After a sign-out on purpose the caller decides where to go: no ?next= of ours.
+    if (action === "signIn") {
+      if (!leaving) router.replace(pathname === "/" ? "/connexion" : { pathname: "/connexion", query: { next: pathname } });
+    } else if (action === "refuse") void signOut().then(() => router.replace({ pathname: "/connexion", query: { refused: "1" } }));
     else if (action === "noRole") router.replace("/sans-role");
     else if (landing) router.replace(pathOf(landing));
-  }, [action, landing, pathname, router, signOut]);
+  }, [action, landing, leaving, pathname, router, signOut]);
 
-  if (state.phase === "error") return <Unavailable onRetry={reload} />;
-  if (state.phase !== "ready" || !decision) return <Busy />;
-  if (decision.action !== "allow" && decision.action !== "noAccess" && decision.action !== "notFound") return <Busy />;
+  // Outside the shell the placeholder still sits in a landmark.
+  const bare = (node: ReactNode) => (
+    <main id="main" className="flex min-h-screen items-center justify-center bg-page p-4">
+      {node}
+    </main>
+  );
+  if (state.phase === "error") return bare(<Unavailable onRetry={reload} />);
+  if (state.phase !== "ready" || !decision) return bare(<Busy />);
+  if (decision.action !== "allow" && decision.action !== "noAccess" && decision.action !== "notFound") return bare(<Busy />);
   const me = state.me;
-  if (!me || !isBackofficeRole(me.role)) return <Busy />;
+  if (!me || !isBackofficeRole(me.role)) return bare(<Busy />);
   return (
     <AppShell role={me.role} name={me.name ?? ""}>
       {decision.action === "noAccess" ? <NoAccess landing={pathOf(landingSlug(me.role))} /> : children}
