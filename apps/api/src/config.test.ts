@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadConfig } from "./config.ts";
+import { loadConfig, requireBackends } from "./config.ts";
 
 describe("loadConfig", () => {
   it("has defaults", () => {
@@ -34,14 +34,25 @@ describe("loadConfig", () => {
   it("refuses a short AUTH_SECRET", () => {
     expect(() => loadConfig({ AUTH_SECRET: "short" })).toThrow(/AUTH_SECRET/);
   });
-  it("staff sign-in is off by default, allowed in dev and refused in production (T60)", () => {
-    expect(loadConfig({}).staffSignIn).toBe(false);
-    expect(loadConfig({ STAFF_SIGNIN: "true" }).staffSignIn).toBe(true);
-    expect(() => loadConfig({ NODE_ENV: "production", STAFF_SIGNIN: "true" })).toThrow(
-      /STAFF_SIGNIN/,
-    );
+  it("GH-25 T60: the STAFF_SIGNIN switch is gone: staff sign in on their own route, with a second factor", () => {
+    expect("staffSignIn" in loadConfig({ STAFF_SIGNIN: "true" })).toBe(false);
+  });
+  it("GH-25 T60: TOTP_KEY is 32 bytes in base64, wherever it is given", () => {
+    const key = Buffer.alloc(32, 5).toString("base64");
+    expect(loadConfig({ TOTP_KEY: key }).totpKey?.equals(Buffer.alloc(32, 5))).toBe(true);
+    expect(loadConfig({}).totpKey).toBeUndefined();
+    expect(() => loadConfig({ TOTP_KEY: Buffer.alloc(31, 5).toString("base64") })).toThrow(/TOTP_KEY/);
+    expect(() => loadConfig({ TOTP_KEY: "nope" })).toThrow(/TOTP_KEY/);
+  });
+  it("GH-25 T60: production without TOTP_KEY throws, before anything else is checked", () => {
+    expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/TOTP_KEY is required in production/);
+  });
+  it("GH-25: the api cannot start without TOTP_KEY", () => {
+    const base = loadConfig({ DATABASE_URL: "postgres://x", REDIS_URL: "redis://x", AUTH_SECRET: "s".repeat(40) });
+    expect(() => requireBackends(base)).toThrow(/TOTP_KEY/);
+    expect(requireBackends({ ...base, totpKey: Buffer.alloc(32, 1) }).totpKey).toHaveLength(32);
   });
   it("refuses the fake SMS sender in production", () => {
-    expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/SMS_PROVIDER/);
+    expect(() => loadConfig({ NODE_ENV: "production", TOTP_KEY: Buffer.alloc(32, 5).toString("base64") })).toThrow(/SMS_PROVIDER/);
   });
 });

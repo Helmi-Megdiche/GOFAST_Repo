@@ -1,11 +1,7 @@
 import { z } from "zod";
+import { parseTotpKey } from "./auth/totp.ts";
 
 const port = (fallback: number) => z.coerce.number().int().min(1).max(65535).default(fallback);
-/** Only the words `true` and `false`: `yes` or `1` is an error, not a silent false. */
-const flag = z
-  .enum(["true", "false"])
-  .default("false")
-  .transform((v) => v === "true");
 
 const Env = z.object({
   NODE_ENV: z.enum(["development", "test", "production"]).default("development"),
@@ -28,8 +24,8 @@ const Env = z.object({
   AUTH_SECRET: z.string().min(32).optional(),
   /** Origins that may write with a session cookie (CSRF). Comma separated, e.g. https://gofast.tn. */
   ALLOWED_ORIGINS: z.string().default(""),
-  /** Staff sign-in by password. Off by default; refused in production until back-office 2FA (T60). */
-  STAFF_SIGNIN: flag,
+  /** The key of the second-factor secrets (T60): 32 bytes in base64. Required in production; a fake one lives in `.env.example`. */
+  TOTP_KEY: z.string().optional(),
   /** Only `fake` exists for now (it sends nothing); the provider is not chosen yet. */
   SMS_PROVIDER: z.enum(["fake"]).default("fake"),
 });
@@ -46,7 +42,7 @@ export type Config = {
   redisUrl?: string;
   authSecret?: string;
   allowedOrigins: string[];
-  staffSignIn: boolean;
+  totpKey?: Buffer;
   smsProvider: "fake";
 };
 
@@ -72,8 +68,16 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       throw new Error(`Invalid environment: ALLOWED_ORIGINS: ${origin} must be an origin (scheme, host, port)`);
     }
   }
-  if (e.NODE_ENV === "production" && e.STAFF_SIGNIN) {
-    throw new Error("Invalid environment: STAFF_SIGNIN is refused in production until the back-office 2FA exists (T60)");
+  if (e.NODE_ENV === "production" && !e.TOTP_KEY) {
+    throw new Error("Invalid environment: TOTP_KEY is required in production (the key of the back-office second factor, T60)");
+  }
+  let totpKey: Buffer | undefined;
+  if (e.TOTP_KEY !== undefined) {
+    try {
+      totpKey = parseTotpKey(e.TOTP_KEY);
+    } catch {
+      throw new Error("Invalid environment: TOTP_KEY must be 32 bytes in base64");
+    }
   }
   if (e.NODE_ENV === "production" && e.SMS_PROVIDER === "fake") {
     throw new Error("Invalid environment: SMS_PROVIDER=fake sends nothing and is refused in production");
@@ -89,7 +93,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     redisUrl: e.REDIS_URL,
     authSecret: e.AUTH_SECRET,
     allowedOrigins,
-    staffSignIn: e.STAFF_SIGNIN,
+    totpKey,
     smsProvider: e.SMS_PROVIDER,
   };
 }
@@ -99,12 +103,14 @@ export function requireBackends(config: Config): {
   databaseUrl: string;
   redisUrl: string;
   authSecret: string;
+  totpKey: Buffer;
 } {
   const missing = (
     [
       ["DATABASE_URL", config.databaseUrl],
       ["REDIS_URL", config.redisUrl],
       ["AUTH_SECRET", config.authSecret],
+      ["TOTP_KEY", config.totpKey],
     ] as const
   )
     .filter(([, v]) => !v)
@@ -114,5 +120,6 @@ export function requireBackends(config: Config): {
     databaseUrl: config.databaseUrl as string,
     redisUrl: config.redisUrl as string,
     authSecret: config.authSecret as string,
+    totpKey: config.totpKey as Buffer,
   };
 }

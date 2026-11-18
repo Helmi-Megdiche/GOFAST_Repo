@@ -239,13 +239,19 @@ describe("definer functions", () => {
       "rehash_password",
       "session_account",
       "set_password",
+      "staff_totp_enrol",
+      "staff_totp_reset",
+      "staff_totp_secret",
+      "staff_totp_use",
       "tracking",
     ]);
     for (const f of r.rows) {
       // GH-10 round 2: account_for_login was replaced by login_account (0006); the app may no longer call it.
+      // GH-25: the second-factor definers belong to fastgo_staff_auth; the app calls two of them, the operator (migrator) the other two.
+      const second = f.proname.startsWith("staff_totp_");
       expect(f, f.proname).toMatchObject({
-        owner: "fastgo_public_reader",
-        app: f.proname !== "account_for_login",
+        owner: second ? "fastgo_staff_auth" : "fastgo_public_reader",
+        app: f.proname !== "account_for_login" && f.proname !== "staff_totp_enrol" && f.proname !== "staff_totp_reset",
         ro: false,
         worker: false,
       });
