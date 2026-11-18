@@ -201,7 +201,8 @@
       "map": "Map (placeholder)",
       "google": "Google button",
       "dialog": "Dialog",
-      "stackedTable": "Stacked table"
+      "stackedTable": "Stacked table",
+      "adminShell": "Back-office navigation"
     },
     "typography": {
       "d1": "Your parcel leaves today. You know where it is.",
@@ -330,6 +331,11 @@
       "confirm": "Yes, cancel",
       "stateClosed": "State: closed",
       "stateOpen": "State: open"
+    },
+    "adminShell": {
+      "subtitle": "Sample page: the title, a line under it and the actions.",
+      "action": "Export",
+      "signOut": "Sign out"
     }
   },
   "placeholders": {

@@ -393,6 +393,9 @@ native-speaker review before release (CLAUDE.md).
 | `contact.success.ticket` | التذكرة | Ticket | [ ] |
 | `contact.success.title` | تم تسجيل طلبك. | Votre demande est enregistrée. | [ ] |
 | `contact.title` | سؤال أو عرض سعر أو مشكلة؟ | Une question, un devis, un problème ? | [ ] |
+| `devUi.adminShell.action` | تصدير | Exporter | [ ] |
+| `devUi.adminShell.signOut` | تسجيل الخروج | Se déconnecter | [ ] |
+| `devUi.adminShell.subtitle` | مثال صفحة: العنوان وسطر تحته والإجراءات. | Exemple de page : le titre, une ligne sous le titre et les actions. | [ ] |
 | `devUi.alerts.error` | هذه رسالة خطأ. | Ceci est un message d'erreur. | [ ] |
 | `devUi.alerts.info` | هذه رسالة معلومات. | Ceci est un message d'information. | [ ] |
 | `devUi.alerts.success` | هذه رسالة تأكيد. | Ceci est un message de confirmation. | [ ] |
@@ -462,6 +465,7 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.order.pinAt` | العلامة: {x}٪، {y}٪ | Repère : {x} %, {y} % | [ ] |
 | `devUi.order.radioLegend` | الخدمة | Service | [ ] |
 | `devUi.sections.accordion` | سؤال قابل للطي | Question déroulante | [ ] |
+| `devUi.sections.adminShell` | تنقّل لوحة الإدارة | Navigation du back-office | [ ] |
 | `devUi.sections.alerts` | التنبيهات | Alertes | [ ] |
 | `devUi.sections.avatars` | الصور الرمزية | Avatars | [ ] |
 | `devUi.sections.badges` | الشارات | Badges | [ ] |

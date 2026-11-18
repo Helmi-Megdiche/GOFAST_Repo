@@ -44,3 +44,8 @@ export {
   type MapPoint,
 } from "./components/map-placeholder";
 export { GoogleButton, type GoogleButtonProps } from "./components/google-button";
+export { NavItem, type NavItemProps } from "./components/nav-item";
+export { NavGroup } from "./components/nav-group";
+export { Sidebar, type SidebarProps } from "./components/sidebar";
+export { PageHeader } from "./components/page-header";
+export { UserMenu } from "./components/user-menu";

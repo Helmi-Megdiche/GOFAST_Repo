@@ -201,7 +201,8 @@
       "map": "خريطة (مؤقتة)",
       "google": "زر Google",
       "dialog": "مربع حوار",
-      "stackedTable": "جدول مكدّس"
+      "stackedTable": "جدول مكدّس",
+      "adminShell": "تنقّل لوحة الإدارة"
     },
     "typography": {
       "d1": "طردك ينطلق اليوم، وتعرف أين هو.",
@@ -330,6 +331,11 @@
       "confirm": "نعم، إلغاء",
       "stateClosed": "الحالة: مغلق",
       "stateOpen": "الحالة: مفتوح"
+    },
+    "adminShell": {
+      "subtitle": "مثال صفحة: العنوان وسطر تحته والإجراءات.",
+      "action": "تصدير",
+      "signOut": "تسجيل الخروج"
     }
   },
   "placeholders": {

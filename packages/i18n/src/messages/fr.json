@@ -201,7 +201,8 @@
       "map": "Carte (provisoire)",
       "google": "Bouton Google",
       "dialog": "Boîte de dialogue",
-      "stackedTable": "Tableau empilé"
+      "stackedTable": "Tableau empilé",
+      "adminShell": "Navigation du back-office"
     },
     "typography": {
       "d1": "Votre colis part aujourd'hui. Vous savez où il est.",
@@ -330,6 +331,11 @@
       "confirm": "Oui, annuler",
       "stateClosed": "État : fermé",
       "stateOpen": "État : ouvert"
+    },
+    "adminShell": {
+      "subtitle": "Exemple de page : le titre, une ligne sous le titre et les actions.",
+      "action": "Exporter",
+      "signOut": "Se déconnecter"
     }
   },
   "placeholders": {

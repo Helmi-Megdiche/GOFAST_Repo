@@ -22,6 +22,11 @@ import {
   KpiTile,
   Logo,
   Ltr,
+  NavGroup,
+  NavItem,
+  PageHeader,
+  Sidebar,
+  UserMenu,
   Section as Band,
   Select,
   Stepper,
@@ -91,6 +96,7 @@ const STATUS_TONE: Record<(typeof data.orders)[number]["status"], BadgeTone> = {
 
 export function UiShowcase() {
   const t = useTranslations("devUi");
+  const b = useTranslations("backoffice");
   const sectionTitle = (key: keyof Messages["devUi"]["sections"]) => t(`sections.${key}`);
   const icons = Object.keys(ICONS) as IconName[];
 
@@ -471,6 +477,47 @@ export function UiShowcase() {
           <Chip aria-pressed="true">{t("more.chipOn")}</Chip>
           <Chip aria-pressed="false">{t("more.chipOff")}</Chip>
         </ChipNav>
+      </Section>
+
+      <Section id="admin-shell" title={sectionTitle("adminShell")}>
+        {/* GH-25: the shell of the back-office. The sidebar is a column from 768 px and a drawer below it. */}
+        <div className="flex flex-col overflow-hidden rounded-xl border border-line md:flex-row md:items-start">
+          <Sidebar
+            label={b("shell.navLabel")}
+            logo={<Logo variant="on-dark" className="h-8 w-auto" />}
+            menuLabel={b("shell.menu")}
+            closeLabel={b("shell.closeMenu")}
+            footer={
+              <UserMenu name="Nadia B." roleLabel={b("roles.admin")} label={b("shell.user")}>
+                <Button size="sm" variant="secondary">
+                  {t("adminShell.signOut")}
+                </Button>
+              </UserMenu>
+            }
+          >
+            <NavGroup label={b("nav.groups.exploitation")}>
+              <NavItem href="#admin-shell" icon="list" current>
+                {b("nav.items.commandes")}
+              </NavItem>
+              <NavItem href="#admin-shell" icon="check" count={7}>
+                {b("nav.items.aConfirmer")}
+              </NavItem>
+            </NavGroup>
+            <NavGroup label={b("nav.groups.finance")}>
+              <NavItem href="#admin-shell" icon="rcpt">
+                {b("nav.items.factures")}
+              </NavItem>
+            </NavGroup>
+          </Sidebar>
+          <div className="min-w-0 flex-1 p-4">
+            <PageHeader
+              as="h2"
+              title={b("nav.items.commandes")}
+              subtitle={t("adminShell.subtitle")}
+              actions={<Button size="sm">{t("adminShell.action")}</Button>}
+            />
+          </div>
+        </div>
       </Section>
 
       <Section id="checkbox" title={sectionTitle("checkbox")}>
