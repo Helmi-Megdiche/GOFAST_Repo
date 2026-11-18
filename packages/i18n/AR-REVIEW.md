@@ -98,8 +98,12 @@ native-speaker review before release (CLAUDE.md).
 | `apiErrors.VALIDATION_FAILED` | بعض الحقول مفقودة أو غير صالحة. | Certains champs sont manquants ou invalides. | [ ] |
 | `apiErrors.addressMismatch` | العنوانان ليسا عنواني السعر المحسوب: احسب السعر من جديد. | Les adresses ne sont pas celles du prix calculé : calculez le prix à nouveau. | [ ] |
 | `apiErrors.addressUnconfirmed` | تعذّر تحديد هذا العنوان على الخريطة: اختر المعتمدية من القائمة. | Cette adresse n'a pas pu être placée sur la carte : choisissez la délégation dans la liste. | [ ] |
+| `apiErrors.claimOnly` | تم استلام الطرد بالفعل: قدّم شكوى. | Le colis est déjà pris en charge : faites une réclamation. | [ ] |
 | `apiErrors.contractRequired` | الدفع على الحساب يتطلب عقدًا مصادقًا عليه. | Le paiement sur compte demande un contrat validé. | [ ] |
+| `apiErrors.feeRequired` | تغيّرت رسوم الإلغاء: راجعها قبل التأكيد. | Les frais d'annulation ont changé : vérifiez-les avant de confirmer. | [ ] |
 | `apiErrors.freightPayerRequired` | اقبل شروط دفع الشحن عند الاستلام لتتمكن من الدفع عند التسليم. | Acceptez les conditions du port dû pour payer à la livraison. | [ ] |
+| `apiErrors.notCancellable` | لا يمكن إلغاء هذا الطلب بعد الآن. | Cette commande ne peut plus être annulée. | [ ] |
+| `apiErrors.notWaitingForConfirmation` | هذا الطلب لا ينتظر التأكيد. | Cette commande n'attend pas de confirmation. | [ ] |
 | `apiErrors.outOfZone` | هذا العنوان غير مشمول بالخدمة بعد. | Cette adresse n'est pas encore desservie. | [ ] |
 | `apiErrors.phoneRequired` | تحقّق من رقم هاتفك عبر رسالة نصية لإتمام الطلب. | Vérifiez votre numéro de téléphone par SMS pour passer commande. | [ ] |
 | `apiErrors.priceUnavailable` | سعر هذا الخيار غير متوفر بعد. | Le prix de cette option n'est pas encore disponible. | [ ] |
