@@ -9,7 +9,9 @@ import { type OrderCreate, type OrderOut, type OrdersPort, OrdersService, ScopeT
 // GH-22 (PR 4b-2a): the order of the checks of createOrder, with a fake database. The real one is in orders.api.int.test.ts.
 
 const keys = new Keys("k".repeat(40));
-const NOW = new Date("2026-11-20T10:00:00.000Z");
+// RV-08: the suite also runs with the date moved 40 days ahead (FG_CLOCK_SHIFT_DAYS=40, `pnpm test` runs both): the service reads
+// only its injected clock, so nothing here may depend on the day.
+const NOW = new Date(Date.parse("2026-11-20T10:00:00.000Z") + Number(process.env.FG_CLOCK_SHIFT_DAYS ?? 0) * 86_400_000);
 const actor: Actor = { accountId: "acc", userId: "acc", role: "individual" };
 const settings = { maxParcels: 10 } as Settings;
 const mac = (text: string, pin: { x: number; y: number } | null) => keys.mac("quote-address", addressPriceKey({ text, pin }));
@@ -141,11 +143,32 @@ describe("GH-22 RV-05 R202: createOrder spends the phone proof last, once", () =
     expect(t.inserted[0]).toMatchObject({ markPhoneVerified: false });
   });
 
-  it("a verified phone needs no proof and spends none, even if one is sent", async () => {
+  it("(a) a verified account, the sender is the account phone, no proof: the order is created and no proof is spent", async () => {
     const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
-    await t.service.create(actor, { ...body(), phone_check_id: "11111111-1111-4111-8111-111111111111" }, { scope: null });
+    await t.service.create(actor, body(), { scope: null });
     expect(t.consume).not.toHaveBeenCalled();
     expect(t.inserted).toHaveLength(1);
+    // a proof sent for the account's own verified phone is not needed either, so it is not spent
+    await t.service.create(actor, { ...body(), phone_check_id: "11111111-1111-4111-8111-111111111111" }, { scope: null });
+    expect(t.consume).not.toHaveBeenCalled();
+  });
+
+  it("(b) a verified account, another sender phone, no proof: phoneRequired, nothing written (the contract: while THAT phone is not verified)", async () => {
+    const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
+    const other = { ...body().sender, phone: "+21620000009" };
+    expect((await reasonOf(t.service.create(actor, { ...body(), sender: other }, { scope: null }))).fields).toEqual([
+      { name: "phone_check_id", reason: "phoneRequired" },
+    ]);
+    expect(t.inserted).toEqual([]);
+  });
+
+  it("(c) a verified account, another sender phone, a valid proof for it: created, the proof spent for that phone, the account is not touched", async () => {
+    const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
+    const other = { ...body().sender, phone: "+21620000009" };
+    await t.service.create(actor, { ...body(), sender: other, phone_check_id: "11111111-1111-4111-8111-111111111111" }, { scope: null });
+    expect(t.consume).toHaveBeenCalledTimes(1);
+    expect(t.consume).toHaveBeenCalledWith("11111111-1111-4111-8111-111111111111", "+21620000009", "order");
+    expect(t.inserted[0]).toMatchObject({ markPhoneVerified: false });
   });
 
   it("a spent or wrong proof is invalid on phone_check_id and nothing is written", async () => {

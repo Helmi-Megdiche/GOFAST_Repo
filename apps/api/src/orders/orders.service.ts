@@ -152,7 +152,8 @@ export class OrdersService {
     // 5. The stored account (RV-19, RV-20): closed is refused; an unverified phone needs the proof.
     const account = await port.readAccount(actor);
     if (!account || account.status !== "active") throw new ApiError("ACCESS_DENIED");
-    const needsProof = !account.phoneVerified;
+    // The proof is for the sender's phone: none is needed only when that phone is the account's own and it is verified.
+    const needsProof = !(account.phoneVerified && account.phone === body.sender.phone);
     const proofId = body.phone_check_id ?? null;
     if (needsProof && !proofId) throw refuse("phone_check_id", "phoneRequired");
 

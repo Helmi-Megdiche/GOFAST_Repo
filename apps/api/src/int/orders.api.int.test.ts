@@ -56,11 +56,16 @@ beforeAll(async () => {
        ($2, 'Bravo', 'برافو', 'Bravo town', 'Ariana', ${square(10.1, 36)}, true)`,
     [ZONES.alpha, ZONES.bravo],
   );
-  const deps = { db: appDb, redis, authSecret: "s".repeat(40) };
+  app = await buildApp();
+  target = app;
+}, 240_000);
+/** The API with every clock it has (sessions, proofs, prices, orders) given by `now`; the real one when omitted. */
+async function buildApp(now?: () => Date): Promise<NestFastifyApplication> {
+  const deps = { db: appDb, redis, authSecret: "s".repeat(40), now };
   const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: false }, deps);
   const merged = mergeOptions(auth, pricingOptions(deps), ordersOptions({ ...deps, webUrl: WEB }));
-  app = await createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers });
-}, 240_000);
+  return createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers });
+}
 afterAll(async () => {
   await app?.close();
   await appDb?.close();
@@ -70,6 +75,8 @@ afterAll(async () => {
   await testDb?.stop();
 });
 
+/** The app the helpers call: the real-clock one, or the one of the RV-08 block. */
+let target: NestFastifyApplication;
 let ip = "10.20.0.1";
 type Res = { statusCode: number; headers: Record<string, unknown>; json: () => any }; // eslint-disable-line @typescript-eslint/no-explicit-any
 const call = (
@@ -77,7 +84,7 @@ const call = (
   url: string,
   opts: { body?: unknown; cookie?: string; key?: string; headers?: Record<string, string> } = {},
 ): Promise<Res> =>
-  app.inject({
+  target.inject({
     method,
     url,
     remoteAddress: ip,
@@ -370,6 +377,23 @@ describe("GH-22 RV-05 R206 R607: the refusals, each with nothing written", () =>
     expect((await q("select phone_verified_at from core.accounts where id = $1", [second.id])).rows[0].phone_verified_at).toBeNull();
   });
 
+  it("a verified account with ANOTHER sender phone needs a proof for that phone; with it the order is created and the account is unchanged", async () => {
+    ip = "10.20.2.8";
+    const who = await customer();
+    const other = "+21620555888";
+    const verifiedAt = async () => (await q("select phone_verified_at, phone_e164 from core.accounts where id = $1", [who.id])).rows[0];
+    const before = await verifiedAt();
+    expect(before.phone_verified_at).not.toBeNull();
+    const quote = await newQuote();
+    await refused(who, orderBody(quote, { phone: other }), [{ name: "phone_check_id", reason: "phoneRequired" }]);
+    const check = await proof(other, "order");
+    const ok = await place(who, orderBody(quote, { phone: other }, { phone_check_id: check }));
+    expect(ok.statusCode).toBe(201);
+    expect(await verifiedAt()).toEqual(before);
+    // and the account's own verified phone needs none
+    expect((await place(who, orderBody(await newQuote(), who))).statusCode).toBe(201);
+  });
+
   it("no session: 401; the quote of someone else is still a quote anyone may order from, but only as themselves", async () => {
     ip = "10.20.2.7";
     const quote = await newQuote();
@@ -438,13 +462,18 @@ describe("GH-22 R405 T11 R903: GET /v1/tracking/{number}", () => {
   });
 });
 
+/** The worker takes 20 rows a pass: run it until the outbox of the tests is empty. */
+const drainTrackingSms = async (sender: SmsSender) => {
+  for (let i = 0; i < 20 && (await runTrackingSms(workerDb, sender, WEB)) > 0; i += 1);
+};
+
 describe("GH-22 R903 R105: the tracking SMS goes out from the outbox", () => {
   it("sends the text in the recipient's language with the number and the link, then empties the row; nothing for a closed account", async () => {
     ip = "10.20.5.1";
     const who = await customer();
     const order = (await place(who, orderBody(await newQuote(), who))).json();
     const sender = new CaptureSms();
-    await runTrackingSms(workerDb, sender, WEB);
+    await drainTrackingSms(sender);
     const mine = sender.sent.filter((s) => s.text.includes(order.tracking_number));
     expect(mine).toHaveLength(1);
     expect(mine[0]).toMatchObject({ phone: "+21620999001" });
@@ -457,7 +486,44 @@ describe("GH-22 R903 R105: the tracking SMS goes out from the outbox", () => {
     const order2 = (await place(closed, orderBody(await newQuote(), closed))).json();
     await q("update core.accounts set status = 'closed', closed_at = now() where id = $1", [closed.id]);
     const sender2 = new CaptureSms();
-    await runTrackingSms(workerDb, sender2, WEB);
+    await drainTrackingSms(sender2);
     expect(sender2.sent.filter((s) => s.text.includes(order2.tracking_number))).toEqual([]);
+  });
+});
+
+describe("GH-22 RV-08: create, get, list and tracking with every clock of the API 40 days ahead", () => {
+  const SHIFT_MS = 40 * 24 * 3_600_000;
+  let shifted: NestFastifyApplication;
+  beforeAll(async () => {
+    shifted = await buildApp(() => new Date(Date.now() + SHIFT_MS));
+    target = shifted;
+  });
+  afterAll(async () => {
+    target = app;
+    await shifted?.close();
+  });
+
+  it("the quote, the grid check, the order and the tracking all work on that date; a quote past its expiry on that date is 410", async () => {
+    ip = "10.20.6.1";
+    const who = await customer();
+    const quote = await newQuote();
+    // The quote lives from the shifted instant: its expiry is 40 days after the real now.
+    expect(Date.parse(quote.expires_at)).toBeGreaterThan(Date.now() + SHIFT_MS - 60_000);
+    const res = await place(who, orderBody(quote, who));
+    expect(res.statusCode).toBe(201);
+    const order = res.json();
+    expect(order).toMatchObject({ status: "received", total_millimes: quote.total_millimes });
+    expect((await call("GET", `/v1/orders/${order.id}`, { cookie: who.cookie })).json().id).toBe(order.id);
+    expect((await call("GET", "/v1/orders", { cookie: who.cookie })).json().items.map((o: { id: string }) => o.id)).toContain(order.id);
+    const tracking = await call("GET", `/v1/tracking/${order.tracking_number}`);
+    expect(tracking.json()).toMatchObject({ status: "received", from_city: "Alpha", parcel_count: 2 });
+    // R205 on that date: the same quote, expired one hour before the shifted now.
+    const old = await newQuote();
+    await q("update core.quotes set quoted_at = $2, expires_at = $3 where id = $1", [
+      old.id,
+      new Date(Date.now() + SHIFT_MS - 2 * 3_600_000).toISOString(),
+      new Date(Date.now() + SHIFT_MS - 3_600_000).toISOString(),
+    ]);
+    expect((await place(who, orderBody(old, who))).statusCode).toBe(410);
   });
 });
