@@ -16,6 +16,7 @@ export * from "./order/slots";
 export * from "./order/split";
 export * from "./order/weight";
 export * from "./phone";
+export * from "./rights";
 export * from "./services";
 export * from "./states";
 export * from "./tracking-code";

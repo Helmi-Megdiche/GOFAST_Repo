@@ -1,0 +1,41 @@
+# Droits des équipes internes: the 36 rows DR01 to DR36 of the cahier des charges, section "Rôles et droits", pages 51 and 52.
+# Columns, in the order of the cahier: Dir Ops Agt Log SC Cpt Cai Adm RH. D = décide ou valide, G = gère, A = agit dans son travail,
+# V = voit, – = aucun accès (le serveur renvoie 403). La colonne RH arrive avec L2.
+# Extracted from FastGo-cahier-des-charges.pdf with pypdf (pages 51-52: lines "DRnn ... " followed by their 9 symbols, an action name
+# that wraps puts the symbols on the next line). rights.test.ts requires rights.ts to equal this file, row by row.
+DR01 V V V V V – – V –
+DR02 V V – – – V – V –
+DR03 – V V V V – – V –
+DR04 – G G – – – – G –
+DR05 – G G – – – – G –
+DR06 – G G A – – – G –
+DR07 – V V V – – – V –
+DR08 – G – G – – – G –
+DR09 – V V V V – – V –
+DR10 – G G G – – – G –
+DR11 – D A A – – – – –
+DR12 V V V – V V – V –
+DR13 – G A – – – – G –
+DR14 V V – – – V – V –
+DR15 – G – – – – – G –
+DR16 – D – – – – – – –
+DR17 D – – – – – – – –
+DR18 V A – A – – – G –
+DR19 V V – G – – – G –
+DR20 – – – G – – – G –
+DR21 V G A V G V – G –
+DR22 – – – – A – – – –
+DR23 – D – – – – – – –
+DR24 – – – – – A – – –
+DR25 V V – – V G – V –
+DR26 – – – – – G – – –
+DR27 V V – V – V V – –
+DR28 – – – – – – A – –
+DR29 D – – – – D – – –
+DR30 V V – – – G – V –
+DR31 V V A A A A – G G
+DR32 G G V V V G – G –
+DR33 – – – – – – – G –
+DR34 D – – – – – – A –
+DR35 V – – – – – – V –
+DR36 V – – – – – – – G
