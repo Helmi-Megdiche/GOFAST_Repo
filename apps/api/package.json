@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "db:migrate": "node --experimental-strip-types src/db/cli.ts",
-    "test": "vitest run",
+    "test": "vitest run && node scripts/test-shifted.mjs",
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {
