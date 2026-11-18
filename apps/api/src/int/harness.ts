@@ -49,6 +49,9 @@ export async function startTestDb(opts: { migrationsDir?: string } = {}): Promis
   // Needed to hand the definer functions to that role (migration 0005); infra/servers does the same.
   // SET only: the migrator does not inherit the rights of the role.
   await superClient.query("grant fastgo_public_reader to fastgo_migrator with inherit false, set true");
+  // Migration 0011 hands the order-history definers to this role (GH-22); same line in infra/servers/db-setup.sql.
+  await superClient.query("create role fastgo_order_writer nologin");
+  await superClient.query("grant fastgo_order_writer to fastgo_migrator with inherit false, set true");
   // The postgis image already creates the extension in POSTGRES_DB; a real host does it in the infra script.
   await superClient.query("create extension if not exists postgis");
   await superClient.query("grant create on database fastgo to fastgo_migrator");

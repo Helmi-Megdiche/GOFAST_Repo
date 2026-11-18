@@ -49,16 +49,36 @@ const EXPECTED: Record<string, Expect> = {
     // Insert: what the API sets (no status, created_at, updated_at, ended_at, id). Update: no updated_at (trigger).
     appCols: {
       INSERT: [
+        "address_unconfirmed",
+        "arrival_zone_id",
+        "content",
         "created_by",
+        "declared_value_millimes",
+        "delivery_instructions",
+        "delivery_slot_end",
+        "delivery_slot_start",
+        "departure_zone_id",
+        "fragile",
         "freight_payer",
+        "freight_payer_accepted",
         "idempotency_scope",
+        "lines",
+        "null_lines",
         "owner_account_id",
         "owner_company_id",
+        "packaging",
         "payment_mode",
         "pickup_address_id",
+        "pickup_slot_end",
+        "pickup_slot_start",
+        "price_list_valid_from",
+        "quote_id",
         "recipient_id",
         "recipient_locale",
+        "sender_name",
+        "sender_phone",
         "service",
+        "terms_accepted_at",
         "total_millimes",
         "tracking_number",
       ],
@@ -70,7 +90,7 @@ const EXPECTED: Record<string, Expect> = {
   "core.parcels": {
     app: ["SELECT"],
     appCols: {
-      INSERT: ["cod_millimes", "declared_value_millimes", "order_id", "proof_level", "size", "weight_declared_g"],
+      INSERT: ["barcode", "cod_millimes", "declared_value_millimes", "order_id", "proof_level", "size", "weight_declared_g"],
       UPDATE: [
         "attempts",
         "barcode",
@@ -91,7 +111,7 @@ const EXPECTED: Record<string, Expect> = {
   "core.status_events": {
     app: ["INSERT"],
     appCols: {
-      SELECT: ["event_id", "from_status", "id", "occurred_at", "order_id", "received_at", "subject_id", "subject_type", "to_status"],
+      SELECT: ["event_id", "from_status", "id", "occurred_at", "order_id", "received_at", "seq", "subject_id", "subject_type", "to_status"],
     },
     ro: "none",
     rls: true,
@@ -127,13 +147,26 @@ const WORKER: Record<string, Rights> = {
 const PUBLIC_READER: Record<string, Rights> = {
   "core.orders": {
     c: {
-      SELECT: ["created_at", "ended_at", "id", "pickup_address_id", "recipient_id", "status", "tracking_number", "updated_at"],
+      SELECT: [
+        "arrival_zone_id",
+        "created_at",
+        "departure_zone_id",
+        "ended_at",
+        "id",
+        "pickup_address_id",
+        "recipient_id",
+        "status",
+        "tracking_number",
+        "updated_at",
+      ],
     },
   },
   "core.addresses": { c: { SELECT: ["id", "zone_id"] } },
   "core.recipients": { c: { SELECT: ["address_id", "id"] } },
-  "core.zones": { c: { SELECT: ["id", "name"] } },
-  "core.status_events": { c: { SELECT: ["occurred_at", "order_id", "subject_type", "to_status"] } },
+  "core.zones": { c: { SELECT: ["id", "name", "name_ar", "name_en"] } },
+  "core.status_events": { c: { SELECT: ["occurred_at", "order_id", "seq", "subject_type", "to_status"] } },
+  // GH-22: the tracking counts and lists the states of the parcels (never a weight, a value or a barcode).
+  "core.parcels": { c: { SELECT: ["id", "order_id", "status"] } },
   "core.recipient_links": { t: ["SELECT"] },
   // Sign-up (core.create_account) inserts into these three identity tables and nowhere else.
   // mark_phone_verified, set_password and rehash_password change only these four columns.
@@ -143,6 +176,25 @@ const PUBLIC_READER: Record<string, Rights> = {
   },
   "core.companies": { t: ["INSERT"] },
   "core.company_members": { t: ["INSERT", "SELECT"] },
+};
+
+// GH-22: the owner of record_order_created and sms_tracking_payload. It writes the history of a new order and reads
+// what the SMS needs; nothing else (no price, no address, no name).
+const ORDER_WRITER: Record<string, Rights> = {
+  "core.orders": {
+    c: {
+      SELECT: ["created_at", "created_by", "id", "owner_account_id", "owner_company_id", "recipient_id", "recipient_locale", "status", "tracking_number"],
+    },
+  },
+  "core.parcels": { c: { SELECT: ["id", "order_id", "status"] } },
+  "core.accounts": { c: { SELECT: ["id", "status"] } },
+  "core.recipients": { c: { SELECT: ["id", "phone_e164"] } },
+  "core.status_events": {
+    c: {
+      SELECT: ["id", "order_id", "subject_type"],
+      INSERT: ["actor_id", "from_status", "occurred_at", "order_id", "subject_id", "subject_type", "to_status"],
+    },
+  },
 };
 
 const TABLE_PRIVS = ["DELETE", "INSERT", "REFERENCES", "SELECT", "TRIGGER", "TRUNCATE", "UPDATE"];
@@ -269,6 +321,15 @@ describe("grant test: every table, as it is in the database", () => {
     expect(Object.keys(PUBLIC_READER).filter((t) => !(t in got))).toEqual([]);
   });
 
+  it("GH-22: fastgo_order_writer (owner of the history and SMS definers) has exactly the rights of the map", async () => {
+    const got = await rightsOf("fastgo_order_writer");
+    for (const [table, r] of Object.entries(got)) {
+      const want = ORDER_WRITER[table] ?? {};
+      expect({ t: r.t, c: r.c }, `${table} for fastgo_order_writer`).toEqual({ t: want.t ?? [], c: want.c ?? {} });
+    }
+    expect(Object.keys(ORDER_WRITER).filter((t) => !(t in got))).toEqual([]);
+  });
+
   it("app, worker and readonly belong to no role; no login has a dangerous attribute", async () => {
     const members = await roleList(["fastgo_app", "fastgo_worker", "fastgo_readonly"]);
     expect(members).toEqual([
@@ -286,6 +347,7 @@ describe("grant test: every table, as it is in the database", () => {
     expect(attrs).toEqual([
       { rolname: "fastgo_app", rolcanlogin: true, ...safe },
       { rolname: "fastgo_migrator", rolcanlogin: true, ...safe },
+      { rolname: "fastgo_order_writer", rolcanlogin: false, ...safe },
       { rolname: "fastgo_public_reader", rolcanlogin: false, ...safe },
       { rolname: "fastgo_readonly", rolcanlogin: true, ...safe },
       { rolname: "fastgo_worker", rolcanlogin: true, ...safe },
@@ -296,6 +358,14 @@ describe("grant test: every table, as it is in the database", () => {
     const r = await db.superClient.query(
       `select pg_has_role('fastgo_migrator', 'fastgo_public_reader', 'SET') as can_set,
               pg_has_role('fastgo_migrator', 'fastgo_public_reader', 'USAGE') as inherits`,
+    );
+    expect(r.rows[0]).toEqual({ can_set: true, inherits: false });
+  });
+
+  it("GH-22: the migrator may SET ROLE to the order writer but does not inherit its rights", async () => {
+    const r = await db.superClient.query(
+      `select pg_has_role('fastgo_migrator', 'fastgo_order_writer', 'SET') as can_set,
+              pg_has_role('fastgo_migrator', 'fastgo_order_writer', 'USAGE') as inherits`,
     );
     expect(r.rows[0]).toEqual({ can_set: true, inherits: false });
   });

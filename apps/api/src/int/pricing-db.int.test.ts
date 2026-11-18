@@ -255,10 +255,11 @@ describe("core.quotes: public, insert and select only, no address text (RV-18)",
       await ro.close();
     }
   });
-  it("R205: the worker purges the quotes that expired, keeps the others, and the app still cannot delete", async () => {
+  it("R205 RV-04: the worker purges the quotes expired for more than 24 h, keeps the others, and the app still cannot delete", async () => {
     const worker = new Db(db.url("fastgo_worker"), 1);
     const old = randomUUID();
     const live = randomUUID();
+    const justExpired = randomUUID();
     const base = (qid: string, quoted: string, expires: string) =>
       q(
         `insert into core.quotes (id, departure_key_hash, arrival_key_hash, service_code, parcel_type, parcels, packaging, fragile,
@@ -267,11 +268,13 @@ describe("core.quotes: public, insert and select only, no address text (RV-18)",
         [qid, ZONES.alpha],
       );
     try {
-      await base(old, "now() - interval '2 hours'", "now() - interval '1 hour'");
+      await base(old, "now() - interval '26 hours'", "now() - interval '25 hours'");
+      // Expired an hour ago: kept, so an order that crosses the expiry answers 410 (expired) and not 404.
+      await base(justExpired, "now() - interval '2 hours'", "now() - interval '1 hour'");
       await base(live, "now()", "now() + interval '15 minutes'");
       expect(await purgeExpiredQuotes(worker)).toBeGreaterThanOrEqual(1);
-      const left = (await q("select id from core.quotes where id = any($1)", [[old, live]])).rows.map((r) => r.id);
-      expect(left).toEqual([live]);
+      const left = (await q("select id from core.quotes where id = any($1)", [[old, live, justExpired]])).rows.map((r) => r.id);
+      expect(left.sort()).toEqual([live, justExpired].sort());
       // the policy lets the worker delete an expired quote only, whatever the clock it is given
       await worker.withWorker((tx) => tx.execute(sql`delete from core.quotes where id = ${live}`));
       expect((await q("select id from core.quotes where id = $1", [live])).rows).toHaveLength(1);
