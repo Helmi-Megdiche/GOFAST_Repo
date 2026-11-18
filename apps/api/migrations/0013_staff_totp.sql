@@ -72,8 +72,8 @@ begin
     values (null, null, 'staff.totp.enrolled', 'account', p_account::text, jsonb_build_object('via', 'operator'));
 end $$;
 
--- T60, p.67 "accès d'urgence tracé": a lost phone is reset by ANOTHER active admin, who gives a reason; the account enrols again at
--- its next sign-in. The audit event keeps the admin, the target and the reason, never a secret.
+-- T60, p.67 "accès d'urgence tracé": a lost phone is reset by ANOTHER active admin, who gives a reason; an operator enrols the account
+-- again with `staff:totp enrol` (there is no self-enrolment). The audit event keeps the admin, the target and the reason, never a secret.
 create function core.staff_totp_reset(p_account uuid, p_by uuid, p_reason text) returns void
   language plpgsql security definer set search_path = pg_catalog, core, pg_temp as $$
 begin
