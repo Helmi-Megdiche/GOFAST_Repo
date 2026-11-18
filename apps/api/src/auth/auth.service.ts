@@ -12,6 +12,7 @@ import type { Passwords } from "./password.ts";
 import type { PhoneChecks, Purpose } from "./phone-check.ts";
 import type { RateLimiter } from "./rate-limit.ts";
 import { STAFF_ROLES, type SessionStore, toActor } from "./sessions.ts";
+import { decryptSecret, verifyTotp, totpStep } from "./totp.ts";
 
 export type Me = components["schemas"]["Me"];
 export type SignedIn = { me: Me; sessionId: string; staff: boolean };
@@ -44,9 +45,16 @@ export type Deps = {
   sessions: SessionStore;
   checks: PhoneChecks;
   limiter: RateLimiter;
-  staffSignIn: boolean;
+  /** The key of the second-factor secrets (T60): 32 bytes. */
+  totpKey: Buffer;
   now?: () => Date;
 };
+
+/** The roles of the back-office. A driver has a staff account but signs in to the driver app, never here (cahier p.54). */
+const BACKOFFICE_ROLES: ReadonlySet<Role> = new Set([...STAFF_ROLES].filter((r) => r !== "driver"));
+/** Used when there is no real secret to check, so the work (and the time) is the same for every refusal. */
+const DUMMY_SECRET = Buffer.alloc(20, 1);
+const NO_ACCOUNT = "00000000-0000-0000-0000-000000000000";
 
 export type Ctx = { ip: string; requestId: string; locale?: string; previousSession?: string };
 
@@ -200,13 +208,19 @@ export class AuthService {
 
   // ---- sign-in -------------------------------------------------------------------------------
 
-  async signIn(body: { identifier: string; password: string }, ctx: Ctx): Promise<SignedIn> {
+  /**
+   * The limits of every password sign-in, the customer's and the back-office's alike (one counter per identifier and per IP, so the
+   * two routes cannot be used to double the guesses). Counted BEFORE anything is compared, and for an identifier that has no account
+   * as well as for one that has: the limit and the answer do not tell which exist.
+   */
+  private async throttle(
+    body: { identifier: string },
+    ctx: Ctx,
+  ): Promise<{ subject: string; isEmail: boolean; phone: string | null; byId: { key: string }; byIp: { key: string } }> {
     const identifier = body.identifier.trim();
     const isEmail = identifier.includes("@");
     const phone = isEmail ? null : normalizePhone(identifier);
     const subject = isEmail ? identifier.toLowerCase() : (phone ?? identifier);
-    // Counted BEFORE anything is compared, and for an identifier that has no account as well as for
-    // one that has: the limit and the answer do not tell which exist.
     const byId = await this.limit("login-id", subject, LIMITS.signInPerIdentifier);
     const byIp = await this.limit("login-ip", ipKey(ctx.ip), LIMITS.signInPerIp);
     if (!byId.allowed || !byIp.allowed) {
@@ -219,23 +233,31 @@ export class AuthService {
       if (first.allowed) await this.audit(ctx, "signin.limited", null, { scope });
       throw this.tooMany(Math.max(byId.allowed ? 0 : byId.retryAfterMs, byIp.allowed ? 0 : byIp.retryAfterMs));
     }
+    return { subject, isEmail, phone, byId, byIp };
+  }
 
-    let row: LoginRow | undefined;
-    if (isEmail || phone) {
-      row = (
-        await this.d.db.withNoActor((tx) =>
-          tx.execute(
-            sql`select id, role, password_hash, locale, status, company_id, valid_from
-                  from core.login_account(${isEmail ? null : phone}, ${isEmail ? subject : null})`,
-          ),
-        )
-      ).rows[0] as LoginRow | undefined;
-    }
+  private async loginRow(t: { subject: string; isEmail: boolean; phone: string | null }): Promise<LoginRow | undefined> {
+    if (!t.isEmail && !t.phone) return undefined;
+    return (
+      await this.d.db.withNoActor((tx) =>
+        tx.execute(
+          sql`select id, role, password_hash, locale, status, company_id, valid_from
+                from core.login_account(${t.isEmail ? null : t.phone}, ${t.isEmail ? t.subject : null})`,
+        ),
+      )
+    ).rows[0] as LoginRow | undefined;
+  }
+
+  async signIn(body: { identifier: string; password: string }, ctx: Ctx): Promise<SignedIn> {
+    const t = await this.throttle(body, ctx);
+    const { byId, byIp } = t;
+    const row = await this.loginRow(t);
+    // T60: a staff account never signs in here, whatever its password: it uses POST /v1/staff/sessions, with a second factor.
     const usable =
       row !== undefined &&
       row.password_hash !== null &&
       row.status === "active" &&
-      (this.d.staffSignIn || !STAFF_ROLES.has(row.role)) &&
+      !STAFF_ROLES.has(row.role) &&
       toActor(row.id, row.role, row.company_id) !== null;
     // The same work for every refusal, so the time does not tell either.
     const ok =
@@ -257,6 +279,70 @@ export class AuthService {
     // The session of the cookie the browser sent is closed: signing in again does not leave it open.
     if (ctx.previousSession) await this.d.sessions.destroy(ctx.previousSession);
     return this.open(row.id, row.role, row.valid_from);
+  }
+
+  /**
+   * T60, cahier p.54: the back-office sign-in, with a second factor (TOTP). The password is checked with the same work as the customer
+   * route; then the role (a customer, a merchant or a driver is the same 401), then the code over the window of steps, then the
+   * compare-and-set that makes a code usable once. Every refusal is the SAME 401 `invalidCredentials`; the audit keeps the reason
+   * (never the identifier, the code or the secret). The staff session lasts 12 h and does not slide (sessions.ts).
+   */
+  async staffSignIn(body: { identifier: string; password: string; code: string }, ctx: Ctx): Promise<SignedIn> {
+    const t = await this.throttle(body, ctx);
+    const { byId, byIp } = t;
+    const row = await this.loginRow(t);
+    const staff =
+      row !== undefined && row.password_hash !== null && row.status === "active" && BACKOFFICE_ROLES.has(row.role);
+    const passwordOk =
+      staff && row?.password_hash
+        ? await this.d.passwords.verify(row.password_hash, body.password)
+        : await this.d.passwords.verifyDummy(body.password);
+
+    // The secret and the code are always worked on, for a real account or not, so the time does not tell which refusal it was.
+    const stored = await this.d.db.withNoActor(async (tx) => {
+      const r = await tx.execute(sql`select core.staff_totp_secret(${staff && row ? row.id : NO_ACCOUNT}::uuid) as s`);
+      return (r.rows[0] as { s: Buffer | null } | undefined)?.s ?? null;
+    });
+    let secret: Buffer | null = null;
+    let unreadable = false;
+    if (stored && staff && row) {
+      try {
+        secret = decryptSecret(Buffer.from(stored), this.d.totpKey, row.id);
+      } catch {
+        unreadable = true; // the key changed or the bytes were altered: nobody signs in, and the audit says why
+      }
+    }
+    const nowMs = this.now().getTime();
+    const step = verifyTotp(secret ?? DUMMY_SECRET, body.code, nowMs);
+    const codeOk = secret !== null && step !== null;
+
+    // The step is spent only when the password was right too, so a wrong password cannot burn a good code.
+    let fresh = false;
+    if (passwordOk && codeOk && row && step !== null) {
+      fresh = (
+        (
+          await this.d.db.withNoActor((tx) => tx.execute(sql`select core.staff_totp_use(${row.id}::uuid, ${step}::bigint) as ok`))
+        ).rows[0] as { ok: boolean }
+      ).ok;
+    }
+
+    if (!(passwordOk && codeOk && fresh) || !row) {
+      const reason = !staff ? "account" : !passwordOk ? "password" : stored === null ? "no_enrolment" : unreadable ? "secret" : !codeOk ? "code" : "replay";
+      await this.audit(ctx, "staff.signin.refused", staff && row ? row.id : null, { reason, step: totpStep(nowMs) });
+      throw new ApiError("AUTH_REQUIRED", [{ name: "identifier", reason: "invalidCredentials" }]);
+    }
+
+    await this.d.limiter.reset(byId.key);
+    await this.d.limiter.undo(byIp.key);
+    if (row.password_hash && this.d.passwords.needsRehash(row.password_hash)) {
+      const hash = row.password_hash;
+      const fresh2 = await this.d.passwords.hash(body.password);
+      await this.d.db.withNoActor((tx) => tx.execute(sql`select core.rehash_password(${row.id}::uuid, ${hash}, ${fresh2})`));
+    }
+    if (ctx.previousSession) await this.d.sessions.destroy(ctx.previousSession);
+    const signedIn = await this.open(row.id, row.role, row.valid_from);
+    await this.audit(ctx, "staff.signin", row.id, { role: row.role });
+    return signedIn;
   }
 
   /** A fresh session id every time (no fixation), and the profile that goes with it. */

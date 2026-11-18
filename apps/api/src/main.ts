@@ -8,10 +8,10 @@ import { loadConfig, requireBackends } from "./config.ts";
 import { Db } from "./db/index.ts";
 
 const config = loadConfig();
-const { databaseUrl, redisUrl, authSecret } = requireBackends(config);
+const { databaseUrl, redisUrl, authSecret, totpKey } = requireBackends(config);
 const db = new Db(databaseUrl);
 const redis = createRedis(redisUrl);
-const auth = await bootAuth(config, { db, redis, authSecret });
+const auth = await bootAuth(config, { db, redis, authSecret, totpKey });
 const pricing = pricingOptions({ db, redis, authSecret });
 const merged = mergeOptions(auth, pricing);
 const app = await createApp(config, { ...auth, controllers: merged.controllers, providers: merged.providers });

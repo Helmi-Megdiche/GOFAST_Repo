@@ -49,13 +49,13 @@ const opened: Db[] = [];
 
 const build = async (
   db: Db,
-  extra: { trustProxy?: number; now?: () => Date; passwords?: Passwords; staffSignIn?: boolean } = {},
+  extra: { trustProxy?: number; now?: () => Date; passwords?: Passwords } = {},
 ) =>
   createApp(
     { trustProxy: extra.trustProxy ?? false },
     authOptions(
-      { nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: extra.staffSignIn ?? false },
-      { db, redis, authSecret: "s".repeat(40), now: extra.now, passwords: extra.passwords },
+      { nodeEnv: "test", allowedOrigins: [ORIGIN] },
+      { db, redis, authSecret: "s".repeat(40), totpKey: Buffer.alloc(32, 3), now: extra.now, passwords: extra.passwords },
     ),
   );
 
@@ -488,7 +488,7 @@ describe("the log of an unexpected error (Blocking 3)", () => {
 });
 
 describe("staff accounts, RV-19 and the audit throttle", () => {
-  it("a staff account with the right password is refused when staff sign-in is off (T60)", async () => {
+  it("GH-25 T60: a staff account with the right password is refused on /v1/sessions, always (the back-office has its own route)", async () => {
     currentIp = "10.4.0.1";
     const phone = "+21620336001";
     const { id } = await newCustomer(phone);

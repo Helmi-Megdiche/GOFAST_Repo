@@ -5,9 +5,10 @@ import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createApp } from "../app.ts";
 import { createRedis, type Redis } from "../auth/redis.ts";
+import { authOptions } from "../auth/wiring.ts";
 import { Db } from "../db/index.ts";
 import { bundledSpecPath } from "../http/spec.ts";
-import { pricingOptions } from "../pricing/wiring.ts";
+import { mergeOptions, pricingOptions } from "../pricing/wiring.ts";
 import { startRedis, startTestDb, type TestDb } from "./harness.ts";
 
 process.env.MSYS_NO_PATHCONV = "1";
@@ -32,7 +33,11 @@ beforeAll(async () => {
        ('Alpha', 'ألفا', 'Alpha', 'Tunis', ST_Multi(ST_GeomFromText('POLYGON((10 36, 10.1 36, 10.1 36.1, 10 36.1, 10 36))', 4326))::geography),
        ('Bravo', 'برافو', 'Bravo', 'Ariana', ST_Multi(ST_GeomFromText('POLYGON((10.1 36, 10.2 36, 10.2 36.1, 10.1 36.1, 10.1 36))', 4326))::geography)`,
   );
-  app = await createApp({ trustProxy: false }, pricingOptions({ db, redis, authSecret: "s".repeat(40) }));
+  // GH-25: the auth module too, for the staff sign-in route.
+  const deps = { db, redis, authSecret: "s".repeat(40), totpKey: Buffer.alloc(32, 6) };
+  const auth = authOptions({ nodeEnv: "test", allowedOrigins: ["https://backoffice.gofast.example"] }, deps);
+  const merged = mergeOptions(auth, pricingOptions(deps));
+  app = await createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers });
   await app.listen(0, "0.0.0.0");
   port = (app.getHttpServer().address() as AddressInfo).port;
 });
@@ -87,5 +92,11 @@ describe("Schemathesis against the contract", () => {
   // invalid body is rejected.
   it("finds no difference on createQuote, which may answer 422 for a valid body", async () => {
     await schemathesis(["createQuote"], ["unsupported_method", "positive_data_acceptance"]);
+  });
+
+  // GH-25 T60: the staff sign-in answers 401 to a schema-valid body that is not a staff member with the right code, which Schemathesis
+  // reads as "rejected" (`positive_data_acceptance`); the contract documents that 401, and 429 after the limits. Every other check runs.
+  it("finds no difference on createStaffSession, which answers 401 for a valid body", async () => {
+    await schemathesis(["createStaffSession"], ["unsupported_method", "positive_data_acceptance"]);
   });
 });
