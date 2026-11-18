@@ -243,7 +243,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm an order that waits for an agent
-         * @description R209, D8. The system confirms an order by itself only for a verified customer under the amount set in the settings; an agent confirms the others. Replay by state: an order that is already confirmed answers 200 again with no new event. An order that is not waiting for confirmation (for example canceled) answers 409 STATE_CONFLICT.
+         * @description R209, D8. The system confirms an order by itself only for a verified customer under the amount set in the settings; an agent confirms the others. Replay by state: an order that is already confirmed answers 200 again with no new event. An order that is not waiting for confirmation (for example canceled) answers 409 STATE_CONFLICT with the field `status` and the reason `notWaitingForConfirmation`.
          */
         post: operations["confirmOrder"];
         delete?: never;
@@ -496,7 +496,7 @@ export interface components {
          */
         CancelFee: "none" | "applies" | "backOfficeDecides";
         CancelRequest: {
-            /** @description The fee the customer saw before cancelling (RV-05). The server compares it with the fee that applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written. */
+            /** @description The fee the customer saw before cancelling (RV-05). The server compares it with the fee that applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written. For staff (agent, operations, logistics, admin) it is the fee they choose to record: `none` (the default, free) or the fee that applies now; any other value gives `feeRequired`. The choice is recorded with the staff member's id. */
             accepted_fee: components["schemas"]["CancelFee"];
         };
         /** @description Replay by state (R212). Cancelling an order that is already canceled answers the same, with no new event. */

@@ -203,7 +203,10 @@ CancelRequest:
     accepted_fee:
       description: >-
         The fee the customer saw before cancelling (RV-05). The server compares it with the fee that
-        applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written.
+        applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written. For staff
+        (agent, operations, logistics, admin) it is the fee they choose to record: `none` (the default,
+        free) or the fee that applies now; any other value gives `feeRequired`. The choice is recorded
+        with the staff member's id.
       $ref: "common.yaml#/CancelFee"
 CancelResult:
   type: object
