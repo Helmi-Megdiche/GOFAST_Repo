@@ -3,6 +3,14 @@
 # Images are pinned by digest; the tag is in the comment. api, ws, worker, web are built from infra/docker.
 name: gofast
 
+# Hardening for the five app containers: code is read-only, /tmp is the only writable path, no extra
+# privileges, no capabilities. Merged into each service with `<<: *hardened`.
+x-hardened: &hardened
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+
 services:
   postgres:
     image: postgis/postgis@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6 # 17-3.5
@@ -115,6 +123,7 @@ services:
   # PgBouncer: advisory lock, one transaction per file). api and worker wait for it. On the laptop
   # it also waits for db-setup (roles must exist); on staging db-setup is run by hand, so not required.
   migrate:
+    <<: *hardened
     image: ${API_IMAGE:-gofast-api:local}
     build: &api-build
       context: ../..
@@ -131,6 +140,7 @@ services:
     restart: "no"
 
   api:
+    <<: *hardened
     image: ${API_IMAGE:-gofast-api:local}
     build: *api-build
     depends_on: &api-deps
@@ -164,6 +174,7 @@ services:
     restart: unless-stopped
 
   ws:
+    <<: *hardened
     image: ${API_IMAGE:-gofast-api:local}
     build: *api-build
     depends_on:
@@ -186,6 +197,7 @@ services:
     restart: unless-stopped
 
   worker:
+    <<: *hardened
     image: ${API_IMAGE:-gofast-api:local}
     build: *api-build
     depends_on:
@@ -211,6 +223,7 @@ services:
     restart: unless-stopped
 
   web:
+    <<: *hardened
     image: ${WEB_IMAGE:-gofast-web:local}
     build:
       context: ../..

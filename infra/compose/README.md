@@ -8,7 +8,7 @@ The images are built from `infra/docker/` (one image for api, ws, worker and mig
 ```
 cd infra/compose
 docker compose --env-file .env.example up -d --build --wait   # db-setup, then migrate, then api, ws, worker, web
-./check.sh                                                    # 38 checks, exit 1 if one fails
+./check.sh                                                    # 50 checks, exit 1 if one fails
 docker compose --env-file .env.example down -v                # stop and erase the data
 ```
 
@@ -21,7 +21,8 @@ Direct to PostgreSQL, never PgBouncer (advisory lock, one transaction per file).
 from the api image. The API itself uses `fastgo_app` through PgBouncer.
 
 Passwords go into connection URLs: on staging use URL-safe characters (letters, digits, `-`, `_`).
-`NEXT_PUBLIC_*` values are inlined into the web image at build time (`SITE_URL`, `API_DOMAINS` in the env file).
+Only values identical in every environment may be `NEXT_PUBLIC_*`: they are inlined into the web image at build time (`SITE_URL`, `API_DOMAINS`), and one image goes to staging and production. Per-environment values stay runtime variables.
+The five app containers run read-only (`/tmp` is a tmpfs), without capabilities and with `no-new-privileges`; the code is owned by root.
 
 ## Order (same on staging)
 

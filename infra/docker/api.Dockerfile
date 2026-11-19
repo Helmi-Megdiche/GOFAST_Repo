@@ -30,7 +30,8 @@ COPY --from=build /app/packages/contract/dist packages/contract/dist
 # PostgreSQL as fastgo_migrator, never through PgBouncer.
 COPY apps/api/src/db apps/api/src/db
 COPY apps/api/migrations apps/api/migrations
-RUN rm -f apps/api/src/db/*.test.ts && chown -R node:node /app
+# Code stays owned by root and only readable by `node`: a bug in the app cannot rewrite its own code.
+RUN rm -f apps/api/src/db/*.test.ts
 USER node
 WORKDIR /app/apps/api
 EXPOSE 4000 4001 4002

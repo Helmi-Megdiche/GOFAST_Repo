@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
-# Checks the laptop stack (PR 1 of #14). Fake values from .env.example only.
+# Checks the laptop stack (PR 1 and 2 of #14). Fake values from .env.example only.
 #   cd infra/compose && docker compose --env-file .env.example up -d --wait && ./check.sh
 # Every check has a "must fail" twin: a check that cannot fail proves nothing (RV-12).
 # Exit code 0 only when every line is OK.
 set -uo pipefail
+export MSYS_NO_PATHCONV=1  # Git Bash on Windows would rewrite container paths such as /app
 cd "$(dirname "$0")"
 set -a; . ./.env.example; set +a
 
@@ -101,5 +102,28 @@ for s in api ws worker web; do
 done
 r=$("${DC[@]}" run --rm -T --no-deps migrate 2>&1 | tail -1)
 [ "$r" = "nothing to apply" ] && ok "migrate again: nothing to apply" || bad "second migrate run: $r"
+
+# 10. hardening (round 1 of the review): code is read-only, /tmp is the only writable path
+for s in api web; do
+  "${DC[@]}" exec -T "$s" sh -c 'touch /app/write-test' >/dev/null 2>&1 \
+    && bad "$s can write in /app" || ok "$s cannot write in /app"
+  "${DC[@]}" exec -T "$s" sh -c 'touch /tmp/write-test && rm /tmp/write-test' >/dev/null 2>&1 \
+    && ok "$s can write in /tmp" || bad "$s cannot write in /tmp"
+done
+for s in migrate api ws worker web; do
+  r=$("${DC[@]}" config --format json | node -e '
+    const s=JSON.parse(require("fs").readFileSync(0,"utf8")).services[process.argv[1]];
+    const ok=s.read_only===true&&(s.cap_drop||[]).includes("ALL")&&(s.security_opt||[]).includes("no-new-privileges:true")&&s.tmpfs&&s.tmpfs.includes("/tmp");
+    console.log(ok?"yes":"no")' "$s")
+  [ "$r" = yes ] && ok "$s is hardened in compose (read_only, tmpfs, cap_drop, no-new-privileges)" || bad "$s is missing a hardening setting"
+done
+
+# 11. the dev UI is off in the image, and no image carries an env file
+c=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${WEB_PORT}/fr/dev/ui")
+[ "$c" = 404 ] && ok "web /fr/dev/ui answers 404 (dev UI is off)" || bad "web /fr/dev/ui returned $c, expected 404"
+for img in "${API_IMAGE:-gofast-api:local}" "${WEB_IMAGE:-gofast-web:local}"; do
+  r=$(docker run --rm --entrypoint sh "$img" -c 'find / -xdev -name ".env*" -not -name ".env.example" 2>/dev/null')
+  [ -z "$r" ] && ok "$img holds no .env file" || bad "$img holds an env file: $r"
+done
 
 exit $fail
