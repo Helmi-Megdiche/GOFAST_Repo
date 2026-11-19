@@ -1,0 +1,16 @@
+# Build context of infra/docker/*.Dockerfile is the repo root: keep it small and free of secrets.
+.git
+.github
+**/node_modules
+**/.next
+**/dist
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo
+.env
+.env.*
+!.env.example
+!**/.env.example
+.claude
+docs
+infra

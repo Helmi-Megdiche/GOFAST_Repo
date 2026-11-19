@@ -18,6 +18,11 @@ const nextConfig: NextConfig = {
     return origin ? [{ source: "/v1/:path*", destination: origin + "/v1/:path*" }] : [];
   },
   turbopack: { root: path.resolve(process.cwd(), "../..") },
+  // Only the Docker build (infra/docker/web.Dockerfile) sets this: a self-contained server in
+  // .next/standalone. The e2e build keeps `next start`.
+  ...(process.env.NEXT_OUTPUT === "standalone"
+    ? { output: "standalone" as const, outputFileTracingRoot: path.resolve(process.cwd(), "../..") }
+    : {}),
 };
 
 export default withNextIntl(nextConfig);
