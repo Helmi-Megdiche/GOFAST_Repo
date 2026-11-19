@@ -94,9 +94,9 @@ export interface OrdersPort {
   get(actor: Actor, id: string): Promise<OrderOut | null>;
   tracking(number: string, locale: Locale): Promise<TrackingOut | null>;
   /** One transaction: lock the order (then its missions), let `decide` choose, run the compare-and-set. A refusal thrown by `decide` rolls back. */
-  cancel(actor: Actor, id: string, decide: (f: LockedOrder) => CancelDecision, at: Date): Promise<CancelResultOut>;
+  cancel(actor: Actor, id: string, decide: (f: LockedOrder) => CancelDecision, now: () => Date): Promise<CancelResultOut>;
   /** Same for the confirmation: `replay` answers the order as it is, `confirm` runs the compare-and-set. */
-  confirm(actor: Actor, id: string, decide: (f: LockedOrder) => "replay" | "confirm", at: Date): Promise<OrderOut>;
+  confirm(actor: Actor, id: string, decide: (f: LockedOrder) => "replay" | "confirm", now: () => Date): Promise<OrderOut>;
 }
 
 export type OrdersDeps = {
@@ -322,7 +322,7 @@ export class OrdersService {
           feeMillimes: chosen === "applies" ? f.settings.cancelFeeMillimes : null,
         };
       },
-      this.now(),
+      this.now, // read by the repo after the lock, not here: a call that waits for the lock must not carry an earlier time (R406)
     );
   }
 
@@ -336,7 +336,7 @@ export class OrdersService {
         if (f.status !== "received") throw new ApiError("STATE_CONFLICT", [{ name: "status", reason: "notWaitingForConfirmation" }]);
         return "confirm";
       },
-      this.now(),
+      this.now,
     );
   }
 

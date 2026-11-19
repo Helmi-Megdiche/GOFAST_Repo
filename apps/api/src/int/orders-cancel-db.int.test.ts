@@ -163,6 +163,36 @@ describe("GH-22 R212 RV-05 RV-19: core.cancel_order", () => {
   });
 });
 
+describe("GH-22 R406: the time of a change is never before the last event of the order", () => {
+  const LAST = "2026-12-30T10:00:00.000Z";
+  const BEFORE = "2026-12-30T09:00:00.000Z";
+  const confirm = (a: Actor, id: string, at: string) => open("fastgo_app").withActor(a, (tx) => tx.execute(sql`select core.confirm_order(${id}::uuid, ${at}::timestamptz)`));
+  const withEvent = async () => {
+    const id = await newOrder();
+    await q("insert into core.status_events (order_id, subject_type, subject_id, to_status, occurred_at) values ($1, 'order', $1, 'received', $2)", [id, LAST]);
+    return id;
+  };
+
+  it("cancel_order raises a p_at before the last event to it: the events, canceled_at and updated_at all carry that instant", async () => {
+    const id = await withEvent();
+    await mission(id, "proposed");
+    await cancel(owner(), id, "received", "none", null, BEFORE);
+    const events = (await q("select subject_type, occurred_at from core.status_events where order_id = $1 order by seq", [id])).rows;
+    expect(events.every((e) => e.occurred_at.getTime() === Date.parse(LAST))).toBe(true);
+    expect(await one("select canceled_at, updated_at, ended_at from core.orders where id = $1", [id])).toEqual({ canceled_at: new Date(LAST), updated_at: new Date(LAST), ended_at: new Date(LAST) });
+    expect((await one("select finished_at from core.missions where order_id = $1", [id])).finished_at).toEqual(new Date(LAST));
+  });
+
+  it("confirm_order does the same, and a later p_at is kept as it is", async () => {
+    const id = await withEvent();
+    await confirm(staff("agent"), id, BEFORE);
+    expect((await one("select occurred_at from core.status_events where order_id = $1 and to_status = 'confirmed'", [id])).occurred_at).toEqual(new Date(LAST));
+    const other = await withEvent();
+    await confirm(staff("agent"), other, "2026-12-30T11:00:00.000Z");
+    expect((await one("select occurred_at from core.status_events where order_id = $1 and to_status = 'confirmed'", [other])).occurred_at).toEqual(new Date("2026-12-30T11:00:00.000Z"));
+  });
+});
+
 describe("GH-22 R209 R212: core.confirm_order and core.auto_confirm_order", () => {
   const confirm = (a: Actor, id: string, at = AT) => open("fastgo_app").withActor(a, (tx) => tx.execute(sql`select core.confirm_order(${id}::uuid, ${at}::timestamptz)`));
   const auto = (a: Actor, id: string, at = AT) => open("fastgo_app").withActor(a, (tx) => tx.execute(sql`select core.auto_confirm_order(${id}::uuid, ${at}::timestamptz)`));

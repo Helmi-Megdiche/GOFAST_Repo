@@ -276,24 +276,24 @@ export class OrdersRepo implements OrdersPort {
     };
   }
 
-  async cancel(actor: Actor, id: string, decide: (f: LockedOrder) => CancelDecision, at: Date): Promise<CancelResultOut> {
+  async cancel(actor: Actor, id: string, decide: (f: LockedOrder) => CancelDecision, now: () => Date): Promise<CancelResultOut> {
     return this.definer(() =>
       this.run(actor, async (tx) => {
         const decision = decide(await this.lock(tx, id, "cancel"));
         if (decision.kind === "replay") return { status: "canceled" as const, fee: decision.fee };
         await tx.execute(
-          sql`select core.cancel_order(${id}::uuid, ${decision.expectedStatus}, ${decision.fee}, ${decision.feeMillimes}::bigint, ${at.toISOString()}::timestamptz)`,
+          sql`select core.cancel_order(${id}::uuid, ${decision.expectedStatus}, ${decision.fee}, ${decision.feeMillimes}::bigint, ${now().toISOString()}::timestamptz)`, // the clock is read after the lock (R406)
         );
         return { status: "canceled" as const, fee: decision.fee };
       }),
     );
   }
 
-  async confirm(actor: Actor, id: string, decide: (f: LockedOrder) => "replay" | "confirm", at: Date): Promise<OrderOut> {
+  async confirm(actor: Actor, id: string, decide: (f: LockedOrder) => "replay" | "confirm", now: () => Date): Promise<OrderOut> {
     return this.definer(() =>
       this.run(actor, async (tx) => {
         if (decide(await this.lock(tx, id, "confirm")) === "confirm") {
-          await tx.execute(sql`select core.confirm_order(${id}::uuid, ${at.toISOString()}::timestamptz)`);
+          await tx.execute(sql`select core.confirm_order(${id}::uuid, ${now().toISOString()}::timestamptz)`);
         }
         return stripCursor((await this.read(tx, sql`o.id = ${id}::uuid`))[0]!);
       }),

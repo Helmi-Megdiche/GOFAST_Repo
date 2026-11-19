@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { Logger } from "@nestjs/common";
+import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.ts";
 import { runSmsOutbox } from "../auth/outbox-worker.ts";
@@ -933,6 +934,49 @@ describe("GH-22 R209 R202: POST /v1/orders/{id}/confirm", () => {
       expect(await statusOf(order.id)).toBe("canceled");
       const orderEvents = (await q("select to_status from core.status_events where order_id = $1 and subject_type = 'order' order by seq", [order.id])).rows.map((e) => e.to_status);
       expect(orderEvents).toEqual(f.statusCode === 200 ? ["received", "confirmed", "canceled"] : ["received", "canceled"]);
+      // the history reads in the order the operations committed: the time never goes back along `seq`
+      const times = (await q("select occurred_at from core.status_events where order_id = $1 order by seq", [order.id])).rows.map((e) => (e.occurred_at as Date).getTime());
+      expect(times, "occurred_at follows seq").toEqual([...times].sort((x, y) => x - y));
+    }
+  });
+
+  it("the clock of a cancel is read AFTER the lock: a confirm that commits while the cancel waits is never stamped after it (t0 < t1 in the old order)", async () => {
+    ip = "10.20.9.3";
+    const who = await customer();
+    const order = await unpinnedOrder(who);
+    const clock = { offset: 0 };
+    const lagging = await buildApp(() => new Date(Date.now() + clock.offset));
+    const holder = new pg.Client({ connectionString: testDb.url("postgres") });
+    await holder.connect();
+    try {
+      // an agent's confirm in progress: it holds the order row
+      await holder.query("begin");
+      await holder.query("select 1 from core.orders where id = $1 for update", [order.id]);
+      const pending = lagging.inject({
+        method: "POST",
+        url: `/v1/orders/${order.id}/cancel`,
+        remoteAddress: ip,
+        payload: { accepted_fee: "none" },
+        headers: { cookie: `session=${who.cookie}`, origin: ORIGIN },
+      });
+      await new Promise((r) => setTimeout(r, 700)); // the cancel is now waiting for the lock
+      clock.offset = 60_000; // a minute passes while it waits
+      const confirmedAt = new Date(Date.now() + clock.offset).toISOString();
+      await holder.query("update core.orders set status = 'confirmed' where id = $1", [order.id]);
+      await holder.query(
+        "insert into core.status_events (order_id, subject_type, subject_id, from_status, to_status, occurred_at) values ($1, 'order', $1, 'received', 'confirmed', $2)",
+        [order.id, confirmedAt],
+      );
+      await holder.query("commit");
+      const res = await pending;
+      expect(res.statusCode, res.body).toBe(200);
+      const events = (await q("select to_status, occurred_at from core.status_events where order_id = $1 and subject_type = 'order' order by seq", [order.id])).rows;
+      expect(events.map((e) => e.to_status)).toEqual(["received", "confirmed", "canceled"]);
+      const times = events.map((e) => (e.occurred_at as Date).getTime());
+      expect(times, "occurred_at follows seq").toEqual([...times].sort((x, y) => x - y));
+    } finally {
+      await holder.end().catch(() => undefined);
+      await lagging.close();
     }
   });
 });

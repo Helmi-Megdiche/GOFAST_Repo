@@ -66,6 +66,7 @@ end $$;
 grant select (total_millimes, address_unconfirmed, lines, canceled_at, cancel_fee, cancel_fee_millimes) on core.orders to fastgo_order_writer;
 grant update (status, canceled_at, cancel_fee, cancel_fee_millimes, canceled_by) on core.orders to fastgo_order_writer;
 grant update (status) on core.parcels to fastgo_order_writer;
+grant select (occurred_at) on core.status_events to fastgo_order_writer; -- history_time: the last event of the order
 grant select (id, order_id, kind, status, end_reason, arrived_at, offered_at, created_at) on core.missions to fastgo_order_writer;
 grant update (status, end_reason, finished_at) on core.missions to fastgo_order_writer;
 grant select (role) on core.accounts to fastgo_order_writer;
@@ -76,6 +77,14 @@ create policy order_writer_select on core.missions for select to fastgo_order_wr
 create policy order_writer_update on core.missions for update to fastgo_order_writer using (true) with check (true);
 
 -- ---- the definers ---------------------------------------------------------------------------------------------------
+
+-- The time of a change to an order: the API's clock, but never before the last event already written for it. The API reads its clock
+-- after taking the lock; this is the second net, for two API processes whose clocks differ a little. The history then reads in the
+-- order the operations committed (`seq` breaks a tie).
+create function core.history_time(p_order uuid, p_at timestamptz) returns timestamptz
+  language sql stable set search_path = pg_catalog, core, pg_temp as $$
+  select greatest(p_at, coalesce((select max(e.occurred_at) from core.status_events e where e.order_id = p_order), p_at))
+$$;
 
 -- Who is asking, from the STORED account (RV-19, RV-20), never from a claim: the person must be an active account, and either
 -- own the order (or sit in its company) or hold a staff role of the mode. Another account's order is "not found".
@@ -131,9 +140,11 @@ declare
   v_actor uuid := core.app_user_id();
   v_status text;
   v_amount bigint;
+  v_at timestamptz;
 begin
   perform core.assert_order_actor(p_order, 'cancel');
   select o.status into v_status from core.orders o where o.id = p_order for update;
+  v_at := core.history_time(p_order, p_at);
   perform 1 from core.missions m where m.order_id = p_order and m.kind = 'pickup' for update;
   if v_status is distinct from p_status then
     raise exception 'order state conflict: expected %, found %', p_status, v_status using errcode = 'serialization_failure';
@@ -146,37 +157,40 @@ begin
     raise exception 'invalid cancel fee amount' using errcode = 'invalid_parameter_value';
   end if;
 
-  perform set_config('app.at', p_at::text, true);
-  update core.orders set status = 'canceled', canceled_at = p_at, cancel_fee = p_fee,
+  perform set_config('app.at', v_at::text, true);
+  update core.orders set status = 'canceled', canceled_at = v_at, cancel_fee = p_fee,
          cancel_fee_millimes = case when p_fee = 'applies' then p_fee_millimes end, canceled_by = v_actor
    where id = p_order;
   insert into core.status_events (order_id, subject_type, subject_id, from_status, to_status, actor_id, occurred_at)
-    values (p_order, 'order', p_order, p_status, 'canceled', v_actor, p_at);
+    values (p_order, 'order', p_order, p_status, 'canceled', v_actor, v_at);
   with u as (update core.parcels set status = 'canceled' where order_id = p_order and status = 'to_collect' returning id)
   insert into core.status_events (order_id, subject_type, subject_id, from_status, to_status, actor_id, occurred_at)
-    select p_order, 'parcel', u.id, 'to_collect', 'canceled', v_actor, p_at from u;
+    select p_order, 'parcel', u.id, 'to_collect', 'canceled', v_actor, v_at from u;
   with old as (select m.id, m.status from core.missions m
                 where m.order_id = p_order and m.kind = 'pickup' and m.status in ('proposed', 'accepted', 'arrived') and m.end_reason is null),
-       u as (update core.missions m set status = 'finished', end_reason = 'orderCanceled', finished_at = p_at
+       u as (update core.missions m set status = 'finished', end_reason = 'orderCanceled', finished_at = v_at
               from old where m.id = old.id returning m.id)
   insert into core.status_events (order_id, subject_type, subject_id, from_status, to_status, actor_id, occurred_at)
-    select p_order, 'mission', old.id, old.status, 'finished', v_actor, p_at from old join u on u.id = old.id;
+    select p_order, 'mission', old.id, old.status, 'finished', v_actor, v_at from old join u on u.id = old.id;
 end $$;
 
 -- An agent confirms (R209: the others). Compare-and-set `received` to `confirmed`, with the event and the actor.
 create function core.confirm_order(p_order uuid, p_at timestamptz) returns void
   language plpgsql security definer set search_path = pg_catalog, core, pg_temp as $$
-declare v_status text;
+declare
+  v_status text;
+  v_at timestamptz;
 begin
   perform core.assert_order_actor(p_order, 'confirm');
   select o.status into v_status from core.orders o where o.id = p_order for update;
   if v_status is distinct from 'received' then
     raise exception 'order state conflict: %', v_status using errcode = 'serialization_failure';
   end if;
-  perform set_config('app.at', p_at::text, true);
+  v_at := core.history_time(p_order, p_at);
+  perform set_config('app.at', v_at::text, true);
   update core.orders set status = 'confirmed' where id = p_order;
   insert into core.status_events (order_id, subject_type, subject_id, from_status, to_status, actor_id, occurred_at)
-    values (p_order, 'order', p_order, 'received', 'confirmed', core.app_user_id(), p_at);
+    values (p_order, 'order', p_order, 'received', 'confirmed', core.app_user_id(), v_at);
 end $$;
 
 -- The system confirms (R209): the API has decided with canAutoConfirm (domain) under the lock; here only the compare-and-set and the
@@ -193,7 +207,7 @@ begin
   if v_status is distinct from 'received' then
     raise exception 'order state conflict: %', v_status using errcode = 'serialization_failure';
   end if;
-  v_at := greatest(p_at, v_created);
+  v_at := core.history_time(p_order, greatest(p_at, v_created));
   perform set_config('app.at', v_at::text, true);
   update core.orders set status = 'confirmed' where id = p_order;
   insert into core.status_events (order_id, subject_type, subject_id, from_status, to_status, actor_id, occurred_at)
@@ -201,6 +215,7 @@ begin
 end $$;
 
 -- Execute rights first, while the migrator still owns the functions; then the ownership (as in 0005 and 0011).
+revoke execute on function core.history_time(uuid, timestamptz) from public;
 revoke execute on function core.assert_order_actor(uuid, text) from public;
 revoke execute on function core.lock_order(uuid, text) from public;
 revoke execute on function core.cancel_order(uuid, text, text, bigint, timestamptz) from public;
@@ -211,6 +226,7 @@ grant execute on function core.cancel_order(uuid, text, text, bigint, timestampt
 grant execute on function core.confirm_order(uuid, timestamptz) to fastgo_app;
 grant execute on function core.auto_confirm_order(uuid, timestamptz) to fastgo_app;
 grant create on schema core to fastgo_order_writer;
+alter function core.history_time(uuid, timestamptz) owner to fastgo_order_writer;
 alter function core.assert_order_actor(uuid, text) owner to fastgo_order_writer;
 alter function core.lock_order(uuid, text) owner to fastgo_order_writer;
 alter function core.cancel_order(uuid, text, text, bigint, timestamptz) owner to fastgo_order_writer;

@@ -216,7 +216,7 @@ const ORDER_WRITER: Record<string, Rights> = {
   "core.recipients": { c: { SELECT: ["id", "phone_e164"] } },
   "core.status_events": {
     c: {
-      SELECT: ["id", "order_id", "subject_type"],
+      SELECT: ["id", "occurred_at", "order_id", "subject_type"], // occurred_at: core.history_time (the time of a change is never before the last event)
       INSERT: ["actor_id", "from_status", "occurred_at", "order_id", "subject_id", "subject_type", "to_status"],
     },
   },
