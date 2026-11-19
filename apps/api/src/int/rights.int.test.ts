@@ -106,7 +106,7 @@ const EXPECTED: Record<string, Expect> = {
     ro: "no-hash",
     rls: true,
   },
-  "core.missions": OWNED,
+  "core.missions": { app: ["INSERT", "SELECT"], ro: "no-hash", rls: true }, // GH-22 RV-01: no UPDATE, the definers move a mission
   // GH-96: no table-level SELECT, so the driver's position and the actor stay hidden from the app.
   "core.status_events": {
     app: ["INSERT"],

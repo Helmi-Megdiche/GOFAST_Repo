@@ -33,6 +33,7 @@ grant update (pickup_address_id, recipient_id) on core.orders to fastgo_app;
 -- paths lock the child, then the order, the other way round from lock_order, so they could deadlock with it). No code of the API
 -- writes them; #26 (assignment, scans) adds definers that do, and they lock the order first.
 revoke update (status) on core.parcels from fastgo_app;
+revoke update on core.missions from fastgo_app; -- refused (42501), not 0 rows; the policy goes too, so a later grant alone lets nothing through
 drop policy missions_update on core.missions;
 
 -- ---- the API clock in the triggers (R406) ---------------------------------------------------------------------------

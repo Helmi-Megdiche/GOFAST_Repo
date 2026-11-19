@@ -117,16 +117,20 @@ describe("GH-22 RV-01 RV-21: the app login no longer writes the status of a parc
     expect(await one("select status, weight_declared_g from core.parcels where id = $1", [parcel])).toEqual({ status: "to_collect", weight_declared_g: 801 });
   });
 
-  it("no policy lets the app login update a mission: staff update 0 rows, whatever they set", async () => {
+  it("the app login has no update right on missions: refused (42501), not 0 rows, whoever asks; and no policy would let it", async () => {
     const id = await newOrder();
     await mission(id, "proposed");
     const app = open("fastgo_app");
     for (const who of [staff("admin"), staff("operations"), staff("logistics")]) {
-      const r = await app.withActor(who, (tx) => tx.execute(sql.raw(`update core.missions set status = 'finished', end_reason = 'orderCanceled' where order_id = '${id}'`)));
-      expect(r.rowCount, who.role).toBe(0);
+      const err = await app.withActor(who, (tx) => tx.execute(sql.raw(`update core.missions set status = 'finished', end_reason = 'orderCanceled' where order_id = '${id}'`))).catch((e) => e);
+      expect((err.cause ?? err).code, who.role).toBe("42501");
     }
+    await expectDbError(app.withActor(staff("admin"), (tx) => tx.execute(sql.raw(`update core.missions set status = 'finished' where order_id = '${id}'`))), /permission denied/i);
     expect(await one("select status, end_reason from core.missions where order_id = $1", [id])).toEqual({ status: "proposed", end_reason: null });
+    expect((await q("select has_table_privilege('fastgo_app', 'core.missions', 'update') as u, has_any_column_privilege('fastgo_app', 'core.missions', 'update') as c")).rows[0]).toEqual({ u: false, c: false });
     expect((await q("select count(*)::int as n from pg_policies where schemaname = 'core' and tablename = 'missions' and cmd in ('UPDATE', 'ALL') and 'fastgo_app' = any (roles)")).rows[0].n).toBe(0);
+    // dispatch still inserts and reads
+    await app.withActor(staff("operations"), (tx) => tx.execute(sql.raw(`select count(*) from core.missions where order_id = '${id}'`)));
   });
 
   it("lock_order takes the order row FOR NO KEY UPDATE: a parcel added meanwhile (a foreign-key check) does not wait for it, so lock order cannot deadlock with it", async () => {
