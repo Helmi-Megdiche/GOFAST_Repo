@@ -11,9 +11,10 @@ alter table core.orders
   add column cancel_fee text check (cancel_fee in ('none', 'applies', 'backOfficeDecides')),
   add column cancel_fee_millimes bigint check (cancel_fee_millimes >= 0),
   add column canceled_by uuid references core.accounts (id),
-  -- A date and a fee go together; the amount is set exactly when the fee applies (R212, R601 reads the stored amount).
+  -- A date and a fee go together; the amount is set exactly when the fee applies (R212, R601 reads the stored amount). `is not distinct
+  -- from` because with no fee `null = 'applies'` is null, and a CHECK lets null through.
   add constraint orders_cancel_fee check ((canceled_at is null) = (cancel_fee is null)
-    and (cancel_fee = 'applies') = (cancel_fee_millimes is not null)),
+    and (cancel_fee is not distinct from 'applies') = (cancel_fee_millimes is not null)),
   -- An order made by the API says when it was canceled (a row made before 0011 has no quote and is not held to it).
   add constraint orders_canceled_at check (quote_id is null or (status = 'canceled') = (canceled_at is not null));
 grant select (canceled_at, cancel_fee, cancel_fee_millimes, canceled_by) on core.orders to fastgo_readonly;

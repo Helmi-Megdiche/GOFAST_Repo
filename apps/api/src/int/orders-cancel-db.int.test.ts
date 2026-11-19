@@ -82,6 +82,9 @@ describe("GH-22 R212 R504: the cancel columns, their CHECKs and the two settings
     await expectDbError(set("canceled_at = now(), cancel_fee = 'applies'"), /cancel_fee/i);
     await expectDbError(set("canceled_at = now(), cancel_fee = 'none', cancel_fee_millimes = 5000"), /cancel_fee/i);
     await expectDbError(set("cancel_fee = 'none'"), /cancel/i); // a fee with no date
+    // The NULL hole: no date, no fee, but an amount. `null = 'applies'` is null, which a CHECK lets through.
+    await expectDbError(set("canceled_at = null, cancel_fee = null, cancel_fee_millimes = 5000"), /orders_cancel_fee/i);
+    await expectDbError(set("cancel_fee_millimes = 0"), /orders_cancel_fee/i);
     await set("status = 'canceled', canceled_at = now(), cancel_fee = 'applies', cancel_fee_millimes = 5000");
   });
 
