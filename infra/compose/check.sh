@@ -19,7 +19,7 @@ psql_as() { # user password host port sql
 }
 
 # 1. services healthy
-for s in postgres pgbouncer redis s3; do
+for s in postgres pgbouncer redis s3 api ws worker web; do
   st=$("${DC[@]}" ps --format '{{.Health}}' "$s")
   [ "$st" = healthy ] && ok "$s healthy" || bad "$s is '$st', expected healthy"
 done
@@ -85,5 +85,21 @@ s3cli "$S3_SECRET_KEY" s3 rb "s3://$bucket" >/dev/null
 # 8. migrations applied (run from the host: pnpm --filter @fastgo/api db:migrate)
 r=$(psql_as postgres "$POSTGRES_PASSWORD" postgres 5432 "select count(*) from information_schema.tables where table_schema in ('core','gestion')")
 [ "${r:-0}" -gt 0 ] 2>/dev/null && ok "migrations applied ($r tables in core and gestion)" || bad "no table in core/gestion: run db:migrate (got '$r')"
+
+# 9. the app images (PR 2): answers, runs as non-root, migrations are idempotent
+c=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${API_PORT}/v1/health")
+[ "$c" = 200 ] && ok "api /v1/health answers 200" || bad "api /v1/health returned $c, expected 200"
+c=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${API_PORT}/v1/no-such-route")
+[ "$c" = 404 ] && ok "api answers 404 on an unknown route" || bad "api unknown route returned $c, expected 404"
+c=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${WEB_PORT}/fr")
+[ "$c" = 200 ] && ok "web /fr answers 200" || bad "web /fr returned $c, expected 200"
+c=$(curl -s -o /dev/null -w "%{http_code}" "http://127.0.0.1:${WEB_PORT}/fr/no-such-page")
+[ "$c" = 404 ] && ok "web answers 404 on an unknown page" || bad "web unknown page returned $c, expected 404"
+for s in api ws worker web; do
+  r=$("${DC[@]}" exec -T "$s" id -u)
+  [ "$r" != 0 ] && ok "$s runs as a non-root user (uid $r)" || bad "$s runs as root"
+done
+r=$("${DC[@]}" run --rm -T --no-deps migrate 2>&1 | tail -1)
+[ "$r" = "nothing to apply" ] && ok "migrate again: nothing to apply" || bad "second migrate run: $r"
 
 exit $fail

@@ -1,6 +1,6 @@
 # GOFAST stack (#14). One file for the laptop and for staging; compose.staging.yaml overrides it.
 # Laptop: docker compose --env-file .env.example up -d      (fake values, db-setup runs by itself)
-# Images are pinned by digest; the tag is in the comment. api, ws, worker, web: see the Dockerfile PR.
+# Images are pinned by digest; the tag is in the comment. api, ws, worker, web are built from infra/docker.
 name: gofast
 
 services:
@@ -78,7 +78,7 @@ services:
 
   redis:
     image: redis@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe # 7.4-alpine
-    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    command: ["sh", "-c", 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set it in the env file}
       REDISCLI_AUTH: ${REDIS_PASSWORD}
@@ -106,6 +106,128 @@ services:
       - "127.0.0.1:${S3_PORT:-18333}:8333"
     healthcheck:
       test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # One-shot: applies apps/api/migrations straight to postgres as fastgo_migrator (never through
+  # PgBouncer: advisory lock, one transaction per file). api and worker wait for it. On the laptop
+  # it also waits for db-setup (roles must exist); on staging db-setup is run by hand, so not required.
+  migrate:
+    image: ${API_IMAGE:-gofast-api:local}
+    build: &api-build
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
+        required: false
+    environment:
+      DATABASE_MIGRATOR_URL: postgres://fastgo_migrator:${FASTGO_MIGRATOR_PASSWORD:?set it in the env file}@postgres:5432/fastgo
+    command: ["node", "src/db/cli.ts"]
+    restart: "no"
+
+  api:
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on: &api-deps
+      migrate:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment: &api-env
+      NODE_ENV: ${APP_ENV:-development}
+      TRUST_PROXY: ${TRUST_PROXY:-0}
+      DATABASE_URL: postgres://fastgo_app:${FASTGO_APP_PASSWORD:?set it in the env file}@pgbouncer:5432/fastgo
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      AUTH_SECRET: ${AUTH_SECRET:?set it in the env file}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:13000}
+    command: ["node", "dist/main.js"]
+    ports:
+      - "127.0.0.1:${API_PORT:-14000}:4000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/v1/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  ws:
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: ${APP_ENV:-development}
+    command: ["node", "dist/ws.js"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  worker:
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgres://fastgo_worker:${FASTGO_WORKER_PASSWORD:?set it in the env file}@pgbouncer:5432/fastgo
+    command: ["node", "dist/worker.js"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4002/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    image: ${WEB_IMAGE:-gofast-web:local}
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:13000}
+        NEXT_PUBLIC_API_DOMAINS: ${API_DOMAINS:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-13000}:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/fr').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
       interval: 5s
       timeout: 3s
       retries: 20
