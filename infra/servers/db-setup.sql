@@ -43,6 +43,8 @@ select format('create role %I login', r) from unnest(array[
  where not exists (select 1 from pg_roles where rolname = r) \gexec
 select 'create role fastgo_public_reader nologin'
  where not exists (select 1 from pg_roles where rolname = 'fastgo_public_reader') \gexec
+select 'create role fastgo_order_writer nologin'
+ where not exists (select 1 from pg_roles where rolname = 'fastgo_order_writer') \gexec
 
 \if :from_vars
   alter role fastgo_migrator password :'pw_migrator';
@@ -62,6 +64,9 @@ select 'create role fastgo_public_reader nologin'
 -- Migration 0005 hands the SECURITY DEFINER functions to fastgo_public_reader. SET only: the migrator
 -- may switch to that role but does not inherit its rights. 0005 stops if this line is missing.
 grant fastgo_public_reader to fastgo_migrator with inherit false, set true;
+-- Migration 0011 hands the order-history definers (record_order_created, sms_tracking_payload) to
+-- fastgo_order_writer, with the same SET-only grant. 0011 stops if this line is missing.
+grant fastgo_order_writer to fastgo_migrator with inherit false, set true;
 
 create extension if not exists postgis;
 grant create on database fastgo to fastgo_migrator;

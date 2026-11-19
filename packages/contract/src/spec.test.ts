@@ -417,4 +417,29 @@ describe("GH-10 pricing contract (Plan PR 4b-1)", () => {
     expect(JSON.stringify(quote.tax_basis)).toContain('"ht"');
     expect(JSON.stringify(quote.tax_basis)).toContain('"null"');
   });
+
+  it("GH-22 R204 R206: an order names the zone of each address and says when an address is unconfirmed", () => {
+    const order = props("Order");
+    expect(required("Order")).toEqual(expect.arrayContaining(["address_unconfirmed", "departure", "arrival"]));
+    expect(order.address_unconfirmed).toMatchObject({ type: "boolean" });
+    for (const side of ["departure", "arrival"]) expect(order[side]).toMatchObject({ $ref: "#/components/schemas/QuoteZone" });
+  });
+
+  it("GH-22 RV-05 R607: createOrder lists the 422 reasons it can answer", () => {
+    const op = operations.find((o) => o.id === "createOrder")?.op as Json;
+    for (const reason of [
+      "quoteChanged",
+      "phoneRequired",
+      "contractRequired",
+      "addressMismatch",
+      "tooManyParcels",
+      "freightPayerRequired",
+    ])
+      expect(String(op.description), reason).toContain(reason);
+  });
+
+  it("GH-22 R405 R903: the public tracking says that the city names follow Accept-Language", () => {
+    const op = operations.find((o) => o.id === "getTracking")?.op as Json;
+    expect(String(op.description)).toContain("Accept-Language");
+  });
 });

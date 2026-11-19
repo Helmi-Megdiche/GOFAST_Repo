@@ -236,18 +236,22 @@ describe("definer functions", () => {
       "login_account",
       "mark_phone_verified",
       "recipient_link",
+      "record_order_created",
       "rehash_password",
       "session_account",
       "set_password",
+      "sms_tracking_payload",
       "tracking",
     ]);
     for (const f of r.rows) {
       // GH-10 round 2: account_for_login was replaced by login_account (0006); the app may no longer call it.
+      // GH-22: the two order definers belong to fastgo_order_writer; the worker (not the app) reads the SMS payload.
+      const orderWriter = f.proname === "record_order_created" || f.proname === "sms_tracking_payload";
       expect(f, f.proname).toMatchObject({
-        owner: "fastgo_public_reader",
-        app: f.proname !== "account_for_login",
+        owner: orderWriter ? "fastgo_order_writer" : "fastgo_public_reader",
+        app: f.proname !== "account_for_login" && f.proname !== "sms_tracking_payload",
         ro: false,
-        worker: false,
+        worker: f.proname === "sms_tracking_payload",
       });
       expect(f.cfg, f.proname).toContain("search_path=pg_catalog, core");
     }
@@ -264,13 +268,14 @@ describe("definer functions", () => {
     const zone = randomUUID();
     await q("insert into core.zones (id, name, name_ar, name_en) values ($1, 'Tunis', 'تونس', 'Tunis')", [zone]);
     await q("update core.addresses set zone_id = $1 where id = $2", [zone, ids.addressA]);
-    const res = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-AAAA-0001') as t`));
+    const res = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-AAAA-0001', 'fr') as t`));
     const t = (res.rows[0] as { t: Record<string, unknown> }).t;
-    expect(Object.keys(t).sort()).toEqual(["createdAt", "deliveryZone", "history", "pickupZone", "status", "updatedAt"]);
-    expect(t).toMatchObject({ status: "received", pickupZone: "Tunis", deliveryZone: null });
+    // GH-22: the keys of the contract's PublicTracking (the zones come from the addresses of an order with no quote).
+    expect(Object.keys(t).sort()).toEqual(["eta_at", "from_city", "history", "parcel_count", "parcel_outcomes", "status", "to_city"]);
+    expect(t).toMatchObject({ status: "received", from_city: "Tunis", to_city: null, eta_at: null });
     const text = JSON.stringify(t);
     for (const secret of ["Rue Test A", "Destinataire", "+216", "48500", "POINT"]) expect(text).not.toContain(secret);
-    const none = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-ZZZZ-9999') as t`));
+    const none = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-ZZZZ-9999', 'fr') as t`));
     expect((none.rows[0] as { t: unknown }).t).toBeNull();
   });
 
@@ -432,6 +437,28 @@ describe("RV-21: protected columns", () => {
       ["status", "'delivered'", true],
       ["pickup_address_id", "null::uuid", true],
       ["recipient_id", "null::uuid", true],
+      // GH-22 (migration 0011): written once at creation, by nobody afterwards.
+      ["quote_id", "gen_random_uuid()", false],
+      ["lines", "'[]'::jsonb", false],
+      ["null_lines", "'{}'::text[]", false],
+      ["price_list_valid_from", "now()", false],
+      ["departure_zone_id", "null::uuid", false],
+      ["arrival_zone_id", "null::uuid", false],
+      ["address_unconfirmed", "true", false],
+      ["sender_name", "'X'", false],
+      ["sender_phone", "'+21620000000'", false],
+      ["pickup_slot_start", "now()", false],
+      ["pickup_slot_end", "now()", false],
+      ["delivery_slot_start", "now()", false],
+      ["delivery_slot_end", "now()", false],
+      ["delivery_instructions", "'X'", false],
+      ["content", "'X'", false],
+      ["fragile", "true", false],
+      ["packaging", "true", false],
+      ["declared_value_millimes", "1", false],
+      ["freight_payer_accepted", "true", false],
+      ["terms_accepted_at", "now()", false],
+      ["idempotency_body_hash", "'x'", false],
     ];
     it("lists every column of the table, so a new column cannot be forgotten", async () => {
       const r = await q(
@@ -585,6 +612,7 @@ describe("RV-21: protected columns", () => {
       ["attempts", "1", true],
       ["updated_at", "now() + interval '1 day'", false],
       ["status", "'delivered'", true],
+      ["position", "9", false], // GH-22: set once, at creation
     ];
     it("lists every column of the table", async () => {
       const r = await q("select column_name from information_schema.columns where table_schema = 'core' and table_name = 'parcels'");
@@ -694,7 +722,7 @@ describe("RV-21: protected columns", () => {
       );
       expect((await q("select count(*)::int as n from core.status_events where order_id = $1", [order])).rows[0].n).toBe(0);
       const t = await app().withActor({ userId: "", accountId: "", role: "individual" }, (tx) =>
-        tx.execute(sql`select core.tracking(${tracking}) as t`),
+        tx.execute(sql`select core.tracking(${tracking}, 'fr') as t`),
       );
       expect((t.rows[0] as { t: { status: string } }).t.status).toBe("received");
     });

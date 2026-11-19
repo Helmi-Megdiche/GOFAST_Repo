@@ -5,7 +5,14 @@ post:
     Idempotent (R202). The server refuses a quote that expired (410 QUOTE_EXPIRED), a total that is
     not the quote's (RV-05), a phone that is not verified, a payment on account without a validated
     contract (R104) and more parcels than the settings allow. An unknown `quote_id` answers 404
-    NOT_FOUND; an unverified phone answers 422 RULE_REFUSED `phoneRequired` (field `phone_check_id`). Writes the order, its parcels and the
+    NOT_FOUND; an unverified phone answers 422 RULE_REFUSED `phoneRequired` (field `phone_check_id`). The 422
+    reasons are `quoteChanged` (the grid or `accepted_total_millimes` moved, RV-05), `phoneRequired`,
+    `contractRequired` (payment `account`, until contracts exist), `addressMismatch` (an address is not the
+    quoted one), `tooManyParcels`, `freightPayerRequired` (`cashDelivery` without the R607 acceptance) and `slotInvalid` (field
+    `service.slot` or `sender.slot`: `scheduled` with no slot, a slot for another service, a window that ends before it starts, a
+    pickup window already over; checked before the phone proof is spent),
+    and `invalid` on `phone_check_id` for a spent or wrong proof. A proof for `sender.phone` lets the order
+    through; the account is marked verified only when that phone is the account's phone. Writes the order, its parcels and the
     tracking SMS in the outbox in one transaction. The cahier's role list for the route family
     also names staff; creating an order on behalf of a customer is not in this version.
   tags: [orders]

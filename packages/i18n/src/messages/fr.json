@@ -1743,9 +1743,16 @@
     "addressUnconfirmed": "Cette adresse n'a pas pu être placée sur la carte : choisissez la délégation dans la liste.",
     "tooManyParcels": "Il y a trop de colis pour une seule commande.",
     "tooHeavy": "Un colis dépasse le poids maximal.",
-    "priceUnavailable": "Le prix de cette option n'est pas encore disponible."
+    "priceUnavailable": "Le prix de cette option n'est pas encore disponible.",
+    "quoteChanged": "Le prix a changé : vérifiez le nouveau total avant de valider.",
+    "phoneRequired": "Vérifiez votre numéro de téléphone par SMS pour passer commande.",
+    "contractRequired": "Le paiement sur compte demande un contrat validé.",
+    "addressMismatch": "Les adresses ne sont pas celles du prix calculé : calculez le prix à nouveau.",
+    "freightPayerRequired": "Acceptez les conditions du port dû pour payer à la livraison.",
+    "slotInvalid": "Le créneau choisi n'est pas valable : vérifiez les heures, ou choisissez un créneau à venir."
   },
   "apiSms": {
-    "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne."
+    "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne.",
+    "tracking": "GOFAST : un colis vous est destiné. Numéro de suivi {tracking_number}. Suivez-le ici : {link}"
   }
 }

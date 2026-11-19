@@ -28,6 +28,8 @@ const Env = z.object({
   AUTH_SECRET: z.string().min(32).optional(),
   /** Origins that may write with a session cookie (CSRF). Comma separated, e.g. https://gofast.tn. */
   ALLOWED_ORIGINS: z.string().default(""),
+  /** The public web origin, for the link of the tracking SMS (https://gofast.tn). Required in production. */
+  PUBLIC_WEB_URL: z.string().optional(),
   /** Staff sign-in by password. Off by default; refused in production until back-office 2FA (T60). */
   STAFF_SIGNIN: flag,
   /** Only `fake` exists for now (it sends nothing); the provider is not chosen yet. */
@@ -46,6 +48,7 @@ export type Config = {
   redisUrl?: string;
   authSecret?: string;
   allowedOrigins: string[];
+  publicWebUrl?: string;
   staffSignIn: boolean;
   smsProvider: "fake";
 };
@@ -72,11 +75,25 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       throw new Error(`Invalid environment: ALLOWED_ORIGINS: ${origin} must be an origin (scheme, host, port)`);
     }
   }
+  if (e.PUBLIC_WEB_URL !== undefined) {
+    let url: URL | undefined;
+    try {
+      url = new URL(e.PUBLIC_WEB_URL);
+    } catch {
+      url = undefined;
+    }
+    if (!url || url.origin !== e.PUBLIC_WEB_URL) {
+      throw new Error(`Invalid environment: PUBLIC_WEB_URL: ${e.PUBLIC_WEB_URL} must be an origin (scheme, host, port)`);
+    }
+  }
   if (e.NODE_ENV === "production" && e.STAFF_SIGNIN) {
     throw new Error("Invalid environment: STAFF_SIGNIN is refused in production until the back-office 2FA exists (T60)");
   }
   if (e.NODE_ENV === "production" && e.SMS_PROVIDER === "fake") {
     throw new Error("Invalid environment: SMS_PROVIDER=fake sends nothing and is refused in production");
+  }
+  if (e.NODE_ENV === "production" && !e.PUBLIC_WEB_URL) {
+    throw new Error("Invalid environment: PUBLIC_WEB_URL is required in production (the link of the tracking SMS)");
   }
   return {
     port: e.PORT,
@@ -89,6 +106,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     redisUrl: e.REDIS_URL,
     authSecret: e.AUTH_SECRET,
     allowedOrigins,
+    publicWebUrl: e.PUBLIC_WEB_URL,
     staffSignIn: e.STAFF_SIGNIN,
     smsProvider: e.SMS_PROVIDER,
   };

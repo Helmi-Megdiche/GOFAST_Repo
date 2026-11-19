@@ -31,6 +31,13 @@ describe("loadConfig", () => {
       /ALLOWED_ORIGINS/,
     );
   });
+  it("GH-22 R903: PUBLIC_WEB_URL (the link of the tracking SMS) is an origin, optional in dev, required in production", () => {
+    expect(loadConfig({}).publicWebUrl).toBeUndefined();
+    expect(loadConfig({ PUBLIC_WEB_URL: "https://gofast.example" }).publicWebUrl).toBe("https://gofast.example");
+    expect(() => loadConfig({ PUBLIC_WEB_URL: "gofast.example" })).toThrow(/PUBLIC_WEB_URL/);
+    expect(() => loadConfig({ PUBLIC_WEB_URL: "https://gofast.example/fr" })).toThrow(/PUBLIC_WEB_URL/);
+    expect(() => loadConfig({ NODE_ENV: "production", SMS_PROVIDER: "fake" })).toThrow(/SMS_PROVIDER/);
+  });
   it("refuses a short AUTH_SECRET", () => {
     expect(() => loadConfig({ AUTH_SECRET: "short" })).toThrow(/AUTH_SECRET/);
   });
