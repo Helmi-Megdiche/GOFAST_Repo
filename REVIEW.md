@@ -89,6 +89,14 @@ Source: PR B round 1, an address could still be saved, and an order or claim cre
 Use column grants plus WITH CHECK, or a definer function, and test every protected column as that role: the write is refused (or changes 0 rows) and a read-back shows the data unchanged. A policy that hides a row makes UPDATE a silent no-op, so "no error" proves nothing.
 Source: PR 3 round 1, `orders_update` gave the owner table-level UPDATE (status, total, owner), parcels could change after confirmation, and a merchant could insert an order as `confirmed` or a `delivered` status event.
 
+**RV-22. Nothing that cannot be undone happens before the last check, and the database is never the first check.**
+For each write path, list the steps that cannot be undone (a phone proof or code spent, an attempt counter moved, an SMS or email sent, a call to TTN or another provider) and every refusal the client's input can reach, including database CHECK, unique, foreign key and trigger errors. Each database check the input can reach has a service check that runs first and answers as the cahier table says: 400 `VALIDATION_FAILED` with the field, or 422 `RULE_REFUSED`. The database check stays as the last line (T56). A step that cannot be undone and is a database write runs in the same transaction as the main write, so a late refusal rolls it back; any other such step comes after the commit. Test each database check with the smallest input that breaks it: the answer is 400 or 422, the proof still works, no SMS is sent, no row is written. A database error that still reaches the client is a 500 `INTERNAL_ERROR` with a `trace_id` and no table or constraint name in the message. This extends RV-04 to the database.
+Source: #22 PR 4b-2a round 1, a pickup slot that passed the contract hit a database CHECK (23514) and gave a 500 after the phone proof was spent; a pickup window that had already ended was accepted.
+
+**RV-23. A check on a column that can be NULL says what NULL does.**
+In SQL, a CHECK whose result is NULL passes, a policy or WHERE whose result is NULL refuses or drops the row. For every CHECK, policy, trigger condition or WHERE that reads a nullable column, write the NULL case on purpose (`is not distinct from`, `is null or ...`, `is not null and ...`, or make the column `not null`), and add a test that inserts or updates with that column NULL and expects the intended result.
+Source: #22 PR 4b-2b round 1, the fee CHECK used `=` on a nullable column, so a row with the fee NULL passed it.
+
 ### Money and values
 
 **RV-06. Test money parsing at the edges in each language.**
