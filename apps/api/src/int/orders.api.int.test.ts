@@ -8,6 +8,8 @@ import { createRedis, type Redis } from "../auth/redis.ts";
 import { SmsSender } from "../auth/sms.ts";
 import { authOptions } from "../auth/wiring.ts";
 import { Db } from "../db/index.ts";
+import { DbIdempotencyStore } from "../http/idempotency-db.ts";
+import { purgeExpiredIdempotency } from "../http/idempotency-purge.ts";
 import { ordersOptions } from "../orders/wiring.ts";
 import { runTrackingSms } from "../orders/tracking-sms.ts";
 import { mergeOptions, pricingOptions } from "../pricing/wiring.ts";
@@ -65,7 +67,9 @@ async function buildApp(now?: () => Date): Promise<NestFastifyApplication> {
   const deps = { db: appDb, redis, authSecret: "s".repeat(40), now };
   const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: false }, deps);
   const merged = mergeOptions(auth, pricingOptions(deps), ordersOptions({ ...deps, webUrl: WEB }));
-  return createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers });
+  // The shared store of the real API (main.ts): the replay of an order lives in core.idempotency_keys, as in production.
+  const idempotency = new DbIdempotencyStore(appDb, now ? () => now().getTime() : Date.now);
+  return createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers, idempotency });
 }
 afterAll(async () => {
   await app?.close();
@@ -436,6 +440,29 @@ describe("GH-22 R503: a bad slot is a 422 before the proof is spent, never a 500
       expect(ok.statusCode, JSON.stringify(ok.json())).toBe(201);
     });
   }
+});
+
+describe("GH-22 R202: the worker purges the stored replay of an order 24 h after it was kept, and frees its scope", () => {
+  it("a replay body (names, phones, addresses) is gone after the 24 h, and so is the scope of the order", async () => {
+    ip = "10.20.8.1";
+    const who = await customer();
+    const quote = await newQuote();
+    const key = randomUUID();
+    const first = await place(who, orderBody(quote, who), key);
+    expect(first.statusCode).toBe(201);
+    const scope = (await q("select idempotency_scope as s from core.orders where id = $1", [first.json().id])).rows[0].s as string;
+    expect(scope).toContain(key);
+    const stored = async () => (await q("select body from core.idempotency_keys where scope = $1", [scope])).rows;
+    expect(JSON.stringify(await stored())).toContain("Expéditeur Test"); // the personal data is in the replay
+    const scopeOf = async (id: string) => (await q("select idempotency_scope from core.orders where id = $1", [id])).rows[0].idempotency_scope;
+    expect(await scopeOf(first.json().id)).toBe(scope);
+    // 23 h later the worker keeps it; 25 h later it is gone, with the scope of the order (R202).
+    expect(await purgeExpiredIdempotency(workerDb, () => new Date(Date.now() + 23 * 3_600_000))).toBe(0);
+    expect(await stored()).toHaveLength(1);
+    expect(await purgeExpiredIdempotency(workerDb, () => new Date(Date.now() + 25 * 3_600_000))).toBeGreaterThanOrEqual(1);
+    expect(await stored()).toEqual([]);
+    expect(await scopeOf(first.json().id)).toBeNull();
+  });
 });
 
 describe("GH-22 T55: GET /v1/orders and GET /v1/orders/{id}", () => {
