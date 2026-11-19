@@ -101,6 +101,33 @@ Checklist for each host. Open choices are marked `[À FIXER]`.
 - [ ] Backups are encrypted before they leave the server, the key is kept off the server, and a restore is tested (#30).
 - [ ] Who may read the secrets: `[À FIXER]` with Helmi.
 
+## CI deploy to staging (#14 PR 4)
+
+`.github/workflows/deploy.yml` builds the api and web images once per commit on `main` (after CI is green), pushes them to GHCR tagged with the full commit SHA, then asks the staging host to deploy that SHA over SSH. No host, address, key or token is in the repo: they are secrets of the GitHub environment `staging`.
+
+**The `deploy` user.** `setup.sh` creates it with a locked password and one `authorized_keys` line that forces `command="/opt/gofast/deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding`. Whatever the client asks for, sshd runs only `deploy.sh`, which reads `SSH_ORIGINAL_COMMAND` and accepts exactly `deploy <40-hex sha>` or `rollback`; anything else is refused before any action.
+
+**Why `deploy` is in the `docker` group.** It has to pull images and run `docker compose`, and the docker group is root-equivalent on the host (a member can mount `/` in a container). That is accepted on purpose: the forced command is the only limit. Nobody can get a shell, a port forward or another command with that key, and `deploy`'s home, `.ssh` and `authorized_keys` belong to root, so `deploy` cannot replace the line. If the key leaks, the attacker can deploy or roll back a commit of `main` and nothing else; rotate it (below).
+
+**What `deploy.sh` does.** It takes a lock (one deploy at a time), checks the SHA is an ancestor of `origin/main` in `/opt/gofast/repo` (the compose files come from that checkout), logs in to GHCR with the read-only pull token (stdin, throwaway docker config), pulls both images, runs compose with the staging override (`migrate` first, `up -d --wait`), then checks `/v1/health` and `/fr` through Caddy. It keeps the `current` and `previous` SHAs in `/opt/gofast/state`. If a health check fails it redeploys `previous` and exits non-zero (1: refused, or failed and rolled back; 2: the rollback itself failed). `rollback` with no `previous` is refused. A first deploy that fails has nothing to roll back to.
+
+**Rollback is code only.** Migrations go forward only. A release that changes the schema must be backward compatible: expand (add the column or table, keep the old code working) in one release, contract (drop the old one) in a later release. Never ship a migration that the previous version cannot run against.
+
+**Set up the host once** (after `setup.sh` and the database setup above):
+
+1. Run `setup.sh` with the CI public key: `sudo TEAM="..." DEPLOY_PUBKEY="ssh-ed25519 AAAA... ci" bash setup.sh`. The script refuses anything that is not one plain `ssh-ed25519` line. Generate the pair on your PC (`ssh-keygen -t ed25519 -C ci -N ""`), give the server the `.pub` only, put the private file in the `STAGING_SSH_KEY` secret, then delete it from your PC.
+2. Fill `/opt/gofast/deploy.env` (root:deploy 640): `GHCR_OWNER` (lowercase owner), `GHCR_USER` (login the pull token belongs to), `REPO_URL` (https URL of the repo). Read as data, never sourced.
+3. Create `/opt/gofast/secrets/staging.env` (the compose env file for staging, see `infra/compose/README.md`) and `/opt/gofast/secrets/staging-basic-password` (the staging basic-auth password in clear, one line: the health check logs in with it; the file is root:deploy 640, in a 750 directory). Fake data only on staging.
+4. Put the GHCR pull token in `/opt/gofast/secrets/ghcr-token` (root:deploy 640): a classic personal access token with `read:packages` only, from an account that can read the images.
+5. Add to the GitHub environment `staging` the secrets `STAGING_HOST`, `STAGING_SSH_KEY`, `STAGING_KNOWN_HOSTS` (the server's host key line, from `ssh-keyscan -t ed25519 <host>` checked against the console, never trusted on first use), and to the repository the variables `SITE_URL` and `API_DOMAINS` (inlined into the web image at build time). Until the three secrets exist the deploy job is green and says in its summary that it deployed nothing.
+6. Check the Caddy login box in a browser once, then run `deploy.sh` by hand over SSH with a known SHA.
+
+**Rotate the deploy key.** Generate a new pair, run `setup.sh` again with the new `DEPLOY_PUBKEY` (it rewrites the one line), replace `STAGING_SSH_KEY`, run the workflow, delete the old private key everywhere.
+
+**Rotate the GHCR pull token.** Create the new token, write it over `/opt/gofast/secrets/ghcr-token`, run a deploy to prove it works, then revoke the old one on GitHub.
+
+**Tests.** `infra/servers/test/deploy.test.sh` (fake docker, curl and git, plus broken copies of `deploy.sh` that must fail it) and `setup-deploy.test.sh` (needs root in a throwaway container; it never touches a real host) run in CI as the job "Shell scripts and workflows". On Windows run them in a container: `docker run --rm -v "$PWD/infra/servers:/s:ro" ubuntu:24.04 bash /s/test/deploy.test.sh`.
+
 ## Removing a person: `offboard.sh`
 
 ```

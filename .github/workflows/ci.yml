@@ -423,6 +423,41 @@ jobs:
           echo "API integration tests did not pass."
           exit 1
 
+  # Server scripts and workflows (#14 PR 4): shell only, no pnpm, about a minute. Linters and the base image are
+  # pinned by digest. The deploy tests use fake docker, curl and git; the setup test changes users, so it runs
+  # in a throwaway container.
+  shell:
+    name: Shell scripts and workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: shellcheck (deploy.sh, setup.sh and their tests)
+        run: >-
+          docker run --rm -v "$PWD:/mnt:ro" -w /mnt
+          koalaman/shellcheck@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d
+          infra/servers/deploy.sh infra/servers/setup.sh infra/servers/test/deploy.test.sh infra/servers/test/setup-deploy.test.sh
+
+      - name: actionlint (all workflows)
+        run: >-
+          docker run --rm -v "$PWD:/repo:ro" -w /repo
+          rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color=false
+
+      - name: deploy.sh tests (with twins)
+        run: >-
+          docker run --rm -v "$PWD/infra/servers:/s:ro"
+          ubuntu@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+          bash /s/test/deploy.test.sh
+
+      - name: setup.sh deploy-user tests (with twins)
+        run: >-
+          docker run --rm -v "$PWD/infra/servers:/s:ro"
+          ubuntu@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+          bash /s/test/setup-deploy.test.sh
+
   gitleaks:
     name: Secret scan (Gitleaks)
     runs-on: ubuntu-24.04
