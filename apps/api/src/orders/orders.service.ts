@@ -246,11 +246,12 @@ export class OrdersService {
       addressUnconfirmed: !(quote.departurePinned && quote.arrivalPinned),
       nullLines: quote.lines.filter((l) => l.millimes === null).map((l) => l.kind),
       markPhoneVerified: needsProof && proofId !== null && account.phone === body.sender.phone,
-      // The phone counts as verified when the account's phone was verified before, or is by this order's proof (same transaction).
+      // R209: the account's own phone_verified_at as it was BEFORE this order (read above). The proof of this order marks the account
+      // verified for the next orders; it does not confirm this one (supervisor, #22).
       autoConfirm: (f) =>
         canAutoConfirm({
           status: f.status,
-          phoneVerified: account.phoneVerified || (needsProof && proofId !== null && account.phone === body.sender.phone),
+          phoneVerified: account.phoneVerified,
           accountActive: account.status === "active",
           addressesPinned: !f.addressUnconfirmed,
           totalMillimes: f.totalMillimes,

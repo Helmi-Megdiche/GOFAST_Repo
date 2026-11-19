@@ -764,6 +764,22 @@ async function unpinnedOrder(who: { cookie: string; phone: string }) {
   return res.json();
 }
 
+describe("GH-22 R209: the phone that counts is the account's own phone_verified_at, read before this order", () => {
+  it("an account not verified, placing an order with a valid proof for its own phone: the order waits (received), the account becomes verified, and the next order is confirmed by the system", async () => {
+    ip = "10.20.12.1";
+    const who = await customer(false);
+    const check = await proof(who.phone, "order");
+    const first = await place(who, orderBody(await newQuote(), who, { phone_check_id: check }));
+    expect(first.statusCode).toBe(201);
+    expect(first.json().status).toBe("received");
+    expect((await q("select phone_verified_at from core.accounts where id = $1", [who.id])).rows[0].phone_verified_at).not.toBeNull();
+    const events = (await q("select to_status from core.status_events where order_id = $1 and subject_type = 'order' order by seq", [first.json().id])).rows;
+    expect(events.map((e) => e.to_status)).toEqual(["received"]);
+    const next = await place(who, orderBody(await newQuote(), who));
+    expect(next.json().status).toBe("confirmed");
+  });
+});
+
 describe("GH-22 R209 D8: the system confirms an order by itself, on the four checks", () => {
   it("at the cap exactly it confirms; one millime over it does not; an unverified phone, or an unpinned address, does not", async () => {
     ip = "10.20.7.1";

@@ -429,9 +429,11 @@ describe("GH-22 R209 Q1: createOrder gives the insert a way to auto-confirm, dec
     await t.service.create(actor, { ...body(), ...(phoneVerified ? {} : { phone_check_id: "11111111-1111-4111-8111-111111111111" }) }, { scope: null });
     return (t.inserted[0] as { autoConfirm: (x: LockedOrder) => boolean }).autoConfirm(f);
   }
-  it("confirms a verified customer under the cap with pinned addresses, and the account just verified by this order's proof counts", async () => {
+  it("confirms a verified customer under the cap with pinned addresses", async () => {
     expect(await autoDecision(facts(), true)).toBe(true);
-    expect(await autoDecision(facts(), false)).toBe(true); // the proof was for the account phone: verified in the same transaction
+  });
+  it("R209: an account that was NOT verified before this order stays received, even with a valid proof for its own phone (the rule reads phone_verified_at as it was)", async () => {
+    expect(await autoDecision(facts(), false)).toBe(false);
   });
   it("stays received over the cap, with an unconfirmed address, or with a null line other than vat and stamp", async () => {
     expect(await autoDecision(facts({ totalMillimes: 100_001 }), true)).toBe(false);
@@ -439,7 +441,7 @@ describe("GH-22 R209 Q1: createOrder gives the insert a way to auto-confirm, dec
     expect(await autoDecision(facts({ lines: [{ kind: "base", millimes: null }] }), true)).toBe(false);
     expect(await autoDecision(facts({ lines: [{ kind: "vat", millimes: null }, { kind: "stamp", millimes: null }] }), true)).toBe(true);
   });
-  it("an account verified before but a sender phone proved for another phone: the account is verified, so it counts; an unverified account with another phone does not", async () => {
+  it("an unverified account with a proof for ANOTHER sender phone: not confirmed either", async () => {
     const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: false } });
     await t.service.create(actor, { ...body(), sender: { ...body().sender, phone: "+21620000009" }, phone_check_id: "11111111-1111-4111-8111-111111111111" }, { scope: null });
     expect((t.inserted[0] as { autoConfirm: (x: LockedOrder) => boolean }).autoConfirm(facts())).toBe(false);
