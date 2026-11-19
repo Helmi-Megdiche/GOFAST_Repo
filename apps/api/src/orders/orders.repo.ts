@@ -40,6 +40,16 @@ const checkViolationOf = (error: unknown): string | undefined => {
   return (e.cause?.code ?? e.code) === "23514" ? (e.cause?.constraint ?? e.constraint ?? "") : undefined;
 };
 
+/** What a definer raises, as the API's own error: not found, not allowed, a lost race or a deadlock the database broke (a retry would do). */
+export const definerErrorOf = (error: unknown): ApiError | undefined => {
+  const e = error as { code?: string; cause?: { code?: string } };
+  const code = e.cause?.code ?? e.code;
+  if (code === "P0002") return new ApiError("NOT_FOUND");
+  if (code === "42501") return new ApiError("ACCESS_DENIED");
+  if (code === "40001" || code === "40P01") return new ApiError("STATE_CONFLICT");
+  return undefined;
+};
+
 const ORDER_COLUMNS = sql`
   o.id, o.tracking_number, o.status, o.service, o.payment_mode, o.freight_payer, o.total_millimes, o.lines,
   o.created_at, o.canceled_at, o.cancel_fee, to_char(o.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_cursor,
@@ -305,12 +315,7 @@ export class OrdersRepo implements OrdersPort {
     try {
       return await work();
     } catch (error) {
-      const e = error as { code?: string; cause?: { code?: string } };
-      const code = e.cause?.code ?? e.code;
-      if (code === "P0002") throw new ApiError("NOT_FOUND");
-      if (code === "42501") throw new ApiError("ACCESS_DENIED");
-      if (code === "40001") throw new ApiError("STATE_CONFLICT");
-      throw error;
+      throw definerErrorOf(error) ?? error;
     }
   }
 

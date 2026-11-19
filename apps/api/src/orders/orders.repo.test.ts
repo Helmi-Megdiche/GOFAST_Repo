@@ -2,7 +2,7 @@ import { Logger } from "@nestjs/common";
 import { describe, expect, it, vi } from "vitest";
 import type { Db } from "../db/index.ts";
 import { ApiError } from "../http/errors.ts";
-import { OrdersRepo } from "./orders.repo.ts";
+import { definerErrorOf, OrdersRepo } from "./orders.repo.ts";
 import type { OrderPlan } from "./orders.service.ts";
 
 // GH-22 R503: a CHECK of the database (23514) on the order row can no longer be reached by a request, because the service
@@ -56,5 +56,21 @@ describe("GH-22 R503: a CHECK violation on the order row is a logged 500", () =>
     expect(log).toHaveBeenCalledTimes(1);
     expect(String(log.mock.calls[0]?.[0])).toContain("orders_pickup_slot");
     log.mockRestore();
+  });
+});
+
+describe("GH-22 RV-01: what the definers raise becomes the API's own answer", () => {
+  const raised = (code: string) => Object.assign(new Error("db"), { cause: { code } });
+  it("40P01 (a deadlock the database broke) is a 409 conflict, like a lost race (40001), never a 500", () => {
+    for (const code of ["40P01", "40001"]) {
+      const e = definerErrorOf(raised(code));
+      expect([e?.code, e?.status], code).toEqual(["STATE_CONFLICT", 409]);
+    }
+  });
+  it("no data found is 404, insufficient privilege is 403, and anything else is not mapped", () => {
+    expect(definerErrorOf(raised("P0002"))?.status).toBe(404);
+    expect(definerErrorOf(raised("42501"))?.status).toBe(403);
+    expect(definerErrorOf(raised("23505"))).toBeUndefined();
+    expect(definerErrorOf(new Error("plain"))).toBeUndefined();
   });
 });

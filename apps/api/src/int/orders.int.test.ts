@@ -623,7 +623,7 @@ describe("RV-21: protected columns", () => {
       ["proof_level", "'codeOrPhotoWithPosition'", true],
       ["attempts", "1", true],
       ["updated_at", "now() + interval '1 day'", false],
-      ["status", "'delivered'", true],
+      ["status", "'delivered'", false], // GH-22 RV-01: no longer granted: the definers move it
       ["position", "9", false], // GH-22: set once, at creation
     ];
     it("lists every column of the table", async () => {

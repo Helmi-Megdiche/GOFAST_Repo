@@ -106,6 +106,52 @@ describe("GH-22 RV-21: no login but the definers writes a status", () => {
   });
 });
 
+describe("GH-22 RV-01 RV-21: the app login no longer writes the status of a parcel or a mission", () => {
+  it("update parcels.status is refused to staff of every kind, and the other parcel columns still work", async () => {
+    const id = await newOrder();
+    const parcel = (await one("select id from core.parcels where order_id = $1 order by position limit 1", [id])).id as string;
+    const app = open("fastgo_app");
+    for (const who of [staff("admin"), staff("agent"), staff("operations"), owner()])
+      await expectDbError(app.withActor(who, (tx) => tx.execute(sql.raw(`update core.parcels set status = 'canceled' where id = '${parcel}'`))), /permission denied/i);
+    await app.withActor(staff("agent"), (tx) => tx.execute(sql.raw(`update core.parcels set weight_declared_g = 801 where id = '${parcel}'`)));
+    expect(await one("select status, weight_declared_g from core.parcels where id = $1", [parcel])).toEqual({ status: "to_collect", weight_declared_g: 801 });
+  });
+
+  it("no policy lets the app login update a mission: staff update 0 rows, whatever they set", async () => {
+    const id = await newOrder();
+    await mission(id, "proposed");
+    const app = open("fastgo_app");
+    for (const who of [staff("admin"), staff("operations"), staff("logistics")]) {
+      const r = await app.withActor(who, (tx) => tx.execute(sql.raw(`update core.missions set status = 'finished', end_reason = 'orderCanceled' where order_id = '${id}'`)));
+      expect(r.rowCount, who.role).toBe(0);
+    }
+    expect(await one("select status, end_reason from core.missions where order_id = $1", [id])).toEqual({ status: "proposed", end_reason: null });
+    expect((await q("select count(*)::int as n from pg_policies where schemaname = 'core' and tablename = 'missions' and cmd in ('UPDATE', 'ALL') and 'fastgo_app' = any (roles)")).rows[0].n).toBe(0);
+  });
+
+  it("lock_order takes the order row FOR NO KEY UPDATE: a parcel added meanwhile (a foreign-key check) does not wait for it, so lock order cannot deadlock with it", async () => {
+    const id = await newOrder();
+    let release!: () => void;
+    const gate = new Promise<void>((r) => (release = r));
+    const holding = open("fastgo_app").withActor(owner(), async (tx) => {
+      await tx.execute(sql`select core.lock_order(${id}::uuid) as f`);
+      await gate;
+    });
+    await new Promise((r) => setTimeout(r, 600));
+    try {
+      await q("begin");
+      await q("set local lock_timeout = '1500ms'");
+      await q("insert into core.parcels (order_id, size, weight_declared_g, proof_level, position) values ($1, 'small', 700, 'codeOrPhotoWithPosition', 3)", [id]);
+      await q("commit");
+    } finally {
+      await q("rollback").catch(() => undefined);
+      release();
+      await holding;
+    }
+    expect((await one("select count(*)::int as n from core.parcels where order_id = $1", [id])).n).toBe(3);
+  });
+});
+
 describe("GH-22 R212 RV-05 RV-19: core.cancel_order", () => {
   it("cancels as the owner: order, parcels and the proposed pickup mission, an event each with the actor, the dates from p_at", async () => {
     const id = await newOrder();

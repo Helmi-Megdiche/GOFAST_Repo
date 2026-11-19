@@ -29,6 +29,11 @@ alter table core.pricing_settings
 -- definer; #26 adds its own for assignment and the rest. The two keys an agent may correct stay.
 revoke update on core.orders from fastgo_app;
 grant update (pickup_address_id, recipient_id) on core.orders to fastgo_app;
+-- The same for the parcels and the missions (RV-01: staff could move a parcel of a canceled order back to `to_collect`, and those
+-- paths lock the child, then the order, the other way round from lock_order, so they could deadlock with it). No code of the API
+-- writes them; #26 (assignment, scans) adds definers that do, and they lock the order first.
+revoke update (status) on core.parcels from fastgo_app;
+drop policy missions_update on core.missions;
 
 -- ---- the API clock in the triggers (R406) ---------------------------------------------------------------------------
 -- The definers pass `p_at` with set_config('app.at', ..., true); only the order writer is believed, so no other login can
@@ -109,7 +114,7 @@ begin
   if not found then raise exception 'order not found' using errcode = 'no_data_found'; end if;
 end $$;
 
--- Locks the order, then its pickup missions (always in this order), and says what the API needs to decide: the state, the total,
+-- Locks the order (FOR NO KEY UPDATE: a parcel or a mission added meanwhile does not wait for it), then its pickup missions (always in this order), and says what the API needs to decide: the state, the total,
 -- the lines, whether an address is unconfirmed, when the driver arrived (the latest pickup mission that is not refused, expired
 -- or ended early), and the cancel already stored. It decides nothing. The locks last until the end of the transaction.
 create function core.lock_order(p_order uuid, p_mode text default 'cancel') returns jsonb
@@ -120,8 +125,8 @@ declare
 begin
   perform core.assert_order_actor(p_order, p_mode);
   select o.status, o.total_millimes, o.address_unconfirmed, o.lines, o.cancel_fee, o.cancel_fee_millimes, o.canceled_at
-    into v_order from core.orders o where o.id = p_order for update;
-  perform 1 from core.missions m where m.order_id = p_order and m.kind = 'pickup' for update;
+    into v_order from core.orders o where o.id = p_order for no key update;
+  perform 1 from core.missions m where m.order_id = p_order and m.kind = 'pickup' for no key update;
   select m.arrived_at into v_arrived from core.missions m
    where m.order_id = p_order and m.kind = 'pickup' and m.status not in ('refused', 'expired') and m.end_reason is null
    order by m.offered_at desc, m.created_at desc limit 1;
@@ -143,9 +148,9 @@ declare
   v_at timestamptz;
 begin
   perform core.assert_order_actor(p_order, 'cancel');
-  select o.status into v_status from core.orders o where o.id = p_order for update;
+  select o.status into v_status from core.orders o where o.id = p_order for no key update;
   v_at := core.history_time(p_order, p_at);
-  perform 1 from core.missions m where m.order_id = p_order and m.kind = 'pickup' for update;
+  perform 1 from core.missions m where m.order_id = p_order and m.kind = 'pickup' for no key update;
   if v_status is distinct from p_status then
     raise exception 'order state conflict: expected %, found %', p_status, v_status using errcode = 'serialization_failure';
   end if;
@@ -182,7 +187,7 @@ declare
   v_at timestamptz;
 begin
   perform core.assert_order_actor(p_order, 'confirm');
-  select o.status into v_status from core.orders o where o.id = p_order for update;
+  select o.status into v_status from core.orders o where o.id = p_order for no key update;
   if v_status is distinct from 'received' then
     raise exception 'order state conflict: %', v_status using errcode = 'serialization_failure';
   end if;
@@ -203,7 +208,7 @@ declare
   v_at timestamptz;
 begin
   perform core.assert_order_actor(p_order, 'creator');
-  select o.status, o.created_at into v_status, v_created from core.orders o where o.id = p_order for update;
+  select o.status, o.created_at into v_status, v_created from core.orders o where o.id = p_order for no key update;
   if v_status is distinct from 'received' then
     raise exception 'order state conflict: %', v_status using errcode = 'serialization_failure';
   end if;

@@ -99,10 +99,9 @@ const EXPECTED: Record<string, Expect> = {
         "declared_value_millimes",
         "proof_level",
         "size",
-        "status",
         "weight_declared_g",
         "weight_measured_g",
-      ],
+      ], // GH-22 RV-01: no `status`, the definers move it
     },
     ro: "no-hash",
     rls: true,
