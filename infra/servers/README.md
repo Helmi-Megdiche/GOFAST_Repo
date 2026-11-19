@@ -101,6 +101,36 @@ Checklist for each host. Open choices are marked `[À FIXER]`.
 - [ ] Backups are encrypted before they leave the server, the key is kept off the server, and a restore is tested (#30).
 - [ ] Who may read the secrets: `[À FIXER]` with Helmi.
 
+## CI deploy to staging (#14 PR 4)
+
+`.github/workflows/deploy.yml` builds the api and web images once per commit on `main` (after CI is green), pushes them to GHCR tagged with the full commit SHA, reads the two digests the registry now holds, then asks the staging host to deploy that commit over SSH. No host, address, key or token is in the repo: they are secrets of the GitHub environment `staging`.
+
+**The `deploy` user.** `setup.sh` creates it with a locked password and one `authorized_keys` line that starts `restrict,command="/opt/gofast/deploy.sh"`. `restrict` turns off at once every forwarding, pty, `~/.ssh/rc` and any option added to sshd later. Whatever the client asks for, sshd runs only `deploy.sh`, which reads `SSH_ORIGINAL_COMMAND` and accepts exactly `deploy <40-hex sha> <api sha256:64hex> <web sha256:64hex>` or `rollback`; anything else is refused before any action.
+
+**Why `deploy` is in the `docker` group.** It has to pull images and run `docker compose`, and the docker group is root-equivalent on the host (a member can mount `/` in a container). That is accepted on purpose: the forced command is the only limit. Nobody can get a shell, a port forward or another command with that key, and `deploy`'s home, `.ssh` and `authorized_keys` belong to root, so `deploy` cannot replace the line. If the key leaks, the attacker can deploy or roll back a commit of `main` and nothing else; rotate it (below).
+
+**What `deploy.sh` does.** It takes a lock (one deploy at a time), checks the SHA is an ancestor of `origin/main` in `/opt/gofast/repo` (the compose files come from that checkout), refuses a commit that is older than the one running, logs in to GHCR with the read-only pull token (stdin, throwaway docker config), pulls both images **by digest** (`image@sha256:...`, never a tag: a tag can be moved, a digest cannot, so what CI built is exactly what runs), checks that both pulled images carry the `org.opencontainers.image.revision` label equal to the commit (else refused before `compose up`, nothing changed; this stops a valid commit being paired with another real image, it is not proof against a forged build: signing is a follow-up), runs compose with the staging override (`migrate` first, `up -d --wait`), then checks `/v1/health` and `/fr` through Caddy. It keeps the `current` and `previous` releases in `/opt/gofast/state`, one line each: the SHA and the two digests, so a rollback also runs by digest. If a health check fails it redeploys `previous` and exits non-zero (1: refused, or failed and rolled back; 2: the rollback itself failed). `rollback` with no `previous` is refused. A first deploy that fails has nothing to roll back to.
+
+**An older commit never replaces a newer one.** CI runs finish in any order, so the deploy for commit A can arrive after the one for its successor B. `deploy.sh` refuses it (`older than current, use rollback`) unless the running commit is an ancestor of the requested one; the same commit again is fine. That run is **red on purpose**: nothing was changed, and a red run for an old commit after a newer one is deployed is expected. To go back deliberately, use `rollback`.
+
+**Rollback is code only.** Migrations go forward only. A release that changes the schema must be backward compatible: expand (add the column or table, keep the old code working) in one release, contract (drop the old one) in a later release. Never ship a migration that the previous version cannot run against.
+
+**Set up the host once** (after `setup.sh` and the database setup above):
+
+1. Run `setup.sh` with the CI public key: `sudo TEAM="..." DEPLOY_PUBKEY="ssh-ed25519 AAAA... ci" bash setup.sh`. The script refuses anything that is not one plain `ssh-ed25519` line. Generate the pair on your PC (`ssh-keygen -t ed25519 -C ci -N ""`), give the server the `.pub` only, put the private file in the `STAGING_SSH_KEY` secret, then delete it from your PC.
+2. Fill `/opt/gofast/deploy.env` (root:deploy 640): `GHCR_OWNER` (lowercase owner), `GHCR_USER` (login the pull token belongs to), `REPO_URL` (https URL of the repo). Read as data, never sourced.
+3. Create `/opt/gofast/secrets/staging.env` (the compose env file for staging, see `infra/compose/README.md`) and `/opt/gofast/secrets/staging-basic-password` (the staging basic-auth password in clear, one line: the health check logs in with it; the file is root:deploy 640, in a 750 directory). Fake data only on staging.
+4. Put the GHCR pull token in `/opt/gofast/secrets/ghcr-token` (root:deploy 640): a classic personal access token with `read:packages` only, from an account that can read the images.
+   **Make both packages private.** The first push creates `gofast-api` and `gofast-web` on GHCR; a package created by a workflow can start public or inherit the repository's visibility. After that first push, on GitHub: your profile (or the organisation) → Packages → each package → Package settings → Danger Zone → Change visibility → **Private**. Under "Manage Actions access" keep this repository with Write, so the workflow can still push. Only then does the read-only pull token mean something: with a public package, anyone can pull the image without it.
+5. Add to the GitHub environment `staging` the secrets `STAGING_HOST`, `STAGING_SSH_KEY`, `STAGING_KNOWN_HOSTS` (the server's host key line, from `ssh-keyscan -t ed25519 <host>` checked against the console, never trusted on first use), and to the repository the variables `SITE_URL` and `API_DOMAINS` (inlined into the web image at build time). Until the three secrets exist the deploy job is green and says in its summary that it deployed nothing.
+6. Check the Caddy login box in a browser once, then run `deploy.sh` by hand over SSH with a known SHA.
+
+**Rotate the deploy key.** Generate a new pair, run `setup.sh` again with the new `DEPLOY_PUBKEY` (it rewrites the one line), replace `STAGING_SSH_KEY`, run the workflow, delete the old private key everywhere.
+
+**Rotate the GHCR pull token.** Create the new token, write it over `/opt/gofast/secrets/ghcr-token`, run a deploy to prove it works, then revoke the old one on GitHub.
+
+**Tests.** `infra/servers/test/deploy.test.sh` (fake docker, curl and git, plus broken copies of `deploy.sh` that must fail it) and `setup-deploy.test.sh` (needs root in a throwaway container, with apt and network; it never touches a real host) run in CI as the job "Shell scripts and workflows". The second one also starts a real `sshd` in the container and logs in over loopback with a throwaway key: `deploy <bad>` gets `deploy.sh`'s refusal, `bash` and `-N -L` are refused, and a locked password plus a key still logs in (`UsePAM yes`). In the container only, `pam_loginuid` is set to optional, because a container cannot write `/proc/self/loginuid`. On Windows run them in a container: `docker run --rm -v "$PWD/infra/servers:/s:ro" ubuntu:24.04 bash /s/test/deploy.test.sh`.
+
 ## Removing a person: `offboard.sh`
 
 ```

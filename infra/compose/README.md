@@ -52,6 +52,8 @@ docker compose -f compose.yaml -f compose.staging.yaml --env-file <staging env f
 - **Fake data only on staging.** No `db-setup` profile: `COMPOSE_PROFILES` is not set, the roles are created once by hand (`infra/servers/README.md`). `APP_ENV` is not `production`.
 - Locally: `.env.staging.example` (fake domain `staging.gofast.test`, `CADDY_TLS=internal`, fake password `fake-staging-password`). Start `postgres`, run `db-setup` through the base file (`--profile setup run --rm db-setup`), then `up`. `check.sh staging` finds the domain through `curl --resolve`.
 
+- On a server the images are not built there: CI pushes `ghcr.io/<owner>/gofast-api` and `gofast-web` (tag = commit SHA), and `infra/servers/deploy.sh` sets `API_IMAGE` and `WEB_IMAGE` to their digests (`...@sha256:<64 hex>`) and runs `up -d --wait --no-build`. Locally both default to `gofast-*:local` (built by `--build`).
+
 ## Order (same on staging)
 
 1. empty `postgres`, healthy

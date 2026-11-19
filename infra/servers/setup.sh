@@ -6,12 +6,15 @@
 #   3. Firewall on (SSH, HTTP, HTTPS only) and automatic security updates.
 #   4. Docker Engine and the Docker Compose plugin.
 #
-# Usage: sudo TEAM="Helmi-Megdiche AlaaSalem12" bash setup.sh
+#   5. The `deploy` user for CI (#14 PR 4): one forced command, see deploy.sh and README.
+#
+# Usage: sudo TEAM="Helmi-Megdiche AlaaSalem12" DEPLOY_PUBKEY="ssh-ed25519 AAAA... ci" bash setup.sh
 # Keep a second SSH session open until the final check passes.
 set -euo pipefail
 
 TEAM="${TEAM:-Helmi-Megdiche AlaaSalem12}"
 GROUP="gofast-admins"
+SRC_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 log() { printf '\n== %s\n' "$*"; }
 die() { printf 'ERROR: %s\n' "$*" >&2; exit 1; }
@@ -55,7 +58,7 @@ PasswordAuthentication no
 KbdInteractiveAuthentication no
 PubkeyAuthentication yes
 PermitRootLogin no
-AllowGroups $GROUP
+AllowGroups $GROUP deploy
 EOF
 sshd -t || die "sshd config invalid, nothing reloaded"
 # Ubuntu 24.04 starts sshd from ssh.socket, so ssh.service may be inactive: reload only if running.
@@ -89,6 +92,41 @@ for login in $TEAM; do usermod -aG docker "$(printf '%s' "$login" | tr '[:upper:
 # Docker writes its own iptables rules and bypasses ufw for published ports.
 # Publish container ports on 127.0.0.1 only; the reverse proxy is the one public entry (80/443).
 
+# --- deploy user begin (#14 PR 4)
+log "Deploy user: it can run one forced command (deploy.sh), nothing else over SSH"
+# Input first, before any change: one ssh-ed25519 line, no options (a key line carrying its own options could
+# override the forced command), comment limited to plain characters.
+DEPLOY_AK=/home/deploy/.ssh/authorized_keys
+FORCED='restrict,command="/opt/gofast/deploy.sh"' # MUT-restrict: `restrict` turns off every forwarding, pty, ~/.ssh/rc and future options at once
+key_re='^ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA[A-Za-z0-9+/]{44}( [A-Za-z0-9@._-]+)?$'
+[ -n "${DEPLOY_PUBKEY:-}" ] || die "DEPLOY_PUBKEY is required: the CI public key, one ssh-ed25519 line"
+[[ "$DEPLOY_PUBKEY" =~ $key_re ]] || die "DEPLOY_PUBKEY must be exactly one plain ssh-ed25519 key line, with no options" # MUT-keycheck
+
+# Shell is bash on purpose: sshd runs the forced command through the login shell, and nologin would refuse it.
+id deploy >/dev/null 2>&1 || useradd --no-create-home --home-dir /home/deploy --shell /bin/bash deploy
+passwd -l deploy >/dev/null # MUT-locked
+# docker group = root-equivalent on this host. Accepted: the only way in is the forced command below.
+usermod -aG docker deploy
+
+install -d -m 755 -o root -g root /opt/gofast
+install -d -m 750 -o root -g deploy /opt/gofast/secrets
+install -d -m 750 -o deploy -g deploy /opt/gofast/state /opt/gofast/repo
+# Home and .ssh belong to root: deploy cannot swap its own authorized_keys for one without the forced command.
+install -d -m 755 -o root -g root /home/deploy
+install -d -m 755 -o root -g root /home/deploy/.ssh # MUT-ownership
+install -m 755 -o root -g root "${SRC_DIR:?}/deploy.sh" /opt/gofast/deploy.sh
+printf '%s %s\n' "$FORCED" "$DEPLOY_PUBKEY" > "$DEPLOY_AK" # MUT-forced
+chown root:root "$DEPLOY_AK"
+chmod 644 "$DEPLOY_AK"
+# Template only when absent: a person fills it in, a second run never overwrites it.
+if [ ! -e /opt/gofast/deploy.env ]; then
+  printf '%s\n' '# Read as data by deploy.sh, never sourced. Fill in on the server; do not commit real values.' \
+    'GHCR_OWNER=' 'GHCR_USER=' 'REPO_URL=' > /opt/gofast/deploy.env
+fi
+chown root:deploy /opt/gofast/deploy.env
+chmod 640 /opt/gofast/deploy.env
+# --- deploy user end
+
 log "Check"
 fail=0
 check() { if eval "$2" >/dev/null 2>&1; then echo "  ok   $1"; else echo "  FAIL $1"; fail=1; fi; }
@@ -98,5 +136,8 @@ check "firewall active"           "ufw status | grep -q 'Status: active'"
 check "auto updates on"           "apt-config dump | grep -q 'APT::Periodic::Unattended-Upgrade \"1\"'"
 check "docker running"            "docker info"
 check "docker compose installed"  "docker compose version"
+check "deploy user password locked" "passwd -S deploy | awk '{print \$2}' | grep -qx L"
+check "deploy key is forced"      "grep -q '^restrict,command=\"/opt/gofast/deploy.sh\" ssh-ed25519 ' $DEPLOY_AK"
+check "deploy.sh is root-owned"   "[ \"\$(stat -c %U:%a /opt/gofast/deploy.sh)\" = root:755 ]"
 [ "$fail" -eq 0 ] || die "a check failed, see above"
 echo "Done. Test a new SSH login as your user before closing this session."
