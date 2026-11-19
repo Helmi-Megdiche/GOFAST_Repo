@@ -9,6 +9,7 @@
 # built and tested is exactly what runs. The commit, and both digests, are kept in state/current and
 # state/previous, one line each, so a rollback also runs by digest.
 # RV-25: CI runs finish in any order, so an older commit is refused when a newer one is already running.
+# After the pulls, both images must carry the revision label of that commit, else refused before `compose up`.
 #
 # Exit codes: 0 done and healthy; 1 refused, failed with nothing changed, or failed and rolled back;
 #             2 failed and the rollback failed too (look at the server).
@@ -101,9 +102,15 @@ docker login ghcr.io -u "$GHCR_USER" --password-stdin < "$SEC/ghcr-token" > /dev
 
 # Pull both images, then put that commit's compose files in place. Fails here change nothing.
 img() { printf 'ghcr.io/%s/gofast-%s@%s' "$GHCR_OWNER" "$1" "$2"; } # name digest: the only image form ever pulled or run # MUT-pulltag
+# The commit a pulled image says it was built from (CI sets this label on both images). A digest and a commit
+# arrive as separate words, so a valid commit of main could be paired with another real image of the same owner;
+# the label ties each digest to the commit. It is not proof against a forged build (that needs signing, L2).
+rev_of() { docker image inspect --format '{{index .Config.Labels "org.opencontainers.image.revision"}}' "$1" 2> /dev/null; }
 prepare() { # sha api-digest web-digest
   docker pull "$(img api "$2")" > /dev/null || return 1
   docker pull "$(img web "$3")" > /dev/null || return 1
+  [ "$(rev_of "$(img api "$2")")" = "$1" ] || { say "refused: the api image is not built from ${1:0:12}"; return 1; } # MUT-labelapi
+  [ "$(rev_of "$(img web "$3")")" = "$1" ] || { say "refused: the web image is not built from ${1:0:12}"; return 1; } # MUT-labelweb
   git -C "$REPO" checkout --quiet --detach "$1" || return 1
 }
 

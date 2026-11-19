@@ -123,6 +123,10 @@ Source: #22 PR 4b-2b round 1, the fee CHECK used `=` on a nullable column, so a 
 For each delete, show what else the same file, group or path can hold, and test with a second person or item next to the target.
 Source: #14 PR 3 round 1, offboard.sh removed a whole sudoers file to remove one user.
 
+**RV-25. An action fired once per event must not let an older event undo a newer one.**
+Check: replay two events out of order (the newer first, then the older) and show the older one refused, with nothing changed. Include the same event twice (it must not count as older).
+Source: #14 PR 4 round 1, a later-finishing CI run of an older commit could deploy over a newer one.
+
 ### Money and values
 
 **RV-06. Test money parsing at the edges in each language.**

@@ -39,6 +39,11 @@ case "$1" in
   login) cat > /dev/null ;;
   pull) if [ -n "${FAKE_PULL_FAIL:-}" ] && [[ "$*" == *"$FAKE_PULL_FAIL"* ]]; then exit 1; fi ;;
   compose) if [[ " $* " == *" up "* ]]; then echo "up API_IMAGE=$API_IMAGE WEB_IMAGE=$WEB_IMAGE" >> "$CALLS"; echo "$API_IMAGE" > "$FAKE_LAST_UP"; fi ;;
+  # The revision label of an image: the commit its digest was built from (FAKE_REVMAP: "<digest> <sha>" lines).
+  # FAKE_MISLABEL="<digest>=<value>" overrides it; an empty value is an image with no label at all.
+  image) ref="${!#}"; dg="${ref#*@}"
+    if [ -n "${FAKE_MISLABEL:-}" ] && [ "${FAKE_MISLABEL%%=*}" = "$dg" ]; then printf '%s\n' "${FAKE_MISLABEL#*=}"
+    else awk -v d="$dg" '$1 == d { print $2 }' "$FAKE_REVMAP"; fi ;;
 esac
 exit 0
 EOF
@@ -60,11 +65,12 @@ esac
 exit 0
 EOF
   chmod +x "$BIN"/*
+  printf '%s\n' "$AD $A" "$AW $A" "$BD $B" "$BW $B" "$CD $C" "$CW $C" > "$T/revmap"
 }
 
 run_deploy() { # script, command ("UNSET" leaves SSH_ORIGINAL_COMMAND unset); sets OUT and RC; extra env via EXTRA
   local script="$1" cmd="$2"
-  local -a envv=(PATH="$BIN:$PATH" GOFAST_ROOT="$ROOT" CALLS="$CALLS" FAKE_LAST_UP="$T/lastup" HEALTH_TRIES=2 HEALTH_SLEEP=0)
+  local -a envv=(PATH="$BIN:$PATH" GOFAST_ROOT="$ROOT" CALLS="$CALLS" FAKE_LAST_UP="$T/lastup" FAKE_REVMAP="$T/revmap" HEALTH_TRIES=2 HEALTH_SLEEP=0)
   [ "$cmd" = UNSET ] || envv+=("SSH_ORIGINAL_COMMAND=$cmd")
   # shellcheck disable=SC2086
   OUT=$(env -i "${envv[@]}" ${EXTRA:-} bash "$script" 2>&1); RC=$?
@@ -162,6 +168,21 @@ suite() { # script
   new_env; set_state current "$RA"; EXTRA="FAKE_PULL_FAIL=$BD" run_deploy "$s" "deploy $B $BD $BW"
   check "pull failure: exit non-zero, no compose up, state unchanged" bash -c '[ "$1" != 0 ] && ! grep -q "^up " "$2" && [ "$(cat "$3/current")" = "$4" ]' _ "$RC" "$CALLS" "$ROOT/state" "$RA"
 
+  # 7b. Each digest must belong to the commit: the image's revision label must equal the sha, for BOTH images.
+  # Refused after the pulls and before compose up, nothing changed (a valid main commit paired with another real image).
+  new_env; set_state current "$RA"; run_deploy "$s" "deploy $B $BD $BW"
+  check "labels match: both images are inspected with the revision label, then it deploys" bash -c '[ "$1" = 0 ] && [ "$(grep -c "^docker image inspect --format {{index .Config.Labels \"org.opencontainers.image.revision\"}} ghcr.io/owner-x/gofast-" "$2")" = 2 ]' _ "$RC" "$CALLS"
+  new_env; set_state current "$RA"; set_state previous "$RA"; run_deploy "$s" "deploy $B $AD $BW"
+  check "api digest built from another commit: refused, no compose up, no checkout, state unchanged" bash -c '[ "$1" = 1 ] && ! grep -q "^up " "$2" && ! grep -q "checkout" "$2" && [ "$(cat "$3/current")" = "$4" ] && [ "$(cat "$3/previous")" = "$4" ]' _ "$RC" "$CALLS" "$ROOT/state" "$RA"
+  check "api digest built from another commit: says which image" bash -c '[[ "$1" == *"api image"*"not built from"* ]]' _ "$OUT"
+  new_env; set_state current "$RA"; run_deploy "$s" "deploy $B $BD $AW"
+  check "web digest built from another commit: refused, no compose up, no checkout, state unchanged" bash -c '[ "$1" = 1 ] && ! grep -q "^up " "$2" && ! grep -q "checkout" "$2" && [ "$(cat "$3/current")" = "$4" ]' _ "$RC" "$CALLS" "$ROOT/state" "$RA"
+  check "web digest built from another commit: says which image" bash -c '[[ "$1" == *"web image"*"not built from"* ]]' _ "$OUT"
+  new_env; set_state current "$RA"; EXTRA="FAKE_MISLABEL=$BD=" run_deploy "$s" "deploy $B $BD $BW"
+  check "an image with no revision label is refused, no compose up, state unchanged" bash -c '[ "$1" = 1 ] && ! grep -q "^up " "$2" && [ "$(cat "$3/current")" = "$4" ]' _ "$RC" "$CALLS" "$ROOT/state" "$RA"
+  new_env; set_state current "$RB"; set_state previous "$RA"; EXTRA="FAKE_MISLABEL=$AD=$B" run_deploy "$s" rollback
+  check "rollback checks the labels too: a previous record whose api image is another commit is refused" bash -c '[ "$1" = 1 ] && ! grep -q "^up " "$2" && [ "$(cat "$3/current")" = "$4" ]' _ "$RC" "$CALLS" "$ROOT/state" "$RB"
+
   # 8. Not configured: refuse before docker.
   new_env; printf 'GHCR_USER=user-x\n' > "$ROOT/deploy.env"; run_deploy "$s" "deploy $A $AD $AW"
   check "deploy.env without GHCR_OWNER: exit non-zero, zero docker calls" bash -c '[ "$1" != 0 ] && ! grep -q "^docker" "$2"' _ "$RC" "$CALLS"
@@ -209,6 +230,8 @@ declare -a TWINS=(
   'noprevious|:'
   'nostate|:'
   'ancestor|:'
+  'labelapi|:'
+  'labelweb|:'
   'tokenargv|docker login ghcr.io -u "$GHCR_USER" -p "$(cat "$SEC/ghcr-token")" > /dev/null'
   'nolock|:'
   'owner|:'
