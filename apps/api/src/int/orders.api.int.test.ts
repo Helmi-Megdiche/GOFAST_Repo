@@ -465,6 +465,46 @@ describe("GH-22 R202: the worker purges the stored replay of an order 24 h after
   });
 });
 
+describe("GH-22 R202: the key of an order expired: another body never gets the old order", () => {
+  const expire = (scope: string) => q("update core.idempotency_keys set expires_at = now() - interval '1 hour' where scope = $1", [scope]);
+  const scopeOf = async (id: string) => (await q("select idempotency_scope as s from core.orders where id = $1", [id])).rows[0].s as string;
+
+  it("expired but not purged yet: the same body answers the old order, another body is KEY_REUSED (409) and writes nothing", async () => {
+    ip = "10.20.9.1";
+    const who = await customer();
+    const quote = await newQuote();
+    const key = randomUUID();
+    const body = orderBody(quote, who); // built once: its pickup window is relative to the clock
+    const first = await place(who, body, key);
+    expect(first.statusCode).toBe(201);
+    await expire(await scopeOf(first.json().id));
+    const before = await orders();
+    const same = await place(who, body, key);
+    expect([same.statusCode, same.json().id]).toEqual([201, first.json().id]);
+    await expire(await scopeOf(first.json().id)); // the replay above renewed the key: let it expire again
+    const other = await place(who, { ...body, parcel: { ...body.parcel, content: "Un autre contenu" } }, key);
+    expect([other.statusCode, other.json().error.code]).toEqual([409, "KEY_REUSED"]);
+    expect(await orders()).toBe(before);
+  });
+
+  it("expired and purged: the same key with another body creates a NEW order, never the old one", async () => {
+    ip = "10.20.9.2";
+    const who = await customer();
+    const quote = await newQuote();
+    const key = randomUUID();
+    const body = orderBody(quote, who); // built once: its pickup window is relative to the clock
+    const first = await place(who, body, key);
+    expect(first.statusCode).toBe(201);
+    await expire(await scopeOf(first.json().id));
+    expect(await purgeExpiredIdempotency(workerDb)).toBeGreaterThanOrEqual(1);
+    const before = await orders();
+    const other = await place(who, { ...body, parcel: { ...body.parcel, content: "Un autre contenu" } }, key);
+    expect(other.statusCode, JSON.stringify(other.json())).toBe(201);
+    expect(other.json().id).not.toBe(first.json().id);
+    expect(await orders()).toBe(before + 1);
+  });
+});
+
 describe("GH-22 T55: GET /v1/orders and GET /v1/orders/{id}", () => {
   it("each customer lists and reads only their own orders, newest first, with a cursor; another's order is 404", async () => {
     ip = "10.20.3.1";

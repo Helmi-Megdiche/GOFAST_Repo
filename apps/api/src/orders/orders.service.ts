@@ -5,6 +5,7 @@ import type { Keys } from "../auth/crypto.ts";
 import type { PhoneChecks } from "../auth/phone-check.ts";
 import type { RateLimiter } from "../auth/rate-limit.ts";
 import { ApiError, type FieldError } from "../http/errors.ts";
+import { canonical } from "../http/idempotency.ts";
 import type { Actor } from "../http/session.ts";
 import type { PriceSpec, Priced, ReadQuote, Settings } from "../pricing/pricing.service.ts";
 
@@ -19,6 +20,12 @@ export const TRACKING_LIMITS = {
   perIp: { limit: 120, windowMs: 60_000 },
   misses: { limit: 20, windowMs: 600_000 },
 } as const;
+
+/**
+ * The print of the order's body, kept on the order with its idempotency scope (R202). The same key with another body must never
+ * be answered with the order of the first one, even in the hours between the expiry of the key and its purge.
+ */
+export const bodyHashOf = (keys: Keys, body: OrderCreate): string => keys.mac("order-body", canonical(body));
 
 export type AccountRow = { status: string; phone: string | null; phoneVerified: boolean };
 
@@ -36,6 +43,8 @@ export type OrderPlan = {
   /** The account phone was proved by this order: mark it verified in the same transaction. */
   markPhoneVerified: boolean;
   newTrackingNumber: () => string;
+  /** `bodyHashOf` of the request: stored with the scope. */
+  bodyHash: string;
 };
 
 export type ListQuery = {
@@ -52,7 +61,8 @@ export class ScopeTaken extends Error {}
 
 /** What the service needs from the database. Each method is one transaction. */
 export interface OrdersPort {
-  findByScope(actor: Actor, scope: string): Promise<OrderOut | null>;
+  /** The order that holds this idempotency scope, with the print of the body it was made from. */
+  findByScope(actor: Actor, scope: string): Promise<{ order: OrderOut; bodyHash: string | null } | null>;
   readQuote(actor: Actor, id: string): Promise<ReadQuote | null>;
   readAccount(actor: Actor): Promise<AccountRow | null>;
   settings(actor: Actor): Promise<Settings>;
@@ -93,11 +103,16 @@ export class OrdersService {
    */
   async create(actor: Actor, body: OrderCreate, ctx: { scope: string | null }): Promise<OrderOut> {
     const { port } = this.d;
-    // A call that finds the order of its own key (a second call whose first one finished, or lost its lease)
-    // answers it again: no check, no proof spent.
+    const bodyHash = bodyHashOf(this.d.keys, body);
+    // A call that finds the order of its own key (a second call whose first one finished, or lost its lease) answers it again: no
+    // check, no proof spent. Only for the same body: the scope of an order outlives its key by up to the purge interval, and
+    // another body with that key is KEY_REUSED, never the old order.
     if (ctx.scope) {
       const done = await port.findByScope(actor, ctx.scope);
-      if (done) return done;
+      if (done) {
+        if (done.bodyHash !== bodyHash) throw new ApiError("KEY_REUSED");
+        return done.order;
+      }
     }
     const at = this.now();
 
@@ -183,6 +198,7 @@ export class OrdersService {
       nullLines: quote.lines.filter((l) => l.millimes === null).map((l) => l.kind),
       markPhoneVerified: needsProof && proofId !== null && account.phone === body.sender.phone,
       newTrackingNumber: this.d.newTrackingNumber ?? randomTrackingCode,
+      bodyHash,
     };
     try {
       return await port.insert(plan);
@@ -190,8 +206,9 @@ export class OrdersService {
       if (!(error instanceof ScopeTaken) || !ctx.scope) throw error;
       // The same key created the order in another transaction: answer that order (R202).
       const done = await port.findByScope(actor, ctx.scope);
-      if (done) return done;
-      throw new ApiError("STATE_CONFLICT");
+      if (!done) throw new ApiError("STATE_CONFLICT");
+      if (done.bodyHash !== bodyHash) throw new ApiError("KEY_REUSED");
+      return done.order;
     }
   }
 

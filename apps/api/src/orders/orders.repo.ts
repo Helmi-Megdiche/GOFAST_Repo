@@ -62,8 +62,13 @@ export class OrdersRepo implements OrdersPort {
     return actor ? this.db.withActor(actor, fn) : this.db.withNoActor(fn);
   }
 
-  async findByScope(actor: Actor, scope: string): Promise<OrderOut | null> {
-    return this.run(actor, async (tx) => (await this.read(tx, sql`o.idempotency_scope = ${scope}`))[0] ?? null);
+  async findByScope(actor: Actor, scope: string): Promise<{ order: OrderOut; bodyHash: string | null } | null> {
+    return this.run(actor, async (tx) => {
+      const order = (await this.read(tx, sql`o.idempotency_scope = ${scope}`))[0];
+      if (!order) return null;
+      const hash = (await tx.execute(sql`select idempotency_body_hash as h from core.orders where id = ${order.id}::uuid`)).rows[0] as Raw | undefined;
+      return { order: stripCursor(order), bodyHash: (hash?.h as string | null | undefined) ?? null };
+    });
   }
 
   async readQuote(actor: Actor, id: string): Promise<ReadQuote | null> {
@@ -159,7 +164,7 @@ export class OrdersRepo implements OrdersPort {
                   quote_id, lines, null_lines, price_list_valid_from, departure_zone_id, arrival_zone_id, address_unconfirmed,
                   sender_name, sender_phone, pickup_slot_start, pickup_slot_end, delivery_slot_start, delivery_slot_end,
                   delivery_instructions, content, fragile, packaging, declared_value_millimes, freight_payer_accepted,
-                  terms_accepted_at)
+                  terms_accepted_at, idempotency_body_hash)
                 values (${plan.newTrackingNumber()}, ${owner.account}::uuid, ${owner.company}::uuid, ${actor.userId}::uuid, ${plan.scope},
                   ${quote.service}, ${body.payment_mode}, ${plan.freightPayer}, ${body.recipient.sms_locale ?? "fr"},
                   ${quote.totalMillimes}, ${pickupId}::uuid, ${recipientId}::uuid,
@@ -169,7 +174,8 @@ export class OrdersRepo implements OrdersPort {
                   ${body.sender.slot.start_at}::timestamptz, ${body.sender.slot.end_at}::timestamptz,
                   ${delivery ? sql`${delivery.start_at}::timestamptz` : sql`null`}, ${delivery ? sql`${delivery.end_at}::timestamptz` : sql`null`},
                   ${body.recipient.instructions ?? ""}, ${body.parcel.content}, ${quote.fragile}, ${quote.packaging},
-                  ${quote.declaredValueMillimes}, ${body.freight_payer_accepted ?? false}, ${at.toISOString()}::timestamptz)
+                  ${quote.declaredValueMillimes}, ${body.freight_payer_accepted ?? false}, ${at.toISOString()}::timestamptz,
+                  ${plan.scope ? plan.bodyHash : null})
                 returning id, tracking_number`,
           );
           const row = (r.rows as Raw[])[0]!;

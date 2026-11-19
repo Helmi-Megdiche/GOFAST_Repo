@@ -48,7 +48,10 @@ alter table core.orders
   add column packaging boolean not null default false,
   add column declared_value_millimes bigint check (declared_value_millimes >= 0),
   add column freight_payer_accepted boolean not null default false,
-  add column terms_accepted_at timestamptz;
+  add column terms_accepted_at timestamptz,
+  -- R202: a keyed MAC of the request body, set with idempotency_scope. The scope of an order outlives its key until the worker
+  -- purges it, so the same key with another body must be told apart from a replay. Not personal data, never shown or listed.
+  add column idempotency_body_hash text;
 
 alter table core.orders
   add constraint orders_api_complete check (quote_id is null or (
@@ -72,7 +75,7 @@ alter table core.orders
 grant insert (quote_id, lines, null_lines, price_list_valid_from, departure_zone_id, arrival_zone_id,
               address_unconfirmed, sender_name, sender_phone, pickup_slot_start, pickup_slot_end,
               delivery_slot_start, delivery_slot_end, delivery_instructions, content, fragile, packaging,
-              declared_value_millimes, freight_payer_accepted, terms_accepted_at)
+              declared_value_millimes, freight_payer_accepted, terms_accepted_at, idempotency_body_hash)
   on core.orders to fastgo_app;
 -- fastgo_readonly reads the same columns as before plus these: like recipients (name, phone), an order of a
 -- person is readable for reports (the rule of 0004's core.protect: every column but a hash).

@@ -235,6 +235,8 @@ export const orders = core.table("orders", {
   declaredValueMillimes: bigint("declared_value_millimes", { mode: "number" }),
   freightPayerAccepted: boolean("freight_payer_accepted").notNull().default(false),
   termsAcceptedAt: tstz("terms_accepted_at"),
+  /** R202: a keyed MAC of the request body, set with the idempotency scope (0011). */
+  idempotencyBodyHash: text("idempotency_body_hash"),
 });
 
 export const parcels = core.table("parcels", {

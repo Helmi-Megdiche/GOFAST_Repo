@@ -4,7 +4,7 @@ import { Keys } from "../auth/crypto.ts";
 import { ApiError } from "../http/errors.ts";
 import type { Actor } from "../http/session.ts";
 import type { ReadQuote, Settings } from "../pricing/pricing.service.ts";
-import { type OrderCreate, type OrderOut, type OrdersPort, OrdersService, ScopeTaken, TRACKING_LIMITS } from "./orders.service.ts";
+import { bodyHashOf, type OrderCreate, type OrderOut, type OrdersPort, OrdersService, ScopeTaken, TRACKING_LIMITS } from "./orders.service.ts";
 
 // GH-22 (PR 4b-2a): the order of the checks of createOrder, with a fake database. The real one is in orders.api.int.test.ts.
 
@@ -187,21 +187,43 @@ describe("GH-22 RV-05 R202: createOrder spends the phone proof last, once", () =
     expect(t.inserted[0]).toMatchObject({ freightPayer: "recipient", addressUnconfirmed: true });
   });
 
-  it("R202: a call whose scope already has an order answers it again, with no check and no proof spent", async () => {
+  const hashOf = (b: OrderCreate) => bodyHashOf(keys, b);
+  const found = (b: OrderCreate, id = "o0") => ({ order: { id } as OrderOut, bodyHash: hashOf(b) });
+
+  it("R202: a call whose scope already has the order of the same body answers it again, with no check and no proof spent", async () => {
     const t = build();
-    (t.port.findByScope as ReturnType<typeof vi.fn>).mockResolvedValueOnce({ id: "o0" });
+    (t.port.findByScope as ReturnType<typeof vi.fn>).mockResolvedValueOnce(found(body()));
     expect(await t.service.create(actor, body(), { scope: "s" })).toEqual({ id: "o0" });
     expect(t.port.readQuote).not.toHaveBeenCalled();
     expect(t.consume).not.toHaveBeenCalled();
   });
 
-  it("R202: a ScopeTaken from the insert answers the order of the other call; if there is none, 409", async () => {
+  it("R202: the order of the scope was made from ANOTHER body (its key expired, the scope is not freed yet): never answered, KEY_REUSED, nothing written, no proof spent", async () => {
+    const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
+    const other = body({ parcel: { ...body().parcel, content: "Autre contenu" } });
+    (t.port.findByScope as ReturnType<typeof vi.fn>).mockResolvedValue(found(other));
+    expect((await reasonOf(t.service.create(actor, body(), { scope: "s" }))).code).toBe("KEY_REUSED");
+    expect(t.consume).not.toHaveBeenCalled();
+    expect(t.port.readQuote).not.toHaveBeenCalled();
+    expect(t.inserted).toEqual([]);
+  });
+
+  it("R202: a ScopeTaken from the insert answers the order of the other call when it is the same body; if there is none, 409", async () => {
     const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
     (t.port.insert as ReturnType<typeof vi.fn>).mockRejectedValue(new ScopeTaken());
-    (t.port.findByScope as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null).mockResolvedValueOnce({ id: "o9" });
+    (t.port.findByScope as ReturnType<typeof vi.fn>).mockResolvedValueOnce(null).mockResolvedValueOnce(found(body(), "o9"));
     expect(await t.service.create(actor, body(), { scope: "s" })).toEqual({ id: "o9" });
     (t.port.findByScope as ReturnType<typeof vi.fn>).mockResolvedValue(null);
     expect((await reasonOf(t.service.create(actor, body(), { scope: "s" }))).code).toBe("STATE_CONFLICT");
+  });
+
+  it("R202: the plan carries the print of the body, which does not depend on the order of the keys", async () => {
+    const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
+    await t.service.create(actor, body(), { scope: "s" });
+    expect(t.inserted[0]).toMatchObject({ bodyHash: hashOf(body()) });
+    const b = body();
+    expect(hashOf({ ...b, recipient: Object.fromEntries(Object.entries(b.recipient).reverse()) as OrderCreate["recipient"] })).toBe(hashOf(b));
+    expect(hashOf({ ...b, parcel: { ...b.parcel, content: "x" } })).not.toBe(hashOf(b));
   });
 
   it("too many parcels is tooManyParcels before the quote is compared", async () => {
