@@ -202,6 +202,7 @@ export class OrdersService {
     // 6. The proof, last of all the refusals. A proof for another sender phone lets this order through; the
     // account is marked verified only when the proved phone is the account's own.
     if (needsProof && proofId) {
+      // RV-22: a spent proof is never restored. A database failure after this costs the user one more SMS; restoring it could let one proof be used twice.
       if (!(await this.d.checks.consume(proofId, body.sender.phone, "order"))) throw refuse("phone_check_id", "invalid");
     }
 
