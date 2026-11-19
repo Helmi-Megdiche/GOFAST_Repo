@@ -899,6 +899,37 @@ describe("GH-22 R212 RV-05 R202: POST /v1/orders/{id}/cancel", () => {
   });
 });
 
+describe("GH-22 RV-22: cancel and confirm answer every input the database could not take, first", () => {
+  it("the smallest breaking input of cancel and confirm is a 400 or 404, and the order, its parcels and its history are unchanged", async () => {
+    ip = "10.32.0.1";
+    const who = await customer();
+    const agent = { cookie: await staffSession("agent") };
+    const order = (await place(who, orderBody(await newQuote(), who))).json();
+    const snapshot = async () => JSON.stringify([(await q("select status, canceled_at, cancel_fee, cancel_fee_millimes, canceled_by, updated_at from core.orders where id = $1", [order.id])).rows, (await q("select status from core.parcels where order_id = $1 order by position", [order.id])).rows, await eventCount(order.id)]);
+    const before = await snapshot();
+    const post = (url: string, cookie: string, body?: unknown) => call("POST", url, { cookie, ...(body === undefined ? {} : { body }) });
+    const cancelUrl = `/v1/orders/${order.id}/cancel`;
+    const cases: Array<[string, Promise<Res>, number]> = [
+      ["cancel: an id that is not a uuid", post("/v1/orders/not-a-uuid/cancel", who.cookie, { accepted_fee: "none" }), 400],
+      ["cancel: no body", post(cancelUrl, who.cookie), 400],
+      ["cancel: an empty body", post(cancelUrl, who.cookie, {}), 400],
+      ["cancel: a fee that does not exist", post(cancelUrl, who.cookie, { accepted_fee: "free" }), 400],
+      ["cancel: a fee of the wrong type", post(cancelUrl, who.cookie, { accepted_fee: null }), 400],
+      ["cancel: a field the contract does not know", post(cancelUrl, who.cookie, { accepted_fee: "none", status: "delivered" }), 400],
+      ["cancel: an unknown order", post(`/v1/orders/${randomUUID()}/cancel`, who.cookie, { accepted_fee: "none" }), 404],
+      ["confirm: an id that is not a uuid", post("/v1/orders/not-a-uuid/confirm", agent.cookie), 400],
+      ["confirm: an unknown order", post(`/v1/orders/${randomUUID()}/confirm`, agent.cookie), 404],
+    ];
+    for (const [name, response, status] of cases) {
+      const res = await response;
+      expect(res.statusCode, `${name}: ${JSON.stringify(res.json())}`).toBe(status);
+      expect(JSON.stringify(res.json()), name).not.toMatch(/constraint|core\.|orders_|violates/i);
+    }
+    expect(await snapshot()).toBe(before);
+    expect(await statusOf(order.id)).toBe("confirmed");
+  });
+});
+
 describe("GH-22 R209 R202: POST /v1/orders/{id}/confirm", () => {
   it("an agent confirms an order the system left received; again is 200 with no new event; a customer is 403; a canceled order is 409", async () => {
     ip = "10.20.9.1";

@@ -342,3 +342,109 @@ describe("GH-22: the definers belong to the order writer, and only the app calls
     ]);
   });
 });
+
+// ---- RV-23: what NULL does in each check, policy and WHERE of 0012, on purpose, with a test that writes the NULL ----------------
+describe("GH-22 RV-23: NULL in the checks and the definers of 0012", () => {
+  const API = {
+    quote_id: randomUUID(),
+    lines: JSON.stringify([{ kind: "base", unit_millimes: 5000, count: 1, millimes: 5000 }]),
+    null_lines: [] as string[],
+    price_list_valid_from: "2026-11-06T00:00:00Z",
+    sender_name: "Expéditeur",
+    sender_phone: "+21620000098",
+    pickup_slot_start: "2026-11-20T08:00:00Z",
+    pickup_slot_end: "2026-11-20T10:00:00Z",
+    content: "Documents",
+    terms_accepted_at: "2026-11-18T09:00:00Z",
+  };
+  const apiOrder = async (extra: Record<string, unknown> = {}) => newOrder({ ...API, departure_zone_id: zoneA, arrival_zone_id: zoneB, ...extra });
+  const setOn = (id: string, cols: string) => q(`update core.orders set ${cols} where id = $1`, [id]);
+
+  it("orders_cancel_fee: no date, no fee, no amount is the normal order; any one of the three alone is refused; 'none' has no amount", async () => {
+    const id = await newOrder();
+    expect(await one("select canceled_at, cancel_fee, cancel_fee_millimes, canceled_by from core.orders where id = $1", [id])).toEqual({ canceled_at: null, cancel_fee: null, cancel_fee_millimes: null, canceled_by: null });
+    await expectDbError(setOn(id, "canceled_at = now()"), /orders_cancel_fee/); // a date, NULL fee
+    await expectDbError(setOn(id, "cancel_fee = 'none'"), /orders_cancel_fee/); // a fee, NULL date
+    await expectDbError(setOn(id, "cancel_fee_millimes = 5000"), /orders_cancel_fee/); // an amount, NULL fee and date
+    await expectDbError(setOn(id, "canceled_at = now(), cancel_fee = 'applies', cancel_fee_millimes = null"), /orders_cancel_fee/); // applies, NULL amount
+    await expectDbError(setOn(id, "canceled_at = now(), cancel_fee = 'backOfficeDecides', cancel_fee_millimes = 5000"), /orders_cancel_fee/); // an amount that is not owed
+    await setOn(id, "status = 'canceled', canceled_at = now(), cancel_fee = 'backOfficeDecides', cancel_fee_millimes = null");
+  });
+
+  it("cancel_fee_millimes >= 0 and cancel_fee in (...): NULL passes them on purpose (no fee, no amount); a negative amount is refused", async () => {
+    const id = await newOrder();
+    await expectDbError(setOn(id, "status = 'canceled', canceled_at = now(), cancel_fee = 'applies', cancel_fee_millimes = -1"), /cancel_fee_millimes/);
+    await setOn(id, "cancel_fee = null, cancel_fee_millimes = null, canceled_at = null");
+  });
+
+  it("orders_canceled_at: an API order is canceled exactly when it has a date; a row before 0011 (no quote) is not held to it, on purpose", async () => {
+    const api = await apiOrder();
+    await expectDbError(setOn(api, "status = 'canceled'"), /orders_canceled_at/); // canceled, NULL date
+    await expectDbError(setOn(api, "canceled_at = now(), cancel_fee = 'none'"), /orders_canceled_at/); // a date, not canceled
+    await setOn(api, "status = 'canceled', canceled_at = now(), cancel_fee = 'none'");
+    const legacy = await newOrder();
+    await setOn(legacy, "status = 'canceled'"); // the old row: canceled with no date is accepted
+  });
+
+  it("the two settings are NOT NULL: NULL is refused, never read as a value", async () => {
+    await expectDbError(q("update core.pricing_settings set cancel_fee_millimes = null"), /cancel_fee_millimes/);
+    await expectDbError(q("update core.pricing_settings set auto_confirm_max_millimes = null"), /auto_confirm_max_millimes/);
+  });
+
+  it("lock_order: an order with no lines (a row before 0011) answers lines [] and no arrival; a pickup mission that ended early or was refused is not the driver who arrived", async () => {
+    const legacy = await newOrder();
+    const app = open("fastgo_app");
+    const f = (await app.withActor(owner(), (tx) => tx.execute(sql`select core.lock_order(${legacy}::uuid) as f`))).rows[0] as { f: Record<string, unknown> };
+    expect(f.f).toMatchObject({ lines: [], pickup_arrived_at: null, cancel_fee: null, canceled_at: null });
+    const id = await newOrder({ status: "assigned" });
+    await q("insert into core.missions (order_id, kind, status, arrived_at, end_reason) values ($1, 'pickup', 'arrived', now() - interval '1 hour', 'driverRemoved')", [id]); // ended early
+    await q("insert into core.missions (order_id, kind, status, arrived_at) values ($1, 'pickup', 'refused', now())", [id]); // refused
+    await q("insert into core.missions (order_id, kind, status, arrived_at) values ($1, 'pickup', 'accepted', null)", [id]); // not arrived yet: NULL
+    const g = (await app.withActor(owner(), (tx) => tx.execute(sql`select core.lock_order(${id}::uuid) as f`))).rows[0] as { f: Record<string, unknown> };
+    expect(g.f.pickup_arrived_at).toBeNull();
+    await q("insert into core.missions (order_id, kind, status, arrived_at) values ($1, 'pickup', 'arrived', '2026-11-20T09:00:00Z')", [id]);
+    const h = (await app.withActor(owner(), (tx) => tx.execute(sql`select core.lock_order(${id}::uuid) as f`))).rows[0] as { f: Record<string, unknown> };
+    expect(new Date(h.f.pickup_arrived_at as string).toISOString()).toBe("2026-11-20T09:00:00.000Z");
+  });
+
+  it("cancel_order: a mission that ended early (end_reason set) is left as it was; only the active ones are finished", async () => {
+    const id = await newOrder({ status: "assigned" });
+    await q("insert into core.missions (order_id, kind, status, end_reason) values ($1, 'pickup', 'accepted', 'driverRemoved')", [id]);
+    await q("insert into core.missions (order_id, kind, status) values ($1, 'pickup', 'proposed')", [id]);
+    await cancel(owner(), id, "assigned", "none", null);
+    expect((await q("select status, end_reason from core.missions where order_id = $1 order by created_at, id", [id])).rows).toEqual([
+      { status: "accepted", end_reason: "driverRemoved" },
+      { status: "finished", end_reason: "orderCanceled" },
+    ]);
+  });
+
+  it("core.history_time: no event yet means no floor (p_at as it is); with events it is the later of the two", async () => {
+    const id = await newOrder();
+    const at = async (t: string) => ((await q("select core.history_time($1::uuid, $2::timestamptz) as t", [id, t])).rows[0] as { t: Date }).t.toISOString();
+    expect(await at("2026-12-30T09:00:00Z")).toBe("2026-12-30T09:00:00.000Z");
+    await q("insert into core.status_events (order_id, subject_type, subject_id, to_status, occurred_at) values ($1, 'order', $1, 'received', '2026-12-30T10:00:00Z')", [id]);
+    expect(await at("2026-12-30T09:00:00Z")).toBe("2026-12-30T10:00:00.000Z");
+    expect(await at("2026-12-30T11:00:00Z")).toBe("2026-12-30T11:00:00.000Z");
+  });
+
+  it("assert_order_actor: an order with no creator is not the creator's to confirm by itself (auto), and an order whose owner column is NULL is matched through the other owner column, never by NULL = NULL", async () => {
+    const noCreator = await newOrder({ created_by: null });
+    await expectDbError(open("fastgo_app").withActor(owner(), (tx) => tx.execute(sql`select core.auto_confirm_order(${noCreator}::uuid, ${AT}::timestamptz)`)), /not found/i);
+    // a company order has owner_account_id NULL: the stranger company (owner_company_id <> theirs) is not matched by it
+    const id = await newOrder();
+    await expectDbError(cancel(stranger(), id, "received", "none", null), /not found/i);
+    await cancel(owner(), id, "received", "none", null);
+  });
+
+  it("a customer's order (owner_company_id NULL) is the customer's: the owner column of the company does not make it anyone else's", async () => {
+    const customerId = randomUUID();
+    await q("insert into core.accounts (id, kind, role, full_name, phone_e164) values ($1, 'customer', 'individual', 'Client', '+21620555321')", [customerId]);
+    const address = (await q("insert into core.addresses (owner_account_id, line, zone_id) values ($1, 'x', $2) returning id", [customerId, zoneA])).rows[0].id as string;
+    const recipient = (await q("insert into core.recipients (owner_account_id, name, phone_e164) values ($1, 'R', '+21620555322') returning id", [customerId])).rows[0].id as string;
+    const id = await newOrder({ owner_company_id: null, owner_account_id: customerId, created_by: customerId, pickup_address_id: address, recipient_id: recipient });
+    const mine: Actor = { userId: customerId, accountId: customerId, role: "individual" };
+    await expectDbError(cancel(owner(), id, "received", "none", null), /not found/i); // a merchant: owner_account_id <> them, company NULL
+    await cancel(mine, id, "received", "none", null);
+    expect((await one("select status, canceled_by from core.orders where id = $1", [id])).canceled_by).toBe(customerId);
+  });
+});
