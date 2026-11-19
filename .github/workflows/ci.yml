@@ -39,7 +39,8 @@ jobs:
         run: |
           : > changed-files.txt # a push to main gets an empty list, which the script reads as "everything"
           if [ "$EVENT" = "pull_request" ]; then
-            git diff --name-only "$BASE_SHA" HEAD > changed-files.txt
+            # --no-renames: a moved file lists its old path too (RV-26), so moving apps/api/a.ts to docs/ is still code.
+            git diff --name-only --no-renames "$BASE_SHA" HEAD > changed-files.txt
             echo "Changed files:"
             cat changed-files.txt
           fi

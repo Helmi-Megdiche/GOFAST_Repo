@@ -127,6 +127,10 @@ Source: #14 PR 3 round 1, offboard.sh removed a whole sudoers file to remove one
 Check: replay two events out of order (the newer first, then the older) and show the older one refused, with nothing changed. Include the same event twice (it must not count as older).
 Source: #14 PR 4 round 1, a later-finishing CI run of an older commit could deploy over a newer one.
 
+**RV-26. A filter that skips tests must see every path a change touches and every file a test reads.**
+List renames as both paths (`git diff --no-renames`), treat a quoted or unreadable path as "run everything", and keep a tripwire test that fails when a test reads a file the filter would skip. Twins: put a skip rule back in front, drop the flag from `ci.yml`.
+Source: #114 round 1, moving `apps/api/a.ts` to `docs/` listed only `docs/a.ts`, and a PR touching only `docs/spec/*`, `infra/data/*` or `AR-REVIEW.md` skipped tests that read those files.
+
 ### Money and values
 
 **RV-06. Test money parsing at the edges in each language.**
