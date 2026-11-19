@@ -75,7 +75,6 @@ grant select (occurred_at) on core.status_events to fastgo_order_writer; -- hist
 grant select (id, order_id, kind, status, end_reason, arrived_at, offered_at, created_at) on core.missions to fastgo_order_writer;
 grant update (status, end_reason, finished_at) on core.missions to fastgo_order_writer;
 grant select (role) on core.accounts to fastgo_order_writer;
-grant select (cancel_fee_millimes) on core.pricing_settings to fastgo_order_writer;
 create policy order_writer_update on core.orders for update to fastgo_order_writer using (true) with check (true);
 create policy order_writer_update on core.parcels for update to fastgo_order_writer using (true) with check (true);
 create policy order_writer_select on core.missions for select to fastgo_order_writer using (true);
@@ -137,14 +136,13 @@ begin
 end $$;
 
 -- Cancels: compare-and-set on the status the API saw under the lock. The fee is the one the API computed from the domain rule;
--- here it is only checked to be one of the three, and its amount to be the setting (a value, not the rule). In one go: the order,
+-- here it is only checked to be one of the three, with an amount exactly when it applies (the amount is the setting, read once by the API). In one go: the order,
 -- its to_collect parcels (canceled), its active pickup mission (finished, orderCanceled), and an event for each with the actor.
 create function core.cancel_order(p_order uuid, p_status text, p_fee text, p_fee_millimes bigint, p_at timestamptz) returns void
   language plpgsql security definer set search_path = pg_catalog, core, pg_temp as $$
 declare
   v_actor uuid := core.app_user_id();
   v_status text;
-  v_amount bigint;
   v_at timestamptz;
 begin
   perform core.assert_order_actor(p_order, 'cancel');
@@ -163,8 +161,9 @@ begin
   if p_fee is null or p_fee not in ('none', 'applies', 'backOfficeDecides') then
     raise exception 'invalid cancel fee' using errcode = 'invalid_parameter_value';
   end if;
-  select s.cancel_fee_millimes into v_amount from core.pricing_settings s;
-  if (p_fee = 'applies') is distinct from (p_fee_millimes is not null) or (p_fee = 'applies' and p_fee_millimes <> v_amount) then
+  -- The amount is the setting as the API read it ONCE, under the lock (core.pricing_settings is not read again here: a setting edited
+  -- in between would raise a 22023 and a 500). The CHECK of the table keeps it non-negative.
+  if (p_fee = 'applies') is distinct from (p_fee_millimes is not null) then
     raise exception 'invalid cancel fee amount' using errcode = 'invalid_parameter_value';
   end if;
 

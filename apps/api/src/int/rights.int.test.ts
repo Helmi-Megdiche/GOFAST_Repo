@@ -210,7 +210,6 @@ const ORDER_WRITER: Record<string, Rights> = {
       UPDATE: ["end_reason", "finished_at", "status"],
     },
   },
-  "core.pricing_settings": { c: { SELECT: ["cancel_fee_millimes"] } },
   "core.accounts": { c: { SELECT: ["id", "role", "status"] } },
   "core.recipients": { c: { SELECT: ["id", "phone_e164"] } },
   "core.status_events": {

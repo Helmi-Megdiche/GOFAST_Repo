@@ -186,7 +186,6 @@ describe("GH-22 R212 RV-05 RV-19: core.cancel_order", () => {
     const id = await newOrder({ status: "assigned" });
     await mission(id, "arrived", true);
     const before = await one("select status, updated_at from core.orders where id = $1", [id]);
-    await expectDbError(cancel(owner(), id, "assigned", "applies", 4000), /fee/i);
     await expectDbError(cancel(owner(), id, "assigned", "applies", null), /fee/i);
     await expectDbError(cancel(owner(), id, "assigned", "free", null), /fee/i);
     await expectDbError(cancel(owner(), id, "confirmed", "none", null), /conflict|state/i); // the status moved: compare-and-set
@@ -195,6 +194,18 @@ describe("GH-22 R212 RV-05 RV-19: core.cancel_order", () => {
     await cancel(owner(), id, "assigned", "applies", 5000);
     expect(await one("select cancel_fee, cancel_fee_millimes from core.orders where id = $1", [id])).toEqual({ cancel_fee: "applies", cancel_fee_millimes: "5000" });
     expect((await one("select status, end_reason from core.missions where order_id = $1", [id]))).toMatchObject({ status: "finished", end_reason: "orderCanceled" });
+  });
+
+  it("the amount of the fee is the one the API read once and passed: a setting changed in between changes nothing and raises nothing", async () => {
+    const id = await newOrder({ status: "assigned" });
+    await mission(id, "arrived", true);
+    try {
+      await q("update core.pricing_settings set cancel_fee_millimes = 6000"); // an admin edits the setting after the API read 5000
+      await cancel(owner(), id, "assigned", "applies", 5000);
+    } finally {
+      await q("update core.pricing_settings set cancel_fee_millimes = 5000");
+    }
+    expect(await one("select status, cancel_fee, cancel_fee_millimes from core.orders where id = $1", [id])).toEqual({ status: "canceled", cancel_fee: "applies", cancel_fee_millimes: "5000" });
   });
 
   it("a final state is never cancelled again: the definer refuses it, and a second cancel does not overwrite canceled_at, the fee or canceled_by", async () => {
