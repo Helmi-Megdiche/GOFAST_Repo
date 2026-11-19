@@ -278,3 +278,112 @@ describe("GH-22 RV-04: the quote purge waits 24 h after the expiry", () => {
     expect(await del(old)).toBe(1);
   });
 });
+
+// ---- RV-23: what NULL does in each check of 0011, on purpose, with a test that writes the NULL ---------------------------------
+describe("GH-22 RV-23: NULL in the checks of 0011", () => {
+  const API_COLUMNS = ["lines", "null_lines", "price_list_valid_from", "departure_zone_id", "arrival_zone_id", "sender_name", "sender_phone", "pickup_slot_start", "pickup_slot_end", "content", "terms_accepted_at"];
+  /** Runs `work` with orders_api_complete dropped, in a transaction that is rolled back: shows what a check says by itself. */
+  async function alone<T>(work: () => Promise<T>): Promise<T> {
+    await q("begin");
+    try {
+      await q("alter table core.orders drop constraint orders_api_complete");
+      return await work();
+    } finally {
+      await q("rollback");
+    }
+  }
+
+  it("a row made before 0011 (no quote) is accepted with every column of the API NULL: that is on purpose", async () => {
+    await insertOrder(Object.fromEntries([["quote_id", null], ...API_COLUMNS.map((c) => [c, null])]));
+  });
+
+  it("an order made by the API (a quote) is refused when any column it fills is NULL: orders_api_complete", async () => {
+    for (const col of API_COLUMNS) await expectDbError(insertOrder({ [col]: null }), /orders_api_complete/);
+  });
+
+  it("a NULL declared value is a value that was not declared: accepted for an API order; a negative one is refused", async () => {
+    await insertOrder({ declared_value_millimes: null });
+    await insertOrder({ declared_value_millimes: 0 });
+    await expectDbError(insertOrder({ declared_value_millimes: -1 }), /declared_value/);
+  });
+
+  it("sender_name, sender_phone and content: NULL passes their own check (the API check above refuses it for an API order); empty or malformed is refused", async () => {
+    await alone(() => insertOrder({ sender_name: null, sender_phone: null, content: null }));
+    await expectDbError(insertOrder({ sender_name: "" }), /sender_name/);
+    await expectDbError(insertOrder({ sender_phone: "+33612345678" }), /sender_phone/);
+    await expectDbError(insertOrder({ content: "" }), /content/);
+  });
+
+  it("orders_pickup_slot: with a quote, a NULL start or end is refused BY THIS CHECK (not left to orders_api_complete); a legacy row is not held to it", async () => {
+    await alone(() => expectDbError(insertOrder({ pickup_slot_end: null }), /orders_pickup_slot/));
+    await alone(() => expectDbError(insertOrder({ pickup_slot_start: null }), /orders_pickup_slot/));
+    await insertOrder({ quote_id: null, lines: null, null_lines: null, pickup_slot_start: null, pickup_slot_end: null });
+  });
+
+  it("orders_delivery_slot: no NULL end without a NULL start (and the other way), a scheduled order cannot have NULL slots, the others must", async () => {
+    const day = { delivery_slot_start: "2026-11-21T08:00:00Z", delivery_slot_end: "2026-11-21T10:00:00Z" };
+    await expectDbError(insertOrder({ service: "scheduled", delivery_slot_start: null, delivery_slot_end: null }), /orders_delivery_slot/);
+    await expectDbError(insertOrder({ service: "scheduled", delivery_slot_start: day.delivery_slot_start, delivery_slot_end: null }), /orders_delivery_slot/);
+    await expectDbError(insertOrder({ service: "scheduled", delivery_slot_start: null, delivery_slot_end: day.delivery_slot_end }), /orders_delivery_slot/);
+    await expectDbError(insertOrder({ service: "standard", delivery_slot_start: null, delivery_slot_end: day.delivery_slot_end }), /orders_delivery_slot/);
+    await insertOrder({ service: "standard", delivery_slot_start: null, delivery_slot_end: null });
+    await insertOrder({ service: "scheduled", ...day });
+  });
+
+  it("orders_total_is_lines: no lines means no sum to check (a legacy row); lines with a wrong total are refused", async () => {
+    await insertOrder({ quote_id: null, lines: null, null_lines: null, total_millimes: 777 });
+    await expectDbError(insertOrder({ quote_id: null, total_millimes: 777 }), /orders_total_is_lines/);
+  });
+
+  it("orders_null_lines: lines with null_lines NULL is refused (it passed before: null = x is null), even without a quote", async () => {
+    await expectDbError(insertOrder({ quote_id: null, null_lines: null }), /orders_null_lines/);
+    await alone(() => expectDbError(insertOrder({ null_lines: null }), /orders_null_lines/));
+    await insertOrder({ quote_id: null, lines: null, null_lines: null }); // no lines, no list
+  });
+
+  it("orders_freight_accepted: payment_mode and freight_payer_accepted are NOT NULL, so there is no NULL to read", async () => {
+    await expectDbError(insertOrder({ payment_mode: null }), /payment_mode/);
+    await expectDbError(insertOrder({ freight_payer_accepted: null }), /freight_payer_accepted/);
+  });
+
+  it("parcels.position: NULL (a parcel before 0011) is allowed any number of times, 0 is not, a repeated position of one order is not", async () => {
+    const id = await insertOrder();
+    const parcel = (position: number | null) =>
+      q(`insert into core.parcels (order_id, size, weight_declared_g, proof_level, position) values ($1, 'small', 500, 'codeOrPhotoWithPosition', $2)`, [id, position]);
+    await parcel(null);
+    await parcel(null);
+    await parcel(1);
+    await expectDbError(parcel(1), /position/);
+    await expectDbError(parcel(0), /position/);
+  });
+
+  it("idempotency_scope: any number of NULL (every order whose key was purged), a repeated value is refused", async () => {
+    await insertOrder({ idempotency_scope: null });
+    await insertOrder({ idempotency_scope: null });
+    await insertOrder({ idempotency_scope: "scope-rv23" });
+    await expectDbError(insertOrder({ idempotency_scope: "scope-rv23" }), /idempotency_scope/);
+  });
+
+  it("record_order_created: an order with no creator (created_by NULL) is nobody's to record: not found, never an error of NULL", async () => {
+    const id = await insertOrder({ created_by: null });
+    const app = open(db.url("fastgo_app"));
+    await expectDbError(app.withActor(merchant(ids.userA, ids.companyA), (tx) => tx.execute(sql`select core.record_order_created(${id}::uuid)`)), /not found/i);
+  });
+
+  it("sms_tracking_payload: a company order (no owner account) is sent; an order of a closed account is not (NULL owner is not a closed owner)", async () => {
+    const company = await insertOrder();
+    const payload = async (id: string) => ((await q("select core.sms_tracking_payload($1::uuid) as p", [id])).rows[0] as { p: unknown }).p;
+    expect(await payload(company)).toMatchObject({ locale: "fr" });
+    await q("insert into core.accounts (id, kind, role, full_name, phone_e164, status, closed_at) values ($1, 'customer', 'individual', 'Fermé', '+21620111777', 'closed', now())", [randomUUID()]);
+    const closed = (await q("select id from core.accounts where phone_e164 = '+21620111777'")).rows[0].id as string;
+    const mine = await insertOrder({ owner_company_id: null, owner_account_id: closed, created_by: closed, pickup_address_id: (await q("insert into core.addresses (owner_account_id, line, zone_id) values ($1, 'x', $2) returning id", [closed, zoneA])).rows[0].id, recipient_id: (await q("insert into core.recipients (owner_account_id, name, phone_e164) values ($1, 'R', '+21620111778') returning id", [closed])).rows[0].id });
+    expect(await payload(mine)).toBeNull();
+  });
+
+  it("core.tracking: an order with no zone at all answers null cities (a left join, on purpose), never an error", async () => {
+    const id = await insertOrder({ quote_id: null, lines: null, null_lines: null, departure_zone_id: null, arrival_zone_id: null, tracking_number: "FG-NULL-0001" });
+    const t = (await q("select core.tracking('FG-NULL-0001', 'fr') as t")).rows[0] as { t: { from_city: string | null; to_city: string | null } };
+    expect(id).toBeTruthy();
+    expect(t.t).toMatchObject({ status: "received", parcel_count: 0 });
+  });
+});

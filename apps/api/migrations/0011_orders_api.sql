@@ -62,8 +62,12 @@ alter table core.orders
   -- R204: the total is the sum of the lines, the discount line included (it is negative); a null line adds nothing.
   add constraint orders_total_is_lines check (lines is null or total_millimes = core.lines_total(lines)),
   -- Q11: the order records which lines had no amount.
-  add constraint orders_null_lines check (lines is null or null_lines = core.null_line_kinds(lines)),
-  add constraint orders_pickup_slot check (quote_id is null or pickup_slot_end > pickup_slot_start),
+  -- RV-23: with lines, null_lines must exist and match (`null_lines = x` alone is NULL, which a CHECK lets through).
+  add constraint orders_null_lines check (lines is null or (null_lines is not null and null_lines = core.null_line_kinds(lines))),
+  -- RV-23: with a quote both ends exist and the end is later; a NULL end is refused here, not only by orders_api_complete.
+  add constraint orders_pickup_slot check (quote_id is null
+    or (pickup_slot_start is not null and pickup_slot_end is not null and pickup_slot_end > pickup_slot_start)),
+  -- RV-23: no NULL is read as a value here: the `is not null` terms are booleans, and an end with no start is refused by the pairing.
   add constraint orders_delivery_slot check (quote_id is null or (
     (service = 'scheduled') = (delivery_slot_start is not null)
     and (delivery_slot_start is null) = (delivery_slot_end is null)
