@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
-import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Logger } from "@nestjs/common";
+import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.ts";
 import { runSmsOutbox } from "../auth/outbox-worker.ts";
 import { createRedis, type Redis } from "../auth/redis.ts";
@@ -135,6 +136,10 @@ const newQuote = async (over: Record<string, unknown> = {}) => {
   expect(res.statusCode).toBe(201);
   return res.json();
 };
+/** How far ahead the clock of the app in use is (the RV-08 block moves it): a pickup window is always relative to it (R503). */
+let clockShiftMs = 0;
+const hoursAhead = (h: number) => new Date(Date.now() + clockShiftMs + h * 3_600_000).toISOString();
+const window = (fromH: number, toH: number) => ({ start_at: hoursAhead(fromH), end_at: hoursAhead(toH) });
 /** The order body for a quote, as the form sends it. */
 const orderBody = (quote: any, who: { phone: string }, over: Record<string, unknown> = {}) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
   quote_id: quote.id,
@@ -143,7 +148,7 @@ const orderBody = (quote: any, who: { phone: string }, over: Record<string, unkn
     name: "Expéditeur Test",
     phone: who.phone,
     address: { text: "12 Rue Secrète du Test", pin: { x: 10.05, y: 36.05 } },
-    slot: { start_at: "2026-11-25T08:00:00.000Z", end_at: "2026-11-25T10:00:00.000Z" },
+    slot: window(24, 26),
   },
   recipient: {
     name: "Destinataire Test",
@@ -401,6 +406,38 @@ describe("GH-22 RV-05 R206 R607: the refusals, each with nothing written", () =>
   });
 });
 
+describe("GH-22 R503: a bad slot is a 422 before the proof is spent, never a 500", () => {
+  const cases: Array<[string, (b: ReturnType<typeof orderBody>) => Record<string, unknown>, string]> = [
+    ["scheduled with no slot", () => ({ service: { code: "scheduled" } }), "service.slot"],
+    ["a slot with the standard service", () => ({ service: { code: "standard", slot: window(48, 50) } }), "service.slot"],
+    ["a delivery slot that ends before it starts", () => ({ service: { code: "scheduled", slot: window(50, 48) } }), "service.slot"],
+    ["a pickup window that ends before it starts", (b) => ({ sender: { ...b.sender, slot: window(26, 24) } }), "sender.slot"],
+    ["a pickup window that ends where it starts", (b) => ({ sender: { ...b.sender, slot: window(26, 26) } }), "sender.slot"],
+    ["a pickup window that has already ended", (b) => ({ sender: { ...b.sender, slot: window(-3, -1) } }), "sender.slot"],
+  ];
+  for (const [index, [name, over, field]] of cases.entries()) {
+    it(`${name}: 422 slotInvalid on ${field}, nothing written, and the same proof still works`, async () => {
+      ip = `10.20.7.${index + 1}`;
+      const log = vi.spyOn(Logger.prototype, "error");
+      const who = await customer(false);
+      // The scheduled service has no price yet (priceUnavailable), so no quote exists for it: the slot is checked before the quote is
+      // read, and the order that follows the refusal is a standard one with the same proof.
+      const quote = await newQuote();
+      const check = await proof(who.phone, "order");
+      const before = await orders();
+      const bad = await place(who, orderBody(quote, who, { phone_check_id: check, ...over(orderBody(quote, who)) }));
+      expect([bad.statusCode, bad.json().error.code, bad.json().error.fields]).toEqual([422, "RULE_REFUSED", [{ name: field, reason: "slotInvalid" }]]);
+      expect(await orders()).toBe(before);
+      // never the CHECK of the database: no logged error
+      expect(log.mock.calls.filter((c) => String(c[0]).includes("CHECK"))).toEqual([]);
+      log.mockRestore();
+      // the proof was not spent: the order with a good body and the same proof is created
+      const ok = await place(who, orderBody(quote, who, { phone_check_id: check }));
+      expect(ok.statusCode, JSON.stringify(ok.json())).toBe(201);
+    });
+  }
+});
+
 describe("GH-22 T55: GET /v1/orders and GET /v1/orders/{id}", () => {
   it("each customer lists and reads only their own orders, newest first, with a cursor; another's order is 404", async () => {
     ip = "10.20.3.1";
@@ -497,9 +534,11 @@ describe("GH-22 RV-08: create, get, list and tracking with every clock of the AP
   beforeAll(async () => {
     shifted = await buildApp(() => new Date(Date.now() + SHIFT_MS));
     target = shifted;
+    clockShiftMs = SHIFT_MS;
   });
   afterAll(async () => {
     target = app;
+    clockShiftMs = 0;
     await shifted?.close();
   });
 

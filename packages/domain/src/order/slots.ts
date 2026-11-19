@@ -77,3 +77,25 @@ export function slotDay(slot: Pick<Slot, "startUtc">, at: number): "today" | "to
   const offset = day(Date.parse(slot.startUtc)) - day(at);
   return offset === 0 ? "today" : offset === 1 ? "tomorrow" : "other";
 }
+
+export type SlotFieldError = { name: "service.slot" | "sender.slot"; reason: "slotInvalid" };
+type WindowIn = { start_at: string; end_at: string };
+
+/**
+ * The slots of an order, checked before anything is written (the CHECKs of the database are only the last net):
+ * the delivery slot exists for the `scheduled` service and for no other; every window ends after it starts; the
+ * pickup window has not ended at `at`. One error per wrong field, so the form can show them all.
+ */
+export function checkOrderSlots(
+  order: { serviceCode: string; serviceSlot: WindowIn | null | undefined; pickupSlot: WindowIn },
+  at: number,
+): SlotFieldError[] {
+  const wrong: SlotFieldError[] = [];
+  const endsAfterStart = (w: WindowIn) => Date.parse(w.end_at) > Date.parse(w.start_at); // false for a date that does not parse
+  const service = order.serviceSlot ?? null;
+  if (order.serviceCode === "scheduled" ? service === null || !endsAfterStart(service) : service !== null)
+    wrong.push({ name: "service.slot", reason: "slotInvalid" });
+  if (!endsAfterStart(order.pickupSlot) || !(Date.parse(order.pickupSlot.end_at) > at))
+    wrong.push({ name: "sender.slot", reason: "slotInvalid" });
+  return wrong;
+}

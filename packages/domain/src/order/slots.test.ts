@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   availableSlots as availableSlotsWith,
+  checkOrderSlots,
   isSlotInFuture,
   slotDay,
   tunisTimeToUtc,
@@ -68,5 +69,53 @@ describe("slot day label", () => {
     // 5 Nov 00:30 in Tunis is still 4 Nov in UTC.
     expect(slotDay(tomorrow, Date.parse("2026-11-04T23:30:00Z"))).toBe("today");
     expect(slotDay(tomorrow, Date.parse("2026-11-03T08:30:00Z"))).toBe("other");
+  });
+});
+
+// GH-22 R503 R504: the slots of an order, refused before anything is written (a CHECK of the database never has to).
+describe("checkOrderSlots: the pickup window and the delivery slot of an order", () => {
+  const AT = Date.UTC(2026, 10, 20, 10, 0);
+  const iso = (ms: number) => new Date(ms).toISOString();
+  const win = (fromH: number, toH: number) => ({ start_at: iso(AT + fromH * 3_600_000), end_at: iso(AT + toH * 3_600_000) });
+  const input = (over: Partial<Parameters<typeof checkOrderSlots>[0]> = {}) => ({
+    serviceCode: "standard",
+    serviceSlot: null,
+    pickupSlot: win(24, 26),
+    ...over,
+  });
+
+  it("accepts a standard order with a future pickup window, and a scheduled one with its delivery slot", () => {
+    expect(checkOrderSlots(input(), AT)).toEqual([]);
+    expect(checkOrderSlots(input({ serviceCode: "scheduled", serviceSlot: win(48, 50) }), AT)).toEqual([]);
+  });
+
+  it("scheduled without a delivery slot is refused on service.slot", () => {
+    expect(checkOrderSlots(input({ serviceCode: "scheduled" }), AT)).toEqual([{ name: "service.slot", reason: "slotInvalid" }]);
+  });
+
+  it("a delivery slot with any other service code is refused on service.slot", () => {
+    for (const serviceCode of ["standard", "express"])
+      expect(checkOrderSlots(input({ serviceCode, serviceSlot: win(48, 50) }), AT), serviceCode).toEqual([{ name: "service.slot", reason: "slotInvalid" }]);
+  });
+
+  it("a window that ends at or before its start is refused, for the delivery slot and for the pickup window", () => {
+    expect(checkOrderSlots(input({ serviceCode: "scheduled", serviceSlot: win(50, 50) }), AT)).toEqual([{ name: "service.slot", reason: "slotInvalid" }]);
+    expect(checkOrderSlots(input({ serviceCode: "scheduled", serviceSlot: win(50, 49) }), AT)).toEqual([{ name: "service.slot", reason: "slotInvalid" }]);
+    expect(checkOrderSlots(input({ pickupSlot: win(26, 26) }), AT)).toEqual([{ name: "sender.slot", reason: "slotInvalid" }]);
+    expect(checkOrderSlots(input({ pickupSlot: win(26, 24) }), AT)).toEqual([{ name: "sender.slot", reason: "slotInvalid" }]);
+  });
+
+  it("a pickup window that has already ended is refused; one that is running (started, not ended) is not", () => {
+    expect(checkOrderSlots(input({ pickupSlot: win(-3, -1) }), AT)).toEqual([{ name: "sender.slot", reason: "slotInvalid" }]);
+    expect(checkOrderSlots(input({ pickupSlot: win(-1, 0) }), AT)).toEqual([{ name: "sender.slot", reason: "slotInvalid" }]); // end == now
+    expect(checkOrderSlots(input({ pickupSlot: win(-1, 1) }), AT)).toEqual([]);
+  });
+
+  it("says every wrong slot at once, and a date that does not parse is wrong", () => {
+    expect(checkOrderSlots(input({ serviceSlot: win(48, 50), pickupSlot: win(26, 24) }), AT)).toEqual([
+      { name: "service.slot", reason: "slotInvalid" },
+      { name: "sender.slot", reason: "slotInvalid" },
+    ]);
+    expect(checkOrderSlots(input({ pickupSlot: { start_at: "nope", end_at: "nope" } }), AT)).toEqual([{ name: "sender.slot", reason: "slotInvalid" }]);
   });
 });

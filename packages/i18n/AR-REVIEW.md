@@ -104,6 +104,7 @@ native-speaker review before release (CLAUDE.md).
 | `apiErrors.phoneRequired` | تحقّق من رقم هاتفك عبر رسالة نصية لإتمام الطلب. | Vérifiez votre numéro de téléphone par SMS pour passer commande. | [ ] |
 | `apiErrors.priceUnavailable` | سعر هذا الخيار غير متوفر بعد. | Le prix de cette option n'est pas encore disponible. | [ ] |
 | `apiErrors.quoteChanged` | تغيّر السعر: راجع المجموع الجديد قبل التأكيد. | Le prix a changé : vérifiez le nouveau total avant de valider. | [ ] |
+| `apiErrors.slotInvalid` | الفترة الزمنية المختارة غير صالحة: تحقق من الأوقات أو اختر فترة لم تنقضِ بعد. | Le créneau choisi n'est pas valable : vérifiez les heures, ou choisissez un créneau à venir. | [ ] |
 | `apiErrors.tooHeavy` | أحد الطرود يتجاوز الوزن الأقصى. | Un colis dépasse le poids maximal. | [ ] |
 | `apiErrors.tooManyParcels` | عدد الطرود كبير جدًا لطلب واحد. | Il y a trop de colis pour une seule commande. | [ ] |
 | `apiSms.code` | GOFAST: رمزك هو {code}. صالح لمدة {minutes} دقائق. لا تشاركه مع أحد. | GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne. | [ ] |

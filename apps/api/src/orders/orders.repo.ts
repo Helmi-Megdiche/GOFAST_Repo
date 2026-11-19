@@ -1,5 +1,7 @@
+import { Logger } from "@nestjs/common";
 import { sql, type SQL } from "drizzle-orm";
 import type { Db, Tx } from "../db/index.ts";
+import { ApiError } from "../http/errors.ts";
 import type { Actor } from "../http/session.ts";
 import { PricingRepo } from "../pricing/pricing.repo.ts";
 import type { ReadQuote, Settings } from "../pricing/pricing.service.ts";
@@ -23,6 +25,15 @@ const constraintOf = (error: unknown): string | undefined => {
   const e = error as { code?: string; constraint?: string; cause?: { code?: string; constraint?: string } };
   const code = e.cause?.code ?? e.code;
   return code === "23505" ? (e.cause?.constraint ?? e.constraint ?? "") : undefined;
+};
+
+/**
+ * A CHECK violation (23514) on the order row. The service refuses a bad slot first (R503), so no request reaches this: if one does, a
+ * rule is missing in the service. It is a logged 500 (the constraint name only, no data), never a 4xx and never silent.
+ */
+const checkViolationOf = (error: unknown): string | undefined => {
+  const e = error as { code?: string; constraint?: string; cause?: { code?: string; constraint?: string } };
+  return (e.cause?.code ?? e.code) === "23514" ? (e.cause?.constraint ?? e.constraint ?? "") : undefined;
 };
 
 const ORDER_COLUMNS = sql`
@@ -169,6 +180,11 @@ export class OrdersRepo implements OrdersPort {
           throw error;
         }
       } catch (error) {
+        const check = checkViolationOf(error);
+        if (check !== undefined) {
+          new Logger("orders").error(`CHECK ${check || "(unnamed)"} refused an order row that the service let through: a rule is missing before the insert`);
+          throw new ApiError("INTERNAL_ERROR");
+        }
         const constraint = constraintOf(error);
         if (constraint === undefined) throw error;
         if (/idempotency_scope/.test(constraint)) throw new ScopeTaken();

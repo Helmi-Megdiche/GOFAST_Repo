@@ -1,5 +1,5 @@
 import type { components } from "@fastgo/contract";
-import { addressPriceKey, isQuoteValid, MAX_PARCELS, proofLevelFor, randomTrackingCode } from "@fastgo/domain";
+import { addressPriceKey, checkOrderSlots, isQuoteValid, MAX_PARCELS, proofLevelFor, randomTrackingCode } from "@fastgo/domain";
 import type { ProofLevel } from "@fastgo/domain";
 import type { Keys } from "../auth/crypto.ts";
 import type { PhoneChecks } from "../auth/phone-check.ts";
@@ -100,6 +100,11 @@ export class OrdersService {
       if (done) return done;
     }
     const at = this.now();
+
+    // 0. The slots (R503): a window that ends before it starts, a delivery slot that is not for `scheduled` (or missing for it), a
+    // pickup window already over. Refused here, so the CHECKs of the database never see them and the proof is not spent.
+    const slots = checkOrderSlots({ serviceCode: body.service.code, serviceSlot: body.service.slot, pickupSlot: body.sender.slot }, at.getTime());
+    if (slots.length > 0) throw new ApiError("RULE_REFUSED", slots);
 
     // 1. The quote: unknown (or purged, 24 h after its expiry) is 404, expired is 410.
     const quote = await port.readQuote(actor, body.quote_id);

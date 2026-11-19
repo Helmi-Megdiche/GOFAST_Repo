@@ -46,11 +46,13 @@ const quote = (over: Partial<ReadQuote> = {}): ReadQuote =>
     ...over,
   }) as ReadQuote;
 
+const win = (fromH: number, toH: number) => ({ start_at: new Date(NOW.getTime() + fromH * 3_600_000).toISOString(), end_at: new Date(NOW.getTime() + toH * 3_600_000).toISOString() });
+
 const body = (over: Partial<OrderCreate> = {}): OrderCreate =>
   ({
     quote_id: "q1",
     accepted_total_millimes: 6000,
-    sender: { name: "S", phone: "+21620000001", address: FROM, slot: { start_at: "2026-11-21T08:00:00Z", end_at: "2026-11-21T10:00:00Z" } },
+    sender: { name: "S", phone: "+21620000001", address: FROM, slot: win(22, 24) },
     recipient: { name: "R", phone: "+21620000002", address: TO },
     parcel: { type: "small", parcels: [{ weight_g: 1000 }], content: "Documents" },
     service: { code: "standard" },
@@ -206,6 +208,33 @@ describe("GH-22 RV-05 R202: createOrder spends the phone proof last, once", () =
     const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
     const eleven = { ...body().parcel, parcels: Array.from({ length: 11 }, () => ({ weight_g: 100 })) };
     expect((await reasonOf(t.service.create(actor, { ...body(), parcel: eleven }, { scope: null }))).fields).toEqual([{ name: "parcel.parcels", reason: "tooManyParcels" }]);
+  });
+});
+
+describe("GH-22 R503 R504: the slots are checked before the proof is spent and before any write", () => {
+  const PROOF = "11111111-1111-4111-8111-111111111111";
+  const cases: Array<[string, Partial<OrderCreate>, string]> = [
+    ["scheduled with no slot", { service: { code: "scheduled" } }, "service.slot"],
+    ["a slot with the standard service", { service: { code: "standard", slot: win(48, 50) } }, "service.slot"],
+    ["a delivery slot that ends before it starts", { service: { code: "scheduled", slot: win(50, 48) } }, "service.slot"],
+    ["a pickup window that ends before it starts", { sender: { ...body().sender, slot: win(26, 24) } }, "sender.slot"],
+    ["a pickup window that ends where it starts", { sender: { ...body().sender, slot: win(26, 26) } }, "sender.slot"],
+    ["a pickup window that has already ended", { sender: { ...body().sender, slot: win(-3, -1) } }, "sender.slot"],
+  ];
+  for (const [name, over, field] of cases) {
+    it(`${name}: 422 slotInvalid on ${field}, no proof spent, nothing written`, async () => {
+      // scheduled needs the quote to be of that service: the slots are checked first, so the quote is never compared
+      const t = build();
+      const res = await reasonOf(t.service.create(actor, { ...body(over), phone_check_id: PROOF }, { scope: null }));
+      expect(res).toEqual({ code: "RULE_REFUSED", fields: [{ name: field, reason: "slotInvalid" }] });
+      expect(t.consume).not.toHaveBeenCalled();
+      expect(t.inserted).toEqual([]);
+    });
+  }
+  it("a scheduled order with a good slot goes through the slot check", async () => {
+    const t = build({ q: quote({ service: "scheduled" }), account: { status: "active", phone: "+21620000001", phoneVerified: true } });
+    await t.service.create(actor, body({ service: { code: "scheduled", slot: win(48, 50) } }), { scope: null });
+    expect(t.inserted).toHaveLength(1);
   });
 });
 

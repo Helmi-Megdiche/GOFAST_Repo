@@ -1748,7 +1748,8 @@
     "phoneRequired": "Vérifiez votre numéro de téléphone par SMS pour passer commande.",
     "contractRequired": "Le paiement sur compte demande un contrat validé.",
     "addressMismatch": "Les adresses ne sont pas celles du prix calculé : calculez le prix à nouveau.",
-    "freightPayerRequired": "Acceptez les conditions du port dû pour payer à la livraison."
+    "freightPayerRequired": "Acceptez les conditions du port dû pour payer à la livraison.",
+    "slotInvalid": "Le créneau choisi n'est pas valable : vérifiez les heures, ou choisissez un créneau à venir."
   },
   "apiSms": {
     "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne.",
