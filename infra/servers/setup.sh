@@ -97,7 +97,7 @@ log "Deploy user: it can run one forced command (deploy.sh), nothing else over S
 # Input first, before any change: one ssh-ed25519 line, no options (a key line carrying its own options could
 # override the forced command), comment limited to plain characters.
 DEPLOY_AK=/home/deploy/.ssh/authorized_keys
-FORCED='command="/opt/gofast/deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding'
+FORCED='restrict,command="/opt/gofast/deploy.sh"' # MUT-restrict: `restrict` turns off every forwarding, pty, ~/.ssh/rc and future options at once
 key_re='^ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA[A-Za-z0-9+/]{44}( [A-Za-z0-9@._-]+)?$'
 [ -n "${DEPLOY_PUBKEY:-}" ] || die "DEPLOY_PUBKEY is required: the CI public key, one ssh-ed25519 line"
 [[ "$DEPLOY_PUBKEY" =~ $key_re ]] || die "DEPLOY_PUBKEY must be exactly one plain ssh-ed25519 key line, with no options" # MUT-keycheck
@@ -137,7 +137,7 @@ check "auto updates on"           "apt-config dump | grep -q 'APT::Periodic::Una
 check "docker running"            "docker info"
 check "docker compose installed"  "docker compose version"
 check "deploy user password locked" "passwd -S deploy | awk '{print \$2}' | grep -qx L"
-check "deploy key is forced"      "grep -q '^command=\"/opt/gofast/deploy.sh\",no-pty' $DEPLOY_AK"
+check "deploy key is forced"      "grep -q '^restrict,command=\"/opt/gofast/deploy.sh\" ssh-ed25519 ' $DEPLOY_AK"
 check "deploy.sh is root-owned"   "[ \"\$(stat -c %U:%a /opt/gofast/deploy.sh)\" = root:755 ]"
 [ "$fail" -eq 0 ] || die "a check failed, see above"
 echo "Done. Test a new SSH login as your user before closing this session."

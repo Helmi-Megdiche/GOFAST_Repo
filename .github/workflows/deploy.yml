@@ -1,7 +1,9 @@
 # Staging deploy (#14 PR 4). Runs only after CI succeeded on a push to main (or by hand on main).
 # Never on pull_request, never for a fork: the workflow_run guard below checks the event and the repository.
 # Build once, tag = full commit SHA, then ask the staging host to deploy that SHA over SSH. The host runs one
-# forced command (infra/servers/deploy.sh) that accepts only `deploy <sha>` and `rollback`.
+# forced command (infra/servers/deploy.sh) that accepts only `deploy <sha> <api digest> <web digest>` and
+# `rollback`, and pulls and runs the images by DIGEST: what this job pushed is exactly what runs.
+# Runs finish in any order; deploy.sh refuses a commit older than the one running (a red run, on purpose).
 # No host, address, key or token is written here: they are environment secrets of `staging`.
 # Actions are pinned by commit SHA; the tag is in the comment. Plain docker and ssh otherwise.
 name: Deploy
@@ -33,6 +35,8 @@ jobs:
       packages: write
     outputs:
       sha: ${{ steps.sha.outputs.sha }}
+      api_digest: ${{ steps.push.outputs.api_digest }}
+      web_digest: ${{ steps.push.outputs.web_digest }}
     steps:
       - name: Commit to deploy
         id: sha
@@ -53,6 +57,7 @@ jobs:
         run: printf '%s' "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_ACTOR" --password-stdin
 
       - name: Build and push api and web
+        id: push
         env:
           SHA: ${{ steps.sha.outputs.sha }}
           SITE_URL: ${{ vars.SITE_URL }}
@@ -67,9 +72,19 @@ jobs:
             --build-arg "NEXT_PUBLIC_SITE_URL=${SITE_URL:-https://staging.invalid}" --build-arg "NEXT_PUBLIC_API_DOMAINS=$API_DOMAINS" -t "$web" .
           docker push "$api"
           docker push "$web"
+          # The digest the registry now holds for each push. The deploy asks for these, never for a tag.
+          digest() { # image name -> sha256:<64 hex>
+            local d; d=$(docker image inspect --format '{{range .RepoDigests}}{{println .}}{{end}}' "$1" | grep "^ghcr.io/$owner/$2@" | head -n 1)
+            d="${d#*@}"
+            [[ "$d" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "no valid digest for $2"; exit 1; }
+            printf '%s' "$d"
+          }
+          api_digest=$(digest "$api" gofast-api)
+          web_digest=$(digest "$web" gofast-web)
+          { echo "api_digest=$api_digest"; echo "web_digest=$web_digest"; } >> "$GITHUB_OUTPUT"
           {
             echo "### Images pushed"
-            echo "- \`gofast-api:${SHA:0:12}\` and \`gofast-web:${SHA:0:12}\` (tag is the full commit SHA)"
+            echo "- \`gofast-api\` \`${api_digest:0:19}…\` and \`gofast-web\` \`${web_digest:0:19}…\` for commit \`${SHA:0:12}\`"
           } >> "$GITHUB_STEP_SUMMARY"
 
   deploy:
@@ -109,10 +124,14 @@ jobs:
           KEY: ${{ secrets.STAGING_SSH_KEY }}
           KNOWN: ${{ secrets.STAGING_KNOWN_HOSTS }}
           SHA: ${{ needs.build.outputs.sha }}
+          API_DIGEST: ${{ needs.build.outputs.api_digest }}
+          WEB_DIGEST: ${{ needs.build.outputs.web_digest }}
         run: |
           set -euo pipefail
           umask 077
           [[ "$SHA" =~ ^[0-9a-f]{40}$ ]] || { echo "not a full commit sha"; exit 1; }
+          [[ "$API_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "api digest missing or malformed"; exit 1; }
+          [[ "$WEB_DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]] || { echo "web digest missing or malformed"; exit 1; }
           [[ "$HOST" =~ ^[A-Za-z0-9][A-Za-z0-9.-]*$ ]] || { echo "STAGING_HOST is not a plain host name or address"; exit 1; }
           dir="$(mktemp -d "$RUNNER_TEMP/ssh.XXXXXX")"
           trap 'rm -rf "$dir"' EXIT
@@ -121,5 +140,5 @@ jobs:
           # The host key is pinned: an unknown or changed key fails, nothing is trusted on first use.
           ssh -i "$dir/key" -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
             -o UserKnownHostsFile="$dir/known_hosts" -o ConnectTimeout=20 \
-            "deploy@$HOST" "deploy $SHA"
-          echo "### Deployed to staging: \`${SHA:0:12}\`" >> "$GITHUB_STEP_SUMMARY"
+            "deploy@$HOST" "deploy $SHA $API_DIGEST $WEB_DIGEST"
+          echo "### Deployed to staging: \`${SHA:0:12}\` (api \`${API_DIGEST:0:19}…\`, web \`${WEB_DIGEST:0:19}…\`)" >> "$GITHUB_STEP_SUMMARY"

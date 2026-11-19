@@ -1,9 +1,14 @@
 #!/usr/bin/env bash
 # GOFAST staging deploy: the ONE command the `deploy` SSH user may run (#14 PR 4).
 # Installed by setup.sh at /opt/gofast/deploy.sh (root:root 755) and forced in authorized_keys:
-#   command="/opt/gofast/deploy.sh",no-pty,no-port-forwarding,no-agent-forwarding,no-X11-forwarding
+#   restrict,command="/opt/gofast/deploy.sh"
 # The client's request arrives in SSH_ORIGINAL_COMMAND. Only two forms are accepted, and anything else is
-# refused BEFORE any action (RV-22): `deploy <40 lowercase hex chars>` and `rollback`.
+# refused BEFORE any action (RV-22):
+#   `deploy <40-hex commit> <api sha256:64hex> <web sha256:64hex>`   and   `rollback`
+# Images are pulled and run by DIGEST only (image@sha256:...): a tag can be moved, a digest cannot, so what CI
+# built and tested is exactly what runs. The commit, and both digests, are kept in state/current and
+# state/previous, one line each, so a rollback also runs by digest.
+# RV-25: CI runs finish in any order, so an older commit is refused when a newer one is already running.
 #
 # Exit codes: 0 done and healthy; 1 refused, failed with nothing changed, or failed and rolled back;
 #             2 failed and the rollback failed too (look at the server).
@@ -25,12 +30,12 @@ die() { say "error: $*"; exit 1; }
 
 # --- 1. The command. Nothing else runs until this passes.
 cmd="${SSH_ORIGINAL_COMMAND-}"
-action=""; sha=""
-case "$cmd" in
-  rollback) action=rollback ;;
-  "deploy "*) sha="${cmd#deploy }"; if [ "${#sha}" -eq 40 ] && [[ "$sha" != *[!0123456789abcdef]* ]]; then action=deploy; fi ;; # MUT-validate
-esac
-[ -n "$action" ] || refuse "only 'deploy <40-hex sha>' and 'rollback' are allowed"
+action=""; sha=""; api=""; web=""
+re_deploy='^deploy ([0-9a-f]{40}) (sha256:[0-9a-f]{64}) (sha256:[0-9a-f]{64})$' # MUT-digest
+if [ "$cmd" = rollback ]; then action=rollback
+elif [[ "$cmd" =~ $re_deploy ]]; then action=deploy; sha=${BASH_REMATCH[1]}; api=${BASH_REMATCH[2]}; web=${BASH_REMATCH[3]} # MUT-validate
+fi
+[ -n "$action" ] || refuse "only 'deploy <40-hex sha> <api sha256:digest> <web sha256:digest>' and 'rollback' are allowed"
 
 # --- 2. Configuration, read as data (never sourced). Checked before the first docker call.
 GHCR_OWNER=""; GHCR_USER=""; REPO_URL=""
@@ -58,11 +63,22 @@ mkdir -p "$ST" || die "cannot create $ST"
 exec 9> "$ST/lock" || die "cannot open the lock"
 flock -n 9 || refuse "another deploy is already running" # MUT-nolock
 
-cur=$(head -n 1 "$ST/current" 2>/dev/null || true)
-prev=$(head -n 1 "$ST/previous" 2>/dev/null || true)
+# A release record is one line: "<sha> <api digest> <web digest>". A damaged record stops everything.
+re_rec='^([0-9a-f]{40}) (sha256:[0-9a-f]{64}) (sha256:[0-9a-f]{64})$'
+split_rec() { # record -> R_SHA R_API R_WEB (all empty for an empty record)
+  R_SHA=""; R_API=""; R_WEB=""
+  [ -n "$1" ] || return 0
+  [[ "$1" =~ $re_rec ]] || return 1 # MUT-staterec
+  R_SHA=${BASH_REMATCH[1]}; R_API=${BASH_REMATCH[2]}; R_WEB=${BASH_REMATCH[3]}
+}
+cur_rec=$(head -n 1 "$ST/current" 2>/dev/null || true)
+prev_rec=$(head -n 1 "$ST/previous" 2>/dev/null || true)
+split_rec "$cur_rec" || die "state/current is not a release record (sha and two digests)"
+cur=$R_SHA; cur_api=$R_API; cur_web=$R_WEB
+split_rec "$prev_rec" || die "state/previous is not a release record (sha and two digests)"
 if [ "$action" = rollback ]; then
-  [ -n "$prev" ] || refuse "no previous release to roll back to" # MUT-noprevious
-  sha="$prev"
+  [ -n "$R_SHA" ] || refuse "no previous release to roll back to" # MUT-noprevious
+  sha=$R_SHA; api=$R_API; web=$R_WEB
 fi
 
 # --- 4. The code. The compose files come from this checkout, so the sha must be a commit of main:
@@ -70,6 +86,11 @@ fi
 [ -d "$REPO/.git" ] || git clone --quiet "$REPO_URL" "$REPO" || die "cannot clone the repository"
 git -C "$REPO" fetch --quiet origin main || die "cannot fetch main"
 git -C "$REPO" merge-base --is-ancestor "$sha" origin/main || refuse "$sha is not a commit of main" # MUT-ancestor
+# RV-25: never let an older commit replace a newer one (CI runs finish in any order). The same sha is fine.
+# `rollback` is the deliberate way back, so it skips this.
+if [ "$action" = deploy ] && [ -n "$cur" ] && [ "$cur" != "$sha" ]; then
+  git -C "$REPO" merge-base --is-ancestor "$cur" "$sha" || refuse "${sha:0:12} is older than current ${cur:0:12}, use rollback" # MUT-older
+fi
 
 # --- 5. Registry login with the READ-ONLY pull token, on stdin (never in an argument), in a throwaway config
 # directory that is deleted on exit, so the token is not left on disk.
@@ -79,9 +100,10 @@ trap 'rm -rf "$DOCKER_CONFIG"' EXIT
 docker login ghcr.io -u "$GHCR_USER" --password-stdin < "$SEC/ghcr-token" > /dev/null || die "registry login failed" # MUT-tokenargv
 
 # Pull both images, then put that commit's compose files in place. Fails here change nothing.
-prepare() { # sha
-  docker pull "ghcr.io/$GHCR_OWNER/gofast-api:$1" > /dev/null || return 1
-  docker pull "ghcr.io/$GHCR_OWNER/gofast-web:$1" > /dev/null || return 1
+img() { printf 'ghcr.io/%s/gofast-%s@%s' "$GHCR_OWNER" "$1" "$2"; } # name digest: the only image form ever pulled or run # MUT-pulltag
+prepare() { # sha api-digest web-digest
+  docker pull "$(img api "$2")" > /dev/null || return 1
+  docker pull "$(img web "$3")" > /dev/null || return 1
   git -C "$REPO" checkout --quiet --detach "$1" || return 1
 }
 
@@ -102,8 +124,8 @@ healthy() {
 }
 
 # Start the stack on that sha (the migrate service runs first and the others wait for it), then check it.
-switch() { # sha
-  API_IMAGE="ghcr.io/$GHCR_OWNER/gofast-api:$1" WEB_IMAGE="ghcr.io/$GHCR_OWNER/gofast-web:$1" \
+switch() { # api-digest web-digest
+  API_IMAGE="$(img api "$1")" WEB_IMAGE="$(img web "$2")" \
     docker compose --project-directory "$REPO/infra/compose" \
       -f "$REPO/infra/compose/compose.yaml" -f "$REPO/infra/compose/compose.staging.yaml" \
       --env-file "$SEC/staging.env" up -d --wait --no-build > /dev/null || return 1
@@ -111,12 +133,12 @@ switch() { # sha
 }
 
 say "deploying ${sha:0:12}"
-prepare "$sha" || die "could not pull or check out ${sha:0:12}; nothing changed"
+prepare "$sha" "$api" "$web" || die "could not pull or check out ${sha:0:12}; nothing changed"
 
-if ! switch "$sha"; then
+if ! switch "$api" "$web"; then
   if [ -n "$cur" ] && [ "$cur" != "$sha" ]; then # MUT-norollback
     say "health check failed: rolling back to ${cur:0:12}"
-    if prepare "$cur" && switch "$cur"; then
+    if prepare "$cur" "$cur_api" "$cur_web" && switch "$cur_api" "$cur_web"; then
       say "rolled back to ${cur:0:12} (code only; migrations are not undone)"
       exit 1
     fi
@@ -128,7 +150,7 @@ if ! switch "$sha"; then
 fi
 
 # Healthy: the old release becomes `previous` (unless it is the same sha again).
-if [ -n "$cur" ] && [ "$cur" != "$sha" ]; then printf '%s\n' "$cur" > "$ST/previous"; fi
-printf '%s\n' "$sha" > "$ST/current" # MUT-nostate
+if [ -n "$cur" ] && [ "$cur" != "$sha" ]; then printf '%s\n' "$cur_rec" > "$ST/previous"; fi
+printf '%s %s %s\n' "$sha" "$api" "$web" > "$ST/current" # MUT-nostate
 say "deployed ${sha:0:12}"
 exit 0
