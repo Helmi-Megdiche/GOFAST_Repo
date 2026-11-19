@@ -154,6 +154,12 @@ begin
   if v_status is distinct from p_status then
     raise exception 'order state conflict: expected %, found %', p_status, v_status using errcode = 'serialization_failure';
   end if;
+  -- A final state is never canceled (again): without this a second cancel with p_status = 'canceled' would pass the compare-and-set
+  -- and overwrite canceled_at, the fee and canceled_by. The states are those of packages/domain FINAL_ORDER_STATES; which states
+  -- may be canceled is still the domain rule (R212), the API decides it; this is only the net.
+  if v_status in ('delivered', 'partially_delivered', 'returned', 'lost', 'canceled') then
+    raise exception 'order in a final state cannot be canceled: %', v_status using errcode = 'object_not_in_prerequisite_state';
+  end if;
   if p_fee is null or p_fee not in ('none', 'applies', 'backOfficeDecides') then
     raise exception 'invalid cancel fee' using errcode = 'invalid_parameter_value';
   end if;

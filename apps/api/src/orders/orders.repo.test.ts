@@ -67,6 +67,10 @@ describe("GH-22 RV-01: what the definers raise becomes the API's own answer", ()
       expect([e?.code, e?.status], code).toEqual(["STATE_CONFLICT", 409]);
     }
   });
+  it("the definer's refusal of a final state (55000) is the 409 notCancellable on the field status", () => {
+    const e = definerErrorOf(raised("55000"));
+    expect([e?.code, e?.status, e?.fields]).toEqual(["STATE_CONFLICT", 409, [{ name: "status", reason: "notCancellable" }]]);
+  });
   it("no data found is 404, insufficient privilege is 403, and anything else is not mapped", () => {
     expect(definerErrorOf(raised("P0002"))?.status).toBe(404);
     expect(definerErrorOf(raised("42501"))?.status).toBe(403);

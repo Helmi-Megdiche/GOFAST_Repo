@@ -47,6 +47,8 @@ export const definerErrorOf = (error: unknown): ApiError | undefined => {
   if (code === "P0002") return new ApiError("NOT_FOUND");
   if (code === "42501") return new ApiError("ACCESS_DENIED");
   if (code === "40001" || code === "40P01") return new ApiError("STATE_CONFLICT");
+  // cancel_order refuses a final state (a second cancel never overwrites the first): the same answer as the service's own check
+  if (code === "55000") return new ApiError("STATE_CONFLICT", [{ name: "status", reason: "notCancellable" }]);
   return undefined;
 };
 

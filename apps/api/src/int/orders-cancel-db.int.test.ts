@@ -197,6 +197,28 @@ describe("GH-22 R212 RV-05 RV-19: core.cancel_order", () => {
     expect((await one("select status, end_reason from core.missions where order_id = $1", [id]))).toMatchObject({ status: "finished", end_reason: "orderCanceled" });
   });
 
+  it("a final state is never cancelled again: the definer refuses it, and a second cancel does not overwrite canceled_at, the fee or canceled_by", async () => {
+    const id = await newOrder();
+    await cancel(owner(), id, "received", "none", null, AT);
+    const before = await one("select status, canceled_at, cancel_fee, cancel_fee_millimes, canceled_by, updated_at from core.orders where id = $1", [id]);
+    const events = async () => (await q("select count(*)::int as n from core.status_events where order_id = $1", [id])).rows[0].n;
+    const n = await events();
+    // the same p_status as the stored one passes the compare-and-set: only the guard stops it (any other p_status is a state conflict)
+    await expectDbError(cancel(staff("agent"), id, "canceled", "applies", 5000, "2027-01-02T10:00:00.000Z"), /final state cannot be canceled/i);
+    for (const status of ["delivered", "partially_delivered", "returned", "lost"])
+      await expectDbError(cancel(staff("agent"), id, status, "applies", 5000, "2027-01-02T10:00:00.000Z"), /state conflict/i);
+    expect(await one("select status, canceled_at, cancel_fee, cancel_fee_millimes, canceled_by, updated_at from core.orders where id = $1", [id])).toEqual(before);
+    expect(await events()).toBe(n);
+    // and an order in another final state, asked with its own status
+    const delivered = await newOrder({ status: "delivered" });
+    for (const status of ["delivered", "partially_delivered", "returned", "lost"]) {
+      const o = await newOrder({ status });
+      await expectDbError(cancel(owner(), o, status, "none", null), /final state cannot be canceled/i);
+    }
+    await expectDbError(cancel(owner(), delivered, "delivered", "none", null), /final state cannot be canceled/i);
+    expect((await one("select status, canceled_at from core.orders where id = $1", [delivered]))).toEqual({ status: "delivered", canceled_at: null });
+  });
+
   it("RV-19 RV-20: another company's order is not found, a closed account and a role that does not move orders are refused, staff may cancel", async () => {
     const id = await newOrder();
     await expectDbError(cancel(stranger(), id, "received", "none", null), /not found/i);
