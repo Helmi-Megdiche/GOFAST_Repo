@@ -1,0 +1,18 @@
+# Staging override (#14 PR 3). Use with the base file and the server's env file:
+#   docker compose -f compose.yaml -f compose.staging.yaml --env-file /opt/gofast/secrets/staging.env up -d --wait
+# Locally: --env-file .env.staging.example (fake domain, Caddy's internal certificate), see README.
+services:
+  caddy:
+    environment:
+      SITE_ADDRESS: ${STAGING_DOMAIN:?set STAGING_DOMAIN in the env file}
+      CADDY_MODE: staging
+      CADDY_TLS: ${CADDY_TLS:-acme}
+      STAGING_USER: ${STAGING_USER:-gofast}
+      STAGING_PASSWORD_HASH: ${STAGING_PASSWORD_HASH:?bcrypt hash from caddy hash-password, in the env file}
+  api:
+    environment:
+      # Exactly one hop between the internet and the api: Caddy. Fixed here, not read from the env file.
+      TRUST_PROXY: "1"
+      ALLOWED_ORIGINS: https://${STAGING_DOMAIN}
+  # No db-setup on staging: it sits behind the `setup` profile, and the staging env file never sets
+  # COMPOSE_PROFILES, so `up` does not start it (check.sh staging asserts it). It is run by hand once.

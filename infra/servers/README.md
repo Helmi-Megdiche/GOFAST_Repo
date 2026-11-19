@@ -73,7 +73,7 @@ It ends with a check list and stops with an error if one item fails. It can be r
 ## Rules for later issues
 
 - Docker publishes ports past `ufw`. Bind container ports to `127.0.0.1`; only the reverse proxy listens on 80 and 443.
-- To remove someone, taking the login out of `TEAM` is not enough: run `sudo deluser --remove-home <user>` on each server.
+- To remove someone, taking the login out of `TEAM` does **not** remove the account: run `sudo bash offboard.sh <github-login>` on each server (see below).
 - The back-office VPN and 2FA are #36, backups #30, monitoring #32.
 
 ## Database setup (once per database, before the first migration)
@@ -99,3 +99,12 @@ Checklist for each host. Open choices are marked `[À FIXER]`.
 - [ ] `log_statement` is not `all` or `ddl` while passwords are set.
 - [ ] Backups are encrypted before they leave the server, the key is kept off the server, and a restore is tested (#30).
 - [ ] Who may read the secrets: `[À FIXER]` with Helmi.
+
+## Removing a person: `offboard.sh`
+
+```
+sudo DRY_RUN=1 bash offboard.sh <github-login>   # list what would be done
+sudo bash offboard.sh <github-login>             # do it, then list what remains for that name
+```
+
+Run it as root on every server. It ends the person's sessions, deletes the account with its home directory (so `authorized_keys` goes too), removes a sudoers file naming them (the shared `gofast-admins` group file stays), and lists what remains: group memberships, mail, crontab, files owned by the old uid, mentions under `/etc/ssh`, `/etc/sudoers.d` and `/opt/gofast`. Files it finds elsewhere are listed, never deleted. It can be run again: a second run says there is no account. It refuses `root`, your own login and anything that is not a plain login. Rotate any secret the person could read; the script cannot do that.

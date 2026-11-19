@@ -38,6 +38,7 @@ Snapshot of 17 Nov 2026, 22:39 Tunis time (week S2). Source: GitHub (merged PRs,
 
 | Item | Waiting for | Who |
 |---|---|---|
+| #14 compose stack | PRs 1 and 2 merged (#107, #108). PR 3 (Caddy, staging override, offboard.sh) pushed on `infra/GH-14-caddy`, waiting for the supervisor | Helmi |
 | #14, #15 staging and deploy to staging | Host order. Plan: temporary host abroad, fake data only, from about Wed 18 Nov | Helmi |
 | #69 recette matrix (T, DR, EX, CC) | PR #69 is open, not merged | Helmi, reviewer |
 | GOFAST open questions (#17, #94 section 8) | Answers through Helmi: TTC or HT, VAT, stamp duty, packaging price on Programmée, company members, ticket categories, SMS provider, what closes with a merchant account, Google sign-up type | GOFAST, accountant |
