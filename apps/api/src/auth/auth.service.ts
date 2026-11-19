@@ -131,9 +131,10 @@ export class AuthService {
     const r = await this.d.checks.verify(this.phoneOf(body.phone), body.purpose, body.code);
     if (r.ok) return { phone_check_id: r.checkId, valid_until: iso(r.validUntil) };
     if (r.reason === "locked") throw this.tooMany(r.retryAfterMs);
-    throw new ApiError("RULE_REFUSED", [{ name: "code", reason: r.reason }], undefined, {
-      attempts_left: r.attemptsLeft,
-    });
+    // The contract puts the number on the field (FieldError.details), never at the top of the error.
+    throw new ApiError("RULE_REFUSED", [
+      { name: "code", reason: r.reason, details: { attempts_left: r.attemptsLeft } },
+    ]);
   }
 
   private phoneOf(raw: string): string {
@@ -292,10 +293,11 @@ export class AuthService {
     const ip = await this.limit("reset-ip", ipKey(ctx.ip), LIMITS.resetPerIp);
     if (!ip.allowed) throw this.tooMany(ip.retryAfterMs);
     const phone = this.phoneOf(body.phone);
+    // A too-short password is refused before the proof is spent: the person can fix it and retry.
+    this.checkPassword(body.new_password, "new_password");
     if (!(await this.d.checks.consume(body.phone_check_id, phone, "reset"))) {
       throw new ApiError("RULE_REFUSED", [{ name: "phone_check_id", reason: "invalid" }]);
     }
-    this.checkPassword(body.new_password, "new_password");
     // Hashed whether or not the phone has an account: the same answer and the same time.
     const hash = await this.d.passwords.hash(body.new_password);
     const id = (

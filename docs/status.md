@@ -1,6 +1,6 @@
 # GOFAST launch status
 
-Snapshot of 17 Nov 2026, 21:30 Tunis time (week S2). Source: GitHub (merged PRs, open issues and PRs). Update this file when a PR merges or a blocker clears.
+Snapshot of 17 Nov 2026, 22:39 Tunis time (week S2). Source: GitHub (merged PRs, open issues and PRs). Update this file when a PR merges or a blocker clears.
 
 ## Team
 
@@ -39,8 +39,6 @@ Snapshot of 17 Nov 2026, 21:30 Tunis time (week S2). Source: GitHub (merged PRs,
 | Item | Waiting for | Who |
 |---|---|---|
 | #14, #15 staging and deploy to staging | Host order. Plan: temporary host abroad, fake data only, from about Wed 18 Nov | Helmi |
-| #9 `attempts_left` is sent at `error` level, the contract puts it in `fields[].details` | API fix, contract wins, add a test | Ala |
-| #9 password reset burns the proof before the length check | Check the length first, as sign-up does | Ala |
 | #69 recette matrix (T, DR, EX, CC) | PR #69 is open, not merged | Helmi, reviewer |
 | GOFAST open questions (#17, #94 section 8) | Answers through Helmi: TTC or HT, VAT, stamp duty, packaging price on Programmée, company members, ticket categories, SMS provider, what closes with a merchant account, Google sign-up type | GOFAST, accountant |
 | Real phone tests (G2) | 3 Android phones and an iPhone. GOFAST phones arrive 20 Nov | GOFAST |
@@ -54,7 +52,7 @@ Nobody sets `NEXT_PUBLIC_API_DOMAINS=auth` for real use until `account` is switc
 
 | # | Who | Action |
 |---|---|---|
-| 1 | Ala | #9 fix PR (reset checks the length before spending the proof; attempts_left in fields[].details), then #22 PR 4b-2a |
+| 1 | Ala | #22 PR 4b-2a (create, list, get, tracking, SMS) |
 | 2 | Helmi | Order the staging host, then run `infra/servers/setup.sh` |
 | 3 | Helmi | #20 account screens on the API adapter |
 | 4 | Helmi | Merge or close PR #69 after review |
