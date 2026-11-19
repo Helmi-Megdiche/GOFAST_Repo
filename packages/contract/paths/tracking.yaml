@@ -3,7 +3,7 @@ get:
   summary: Follow an order by its tracking number
   description: >-
     Public, with limited attempts. Returns only the allowed fields (R405). An unknown number
-    answers 404; a number that does not have the FG-XXXX-XXXX shape answers 400. `from_city` and `to_city`
+    answers 404; a number that does not have the FG-XXXX-XXXX shape answers 400. Both count as a miss, and every call counts in the 120 a minute of the IP (T11). `from_city` and `to_city`
     are the names of the délégations in the language of the `Accept-Language` header (fr when missing).
   tags: [tracking]
   x-roles: [public]

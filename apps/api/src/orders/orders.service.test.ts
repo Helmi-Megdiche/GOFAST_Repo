@@ -271,4 +271,26 @@ describe("GH-22 T11 R405: the public tracking limits", () => {
     (t.port.tracking as ReturnType<typeof vi.fn>).mockResolvedValue({ status: "received" });
     expect(await t.service.tracking("FG-OKOK-0000", "fr", { ip: "2.2.2.2" })).toEqual({ status: "received" });
   });
+
+  it("the 121st call of an IP in a minute is 429 with a wait, found numbers included; another IP is not affected", async () => {
+    const t = build();
+    (t.port.tracking as ReturnType<typeof vi.fn>).mockResolvedValue({ status: "received" });
+    for (let i = 0; i < TRACKING_LIMITS.perIp.limit; i += 1) await t.service.tracking("FG-OKOK-0000", "fr", { ip: "3.3.3.3" });
+    const blocked = (await t.service.tracking("FG-OKOK-0000", "fr", { ip: "3.3.3.3" }).catch((e) => e)) as ApiError;
+    expect([blocked.code, blocked.status, blocked.retryAfterSeconds]).toEqual(["TOO_MANY_ATTEMPTS", 429, 1]);
+    expect(await t.service.tracking("FG-OKOK-0000", "fr", { ip: "4.4.4.4" })).toEqual({ status: "received" });
+  });
+
+  it("a malformed number (refused by the guard before the route) is counted in the 120 a minute and as a miss", async () => {
+    const t = build();
+    // 19 malformed numbers are 19 misses: one more miss is allowed, the next call is refused
+    for (let i = 0; i < TRACKING_LIMITS.misses.limit - 1; i += 1) await t.service.malformedTracking({ ip: "5.5.5.5" });
+    expect(t.limiter.hit).toHaveBeenCalledWith(expect.stringMatching(/^rl:tracking:/), 120, 60_000);
+    expect((await reasonOf(t.service.tracking("FG-NOPE-0000", "fr", { ip: "5.5.5.5" }))).code).toBe("NOT_FOUND"); // the 20th miss
+    expect((await reasonOf(t.service.tracking("FG-NOPE-0000", "fr", { ip: "5.5.5.5" }))).code).toBe("TOO_MANY_ATTEMPTS");
+    // and the other way round: past the limit, a malformed number is a 429 too, not a 400
+    expect((await reasonOf(t.service.malformedTracking({ ip: "5.5.5.5" }))).code).toBe("TOO_MANY_ATTEMPTS");
+    // another IP is not affected
+    await expect(t.service.malformedTracking({ ip: "6.6.6.6" })).resolves.toBeUndefined();
+  });
 });

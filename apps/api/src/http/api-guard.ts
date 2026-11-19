@@ -1,10 +1,10 @@
-import { type CanActivate, type ExecutionContext, Inject, Injectable } from "@nestjs/common";
+import { type CanActivate, type ExecutionContext, Inject, Injectable, Optional } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import type { FastifyRequest } from "fastify";
 import { ApiError, type FieldError } from "./errors.ts";
 import { OPERATION } from "./operation.ts";
 import { OwnerCheck, SessionResolver, type Actor } from "./session.ts";
-import { type Operation as Op, OPERATIONS } from "./tokens.ts";
+import { type InvalidInputHooks, ON_INVALID_INPUT, type Operation as Op, OPERATIONS } from "./tokens.ts";
 
 declare module "fastify" {
   interface FastifyRequest {
@@ -50,6 +50,7 @@ export class ApiGuard implements CanActivate {
     @Inject(OPERATIONS) private readonly operations: Map<string, Op>,
     @Inject(SessionResolver) private readonly sessions: SessionResolver,
     @Inject(OwnerCheck) private readonly owners: OwnerCheck,
+    @Optional() @Inject(ON_INVALID_INPUT) private readonly onInvalid?: InvalidInputHooks,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -94,7 +95,10 @@ export class ApiGuard implements CanActivate {
         fields.push(...toFields(op.body.errors as AjvError[]));
       }
     }
-    if (fields.length > 0) throw new ApiError("VALIDATION_FAILED", fields);
+    if (fields.length > 0) {
+      await this.onInvalid?.[id!]?.(req); // may throw a 429 instead (the tracking counts a malformed number)
+      throw new ApiError("VALIDATION_FAILED", fields);
+    }
     return true;
   }
 }

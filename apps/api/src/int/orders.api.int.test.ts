@@ -566,6 +566,32 @@ describe("GH-22 R405 T11 R903: GET /v1/tracking/{number}", () => {
   });
 });
 
+describe("GH-22 T11 R405: the malformed numbers and the 120 a minute count too", () => {
+  it("a malformed number is 400 and spends a miss: 19 of them and one unknown number are the 20, then every call of the IP is 429", async () => {
+    ip = "10.20.4.3";
+    for (let i = 0; i < 19; i += 1) expect((await call("GET", `/v1/tracking/bad${i}`)).statusCode).toBe(400);
+    expect((await call("GET", "/v1/tracking/FG-ZZZZ-1111")).statusCode).toBe(404);
+    const blocked = await call("GET", "/v1/tracking/FG-ZZZZ-2222");
+    expect(blocked.statusCode).toBe(429);
+    expect(Number(blocked.headers["retry-after"])).toBeGreaterThan(0);
+    // past the limit a malformed number is 429 as well
+    expect((await call("GET", "/v1/tracking/bad-again")).statusCode).toBe(429);
+  });
+
+  it("the 121st call in a minute from one IP is 429 with Retry-After, whatever the number; another IP is not affected", async () => {
+    ip = "10.20.4.4";
+    const who = await customer();
+    const order = (await place(who, orderBody(await newQuote(), who))).json();
+    ip = "10.20.4.5";
+    for (let i = 0; i < 120; i += 1) expect((await call("GET", `/v1/tracking/${order.tracking_number}`)).statusCode, `call ${i + 1}`).toBe(200);
+    const blocked = await call("GET", `/v1/tracking/${order.tracking_number}`);
+    expect(blocked.statusCode).toBe(429);
+    expect(Number(blocked.headers["retry-after"])).toBeGreaterThan(0);
+    ip = "10.20.4.6";
+    expect((await call("GET", `/v1/tracking/${order.tracking_number}`)).statusCode).toBe(200);
+  });
+});
+
 /** The worker takes 20 rows a pass: run it until the outbox of the tests is empty. */
 const drainTrackingSms = async (sender: SmsSender) => {
   for (let i = 0; i < 20 && (await runTrackingSms(workerDb, sender, WEB)) > 0; i += 1);

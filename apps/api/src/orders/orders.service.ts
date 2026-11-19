@@ -234,17 +234,33 @@ export class OrdersService {
    * of the IP is refused until the window ends, so the numbers cannot be guessed.
    */
   async tracking(number: string, locale: Locale, ctx: { ip: string }): Promise<TrackingOut> {
-    const ipKey = this.d.keys.mac("tracking-ip", ctx.ip);
-    const all = await this.d.limiter.hit(`rl:tracking:${ipKey}`, TRACKING_LIMITS.perIp.limit, TRACKING_LIMITS.perIp.windowMs);
-    if (!all.allowed) throw new ApiError("TOO_MANY_ATTEMPTS", [], secs(all.retryAfterMs));
-    const missKey = `rl:tracking-miss:${ipKey}`;
-    const seen = await this.d.limiter.peek(missKey);
-    if (seen.count >= TRACKING_LIMITS.misses.limit) throw new ApiError("TOO_MANY_ATTEMPTS", [], secs(seen.retryAfterMs));
+    const { missKey } = await this.trackingGate(ctx.ip);
     const found = await this.d.port.tracking(number, locale);
     if (!found) {
       await this.d.limiter.hit(missKey, TRACKING_LIMITS.misses.limit, TRACKING_LIMITS.misses.windowMs);
       throw new ApiError("NOT_FOUND");
     }
     return found;
+  }
+
+  /**
+   * A number that does not have the FG-XXXX-XXXX shape is refused by the guard (400) before the route runs. The guard calls this first,
+   * so it counts in the 120 a minute and as a miss like a number that does not exist: a script cannot guess numbers with malformed ones
+   * for free. Past a limit it is the 429, not the 400.
+   */
+  async malformedTracking(ctx: { ip: string }): Promise<void> {
+    const { missKey } = await this.trackingGate(ctx.ip);
+    await this.d.limiter.hit(missKey, TRACKING_LIMITS.misses.limit, TRACKING_LIMITS.misses.windowMs);
+  }
+
+  /** The two limits, in this order: the 120 a minute (counted), then the misses already made (read). */
+  private async trackingGate(ip: string): Promise<{ missKey: string }> {
+    const ipKey = this.d.keys.mac("tracking-ip", ip);
+    const all = await this.d.limiter.hit(`rl:tracking:${ipKey}`, TRACKING_LIMITS.perIp.limit, TRACKING_LIMITS.perIp.windowMs);
+    if (!all.allowed) throw new ApiError("TOO_MANY_ATTEMPTS", [], secs(all.retryAfterMs));
+    const missKey = `rl:tracking-miss:${ipKey}`;
+    const seen = await this.d.limiter.peek(missKey);
+    if (seen.count >= TRACKING_LIMITS.misses.limit) throw new ApiError("TOO_MANY_ATTEMPTS", [], secs(seen.retryAfterMs));
+    return { missKey };
   }
 }

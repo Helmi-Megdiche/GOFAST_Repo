@@ -4,6 +4,7 @@ import { PhoneChecks } from "../auth/phone-check.ts";
 import { RateLimiter } from "../auth/rate-limit.ts";
 import type { Redis } from "../auth/redis.ts";
 import type { Db } from "../db/index.ts";
+import { ON_INVALID_INPUT, type InvalidInputHooks } from "../http/tokens.ts";
 import { PricingRepo } from "../pricing/pricing.repo.ts";
 import { PricingService } from "../pricing/pricing.service.ts";
 import { OrdersController } from "./orders.controller.ts";
@@ -33,5 +34,13 @@ export function ordersOptions(deps: {
     now: deps.now,
     newTrackingNumber: deps.newTrackingNumber,
   });
-  return { controllers: [OrdersController], providers: [{ provide: OrdersService, useValue: service }] };
+  // T11: the guard refuses a malformed tracking number (400) before the route; this counts it first.
+  const hooks: InvalidInputHooks = { getTracking: (req) => service.malformedTracking({ ip: req.ip }) };
+  return {
+    controllers: [OrdersController],
+    providers: [
+      { provide: OrdersService, useValue: service },
+      { provide: ON_INVALID_INPUT, useValue: hooks },
+    ],
+  };
 }
