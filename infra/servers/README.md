@@ -74,6 +74,7 @@ It ends with a check list and stops with an error if one item fails. It can be r
 
 - Docker publishes ports past `ufw`. Bind container ports to `127.0.0.1`; only the reverse proxy listens on 80 and 443.
 - To remove someone, taking the login out of `TEAM` does **not** remove the account: run `sudo bash offboard.sh <github-login>` on each server (see below).
+- On staging the data ports (PostgreSQL 15432, PgBouncer 16432, Redis 16379, S3 18333) stay on 127.0.0.1. Admin access goes through an SSH tunnel only (`ssh -L 15432:127.0.0.1:15432 <login>@<server>`); never bind them to 0.0.0.0. The api, ws and web publish no host port at all on staging (Caddy is the only way in).
 - The back-office VPN and 2FA are #36, backups #30, monitoring #32.
 
 ## Database setup (once per database, before the first migration)
@@ -107,4 +108,6 @@ sudo DRY_RUN=1 bash offboard.sh <github-login>   # list what would be done
 sudo bash offboard.sh <github-login>             # do it, then list what remains for that name
 ```
 
-Run it as root on every server. It ends the person's sessions, deletes the account with its home directory (so `authorized_keys` goes too), removes a sudoers file naming them (the shared `gofast-admins` group file stays), and lists what remains: group memberships, mail, crontab, files owned by the old uid, mentions under `/etc/ssh`, `/etc/sudoers.d` and `/opt/gofast`. Files it finds elsewhere are listed, never deleted. It can be run again: a second run says there is no account. It refuses `root`, your own login and anything that is not a plain login. Rotate any secret the person could read; the script cannot do that.
+Run it as root on every server. It ends the person's sessions, deletes the account with its home directory (so `authorized_keys` goes too), removes a sudoers file naming them (the shared `gofast-admins` group file stays), and lists what remains: group memberships, mail, crontab, files owned by the old uid, mentions under `/etc/ssh`, `/etc/sudoers.d` and `/opt/gofast`. Files it finds elsewhere are listed, never deleted. It can be run again: a second run says there is no account. It refuses `root`, your own login and anything that is not a plain login. A sudoers file is deleted only when every non-comment line names that person; a file that also names someone else is left alone and flagged (`!! <file> names <user> with others: edit with visudo`, counted as left). The leftover search skips `/var/lib/docker` and `/var/lib/containerd` (container volumes use their own uids) and says so. Rotate any secret the person could read; the script cannot do that.
+
+**A removed uid can be given to the next new account.** So any file the script lists as owned by the old uid must be deleted or re-owned before you add someone, or the new person inherits it.

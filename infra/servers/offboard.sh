@@ -38,35 +38,44 @@ else
   say "no account $user (already removed)"
 fi
 
-# sudo rights: setup.sh gives sudo through the gofast-admins group (gone with the account); remove any
-# file or line that names the user directly.
+# sudo rights: setup.sh gives sudo through the gofast-admins group (gone with the account). A sudoers file is
+# deleted only when EVERY non-comment line in it names this user and nobody else; a file that also names
+# someone else, a group or Defaults is never touched: it is flagged for visudo and counted as left.
+left=0
 for f in /etc/sudoers.d/*; do
   [ -f "$f" ] || continue
-  if grep -qE "^[[:space:]]*$user[[:space:]]" "$f"; then
-    say "== sudoers file $f names $user"
+  grep -qE "^[[:space:]]*$user[[:space:]]" "$f" || continue
+  total=$(grep -cvE '^[[:space:]]*(#|$)' "$f" || true)
+  mine=$(grep -cE "^[[:space:]]*$user[[:space:]]" "$f" || true)
+  if [ "$total" = "$mine" ]; then
+    say "== sudoers file $f names only $user"
     run rm -f "$f"
     changed=1
+  else
+    say "!! $f names $user with others: edit with visudo"
+    left=1
   fi
 done
 if grep -qE "^[[:space:]]*$user[[:space:]]" /etc/sudoers 2>/dev/null; then
   say "!! /etc/sudoers names $user: edit it with visudo, not done automatically"
+  left=1
 fi
 
 # What remains for that name. Each line is something a person still has to look at.
 say "== remaining for $user (nothing below means clean)"
-left=0
 if getent passwd "$user" >/dev/null; then say "account still exists"; left=1; fi
 if getent group "$user" >/dev/null; then say "group still exists: $user"; left=1; fi
 if getent group | awk -F: -v u="$user" '{n=split($4,m,","); for(i=1;i<=n;i++) if(m[i]==u) print "member of group " $1}' | grep .; then left=1; fi
 [ ! -e "/home/$user" ] || { say "home directory still exists: /home/$user"; left=1; }
 [ ! -e "/var/mail/$user" ] || { say "mail spool: /var/mail/$user"; left=1; }
 [ ! -e "/var/spool/cron/crontabs/$user" ] || { say "crontab: /var/spool/cron/crontabs/$user"; left=1; }
-if grep -rIl -- "$user" /etc/ssh /etc/sudoers.d /root/.ssh /opt/gofast 2>/dev/null | grep .; then left=1; fi
-if grep -rIs -- "$login" /root/.ssh/authorized_keys /opt/gofast 2>/dev/null | grep -i "ssh-" ; then left=1; fi
+if grep -rIlw -- "$user" /etc/ssh /etc/sudoers.d /root/.ssh /opt/gofast 2>/dev/null | grep .; then left=1; fi
+if grep -rIsw -- "$login" /root/.ssh/authorized_keys /opt/gofast 2>/dev/null | grep -i "ssh-" ; then left=1; fi
 # The name no longer resolves once the account is gone, so look by uid (kept before the delete). On a
 # second run there is no uid: list files owned by no existing user instead.
 if [ -n "$uid" ]; then match=(-uid "$uid"); else match=(-nouser); fi
-owned=$(find / -xdev \( -path /proc -o -path /sys \) -prune -o "${match[@]}" -print 2>/dev/null | head -20 || true)
+say "-- skipped: /var/lib/docker and /var/lib/containerd (container volumes use their own uids)"
+owned=$(find / -xdev \( -path /proc -o -path /sys -o -path /var/lib/docker -o -path /var/lib/containerd \) -prune -o "${match[@]}" -print 2>/dev/null | head -20 || true)
 [ -z "$owned" ] || { say "files still owned by the removed uid, or by no user (first 20):"; say "$owned"; left=1; }
 say "-- also by hand: GitHub org membership, repository secrets the person knew, passwords and keys they could read (rotate them)."
 

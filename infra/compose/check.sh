@@ -26,6 +26,15 @@ hdrs() { curl -sk -o /dev/null -D - "$@" | tr -d ''; }            # response he
 has_hdr() { local h=$1; shift; hdrs "$@" | grep -qi "^$h:"; }
 # a "header must be absent" check needs an answer first: no answer proves nothing
 no_hdr() { local h=$1; shift; local out; out=$(hdrs "$@"); [ -n "$out" ] && ! printf '%s\n' "$out" | grep -qi "^$h:"; }
+# Reads `docker compose config --format json`; prints api, ws, web and worker entries that publish a port.
+app_ports() {
+  node -e '
+    const svc=JSON.parse(require("fs").readFileSync(0,"utf8")).services, bad=[];
+    for (const n of ["api","ws","web","worker"]) for (const p of (svc[n]||{}).ports||[]) bad.push(n+":"+p.target);
+    console.log(bad.join(" "))' || echo "config unreadable"
+}
+# Is something accepting TCP connections on 127.0.0.1:$1? (a refused connection means nothing listens)
+listens() { (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 # Reads `docker compose config --format json`; prints every published port that breaks the rule: only
 # caddy may publish outside 127.0.0.1 (and only 80 and 443); caddy must publish exactly those two.
 port_offenders() {
@@ -108,6 +117,19 @@ if [ "$MODE" = staging ]; then
   printf '%s\n' "$(COMPOSE_PROFILES=setup "${DC[@]}" config --services)" | grep -qx db-setup && ok "twin: with the setup profile on, db-setup does appear (so the check above can fail)" || bad "twin: setup profile did not add db-setup"
   r=$(CADDY_BIND=0.0.0.0 "${DC[@]}" config --format json | port_offenders)
   [ -z "$r" ] && ok "staging compose: only caddy publishes outside 127.0.0.1 (80 and 443)" || bad "staging compose: ports to fix: $r"
+  # api, ws, web and worker publish nothing on staging: with TRUST_PROXY=1 a direct caller of the api could
+  # claim any address. Read the config, then try the connection. Twins: the base (laptop) config does publish
+  # api and web, and the probe does see Caddy's own listener.
+  r=$("${DC[@]}" config --format json | app_ports); [ -z "$r" ] && ok "staging compose: api, ws, web and worker publish no host port" || bad "staging compose: app ports published: $r"
+  r=$(docker compose -f compose.yaml --env-file "$ENVFILE" config --format json | app_ports)
+  [ -n "$r" ] && ok "twin: the base config does publish app ports ($r), so the check above can fail" || bad "twin: app_ports found nothing in the base config"
+  for p in "${API_PORT:-14000}" "${WEB_PORT:-13000}"; do
+    listens "$p" && bad "staging: something listens on 127.0.0.1:$p (the api or web is reachable without Caddy)" || ok "staging: nothing listens on 127.0.0.1:$p"
+  done
+  listens "$HTTPS_PORT" && ok "twin: the probe sees Caddy's listener on $HTTPS_PORT, so 'nothing listens' can fail" || bad "twin: listens() cannot see the Caddy port $HTTPS_PORT"
+  # the browser only opens its login box when the 401 asks for it: handle_errors must not drop WWW-Authenticate
+  sh_ "$SB/fr" | grep -qi '^www-authenticate: *basic' && ok "staging 401 carries WWW-Authenticate: Basic (the browser opens the login box)" || bad "staging 401 has no WWW-Authenticate: Basic"
+  sh_ "${AUTH[@]}" "$SB/fr" | grep -qi '^www-authenticate:' && bad "staging 200 carries WWW-Authenticate" || ok "twin: the 200 with credentials has no WWW-Authenticate (header check can tell the two apart)"
   r=$("${DC[@]}" exec -T api printenv TRUST_PROXY); [ "$r" = 1 ] && ok "staging api: TRUST_PROXY=1 (one hop: Caddy)" || bad "staging api TRUST_PROXY is '$r', expected 1"
   r=$("${DC[@]}" ps -a --format '{{.Service}} {{.State}} {{.ExitCode}}' | grep '^migrate '); [ "$r" = "migrate exited 0" ] && ok "staging: migrate exited 0" || bad "staging migrate: $r"
   exit $fail

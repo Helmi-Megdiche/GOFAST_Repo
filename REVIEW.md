@@ -119,6 +119,10 @@ Source: #22 PR 4b-2a round 1, a pickup slot that passed the contract hit a datab
 In SQL, a CHECK whose result is NULL passes, a policy or WHERE whose result is NULL refuses or drops the row. For every CHECK, policy, trigger condition or WHERE that reads a nullable column, write the NULL case on purpose (`is not distinct from`, `is null or ...`, `is not null and ...`, or make the column `not null`), and add a test that inserts or updates with that column NULL and expects the intended result.
 Source: #22 PR 4b-2b round 1, the fee CHECK used `=` on a nullable column, so a row with the fee NULL passed it.
 
+**RV-24. A cleanup removes only what belongs to its target.**
+For each delete, show what else the same file, group or path can hold, and test with a second person or item next to the target.
+Source: #14 PR 3 round 1, offboard.sh removed a whole sudoers file to remove one user.
+
 ### Money and values
 
 **RV-06. Test money parsing at the edges in each language.**

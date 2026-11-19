@@ -36,7 +36,7 @@ Caddy is the only service with public ports (80 and 443). Every other port is on
 
 Caddy replaces `X-Forwarded-For` and `X-Real-IP` with the real client address (`header_up ... {remote_host}`) and drops client values, removes `Server`, and adds HSTS on staging and production. The api counts sign-ins per IP, so a forged `X-Forwarded-For` must not change the counted address: `check.sh` proves it with the per-IP limit.
 
-**`TRUST_PROXY`**: the laptop stack runs through Caddy, so `.env.example` sets `TRUST_PROXY=1` (one hop). Staging fixes it at `1` in `compose.staging.yaml`. Without Caddy in front, keep `0`. The api (14000) and web (13000) host ports stay on 127.0.0.1 for tools; there the forwarded header is client-written, so test limits through Caddy.
+**`TRUST_PROXY`**: the laptop stack runs through Caddy, so `.env.example` sets `TRUST_PROXY=1` (one hop). Staging fixes it at `1` in `compose.staging.yaml`. Without Caddy in front, keep `0`. The api (14000) and web (13000) host ports stay on 127.0.0.1 on the laptop only, for tools; there the forwarded header is client-written, so test limits through Caddy. **Staging publishes no api, ws or web host port** (`ports: !reset []` in `compose.staging.yaml`): with `TRUST_PROXY=1` anyone reaching 14000 directly could forge the client address. `check.sh staging` reads the config and tries the connection.
 
 Laptop: `https://localhost:18443/fr` (ports 18080 and 18443, Caddy's internal certificate, `curl -k`). Ports are not 80, 443 or 8080 because those are often taken on a laptop; a server sets `CADDY_BIND=0.0.0.0`, `HTTP_PORT=80`, `HTTPS_PORT=443`.
 
@@ -44,7 +44,7 @@ Laptop: `https://localhost:18443/fr` (ports 18080 and 18443, Caddy's internal ce
 
 ```
 docker compose -f compose.yaml -f compose.staging.yaml --env-file <staging env file> up -d --build --wait
-./check.sh staging                  # 37 checks (laptop: 66)
+./check.sh staging                  # 44 checks (laptop: 66)
 ```
 
 - `STAGING_DOMAIN` sets the site address, automatic HTTPS. `STAGING_USER` and `STAGING_PASSWORD_HASH` (bcrypt, from `caddy hash-password`) protect **every** route with `basic_auth`: `/fr`, `/v1/*`, `/ws/*` and `robots.txt`. The hash lives in the server's env file, never in git.

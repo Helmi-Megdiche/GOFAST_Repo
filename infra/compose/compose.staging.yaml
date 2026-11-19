@@ -14,5 +14,13 @@ services:
       # Exactly one hop between the internet and the api: Caddy. Fixed here, not read from the env file.
       TRUST_PROXY: "1"
       ALLOWED_ORIGINS: https://${STAGING_DOMAIN}
+    # With TRUST_PROXY=1 the api believes the address in X-Forwarded-For from whoever connects. On staging
+    # Caddy must be the only way in, so no host port at all for api, ws and web (the data ports stay on
+    # 127.0.0.1, reached by SSH tunnel only: infra/servers/README.md).
+    ports: !reset []
+  ws:
+    ports: !reset []
+  web:
+    ports: !reset []
   # No db-setup on staging: it sits behind the `setup` profile, and the staging env file never sets
   # COMPOSE_PROFILES, so `up` does not start it (check.sh staging asserts it). It is run by hand once.
