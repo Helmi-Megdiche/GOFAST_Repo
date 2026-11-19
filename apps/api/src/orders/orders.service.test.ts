@@ -9,9 +9,10 @@ import { bodyHashOf, type OrderCreate, type OrderOut, type OrdersPort, OrdersSer
 // GH-22 (PR 4b-2a): the order of the checks of createOrder, with a fake database. The real one is in orders.api.int.test.ts.
 
 const keys = new Keys("k".repeat(40));
-// RV-08: the suite also runs with the date moved 40 days ahead (FG_CLOCK_SHIFT_DAYS=40, `pnpm test` runs both): the service reads
-// only its injected clock, so nothing here may depend on the day.
-const NOW = new Date(Date.parse("2026-11-20T10:00:00.000Z") + Number(process.env.FG_CLOCK_SHIFT_DAYS ?? 0) * 86_400_000);
+// RV-08: `pnpm test` runs this suite twice, the second time with the system date 40 days ahead (src/test-setup.ts, as in packages/domain).
+// The service reads the real clock here (no injected `now`), and every date of the fixtures is built from it: a date written as a
+// literal (a quote that expires on 2026-11-25, a slot on 2026-11-21) is expired, or in the past, in the shifted run, and the run fails.
+const NOW = new Date();
 const actor: Actor = { accountId: "acc", userId: "acc", role: "individual" };
 const settings = { maxParcels: 10 } as Settings;
 const mac = (text: string, pin: { x: number; y: number } | null) => keys.mac("quote-address", addressPriceKey({ text, pin }));
@@ -90,7 +91,7 @@ function build(opts: { account?: { status: string; phone: string | null; phoneVe
     totalMillimes: opts.priced?.totalMillimes ?? 6000,
     priceListValidFrom: opts.priced?.priceListValidFrom ?? new Date("2026-11-06T00:00:00.000Z"),
   }));
-  const service = new OrdersService({ port, priceAt, keys, checks: { consume } as never, limiter: limiter as never, now: () => NOW, newTrackingNumber: () => "FG-AAAA-0001" });
+  const service = new OrdersService({ port, priceAt, keys, checks: { consume } as never, limiter: limiter as never, newTrackingNumber: () => "FG-AAAA-0001" });
   return { service, port, consume, priceAt, inserted, limiter };
 }
 
