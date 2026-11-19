@@ -13,11 +13,33 @@ The author is Claude Code (Sonnet 5.5), the junior engineer. The reviewer is the
 
 **One round** is one review of the pushed code, then one author reply with fixes.
 
-**The cap is 3 rounds per PR.**
+**The cap is 3 rounds per PR.** Changed by Helmi on 19 Nov 2026 to save time (A, B, C below).
+
+### A. Only Blocking opens a new round
 
 - **Round 1:** full review of the PR against `docs/spec/regles.md`, the plan and this file.
-- **Rounds 2 and 3:** check the fixes and what they touched. A new area is opened only for a Blocking finding.
+- **Blocking** findings must be fixed and open the next round.
+- **Should fix:** fixed in the same reply if it takes under about 30 minutes. Otherwise the lead opens a GitHub issue with the label `follow-up`, linked from the PR, and it does not hold the merge. Helmi can still ask for one to block.
+- **Minor:** fixed with other fixes or listed in the PR. Never a reason for a round.
+- **No Blocking finding in a round:** the lead posts `**Supervisor: final**` in that same comment and lists the quick Should fix and Minor items. The author fixes them in the push that opens the PR. The lead checks them when it checks CI, with no new round.
+- **Rounds 2 and 3:** check the Blocking fixes and what they touched. A new area is opened only for a Blocking finding.
 - **After round 3:** the reviewer checks only the round 3 fixes and reports to Helmi, with no new prompt for the author. Helmi decides whether to merge, open a follow-up ticket or allow another round.
+
+### B. Review effort by risk
+
+- **High risk:** money, order or parcel states, sign-in, rights, personal data, the API contract, DB grants or migrations. Round 1 is a deep review by a separate Opus reviewer with a fresh context. Fix checks in rounds 2 and 3 are done by the lead alone.
+- **Low risk:** UI, text, docs, config, tests only. One light review by the lead or a Sonnet reviewer. With no Blocking finding, the lead posts final straight away.
+- **When unsure, treat it as high risk.**
+
+### C. Self-check before every Report
+
+Before pushing, the author goes through every rule in this file that applies to the diff. The Report then starts with:
+
+1. The head commit (full SHA).
+2. The real counts of lint, typecheck, unit and integration tests run on that commit, and anything not run (RV-09).
+3. A table with one row per rule that applies: rule, pass or fail, how it was checked (command, test name or file and line).
+
+A Report without this block is sent back without using a round. A rule marked pass that the review shows failing is a Blocking finding.
 
 The count starts at the first review after this file was added. Questions from the author, such as a choice between two designs, do not use a round.
 
@@ -25,9 +47,9 @@ The count starts at the first review after this file was added. Questions from t
 
 | Level | Meaning | Effect |
 |---|---|---|
-| Blocking | Wrong behaviour, a broken rule from `regles.md`, a security or personal data problem, or a red check | Fixed before merge |
-| Should fix | Works today, but will cause a bug or mislead the next PR | Fixed in the next round, or Helmi accepts it |
-| Minor | Small cleanup | Fixed with the next round, or listed in the PR. Never the only reason for a new round |
+| Blocking | Wrong behaviour, a broken rule from `regles.md`, a security or personal data problem, a red check, or a self-check row marked pass that fails | Fixed before merge. Opens the next round |
+| Should fix | Works today, but will cause a bug or mislead the next PR | Fixed now if under about 30 minutes, else a `follow-up` issue. Never opens a round on its own |
+| Minor | Small cleanup | Fixed with other fixes, or listed in the PR. Never opens a round |
 
 Each finding gives the file and line, how to reproduce it, and the expected result. The reviewer reproduces a finding before reporting it, and does not rely on the author's summary.
 
@@ -36,10 +58,10 @@ Each finding gives the file and line, how to reproduce it, and the expected resu
 For each mistake found, in the same round:
 
 1. Add a rule at the end of the list, with the next `RV-` number.
-2. Say what to check and how, so the check can actually fail. Name the mistake that caused the rule.
+2. Say what to check and how, so the check can actually fail. Name the mistake that caused the rule. Keep it to 2 or 3 lines.
 3. If an existing rule already covers the mistake, add the new case to its source line and sharpen the check. Do not add a duplicate.
 
-Rules are changed or removed only with Helmi's approval. A rule describes a kind of mistake, so it must be useful beyond the one bug. A fact about one screen belongs in the plan or the PR.
+Writing a rule never delays posting the review. Rules are changed or removed only with Helmi's approval. A rule describes a kind of mistake, so it must be useful beyond the one bug. A fact about one screen belongs in the plan or the PR.
 
 ## Rules
 
