@@ -78,6 +78,22 @@ export function slotDay(slot: Pick<Slot, "startUtc">, at: number): "today" | "to
   return offset === 0 ? "today" : offset === 1 ? "tomorrow" : "other";
 }
 
+const TIMESTAMP = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+
+/**
+ * True when the string is a real instant the database can store: PostgreSQL has no year 0000 and refuses a day that does not exist
+ * (JavaScript rolls 30 February over to March, so Date.parse alone says yes). The date-time of the contract allows year 0000, and a
+ * cursor is only matched by a pattern: without this such a value would reach the database and be a 500.
+ */
+export function isStorableTimestamp(value: string): boolean {
+  const m = TIMESTAMP.exec(value);
+  if (!m) return false;
+  const [year, month, day, hour, minute, second] = m.slice(1, 7).map(Number) as [number, number, number, number, number, number];
+  const daysInMonth = new Date(Date.UTC(2000 + (year % 400), month, 0)).getUTCDate(); // same leap-year rule as the real year
+  if (year < 1 || month < 1 || month > 12 || day < 1 || day > daysInMonth || hour > 23 || minute > 59 || second > 59) return false;
+  return Number.isFinite(Date.parse(value));
+}
+
 export type SlotFieldError = { name: "service.slot" | "sender.slot"; reason: "slotInvalid" };
 type WindowIn = { start_at: string; end_at: string };
 
@@ -91,7 +107,8 @@ export function checkOrderSlots(
   at: number,
 ): SlotFieldError[] {
   const wrong: SlotFieldError[] = [];
-  const endsAfterStart = (w: WindowIn) => Date.parse(w.end_at) > Date.parse(w.start_at); // false for a date that does not parse
+  // false for a date that does not parse, or that the database cannot store
+  const endsAfterStart = (w: WindowIn) => isStorableTimestamp(w.start_at) && isStorableTimestamp(w.end_at) && Date.parse(w.end_at) > Date.parse(w.start_at);
   const service = order.serviceSlot ?? null;
   if (order.serviceCode === "scheduled" ? service === null || !endsAfterStart(service) : service !== null)
     wrong.push({ name: "service.slot", reason: "slotInvalid" });

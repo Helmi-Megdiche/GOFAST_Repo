@@ -1,5 +1,5 @@
 import type { components } from "@fastgo/contract";
-import { addressPriceKey, checkOrderSlots, isQuoteValid, MAX_PARCELS, proofLevelFor, randomTrackingCode } from "@fastgo/domain";
+import { addressPriceKey, checkOrderSlots, isQuoteValid, isStorableTimestamp, MAX_PARCELS, proofLevelFor, randomTrackingCode } from "@fastgo/domain";
 import type { ProofLevel } from "@fastgo/domain";
 import type { Keys } from "../auth/crypto.ts";
 import type { PhoneChecks } from "../auth/phone-check.ts";
@@ -84,6 +84,24 @@ export type OrdersDeps = {
   newTrackingNumber?: () => string;
 };
 
+/**
+ * RV-22: PostgreSQL text cannot hold a NUL character (22021, a 500 after the proof was spent), and the contract's `string` allows it.
+ * The text fields an order writes, with their path in the body, that contain one.
+ */
+export function fieldsWithNul(body: OrderCreate): FieldError[] {
+  const texts: Array<[string, string | undefined]> = [
+    ["sender.name", body.sender.name],
+    ["sender.address.text", body.sender.address.text],
+    ["sender.address.landmark", body.sender.address.landmark],
+    ["recipient.name", body.recipient.name],
+    ["recipient.address.text", body.recipient.address.text],
+    ["recipient.address.landmark", body.recipient.address.landmark],
+    ["recipient.instructions", body.recipient.instructions],
+    ["parcel.content", body.parcel.content],
+  ];
+  return texts.filter(([, value]) => value?.includes("\u0000")).map(([name]) => ({ name, reason: "invalid" }));
+}
+
 const secs = (ms: number) => Math.max(1, Math.ceil(ms / 1000));
 const refuse = (name: string, reason: string) => new ApiError("RULE_REFUSED", [{ name, reason }]);
 const same = <T>(a: T[], b: T[]) => a.length === b.length && a.every((x, i) => x === b[i]);
@@ -115,6 +133,10 @@ export class OrdersService {
       }
     }
     const at = this.now();
+
+    // 0a. RV-22: text the database cannot hold, refused before anything is spent.
+    const nul = fieldsWithNul(body);
+    if (nul.length > 0) throw new ApiError("VALIDATION_FAILED", nul);
 
     // 0. The slots (R503): a window that ends before it starts, a delivery slot that is not for `scheduled` (or missing for it), a
     // pickup window already over. Refused here, so the CHECKs of the database never see them and the proof is not spent.
@@ -215,6 +237,9 @@ export class OrdersService {
   // ---- GET /v1/orders, GET /v1/orders/{id} ------------------------------------------------------------------
 
   async list(actor: Actor, q: ListQuery): Promise<OrderListOut> {
+    // RV-22: a date the database cannot read (year 0000) is a 400 here, not a 500 from the cast.
+    const bad = (["from", "to"] as const).filter((k) => q[k] !== undefined && !isStorableTimestamp(`${q[k]}T00:00:00Z`));
+    if (bad.length > 0) throw new ApiError("VALIDATION_FAILED", bad.map((name) => ({ name, reason: "invalid" })));
     const page = await this.d.port.list(actor, q);
     if (page === "badCursor") throw new ApiError("VALIDATION_FAILED", [{ name: "cursor", reason: "invalid" }]);
     return page;

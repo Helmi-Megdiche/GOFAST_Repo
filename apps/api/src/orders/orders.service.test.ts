@@ -4,7 +4,7 @@ import { Keys } from "../auth/crypto.ts";
 import { ApiError } from "../http/errors.ts";
 import type { Actor } from "../http/session.ts";
 import type { ReadQuote, Settings } from "../pricing/pricing.service.ts";
-import { bodyHashOf, type OrderCreate, type OrderOut, type OrdersPort, OrdersService, ScopeTaken, TRACKING_LIMITS } from "./orders.service.ts";
+import { bodyHashOf, fieldsWithNul, type OrderCreate, type OrderOut, type OrdersPort, OrdersService, ScopeTaken, TRACKING_LIMITS } from "./orders.service.ts";
 
 // GH-22 (PR 4b-2a): the order of the checks of createOrder, with a fake database. The real one is in orders.api.int.test.ts.
 
@@ -231,6 +231,31 @@ describe("GH-22 RV-05 R202: createOrder spends the phone proof last, once", () =
     const t = build({ account: { status: "active", phone: "+21620000001", phoneVerified: true } });
     const eleven = { ...body().parcel, parcels: Array.from({ length: 11 }, () => ({ weight_g: 100 })) };
     expect((await reasonOf(t.service.create(actor, { ...body(), parcel: eleven }, { scope: null }))).fields).toEqual([{ name: "parcel.parcels", reason: "tooManyParcels" }]);
+  });
+});
+
+describe("GH-22 RV-22: text the database cannot hold, and dates it cannot read, are 400 before anything", () => {
+  it("fieldsWithNul names each text field with a NUL character, and only those", () => {
+    const b = body();
+    expect(fieldsWithNul(b)).toEqual([]);
+    const bad = { ...b, sender: { ...b.sender, name: "a\u0000" }, parcel: { ...b.parcel, content: "\u0000" }, recipient: { ...b.recipient, instructions: "x\u0000y" } } as OrderCreate;
+    expect(fieldsWithNul(bad).map((f) => f.name)).toEqual(["sender.name", "recipient.instructions", "parcel.content"]);
+  });
+  it("create refuses it with 400 VALIDATION_FAILED, no proof spent, nothing written", async () => {
+    const t = build();
+    const res = await reasonOf(t.service.create(actor, { ...body({ sender: { ...body().sender, name: "a\u0000b" } }), phone_check_id: "11111111-1111-4111-8111-111111111111" }, { scope: null }));
+    expect(res).toEqual({ code: "VALIDATION_FAILED", fields: [{ name: "sender.name", reason: "invalid" }] });
+    expect(t.consume).not.toHaveBeenCalled();
+    expect(t.inserted).toEqual([]);
+  });
+  it("list refuses a from or to the database cannot read (year 0000, a day that does not exist) with 400, before any query", async () => {
+    const t = build();
+    for (const q of [{ from: "0000-01-01" }, { to: "0000-12-31" }, { from: "2026-02-30" }]) {
+      const res = await reasonOf(t.service.list(actor, { limit: 10, ...q }));
+      expect(res.code).toBe("VALIDATION_FAILED");
+      expect(res.fields[0]?.name).toBe(Object.keys(q)[0]);
+    }
+    expect(t.port.list).not.toHaveBeenCalled();
   });
 });
 

@@ -505,6 +505,83 @@ describe("GH-22 R202: the key of an order expired: another body never gets the o
   });
 });
 
+describe("GH-22 RV-22: every database check the input can reach is answered first, with the smallest breaking input", () => {
+  type Mut = (b: ReturnType<typeof orderBody>) => Record<string, unknown>;
+  const NUL = "a\u0000b";
+  // [what breaks, which database check it would hit without the service check, how to break it, the answer, the field]
+  const cases: Array<[string, string, Mut, number, string]> = [
+    ["pickup window that ends where it starts", "23514 orders_pickup_slot", (b) => ({ sender: { ...b.sender, slot: window(26, 26) } }), 422, "sender.slot"],
+    ["pickup window already over", "service (R503)", (b) => ({ sender: { ...b.sender, slot: window(-3, -1) } }), 422, "sender.slot"],
+    ["scheduled with no delivery slot", "23514 orders_delivery_slot", () => ({ service: { code: "scheduled" } }), 422, "service.slot"],
+    ["a delivery slot for the standard service", "23514 orders_delivery_slot", () => ({ service: { code: "standard", slot: window(48, 50) } }), 422, "service.slot"],
+    ["freight due without the acceptance", "23514 orders_freight_accepted", () => ({ payment_mode: "cashDelivery" }), 422, "freight_payer_accepted"],
+    ["a window that starts in year 0000", "22008 date out of range", (b) => ({ sender: { ...b.sender, slot: { start_at: "0000-01-01T00:00:00.000Z", end_at: hoursAhead(26) } } }), 422, "sender.slot"],
+    ["a NUL character in the sender name", "22021 invalid byte sequence", (b) => ({ sender: { ...b.sender, name: NUL } }), 400, "sender.name"],
+    ["a NUL character in the recipient name", "22021 invalid byte sequence", (b) => ({ recipient: { ...b.recipient, name: NUL } }), 400, "recipient.name"],
+    ["a NUL character in the content", "22021 invalid byte sequence", (b) => ({ parcel: { ...b.parcel, content: NUL } }), 400, "parcel.content"],
+    ["a NUL character in the delivery instructions", "22021 invalid byte sequence", (b) => ({ recipient: { ...b.recipient, instructions: NUL } }), 400, "recipient.instructions"],
+    ["a NUL character in a landmark", "22021 invalid byte sequence", (b) => ({ recipient: { ...b.recipient, address: { ...b.recipient.address, landmark: NUL } } }), 400, "recipient.address.landmark"],
+    ["an empty sender name", "23514 sender_name <> ''", (b) => ({ sender: { ...b.sender, name: "" } }), 400, "sender.name"],
+    ["a sender phone that is not Tunisian", "23514 sender_phone", (b) => ({ sender: { ...b.sender, phone: "+33612345678" } }), 400, "sender.phone"],
+    ["a recipient phone that is not Tunisian", "23514 recipients.phone_e164", (b) => ({ recipient: { ...b.recipient, phone: "+33612345678" } }), 400, "recipient.phone"],
+    ["an empty content", "23514 content <> ''", (b) => ({ parcel: { ...b.parcel, content: "" } }), 400, "parcel.content"],
+    ["a negative declared value", "23514 declared_value_millimes >= 0", (b) => ({ parcel: { ...b.parcel, declared_value_millimes: -1 } }), 400, "parcel.declared_value_millimes"],
+    ["a parcel of weight 0", "23514 weight_declared_g > 0", (b) => ({ parcel: { ...b.parcel, parcels: [{ weight_g: 0 }, { weight_g: 3500 }] } }), 400, "parcel.parcels.0.weight_g"],
+    ["a locale that is not fr, ar or en", "23514 recipient_locale", (b) => ({ recipient: { ...b.recipient, sms_locale: "de" } }), 400, "recipient.sms_locale"],
+    ["a service code that does not exist", "23514 orders_service_check", () => ({ service: { code: "overnight" } }), 400, "service.code"],
+    ["a payment mode that does not exist", "23514 orders_payment_mode_check", () => ({ payment_mode: "bitcoin" }), 400, "payment_mode"],
+    ["a quote id that is not a uuid", "22P02 invalid uuid", () => ({ quote_id: "not-a-uuid" }), 400, "quote_id"],
+  ];
+  for (const [index, [name, hits, mutate, status, field]] of cases.entries()) {
+    it(`${name} (${hits}): ${status} on ${field}, no row, no SMS, and the same proof still works`, async () => {
+      ip = `10.30.${Math.floor(index / 200)}.${(index % 200) + 1}`;
+      const who = await customer(false);
+      const quote = await newQuote();
+      const check = await proof(who.phone, "order");
+      const good = orderBody(quote, who, { phone_check_id: check });
+      const sms = async () => Number((await q("select count(*) as n from core.outbox where topic = 'sms.tracking'")).rows[0].n);
+      const [rows, texts] = [await orders(), await sms()];
+      const log = vi.spyOn(Logger.prototype, "error");
+      const bad = await place(who, { ...good, ...mutate(good) });
+      expect(bad.statusCode, JSON.stringify(bad.json())).toBe(status);
+      const named = (bad.json().error.fields as Array<{ name: string }>).map((f) => f.name);
+      expect(named, JSON.stringify(bad.json())).toContain(field);
+      expect(await orders()).toBe(rows);
+      expect(await sms()).toBe(texts);
+      expect(log.mock.calls.filter((c) => /CHECK|constraint|pg=/.test(String(c[0])))).toEqual([]); // never the database that said no
+      log.mockRestore();
+      const ok = await place(who, good); // the proof was not spent
+      expect(ok.statusCode, JSON.stringify(ok.json())).toBe(201);
+    });
+  }
+
+  it("a key that already made another order (23505 on the scope) is answered first: 409 KEY_REUSED, no row, the proof still works", async () => {
+    ip = "10.31.0.1";
+    const who = await customer(false);
+    const quote = await newQuote();
+    const key = randomUUID();
+    const first = await place(who, orderBody(quote, who, { phone_check_id: await proof(who.phone, "order") }), key);
+    expect(first.statusCode).toBe(201);
+    const check = await proof(who.phone, "order");
+    const rows = await orders();
+    const other = await place(who, orderBody(quote, who, { phone_check_id: check, parcel: { ...orderBody(quote, who).parcel, content: "Autre" } }), key);
+    expect([other.statusCode, other.json().error.code]).toEqual([409, "KEY_REUSED"]);
+    expect(await orders()).toBe(rows);
+    await q("update core.accounts set phone_verified_at = null where id = $1", [who.id]);
+    expect((await place(who, orderBody(await newQuote(), who, { phone_check_id: check }))).statusCode).toBe(201);
+  });
+
+  it("the list: a date or a cursor the database cannot read is a 400, not a 500", async () => {
+    ip = "10.31.0.2";
+    const who = await customer();
+    const bad = ["from=0000-01-01", "to=0000-01-01"];
+    for (const query of bad) expect((await call("GET", `/v1/orders?${query}`, { cookie: who.cookie })).statusCode, query).toBe(400);
+    const cursor = (text: string) => Buffer.from(text, "utf8").toString("base64url");
+    for (const raw of ["0000-01-01T00:00:00.000000Z|" + randomUUID(), "2026-13-45T00:00:00.000000Z|" + randomUUID(), "2026-02-30T00:00:00.000000Z|" + randomUUID()])
+      expect((await call("GET", `/v1/orders?cursor=${cursor(raw)}`, { cookie: who.cookie })).statusCode, raw).toBe(400);
+  });
+});
+
 describe("GH-22 T55: GET /v1/orders and GET /v1/orders/{id}", () => {
   it("each customer lists and reads only their own orders, newest first, with a cursor; another's order is 404", async () => {
     ip = "10.20.3.1";

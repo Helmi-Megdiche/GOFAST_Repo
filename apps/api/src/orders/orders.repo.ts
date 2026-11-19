@@ -1,4 +1,5 @@
 import { Logger } from "@nestjs/common";
+import { isStorableTimestamp } from "@fastgo/domain";
 import { sql, type SQL } from "drizzle-orm";
 import type { Db, Tx } from "../db/index.ts";
 import { ApiError } from "../http/errors.ts";
@@ -234,7 +235,7 @@ export class OrdersRepo implements OrdersPort {
     if (q.tracking) conds.push(sql`o.tracking_number = ${q.tracking}`);
     if (q.cursor) {
       const m = /^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d\.\d{6}Z)\|([0-9a-f-]{36})$/.exec(Buffer.from(q.cursor, "base64url").toString("utf8"));
-      if (!m) return "badCursor";
+      if (!m || !isStorableTimestamp(m[1]!)) return "badCursor"; // a pattern is not a date: 2026-13-45 or year 0000 would be a 500 from the cast
       conds.push(sql`(o.created_at, o.id) < (${m[1]}::timestamptz, ${m[2]}::uuid)`);
     }
     return this.run(actor, async (tx) => {

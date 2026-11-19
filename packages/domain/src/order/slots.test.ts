@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   availableSlots as availableSlotsWith,
   checkOrderSlots,
+  isStorableTimestamp,
   isSlotInFuture,
   slotDay,
   tunisTimeToUtc,
@@ -117,5 +118,19 @@ describe("checkOrderSlots: the pickup window and the delivery slot of an order",
       { name: "sender.slot", reason: "slotInvalid" },
     ]);
     expect(checkOrderSlots(input({ pickupSlot: { start_at: "nope", end_at: "nope" } }), AT)).toEqual([{ name: "sender.slot", reason: "slotInvalid" }]);
+  });
+});
+
+// GH-22 RV-22: an instant the database cannot store (PostgreSQL has no year 0000) is refused before it reaches it.
+describe("isStorableTimestamp and the slots: the database's range", () => {
+  it("year 0000, a month 13 and a day that does not exist are not storable; year 0001 and a normal date are", () => {
+    for (const bad of ["0000-01-01T00:00:00.000Z", "2026-13-01T00:00:00Z", "2026-02-30T00:00:00Z", "nope", ""]) expect(isStorableTimestamp(bad), bad).toBe(false);
+    for (const good of ["0001-01-01T00:00:00.000Z", "2026-11-20T10:00:00.000Z", "2026-11-20T10:00:00.123456Z"]) expect(isStorableTimestamp(good), good).toBe(true);
+  });
+  it("a window that starts in year 0000 is slotInvalid on sender.slot, even when it ends in the future", () => {
+    const AT = Date.UTC(2026, 10, 20, 10);
+    const slot = { start_at: "0000-01-01T00:00:00.000Z", end_at: new Date(AT + 26 * 3_600_000).toISOString() };
+    expect(checkOrderSlots({ serviceCode: "standard", serviceSlot: null, pickupSlot: slot }, AT)).toEqual([{ name: "sender.slot", reason: "slotInvalid" }]);
+    expect(checkOrderSlots({ serviceCode: "scheduled", serviceSlot: slot, pickupSlot: { start_at: new Date(AT + 3_600_000).toISOString(), end_at: slot.end_at } }, AT)).toEqual([{ name: "service.slot", reason: "slotInvalid" }]);
   });
 });
