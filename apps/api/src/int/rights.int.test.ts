@@ -61,6 +61,7 @@ const EXPECTED: Record<string, Expect> = {
         "fragile",
         "freight_payer",
         "freight_payer_accepted",
+        "idempotency_body_hash",
         "idempotency_scope",
         "lines",
         "null_lines",

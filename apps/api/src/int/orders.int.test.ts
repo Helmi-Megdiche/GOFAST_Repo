@@ -458,6 +458,7 @@ describe("RV-21: protected columns", () => {
       ["declared_value_millimes", "1", false],
       ["freight_payer_accepted", "true", false],
       ["terms_accepted_at", "now()", false],
+      ["idempotency_body_hash", "'x'", false],
     ];
     it("lists every column of the table, so a new column cannot be forgotten", async () => {
       const r = await q(
