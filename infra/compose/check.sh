@@ -74,6 +74,15 @@ for s in postgres pgbouncer redis s3 api ws worker web caddy; do
   st=$("${DC[@]}" ps --format '{{.Health}}' "$s")
   [ "$st" = healthy ] && ok "$s healthy" || bad "$s is '$st', expected healthy"
 done
+# the api answers inside its own container on 4000, the port its healthcheck uses (no host port on staging).
+# TOTP_KEY must reach the container: the api refuses to boot in production without it (GH-25, RV-27).
+r=$("${DC[@]}" exec -T api node -e "fetch('http://127.0.0.1:4000/v1/health').then(r=>{console.log(r.status);process.exit(r.ok?0:1)},e=>{console.log(String(e));process.exit(1)})" 2>&1 | tail -1)
+[ "$r" = 200 ] && ok "api answers GET /v1/health with 200 inside its container" || bad "api /v1/health inside the container: '$r', expected 200"
+r=$("${DC[@]}" exec -T api printenv TOTP_KEY | wc -c)
+[ "${r:-0}" -gt 1 ] && ok "api has TOTP_KEY in its environment" || bad "api has no TOTP_KEY"
+# twin: the same probe on a port nobody serves must fail, so the probe above can fail
+r=$("${DC[@]}" exec -T api node -e "fetch('http://127.0.0.1:4999/v1/health').then(r=>process.exit(0),()=>process.exit(1))" >/dev/null 2>&1; echo $?)
+[ "$r" = 1 ] && ok "twin: the probe fails on a closed port" || bad "twin: the probe did not fail on a closed port ($r)"
 
 
 # ======================= staging override (./check.sh staging) =======================
