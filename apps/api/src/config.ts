@@ -82,6 +82,10 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       throw new Error("Invalid environment: TOTP_KEY must be 32 bytes in base64");
     }
   }
+  // M3: .env.example holds a FAKE key (the bytes 0 to 31) so that a development machine starts. It is public: production refuses it.
+  if (e.NODE_ENV === "production" && totpKey?.equals(Buffer.from(Array.from({ length: 32 }, (_, i) => i)))) {
+    throw new Error("Invalid environment: TOTP_KEY is the example key of .env.example: set a real one (T60)");
+  }
   if (e.PUBLIC_WEB_URL !== undefined) {
     let url: URL | undefined;
     try {

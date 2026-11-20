@@ -55,6 +55,14 @@ describe("loadConfig", () => {
   it("GH-25 T60: production without TOTP_KEY throws, before anything else is checked", () => {
     expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/TOTP_KEY is required in production/);
   });
+  it("GH-25 M3: production refuses the example TOTP_KEY of .env.example (the bytes 0 to 31), and development accepts it", () => {
+    const example = Buffer.from(Array.from({ length: 32 }, (_, i) => i)).toString("base64");
+    const prod = { NODE_ENV: "production", SMS_PROVIDER: "fake", PUBLIC_WEB_URL: "https://gofast.example" } as const;
+    expect(() => loadConfig({ ...prod, TOTP_KEY: example })).toThrow(/TOTP_KEY.*example/i);
+    // CONTROL: any other 32-byte key passes that check (the next refusal is the fake SMS sender, which is not about the key).
+    expect(() => loadConfig({ ...prod, TOTP_KEY: Buffer.alloc(32, 5).toString("base64") })).toThrow(/SMS_PROVIDER/);
+    expect(loadConfig({ TOTP_KEY: example }).totpKey?.equals(Buffer.from(Array.from({ length: 32 }, (_, i) => i)))).toBe(true);
+  });
   it("GH-25: the api cannot start without TOTP_KEY", () => {
     const base = loadConfig({ DATABASE_URL: "postgres://x", REDIS_URL: "redis://x", AUTH_SECRET: "s".repeat(40) });
     expect(() => requireBackends(base)).toThrow(/TOTP_KEY/);
