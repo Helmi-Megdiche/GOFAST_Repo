@@ -37,11 +37,11 @@ describe("profilePort and the account flag (20-d)", () => {
   it("is the mock unless account is on the flag", () => {
     expect(profilePort("").kind).toBe("mock");
     expect(profilePort("auth,orders").kind).toBe("mock");
-    expect(profilePort("account").kind).toBe("api");
+    expect(profilePort("auth,account").kind).toBe("api");
   });
 
   it("the api adapter offers nothing it has no route for; the mock offers everything", () => {
-    const api = profilePort("account");
+    const api = profilePort("auth,account");
     for (const flag of [
       api.emailAvailable,
       api.googleAvailable,

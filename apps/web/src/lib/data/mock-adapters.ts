@@ -1,5 +1,5 @@
 import { normalizePhone, packagingPriced } from "@fastgo/domain";
-import { createAccount, sessionFor } from "./accounts";
+import { createAccount, findById, sessionFor } from "./accounts";
 import { setNewPassword, signIn } from "./auth";
 import { EXAMPLE_PRICE_TABLE } from "./fixtures/pricing";
 import { getOrderDetail, listOrders } from "./account-orders";
@@ -90,7 +90,10 @@ export function createMockProfile(): ProfilePort {
     invoicesAvailable: true,
     claimsAvailable: true,
     homeAvailable: true,
-    get: async (session) => ({ ...(await getProfile(session)), phoneVerified: true }),
+    get: async (session) => ({
+      ...(await getProfile(session)),
+      phoneVerified: findById(session.accountId)?.phoneVerified ?? false,
+    }),
     updateName,
     setNotifications: (session, prefs) => setNotifications(session, prefs),
     setLocale: setAccountLocale,

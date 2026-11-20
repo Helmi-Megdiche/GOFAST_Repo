@@ -22,7 +22,6 @@ function NewClaim() {
       <RequireSession kind="customer">
         <Suspense>
           <FeatureGate feature="claims">
-            {" "}
             <ClaimNew />
           </FeatureGate>
         </Suspense>

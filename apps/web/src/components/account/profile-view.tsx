@@ -13,7 +13,7 @@ import { unlinkGoogle } from "@/lib/data/profile";
 import type { Session } from "@/lib/data/session";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { formatPhone } from "@fastgo/domain";
-import { AuthRequiredError } from "@/lib/api/errors";
+import { AuthRequiredError, NetworkError } from "@/lib/api/errors";
 import { signInUrl } from "@/lib/api/unauthorized";
 import { CloseAccountDialog } from "./close-account-dialog";
 import { useLoader } from "./use-loader";
@@ -69,7 +69,6 @@ function Sections({
   initial: PortProfile;
 }) {
   const t = useTranslations("profile");
-  const tCommon = useTranslations("common");
   const [profile, setProfile] = useState(initial);
   // What the last change said, announced politely: "Enregistré." or the failure.
   const [notice, setNotice] = useState<{ tone: "success" | "error"; text: string } | null>(null);
@@ -110,7 +109,7 @@ function Sections({
         {port.closeAvailable ? <AccountCard session={session} /> : null}
         {!port.googleAvailable || !port.closeAvailable ? (
           // Hide and say so (20-d): no mock card is shown as a fact while the API has no route.
-          <p className="text-sm text-muted">{tCommon("notAvailableYet")}</p>
+          <p className="text-sm text-muted">{t("unavailable")}</p>
         ) : null}
       </div>
       <div role="status" aria-live="polite" className="lg:col-span-2">
@@ -225,6 +224,16 @@ function NotificationsCard({ port, session, profile, onChange, onSaved, onFailed
       send: async (wanted) => {
         try {
           return (await port.setNotifications(session, wanted)).status === "ok";
+        } catch (e) {
+          toSignIn(e);
+          // A lost answer is not a refusal: the server may have saved it (RV-18).
+          if (e instanceof NetworkError) return "unknown";
+          throw e;
+        }
+      },
+      refresh: async () => {
+        try {
+          return (await port.get(session)).notifications;
         } catch (e) {
           toSignIn(e);
           throw e;

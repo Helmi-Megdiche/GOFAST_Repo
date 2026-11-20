@@ -1717,7 +1717,8 @@
         "seeInvoices": "Voir mes factures",
         "dismiss": "Fermer"
       }
-    }
+    },
+    "unavailable": "Google et la fermeture du compte ne sont pas encore disponibles."
   },
   "emailScreen": {
     "title": "Adresse e-mail",

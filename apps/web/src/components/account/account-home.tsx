@@ -20,14 +20,9 @@ export function AccountHomeView() {
   return (
     <div className="flex flex-col gap-6">
       {state.status === "ready" ? (
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="font-display text-2xl font-bold">
-            {t("greeting", { name: state.data.firstName })}
-          </p>
-          <Button as={Link} href="/commander" size="lg">
-            {t("newDelivery")}
-          </Button>
-        </div>
+        <p className="font-display text-2xl font-bold">
+          {t("greeting", { name: state.data.firstName })}
+        </p>
       ) : null}
 
       {state.status === "loading" ? (

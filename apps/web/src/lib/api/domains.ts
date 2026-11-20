@@ -16,7 +16,12 @@ export function apiDomains(raw: string | undefined): ApiDomain[] {
   if (unknown.length > 0) {
     throw new Error(`NEXT_PUBLIC_API_DOMAINS: unknown domain ${unknown.join(", ")}`);
   }
-  return [...new Set(names)] as ApiDomain[];
+  const list = [...new Set(names)] as ApiDomain[];
+  // The profile needs a real session: `account` without `auth` would call the API with a mock session.
+  if (list.includes("account") && !list.includes("auth")) {
+    throw new Error("NEXT_PUBLIC_API_DOMAINS: account needs auth");
+  }
+  return list;
 }
 
 /** `raw` defaults to the build-time flag. Next inlines the literal `process.env.NEXT_PUBLIC_*` access. */

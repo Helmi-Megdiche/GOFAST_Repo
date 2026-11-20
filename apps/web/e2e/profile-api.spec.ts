@@ -1,4 +1,5 @@
 import { expect, test, type Page, type Route } from "@playwright/test";
+import { fillSender, start } from "./flow";
 
 /**
  * The client profile on the API adapter (#20, PR 20-d): GET and PATCH /v1/me behind the `account` flag.
@@ -104,7 +105,9 @@ test("C09: no e-mail link, no Google card, no close card on the API; the page sa
   await expect(main(page).getByRole("link", { name: "Ajouter un e-mail" })).toHaveCount(0);
   await expect(main(page).getByText("Compte Google")).toHaveCount(0);
   await expect(main(page).getByRole("button", { name: "Fermer mon compte" })).toHaveCount(0);
-  await expect(main(page).getByText(NOT_YET).first()).toBeVisible();
+  await expect(
+    main(page).getByText("Google et la fermeture du compte ne sont pas encore disponibles."),
+  ).toBeVisible();
 });
 
 test("C09: a verified phone shows the badge", async ({ page }) => {
@@ -198,6 +201,18 @@ test("20-d: two quick notification toggles end with both saved, one PATCH at a t
   await expect(main(page).getByLabel("Offres GOFAST")).toBeChecked();
 });
 
+test("RV-18: the answer is lost, the server did save: the box stays checked", async ({ page }) => {
+  const api = await fakeApi(page, { "PATCH /v1/me": () => "abort" });
+  await openProfile(page);
+  // The write reached the server, only the answer was cut: GET /v1/me now says it is saved.
+  api.state.me = meBody({ notifications: { sms: true, email: false, offers: true } });
+  await main(page).getByLabel("Offres GOFAST").check();
+  await expect.poll(() => api.calls("PATCH /v1/me").length).toBeGreaterThanOrEqual(1);
+  await expect.poll(() => api.calls("GET /v1/me").length).toBeGreaterThanOrEqual(2);
+  await expect(main(page).getByLabel("Offres GOFAST")).toBeChecked();
+  await expect(page.getByText("L'enregistrement a échoué. Réessayez.")).toHaveCount(0);
+});
+
 test("20-d: a failed notification save puts the toggle back", async ({ page }) => {
   await fakeApi(page, { "PATCH /v1/me": () => ({ status: 500, body: err("INTERNAL_ERROR") }) });
   await openProfile(page);
@@ -207,27 +222,93 @@ test("20-d: a failed notification save puts the toggle back", async ({ page }) =
 });
 
 // RV-28: screens with no API route are hidden. Each fails if mock data renders with the flag on.
+// The fixture values a mock screen would print: a known e-mail, a saved address, an invoice number.
+const FIXTURE_EMAIL = "sami.t@example.tn";
+const FIXTURE_ADDRESS_LABEL = "Maison fixture";
+const FIXTURE_INVOICE = "FAC-2026-0000001";
 const HIDDEN = [
-  ["C01 home", "/fr/compte"],
-  ["ESP-01 e-mail", "/fr/compte/email"],
-  ["C08 addresses", "/fr/compte/adresses"],
-  ["C04 invoices", "/fr/compte/factures"],
-  ["C05 invoice detail", "/fr/compte/factures/F-2026-0001"],
-  ["C06 claims", "/fr/compte/reclamations"],
-  ["C07 new claim", "/fr/compte/reclamations/nouvelle"],
-  ["C07 claim detail", "/fr/compte/reclamations/R-0001"],
+  ["C01 home", "/fr/compte", FIXTURE_EMAIL],
+  ["ESP-01 e-mail", "/fr/compte/email", FIXTURE_EMAIL],
+  ["C08 addresses", "/fr/compte/adresses", FIXTURE_ADDRESS_LABEL],
+  ["C04 invoices", "/fr/compte/factures", FIXTURE_INVOICE],
+  ["C05 invoice detail", "/fr/compte/factures/F-2026-0001", FIXTURE_INVOICE],
+  ["C06 claims", "/fr/compte/reclamations", FIXTURE_INVOICE],
+  ["C07 new claim", "/fr/compte/reclamations/nouvelle", FIXTURE_INVOICE],
+  ["C07 claim detail", "/fr/compte/reclamations/R-0001", FIXTURE_INVOICE],
 ] as const;
 
-for (const [name, path] of HIDDEN) {
-  test(`hidden (${name}): says "not available yet" and seeds no mock table`, async ({ page }) => {
+/** A saved address and recipient of the signed-in account, as the mock tables hold them. */
+async function seedBook(page: Page) {
+  await page.addInitScript(
+    ([label, address]) => {
+      localStorage.setItem(
+        "fg.mock.addresses",
+        JSON.stringify({
+          "adr-e2e": {
+            id: "adr-e2e",
+            accountId: "acc-customer",
+            label,
+            text: address,
+            landmark: "",
+          },
+        }),
+      );
+      localStorage.setItem(
+        "fg.mock.recipients",
+        JSON.stringify({
+          "rec-e2e": {
+            id: "rec-e2e",
+            accountId: "acc-customer",
+            name: "Destinataire fixture",
+            phone: "+21655000111",
+            address,
+            landmark: "",
+            locale: "fr",
+          },
+        }),
+      );
+    },
+    [FIXTURE_ADDRESS_LABEL, "12 rue de test, Tunis"],
+  );
+}
+
+for (const [name, path, absent] of HIDDEN) {
+  test(`hidden (${name}): says "not available yet", seeds no mock table, shows no fixture value`, async ({
+    page,
+  }) => {
     const api = await fakeApi(page);
+    await seedBook(page);
     await page.goto(path);
     await expect(main(page).getByText(NOT_YET)).toBeVisible();
+    // "No seed key" alone cannot fail for screens that read the book or the account table.
+    await expect(page.locator("body")).not.toContainText(absent);
+    await expect(page.locator("body")).not.toContainText(FIXTURE_ADDRESS_LABEL);
     const seeded = await page.evaluate(() =>
       Object.keys(localStorage).filter((k) => k.startsWith("fg.mock.seed")),
     );
     expect(seeded).toEqual([]);
     expect(api.state.unexpected).toEqual([]);
+  });
+}
+
+// S5: the saved pickers of the order flow read the mock book. They stay out with the flag on.
+for (const [step, path, label] of [
+  ["sender", /\/commander\/expediteur$/, "Adresse enregistrée"],
+  ["recipient", /\/commander\/destinataire$/, "Destinataire enregistré"],
+] as const) {
+  test(`hidden (${step} step): no saved-item picker, even when the account has saved items`, async ({
+    page,
+  }) => {
+    await fakeApi(page);
+    await seedBook(page);
+    await start(page);
+    // The recipient step is only reachable once the sender step is done.
+    if (step === "recipient") await fillSender(page);
+    await expect(page).toHaveURL(path);
+    await expect(main(page).getByRole("heading", { level: 1 })).toBeVisible();
+    await expect(main(page).getByLabel(label)).toHaveCount(0);
+    await expect(page.locator("body")).not.toContainText(FIXTURE_ADDRESS_LABEL);
+    await expect(page.locator("body")).not.toContainText("Destinataire fixture");
   });
 }
 
@@ -239,4 +320,16 @@ test("hidden: the space nav offers no invoices, claims or addresses entry", asyn
   }
   await expect(page.locator('nav a[href="/fr/compte/commandes"]').first()).toBeVisible();
   await expect(page.locator('nav a[href="/fr/compte/profil"]').first()).toBeVisible();
+});
+
+test("C01 hidden: the 'Nouvelle livraison' button still shows, it has no data (S8)", async ({
+  page,
+}) => {
+  await fakeApi(page);
+  await page.goto("/fr/compte");
+  await expect(page.getByRole("link", { name: "Nouvelle livraison" })).toHaveAttribute(
+    "href",
+    /\/commander$/,
+  );
+  await expect(main(page).getByText(NOT_YET).first()).toBeVisible();
 });

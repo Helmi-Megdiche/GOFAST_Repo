@@ -27,7 +27,6 @@ function Invoice({ number }: { number: string }) {
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
         <FeatureGate feature="invoices">
-          {" "}
           <InvoiceDetailView number={decodeURIComponent(number)} />
         </FeatureGate>
       </RequireSession>

@@ -9,7 +9,7 @@ describe("feature gate", () => {
   it.each(FEATURES)(
     "%s is off on the api adapter (the screen says so, children never mount)",
     (f) => {
-      expect(featureAvailable(profilePort("account", "fr"), f)).toBe(false);
+      expect(featureAvailable(profilePort("auth,account", "fr"), f)).toBe(false);
     },
   );
 

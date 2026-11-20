@@ -151,8 +151,8 @@ draft, `?next=`, and every code case. Tests use `page.clock` and the fixture cod
 
 ## API layer (#20)
 
-- `lib/api/`: typed client (`openapi-fetch` on `@fastgo/contract`), error mapping, request mapping. `lib/data/ports.ts`: one interface per domain (orders, pricing, auth, profile), `mock-adapters.ts` and `lib/api/*` are the two adapters; `lib/data/index.ts` picks one. Components and `lib/order` use `ordersPort()` / `pricingPort()`, never an adapter.
-- `NEXT_PUBLIC_API_DOMAINS` (comma list: auth, orders, pricing, account). Empty = all mock (CI, e2e). An unknown name throws.
+- `lib/api/`: typed client (`openapi-fetch` on `@fastgo/contract`), error mapping, request mapping. `lib/data/ports.ts`: one interface per domain (orders, pricing, auth, profile), `mock-adapters.ts` and `lib/api/*` are the two adapters; `lib/data/index.ts` picks one. Components and `lib/order` use `ordersPort()`, `pricingPort()`, `profilePort()` and `authPort()`, never an adapter.
+- `NEXT_PUBLIC_API_DOMAINS` (comma list: auth, orders, pricing, account). Empty = all mock (CI, e2e). An unknown name throws, and so does `account` without `auth`.
 - Same origin: the browser calls `/v1/...`; `next.config.ts` rewrites it to the server-side `API_ORIGIN`. `proxy.ts` skips `/v1`. No CORS, no `NEXT_PUBLIC_API_URL`.
 - R202 on the api adapter: the draft stores the exact request body next to the key (`pendingSubmit.body`); a retry re-sends those bytes. Over 24 h (key purged) nothing is sent and the "lost" message stays.
 - Api-mode e2e: files named `e2e/*-api.spec.ts` run only with `pnpm --filter @fastgo/web test:e2e:api` (`playwright.api.config.ts`: own build in `.next-api` through `NEXT_DIST_DIR`, port 3200, `NEXT_PUBLIC_API_DOMAINS=auth,orders,account`, `/v1` faked with `page.route`). The default config ignores them. CI job `e2e-api`. Specs: `auth-api`, `orders-api` (list, detail, cancel, `/suivi`), `profile-api` (profile, hidden screens).
@@ -171,6 +171,8 @@ Rule: `ProfilePort` has capability flags. A screen with no API route is hidden o
 | C08 address book, saved pickers in the order flow | hidden | #122 |
 | C04, C05 invoices, C06, C07 claims | hidden | finance and ticket routes (Ala) |
 | C01 home | hidden (reads mock tables only) | an aggregate route or an orders-port build |
-| `accounts.ts` reads in the order flow (`isVerifiedPhoneForSession`, `returnBalanceMillimes`) | untouched | **must move before `auth` is turned on for real** (follow-up issue) |
+| `accounts.ts` reads in the order flow (`isVerifiedPhoneForSession`, `returnBalanceMillimes`) | untouched | **must move before `auth` is turned on for real** (#125) |
+| `claimOrderPhone`, `isVerifiedPhoneForSession` in `order-code-step.tsx` (lines 9, 40, 71) | untouched | **must move before `auth` is turned on for real** (#125) |
+| Sign-up "add an e-mail later" link (`code-page.tsx`, to `/compte/email`) | lives under `auth`; the page it opens is hidden under `account` | an e-mail route (#125) |
 
 Notifications: one `PATCH` at a time, built from the latest wanted state (`lib/data/prefs-queue.ts`).

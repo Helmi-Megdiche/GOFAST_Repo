@@ -22,7 +22,6 @@ function Addresses() {
       </h1>
       <RequireSession kind="customer">
         <FeatureGate feature="addressBook">
-          {" "}
           <AddressBookView />
         </FeatureGate>
       </RequireSession>

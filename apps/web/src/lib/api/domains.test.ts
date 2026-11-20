@@ -19,6 +19,11 @@ describe("API domain flag (#20)", () => {
     expect(apiDomains(" auth, orders ,auth")).toEqual(["auth", "orders"]);
   });
 
+  it("refuses account without auth: the profile needs a real session", () => {
+    expect(() => apiDomains("account")).toThrow(/auth/);
+    expect(apiDomains("auth,account")).toEqual(["auth", "account"]);
+  });
+
   it("fails on a name it does not know (a typo must not silently stay on the mock)", () => {
     expect(() => apiDomains("auth,ordres")).toThrow(/ordres/);
   });

@@ -27,7 +27,6 @@ function Claim({ reference }: { reference: string }) {
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
         <FeatureGate feature="claims">
-          {" "}
           <ClaimDetailView reference={decodeURIComponent(reference)} />
         </FeatureGate>
       </RequireSession>

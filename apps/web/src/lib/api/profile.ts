@@ -40,7 +40,7 @@ async function write(client: Client, body: MeChange): Promise<ProfileWrite> {
 export function createApiProfile(client: Client): ProfilePort {
   return {
     kind: "api",
-    // No route in the contract for these: hidden, with a notice (the `account` switch plan).
+    // No API route yet, or no web adapter yet: hidden, with a notice (the `account` switch plan).
     emailAvailable: false,
     googleAvailable: false,
     closeAvailable: false,

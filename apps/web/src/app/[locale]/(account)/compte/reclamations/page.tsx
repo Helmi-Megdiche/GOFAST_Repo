@@ -20,7 +20,6 @@ function Claims() {
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
         <FeatureGate feature="claims">
-          {" "}
           <ClaimsList />
         </FeatureGate>
       </RequireSession>

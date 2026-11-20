@@ -11,6 +11,15 @@ function deferred() {
   return { promise, resolve };
 }
 
+/** A fake send that can loop forever must stop: a thrown send counts as a failure (RV-12). */
+function capped(sent: unknown[], answer: (n: number) => Promise<boolean> | boolean) {
+  return async (prefs: unknown) => {
+    sent.push({ ...(prefs as object) });
+    if (sent.length > 4) throw new Error("runaway: queue never settles");
+    return answer(sent.length);
+  };
+}
+
 describe("notification toggle queue", () => {
   it("two fast toggles end with both saved, sent one at a time", async () => {
     const sent: { sms: boolean; email: boolean; offers: boolean }[] = [];
@@ -45,6 +54,7 @@ describe("notification toggle queue", () => {
     gates[1]!.resolve(true);
     await queue.idle();
     expect(maxInFlight).toBe(1);
+    expect(sent).toHaveLength(2);
     expect(results).toEqual([true]);
     expect(queue.wanted()).toEqual({ sms: false, email: false, offers: true });
   });
@@ -53,7 +63,7 @@ describe("notification toggle queue", () => {
     const sent: unknown[] = [];
     const queue = createPrefsQueue({
       initial: START,
-      send: async (prefs) => (sent.push({ ...prefs }), true),
+      send: capped(sent, () => true),
       onState: () => undefined,
       onResult: () => undefined,
     });
@@ -62,23 +72,125 @@ describe("notification toggle queue", () => {
     await queue.idle();
     // The first request was already in flight; the last one carries the final (saved) state.
     expect(sent.at(-1)).toEqual(START);
+    expect(sent.length).toBeLessThanOrEqual(2);
     expect(queue.wanted()).toEqual(START);
   });
 
   it("a failure puts the toggles back to the last saved state and reports it", async () => {
     const states: unknown[] = [];
     const results: boolean[] = [];
+    const sent: unknown[] = [];
     const queue = createPrefsQueue({
       initial: START,
-      send: async () => false,
+      send: capped(sent, () => false),
       onState: (prefs) => states.push({ ...prefs }),
       onResult: (ok) => results.push(ok),
     });
     queue.set("sms", false);
     await queue.idle();
     expect(results).toEqual([false]);
+    expect(sent).toHaveLength(1);
     expect(queue.wanted()).toEqual(START);
     expect(states.at(-1)).toEqual(START);
+  });
+
+  it("a failure in the middle: the first save stays, the second is refused, one result", async () => {
+    const sent: unknown[] = [];
+    const results: boolean[] = [];
+    const gates = [deferred(), deferred()];
+    const queue = createPrefsQueue({
+      initial: START,
+      send: capped(sent, (n) => gates[n - 1]!.promise),
+      onState: () => undefined,
+      onResult: (ok) => results.push(ok),
+    });
+    queue.set("sms", false);
+    queue.set("email", false); // before the first answer
+    gates[0]!.resolve(true);
+    await new Promise((r) => setTimeout(r, 0));
+    gates[1]!.resolve(false);
+    await queue.idle();
+    expect(sent).toEqual([
+      { sms: false, email: true, offers: true },
+      { sms: false, email: false, offers: true },
+    ]);
+    expect(results).toEqual([false]);
+    // Back to the state of the first save: sms off, e-mail back on.
+    expect(queue.wanted()).toEqual({ sms: false, email: true, offers: true });
+  });
+
+  it("a lost answer asks the server: the change was saved, the box stays checked (RV-18)", async () => {
+    const sent: unknown[] = [];
+    const states: unknown[] = [];
+    const results: boolean[] = [];
+    const queue = createPrefsQueue({
+      initial: START,
+      send: async (prefs) => {
+        sent.push({ ...prefs });
+        if (sent.length > 4) throw new Error("runaway: queue never settles");
+        return "unknown";
+      },
+      refresh: async () => ({ sms: false, email: true, offers: true }),
+      onState: (prefs) => states.push({ ...prefs }),
+      onResult: (ok) => results.push(ok),
+    });
+    queue.set("sms", false);
+    await queue.idle();
+    expect(sent).toHaveLength(1);
+    expect(results).toEqual([true]);
+    expect(queue.wanted()).toEqual({ sms: false, email: true, offers: true });
+    expect(states.at(-1)).toEqual({ sms: false, email: true, offers: true });
+  });
+
+  it("a lost answer, and the server did not save it: the box goes back and it says so (RV-18)", async () => {
+    const results: boolean[] = [];
+    const sent: unknown[] = [];
+    const queue = createPrefsQueue({
+      initial: START,
+      send: async (prefs) => {
+        sent.push({ ...prefs });
+        if (sent.length > 4) throw new Error("runaway: queue never settles");
+        return "unknown";
+      },
+      refresh: async () => START,
+      onState: () => undefined,
+      onResult: (ok) => results.push(ok),
+    });
+    queue.set("sms", false);
+    await queue.idle();
+    expect(sent).toHaveLength(1);
+    expect(results).toEqual([false]);
+    expect(queue.wanted()).toEqual(START);
+  });
+
+  it("a lost answer and the server cannot be asked: back to the last saved state", async () => {
+    const results: boolean[] = [];
+    const queue = createPrefsQueue({
+      initial: START,
+      send: async () => "unknown",
+      refresh: async () => {
+        throw new Error("still cut");
+      },
+      onState: () => undefined,
+      onResult: (ok) => results.push(ok),
+    });
+    queue.set("sms", false);
+    await queue.idle();
+    expect(results).toEqual([false]);
+    expect(queue.wanted()).toEqual(START);
+  });
+
+  it("a refusal (not a lost answer) does not ask the server", async () => {
+    let asked = 0;
+    const queue = createPrefsQueue({
+      initial: START,
+      send: async () => false,
+      refresh: async () => (asked++, START),
+      onState: () => undefined,
+    });
+    queue.set("sms", false);
+    await queue.idle();
+    expect(asked).toBe(0);
   });
 
   it("a thrown send counts as a failure, and the queue works again afterwards", async () => {
@@ -87,6 +199,7 @@ describe("notification toggle queue", () => {
       initial: START,
       send: async () => {
         calls += 1;
+        if (calls > 4) throw new Error("runaway: queue never settles");
         if (calls === 1) throw new Error("cut");
         return true;
       },

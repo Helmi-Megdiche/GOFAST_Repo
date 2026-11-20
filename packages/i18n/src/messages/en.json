@@ -1717,7 +1717,8 @@
         "seeInvoices": "See my invoices",
         "dismiss": "Close"
       }
-    }
+    },
+    "unavailable": "Google sign-in and closing the account are not available yet."
   },
   "emailScreen": {
     "title": "E-mail address",
