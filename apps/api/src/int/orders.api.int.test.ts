@@ -143,8 +143,12 @@ const newQuote = async (over: Record<string, unknown> = {}) => {
 };
 /** How far ahead the clock of the app in use is (the RV-08 block moves it): a pickup window is always relative to it (R503). */
 let clockShiftMs = 0;
-const hoursAhead = (h: number) => new Date(Date.now() + clockShiftMs + h * 3_600_000).toISOString();
-const window = (fromH: number, toH: number) => ({ start_at: hoursAhead(fromH), end_at: hoursAhead(toH) });
+const hoursAhead = (h: number, now = Date.now() + clockShiftMs) => new Date(now + h * 3_600_000).toISOString();
+/** Both ends come from ONE read of the clock: window(26, 26) is empty, never a millisecond long. */
+const window = (fromH: number, toH: number) => {
+  const now = Date.now() + clockShiftMs;
+  return { start_at: hoursAhead(fromH, now), end_at: hoursAhead(toH, now) };
+};
 /** The order body for a quote, as the form sends it. */
 const orderBody = (quote: any, who: { phone: string }, over: Record<string, unknown> = {}) => ({ // eslint-disable-line @typescript-eslint/no-explicit-any
   quote_id: quote.id,
@@ -414,6 +418,12 @@ describe("GH-22 RV-05 R206 R607: the refusals, each with nothing written", () =>
 });
 
 describe("GH-22 R503: a bad slot is a 422 before the proof is spent, never a 500", () => {
+  it("window(26, 26) is empty on every call: start_at === end_at, even when the clock ticks between two reads", () => {
+    for (let i = 0; i < 2_000; i++) {
+      const w = window(26, 26);
+      expect(w.start_at).toBe(w.end_at);
+    }
+  });
   const cases: Array<[string, (b: ReturnType<typeof orderBody>) => Record<string, unknown>, string]> = [
     ["scheduled with no slot", () => ({ service: { code: "scheduled" } }), "service.slot"],
     ["a slot with the standard service", () => ({ service: { code: "standard", slot: window(48, 50) } }), "service.slot"],
@@ -737,10 +747,11 @@ describe("GH-22 RV-08: create, get, list and tracking with every clock of the AP
     for (const k of ["canceled_at", "ended_at", "updated_at"]) expect(Math.abs((row[k] as Date).getTime() - (Date.now() + SHIFT_MS)), k).toBeLessThan(120_000);
     // R205 on that date: the same quote, expired one hour before the shifted now.
     const old = await newQuote();
+    const at = Date.now() + SHIFT_MS;
     await q("update core.quotes set quoted_at = $2, expires_at = $3 where id = $1", [
       old.id,
-      new Date(Date.now() + SHIFT_MS - 2 * 3_600_000).toISOString(),
-      new Date(Date.now() + SHIFT_MS - 3_600_000).toISOString(),
+      new Date(at - 2 * 3_600_000).toISOString(),
+      new Date(at - 3_600_000).toISOString(),
     ]);
     expect((await place(who, orderBody(old, who))).statusCode).toBe(410);
   });
