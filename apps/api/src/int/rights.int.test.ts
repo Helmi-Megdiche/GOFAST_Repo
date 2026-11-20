@@ -182,7 +182,7 @@ const PUBLIC_READER: Record<string, Rights> = {
 
 // GH-25: the owner of the second-factor definers (staff_totp_*). It reads and writes the secrets table and nothing else, and audits.
 const STAFF_AUTH: Record<string, Rights> = {
-  "core.staff_totp": { t: ["DELETE", "INSERT", "SELECT"], c: { UPDATE: ["last_step"] } },
+  "core.staff_totp": { t: ["DELETE", "INSERT", "SELECT"], c: { UPDATE: ["failed_codes", "last_step", "locked_at"] } },
   "core.accounts": { c: { SELECT: ["id", "role", "status"] } },
   "gestion.audit_events": { t: ["INSERT"] },
 };

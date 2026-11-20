@@ -3,6 +3,7 @@ import { CODE_LENGTH, CODE_VALIDITY_MS, PASSWORD_MIN_LENGTH, normalizePhone } fr
 import type { components } from "@fastgo/contract";
 import type { Db, Tx } from "../db/index.ts";
 import { ApiError } from "../http/errors.ts";
+import { PROVISIONAL } from "../provisional.ts";
 import type { Actor } from "../http/session.ts";
 import type { Role } from "../http/spec.ts";
 import { type Keys, sixDigitCode } from "./crypto.ts";
@@ -300,10 +301,15 @@ export class AuthService {
         : await this.d.passwords.verifyDummy(body.password);
 
     // The secret and the code are always worked on, for a real account or not, so the time does not tell which refusal it was.
-    const stored = await this.d.db.withNoActor(async (tx) => {
-      const r = await tx.execute(sql`select core.staff_totp_secret(${staff && row ? row.id : NO_ACCOUNT}::uuid) as s`);
-      return (r.rows[0] as { s: Buffer | null } | undefined)?.s ?? null;
+    // One call, whatever the refusal: it also says whether the account is locked (B1).
+    const found = await this.d.db.withNoActor(async (tx) => {
+      const r = await tx.execute(
+        sql`select secret_enc, locked from core.staff_totp_secret(${staff && row ? row.id : NO_ACCOUNT}::uuid)`,
+      );
+      return r.rows[0] as { secret_enc: Buffer; locked: boolean } | undefined;
     });
+    const stored = found?.secret_enc ?? null;
+    const locked = found?.locked === true;
     let secret: Buffer | null = null;
     let unreadable = false;
     if (stored && staff && row) {
@@ -317,9 +323,10 @@ export class AuthService {
     const step = verifyTotp(secret ?? DUMMY_SECRET, body.code, nowMs);
     const codeOk = secret !== null && step !== null;
 
-    // The step is spent only when the password was right too, so a wrong password cannot burn a good code.
+    // The step is spent only when the password was right too, so a wrong password cannot burn a good code. A locked account
+    // spends nothing (the definer refuses it as well).
     let fresh = false;
-    if (passwordOk && codeOk && row && step !== null) {
+    if (passwordOk && codeOk && !locked && row && step !== null) {
       fresh = (
         (
           await this.d.db.withNoActor((tx) => tx.execute(sql`select core.staff_totp_use(${row.id}::uuid, ${step}::bigint) as ok`))
@@ -328,7 +335,31 @@ export class AuthService {
     }
 
     if (!(passwordOk && codeOk && fresh) || !row) {
-      const reason = !staff ? "account" : !passwordOk ? "password" : stored === null ? "no_enrolment" : unreadable ? "secret" : !codeOk ? "code" : "replay";
+      const reason = !staff
+        ? "account"
+        : !passwordOk
+          ? "password"
+          : stored === null
+            ? "no_enrolment"
+            : locked
+              ? "locked"
+              : unreadable
+                ? "secret"
+                : !codeOk
+                  ? "code"
+                  : "replay";
+      // B1: a wrong code after the RIGHT password, of an enrolled and not yet locked account, counts against that account (not
+      // against the identifier text, which has two spellings). At the limit the account is locked until an admin resets it.
+      if (reason === "code" && row) {
+        const nowLocked = (
+          (
+            await this.d.db.withNoActor((tx) =>
+              tx.execute(sql`select core.staff_totp_failed(${row.id}::uuid, ${PROVISIONAL.staffCodeFailuresBeforeLock}::integer) as locked`),
+            )
+          ).rows[0] as { locked: boolean }
+        ).locked;
+        if (nowLocked) await this.audit(ctx, "staff.signin.locked", row.id, { after: PROVISIONAL.staffCodeFailuresBeforeLock });
+      }
       await this.audit(ctx, "staff.signin.refused", staff && row ? row.id : null, { reason, step: totpStep(nowMs) });
       throw new ApiError("AUTH_REQUIRED", [{ name: "identifier", reason: "invalidCredentials" }]);
     }
@@ -341,9 +372,9 @@ export class AuthService {
       await this.d.db.withNoActor((tx) => tx.execute(sql`select core.rehash_password(${row.id}::uuid, ${hash}, ${fresh2})`));
     }
     if (ctx.previousSession) await this.d.sessions.destroy(ctx.previousSession);
-    const signedIn = await this.open(row.id, row.role, row.valid_from);
+    // M1: the audit first. If it fails, no session exists yet (a session without its audit row would live 12 h).
     await this.audit(ctx, "staff.signin", row.id, { role: row.role });
-    return signedIn;
+    return this.open(row.id, row.role, row.valid_from);
   }
 
   /** A fresh session id every time (no fixation), and the profile that goes with it. */

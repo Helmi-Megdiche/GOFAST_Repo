@@ -19,6 +19,11 @@ export const PROVISIONAL = {
   codeLength: 6,
   /** How long an Idempotency-Key is kept (hours). */
   idempotencyHours: 24,
+  /**
+   * GH-25 B1: wrong second-factor codes in a row (after the right password) that lock a back-office account until an admin
+   * resets it. Not in the cahier; NIST SP 800-63B asks for a cap. A question for GOFAST.
+   */
+  staffCodeFailuresBeforeLock: 10,
   /** Session cookie name. */
   cookieName: "session",
 } as const;

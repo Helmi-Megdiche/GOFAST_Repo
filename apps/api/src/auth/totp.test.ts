@@ -83,9 +83,9 @@ describe("T60 base32 and the otpauth URI", () => {
     expect(newSecret().equals(s)).toBe(false);
   });
   it("is the URI an authenticator app reads, with the parameters written out", () => {
-    const uri = otpauthUri({ secret: RFC_SECRET, account: "nadia@fastgo.tn", issuer: "GOFAST" });
+    const uri = otpauthUri({ secret: RFC_SECRET, account: "nadia@fastgo.example", issuer: "GOFAST" });
     expect(uri).toBe(
-      "otpauth://totp/GOFAST:nadia%40fastgo.tn?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GOFAST&algorithm=SHA1&digits=6&period=30",
+      "otpauth://totp/GOFAST:nadia%40fastgo.example?secret=GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ&issuer=GOFAST&algorithm=SHA1&digits=6&period=30",
     );
   });
 });

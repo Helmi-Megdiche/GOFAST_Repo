@@ -247,6 +247,7 @@ describe("definer functions", () => {
       "set_password",
       "sms_tracking_payload",
       "staff_totp_enrol",
+      "staff_totp_failed",
       "staff_totp_reset",
       "staff_totp_secret",
       "staff_totp_use",
