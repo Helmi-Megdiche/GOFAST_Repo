@@ -165,7 +165,8 @@
     "skipToContent": "انتقل إلى المحتوى",
     "home": "الرئيسية",
     "loading": "جارٍ التحميل…",
-    "from": "ابتداءً من"
+    "from": "ابتداءً من",
+    "notAvailableYet": "هذا القسم غير متاح بعد."
   },
   "languageSwitcher": {
     "label": "اللغة"
@@ -1716,7 +1717,8 @@
         "seeInvoices": "عرض فواتيري",
         "dismiss": "إغلاق"
       }
-    }
+    },
+    "unavailable": "تسجيل الدخول عبر Google وإغلاق الحساب غير متاحين بعد."
   },
   "emailScreen": {
     "title": "البريد الإلكتروني",

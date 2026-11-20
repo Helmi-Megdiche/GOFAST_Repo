@@ -4,8 +4,14 @@ import { usesApi } from "../api/domains";
 import { createApiAuth } from "../api/auth";
 import { createApiOrders } from "../api/orders";
 import { createApiPricing } from "../api/pricing";
-import { createMockAuth, createMockOrders, createMockPricing } from "./mock-adapters";
-import type { AuthPort, OrdersPort, PricingPort } from "./ports";
+import { createApiProfile } from "../api/profile";
+import {
+  createMockAuth,
+  createMockOrders,
+  createMockPricing,
+  createMockProfile,
+} from "./mock-adapters";
+import type { AuthPort, OrdersPort, PricingPort, ProfilePort } from "./ports";
 
 /** The page language: <html lang> in the browser, undefined on the server (the client then sends no Accept-Language of its own). */
 function pageLocale(): Locale | undefined {
@@ -28,6 +34,23 @@ export function ordersPort(
   if (!port) {
     port = createApiOrders(createApiClient({ locale }));
     apiOrders.set(key, port);
+  }
+  return port;
+}
+
+const apiProfiles = new Map<string, ProfilePort>();
+
+/** The client space profile (C09) and the capabilities of the `account` flag. One api adapter per language. */
+export function profilePort(
+  flag: string | undefined = process.env.NEXT_PUBLIC_API_DOMAINS,
+  locale: Locale | undefined = pageLocale(),
+): ProfilePort {
+  if (!usesApi("account", flag)) return createMockProfile();
+  const key = locale ?? "";
+  let port = apiProfiles.get(key);
+  if (!port) {
+    port = createApiProfile(createApiClient({ locale }));
+    apiProfiles.set(key, port);
   }
   return port;
 }

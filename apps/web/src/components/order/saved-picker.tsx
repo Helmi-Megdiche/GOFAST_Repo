@@ -9,6 +9,7 @@ import {
   type SavedAddress,
   type SavedRecipient,
 } from "@/lib/data/address-book";
+import { profilePort } from "@/lib/data";
 import { getSession } from "@/lib/data/session";
 
 /**
@@ -52,7 +53,8 @@ function SavedSelect<T extends { id: string }>({
 export function SavedAddressPicker({ onPick }: { onPick: (address: SavedAddress) => void }) {
   const t = useTranslations("order.saved");
   const [items] = useState(() => {
-    const session = getSession();
+    // No API route for the address book yet (#122): nothing to pick, never mock rows (RV-28).
+    const session = profilePort().addressBookAvailable ? getSession() : null;
     return session ? listAddresses(session) : [];
   });
   return (
@@ -68,7 +70,7 @@ export function SavedAddressPicker({ onPick }: { onPick: (address: SavedAddress)
 export function SavedRecipientPicker({ onPick }: { onPick: (recipient: SavedRecipient) => void }) {
   const t = useTranslations("order.saved");
   const [items] = useState(() => {
-    const session = getSession();
+    const session = profilePort().addressBookAvailable ? getSession() : null;
     return session ? savedRecipients(session) : [];
   });
   return (

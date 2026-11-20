@@ -1,30 +1,39 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { switcherOrder, type Locale } from "@fastgo/i18n";
 import { Alert, Badge, Button, Card, Checkbox, Chip, Field, Input, Ltr } from "@fastgo/ui";
 import { Link, usePathname, useRouter } from "@/i18n/navigation";
 import type { NotificationPrefs } from "@/lib/data/accounts";
-import {
-  getProfile,
-  setAccountLocale,
-  setNotifications,
-  unlinkGoogle,
-  updateName,
-  type Profile,
-} from "@/lib/data/profile";
+import { profilePort } from "@/lib/data";
+import { createPrefsQueue } from "@/lib/data/prefs-queue";
+import type { PortProfile, ProfilePort } from "@/lib/data/ports";
+import { unlinkGoogle } from "@/lib/data/profile";
 import type { Session } from "@/lib/data/session";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { formatPhone } from "@fastgo/domain";
+import { AuthRequiredError, NetworkError } from "@/lib/api/errors";
+import { signInUrl } from "@/lib/api/unauthorized";
 import { CloseAccountDialog } from "./close-account-dialog";
 import { useLoader } from "./use-loader";
+
+/** A 401 on a write: the session is gone, sign in again and come back here (S2). True when it redirected. */
+function useSignInRedirect() {
+  const locale = useLocale();
+  return (error: unknown): boolean => {
+    if (!(error instanceof AuthRequiredError)) return false;
+    window.location.assign(signInUrl(locale, window.location.pathname));
+    return true;
+  };
+}
 
 /** C09 (ESP-02): details, notifications, Google, language and closing the account. */
 export function ProfileView() {
   const t = useTranslations("profile");
+  const port = profilePort();
   const { state, reload } = useLoader(
-    (session) => getProfile(session).then((profile) => ({ session, profile })),
+    (session) => port.get(session).then((profile) => ({ session, profile })),
     "profile",
   );
 
@@ -47,10 +56,18 @@ export function ProfileView() {
       </Alert>
     );
   }
-  return <Sections session={state.data.session} initial={state.data.profile} />;
+  return <Sections port={port} session={state.data.session} initial={state.data.profile} />;
 }
 
-function Sections({ session, initial }: { session: Session; initial: Profile }) {
+function Sections({
+  port,
+  session,
+  initial,
+}: {
+  port: ProfilePort;
+  session: Session;
+  initial: PortProfile;
+}) {
   const t = useTranslations("profile");
   const [profile, setProfile] = useState(initial);
   // What the last change said, announced politely: "Enregistré." or the failure.
@@ -62,6 +79,7 @@ function Sections({ session, initial }: { session: Session; initial: Profile }) 
     <div className="grid items-start gap-6 lg:grid-cols-2">
       <div className="flex flex-col gap-6">
         <InfoCard
+          port={port}
           session={session}
           profile={profile}
           onChange={setProfile}
@@ -71,21 +89,28 @@ function Sections({ session, initial }: { session: Session; initial: Profile }) 
       </div>
       <div className="flex flex-col gap-6">
         <NotificationsCard
+          port={port}
           session={session}
           profile={profile}
           onChange={setProfile}
           onSaved={saved}
           onFailed={failed}
         />
-        <GoogleCard
-          session={session}
-          profile={profile}
-          onChange={setProfile}
-          onUnlinked={() => setNotice({ tone: "success", text: t("google.unlinked") })}
-          onFailed={failed}
-        />
-        <LanguageCard session={session} onSaved={saved} onFailed={failed} />
-        <AccountCard session={session} />
+        {port.googleAvailable ? (
+          <GoogleCard
+            session={session}
+            profile={profile}
+            onChange={setProfile}
+            onUnlinked={() => setNotice({ tone: "success", text: t("google.unlinked") })}
+            onFailed={failed}
+          />
+        ) : null}
+        <LanguageCard port={port} session={session} onSaved={saved} onFailed={failed} />
+        {port.closeAvailable ? <AccountCard session={session} /> : null}
+        {!port.googleAvailable || !port.closeAvailable ? (
+          // Hide and say so (20-d): no mock card is shown as a fact while the API has no route.
+          <p className="text-sm text-muted">{t("unavailable")}</p>
+        ) : null}
       </div>
       <div role="status" aria-live="polite" className="lg:col-span-2">
         {notice ? <Alert tone={notice.tone}>{notice.text}</Alert> : null}
@@ -95,22 +120,29 @@ function Sections({ session, initial }: { session: Session; initial: Profile }) 
 }
 
 type CardProps = {
+  port: ProfilePort;
   session: Session;
-  profile: Profile;
-  onChange: (profile: Profile) => void;
+  profile: PortProfile;
+  onChange: (profile: PortProfile) => void;
   onSaved: () => void;
   onFailed: () => void;
 };
 
-function InfoCard({ session, profile, onChange, onSaved, onFailed }: CardProps) {
+function InfoCard({ port, session, profile, onChange, onSaved, onFailed }: CardProps) {
   const t = useTranslations("profile.info");
   const message = useErrorMessage();
   const [name, setName] = useState(profile.name ?? "");
   const [error, setError] = useState<string | undefined>();
+  const toSignIn = useSignInRedirect();
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    const result = await updateName(session, name).catch(() => null);
+    let signedOut = false;
+    const result = await port.updateName(session, name).catch((e: unknown) => {
+      signedOut = toSignIn(e);
+      return null;
+    });
+    if (signedOut) return;
     if (!result) return onFailed();
     if (result.status === "invalidName") {
       setError("required");
@@ -147,11 +179,13 @@ function InfoCard({ session, profile, onChange, onSaved, onFailed }: CardProps) 
             autoComplete="tel"
           />
         </Field>
-        <div>
-          <Badge tone="success" icon="check">
-            {t("phoneVerified")}
-          </Badge>
-        </div>
+        {profile.phoneVerified ? (
+          <div>
+            <Badge tone="success" icon="check">
+              {t("phoneVerified")}
+            </Badge>
+          </div>
+        ) : null}
         <div className="flex flex-col gap-1.5">
           <p className="text-xs font-medium text-ink">{t("email")}</p>
           <p className="text-sm">
@@ -161,12 +195,14 @@ function InfoCard({ session, profile, onChange, onSaved, onFailed }: CardProps) 
               <span className="text-muted">{t("noEmail")}</span>
             )}
           </p>
-          <Link
-            href="/compte/email"
-            className="w-fit text-sm font-semibold text-orange-dark underline"
-          >
-            {profile.email ? t("changeEmail") : t("addEmail")}
-          </Link>
+          {port.emailAvailable ? (
+            <Link
+              href="/compte/email"
+              className="w-fit text-sm font-semibold text-orange-dark underline"
+            >
+              {profile.email ? t("changeEmail") : t("addEmail")}
+            </Link>
+          ) : null}
         </div>
         <Button type="submit" variant="secondary" className="self-start">
           {t("save")}
@@ -176,30 +212,57 @@ function InfoCard({ session, profile, onChange, onSaved, onFailed }: CardProps) 
   );
 }
 
-function NotificationsCard({ session, profile, onChange, onSaved, onFailed }: CardProps) {
+function NotificationsCard({ port, session, profile, onChange, onSaved, onFailed }: CardProps) {
   const t = useTranslations("profile.notifications");
   const keys = ["sms", "email", "offers"] as const;
-
-  async function toggle(key: keyof NotificationPrefs, value: boolean) {
-    const result = await setNotifications(session, { [key]: value }).catch(() => null);
-    if (result?.status === "ok") {
-      onChange({ ...profile, notifications: { ...profile.notifications, [key]: value } });
-      onSaved();
-    } else onFailed();
-  }
+  const toSignIn = useSignInRedirect();
+  const [prefs, setPrefs] = useState(profile.notifications);
+  // One request at a time, each built from the latest wanted state (20-d): two quick clicks keep both.
+  const [queue] = useState(() =>
+    createPrefsQueue({
+      initial: profile.notifications,
+      send: async (wanted) => {
+        try {
+          return (await port.setNotifications(session, wanted)).status === "ok";
+        } catch (e) {
+          toSignIn(e);
+          // A lost answer is not a refusal: the server may have saved it (RV-18).
+          if (e instanceof NetworkError) return "unknown";
+          throw e;
+        }
+      },
+      refresh: async () => {
+        try {
+          return (await port.get(session)).notifications;
+        } catch (e) {
+          toSignIn(e);
+          throw e;
+        }
+      },
+      onState: setPrefs,
+    }),
+  );
+  useEffect(() => {
+    queue.setOnResult((ok) => {
+      if (ok) {
+        onChange({ ...profile, notifications: queue.wanted() });
+        onSaved();
+      } else onFailed();
+    });
+  });
 
   return (
     <Card as="section" aria-labelledby="notifications-title" className="flex flex-col gap-3">
       <h2 id="notifications-title" className="text-h4">
         {t("title")}
       </h2>
-      {keys.map((key) => (
+      {keys.map((key: keyof NotificationPrefs) => (
         <Checkbox
           key={key}
           id={`notification-${key}`}
           label={t(key)}
-          checked={profile.notifications[key]}
-          onChange={(event) => void toggle(key, event.target.checked)}
+          checked={prefs[key]}
+          onChange={(event) => queue.set(key, event.target.checked)}
         />
       ))}
     </Card>
@@ -212,7 +275,7 @@ function GoogleCard({
   onChange,
   onUnlinked,
   onFailed,
-}: Omit<CardProps, "onSaved"> & { onUnlinked: () => void }) {
+}: Omit<CardProps, "onSaved" | "port"> & { onUnlinked: () => void }) {
   const t = useTranslations("profile.google");
 
   async function unlink() {
@@ -247,10 +310,12 @@ function GoogleCard({
  * It changes no order and no notification preference.
  */
 function LanguageCard({
+  port,
   session,
   onSaved,
   onFailed,
 }: {
+  port: ProfilePort;
   session: Session;
   onSaved: () => void;
   onFailed: () => void;
@@ -259,10 +324,16 @@ function LanguageCard({
   const current = useLocale() as Locale;
   const router = useRouter();
   const pathname = usePathname();
+  const toSignIn = useSignInRedirect();
 
   async function pick(locale: Locale) {
     if (locale === current) return;
-    const result = await setAccountLocale(session, locale).catch(() => null);
+    let signedOut = false;
+    const result = await port.setLocale(session, locale).catch((e: unknown) => {
+      signedOut = toSignIn(e);
+      return null;
+    });
+    if (signedOut) return;
     if (result?.status !== "ok") return onFailed();
     onSaved();
     router.replace(pathname, { locale });

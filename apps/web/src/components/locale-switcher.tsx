@@ -63,8 +63,8 @@ function Switcher({ variant, search }: { variant: Variant; search: string }) {
           // R902: signed in, the choice is saved on the account like C09 does; signed out, nothing is saved.
           onClick={() => {
             // Loaded on click: the account data layer stays out of the header bundle of every public page.
-            void import("@/lib/data/profile").then((profile) =>
-              profile.saveLocaleIfSignedIn(item.code as Locale),
+            void import("@/lib/data").then(({ profilePort }) =>
+              profilePort().saveLocaleIfSignedIn(item.code as Locale),
             );
           }}
           className={className}

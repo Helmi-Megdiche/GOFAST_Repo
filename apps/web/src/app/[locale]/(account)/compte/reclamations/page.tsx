@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { ClaimsList } from "@/components/account/claims-list";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
@@ -18,7 +19,9 @@ function Claims() {
     <>
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
-        <ClaimsList />
+        <FeatureGate feature="claims">
+          <ClaimsList />
+        </FeatureGate>
       </RequireSession>
     </>
   );
