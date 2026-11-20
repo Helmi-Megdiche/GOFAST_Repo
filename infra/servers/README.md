@@ -105,12 +105,12 @@ On a laptop or in CI there is no terminal: pass the 5 passwords as psql variable
 The enrol and reset commands have no screen. An engineer from the ops team runs them on the staging host, in the repo checkout, with the operator login and the same `TOTP_KEY` as the running api:
 
 ```
-DATABASE_MIGRATOR_URL=postgres://fastgo_migrator:<password>@127.0.0.1:15432/fastgo TOTP_KEY=<the server value> pnpm --filter @fastgo/api staff:totp enrol <account-id> [--label <text>]
+DATABASE_MIGRATOR_URL=postgres://fastgo_migrator:<password>@127.0.0.1:15432/fastgo TOTP_KEY=<the server value> pnpm --filter @fastgo/api staff:totp enrol <account-id> --by <admin-id> [--label <text>]
 
 pnpm --filter @fastgo/api staff:totp reset <account-id> --by <admin-id> --reason "<text>"
 ```
 
-- `<account-id>`, `<admin-id>` are uuids. `enrol` prints one `otpauth://` address, once; it is not stored. The engineer gives it to the person in person or over a channel the person controls (not in a ticket, a chat history or a log), and the person types or scans it into an authenticator app. `reset` clears the enrolment (lost phone); the account then enrols again with `enrol`. It needs `--by` (another admin than the account) and a `--reason`; both are audited.
+- `<account-id>`, `<admin-id>` are uuids. `enrol` names the admin who does it (`--by`, an active admin who is already enrolled and is not the account itself); it is written to the audit as the actor. `--by` may be left out only for the very first admin, while no admin is enrolled yet; that exception closes once one is. `enrol` prints one `otpauth://` address, once; it is not stored. The engineer gives it to the person in person or over a channel the person controls (not in a ticket, a chat history or a log), and the person types or scans it into an authenticator app. `reset` clears the enrolment (lost phone); the account then enrols again with `enrol`. It needs `--by` (another admin than the account) and a `--reason`; both are audited.
 - When `TOTP_KEY` changes, the stored secrets cannot be decrypted. Every enrolled account must be reset (`reset`) and enrolled again (`enrol`) with the new key. Plan this before rotating the key.
 - The migrator login can `SET ROLE fastgo_staff_auth`, so the "second admin" check on `reset` is a trace, not a control against the operator: whoever holds that login can reach the definers' data without a second person. Only the audit row and the access to the login protect it.
 
