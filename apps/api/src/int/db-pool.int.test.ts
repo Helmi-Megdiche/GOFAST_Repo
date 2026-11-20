@@ -56,6 +56,46 @@ describe("the pool survives the loss of an idle connection (follow-up of #110, p
   });
 });
 
+describe("closing one Db leaves another Db's clients alone (RV-24, follow-up of #110)", () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await startTestDb();
+  });
+  afterAll(async () => {
+    await db?.stop();
+  });
+
+  it("closes A while B has an idle client: B keeps that client, the server keeps its connection, B still answers", async () => {
+    const a = new Db(db.url("fastgo_app"), 2);
+    const b = new Db(db.url("fastgo_app"), 2);
+    const watch = watchUncaught();
+    const pidOf = async (d: Db) => {
+      const r = await d.withNoActor((tx) => tx.execute("select pg_backend_pid() as pid"));
+      return Number((r.rows[0] as { pid: number | string }).pid);
+    };
+    try {
+      const pidA = await pidOf(a);
+      const pidB = await pidOf(b); // B's client is idle again now
+      expect(pidB).not.toBe(pidA);
+
+      await a.close();
+
+      // A's connection is gone from the server; B's is still there.
+      const live = await db.superClient.query<{ pid: number }>(
+        "select pid from pg_stat_activity where usename = 'fastgo_app' and datname = 'fastgo' and pid <> pg_backend_pid()",
+      );
+      expect(live.rows.map((r) => r.pid)).toEqual([pidB]);
+      // B's next query runs on the very same connection: its client was not ended.
+      expect(await pidOf(b)).toBe(pidB);
+      await settle(300);
+      expect(watch.seen).toEqual([]);
+    } finally {
+      watch.stop();
+      await b.close();
+    }
+  });
+});
+
 describe("close() leaves nothing open and the container stop raises no error (follow-up of #110, part 2)", () => {
   it("closes a Db with busy and idle clients, stops the database at once, and no error is unhandled", async () => {
     const own = await startTestDb();
