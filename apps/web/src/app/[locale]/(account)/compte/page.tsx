@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { AccountHomeView } from "@/components/account/account-home";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
@@ -21,7 +22,9 @@ function AccountHome() {
     <>
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
-        <AccountHomeView />
+        <FeatureGate feature="home">
+          <AccountHomeView />
+        </FeatureGate>
       </RequireSession>
     </>
   );

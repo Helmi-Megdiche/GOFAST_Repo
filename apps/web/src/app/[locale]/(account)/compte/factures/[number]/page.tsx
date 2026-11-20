@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { InvoiceDetailView } from "@/components/account/invoice-detail";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale } from "@/lib/page";
 
@@ -25,7 +26,10 @@ function Invoice({ number }: { number: string }) {
     <>
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
-        <InvoiceDetailView number={decodeURIComponent(number)} />
+        <FeatureGate feature="invoices">
+          {" "}
+          <InvoiceDetailView number={decodeURIComponent(number)} />
+        </FeatureGate>
       </RequireSession>
     </>
   );

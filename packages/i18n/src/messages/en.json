@@ -165,7 +165,8 @@
     "skipToContent": "Skip to content",
     "home": "Home",
     "loading": "Loading…",
-    "from": "From"
+    "from": "From",
+    "notAvailableYet": "This section is not available yet."
   },
   "languageSwitcher": {
     "label": "Language"

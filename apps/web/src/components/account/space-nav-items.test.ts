@@ -48,3 +48,29 @@ describe("space nav", () => {
     }
   });
 });
+
+describe("space nav under the account flag (20-d, RV-28)", () => {
+  const none = () => false;
+  const all = () => true;
+
+  it("hides invoices, claims and addresses when the api has no route for them; home, orders and profile stay", () => {
+    expect(visibleNav("customer", null, none).map((e) => e.href)).toEqual([
+      "/compte",
+      "/compte/commandes",
+      "/compte/profil",
+    ]);
+  });
+
+  it("shows them all again when every capability is on", () => {
+    expect(visibleNav("customer", null, all)).toEqual(visibleNav("customer", null));
+  });
+
+  it("asks about the right feature per entry", () => {
+    const asked: string[] = [];
+    visibleNav("customer", null, (f) => {
+      asked.push(f);
+      return true;
+    });
+    expect(asked).toEqual(["invoices", "claims", "addressBook"]);
+  });
+});

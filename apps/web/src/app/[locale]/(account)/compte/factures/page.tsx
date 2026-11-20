@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { InvoicesList } from "@/components/account/invoices-list";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
@@ -18,7 +19,10 @@ function Invoices() {
     <>
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
-        <InvoicesList />
+        <FeatureGate feature="invoices">
+          {" "}
+          <InvoicesList />
+        </FeatureGate>
       </RequireSession>
     </>
   );

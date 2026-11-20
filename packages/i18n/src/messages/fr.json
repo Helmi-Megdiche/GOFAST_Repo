@@ -165,7 +165,8 @@
     "skipToContent": "Aller au contenu",
     "home": "Accueil",
     "loading": "Chargement…",
-    "from": "À partir de"
+    "from": "À partir de",
+    "notAvailableYet": "Cette section n’est pas encore disponible."
   },
   "languageSwitcher": {
     "label": "Langue"

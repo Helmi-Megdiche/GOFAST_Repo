@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { AddressBookView } from "@/components/account/address-book-view";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
@@ -20,7 +21,10 @@ function Addresses() {
         {t("title")}
       </h1>
       <RequireSession kind="customer">
-        <AddressBookView />
+        <FeatureGate feature="addressBook">
+          {" "}
+          <AddressBookView />
+        </FeatureGate>
       </RequireSession>
     </>
   );

@@ -9,6 +9,8 @@ import type { TrackingResult } from "./tracking";
 import type { CancelFee } from "./states";
 import type { SendResult as MockSendResult, VerifyResult as MockVerifyResult } from "./otp";
 import type { Session } from "./session";
+import type { NotificationPrefs } from "./accounts";
+import type { Profile } from "./profile";
 
 /** One interface per data domain, two adapters (mock and api). Components never import an adapter. */
 export interface OrdersPort {
@@ -23,7 +25,11 @@ export interface OrdersPort {
   readonly keyLifetimeMs: number | null;
   /** C02. Throws NetworkError, AuthRequiredError or ServerError. */
   /** `fresh` asks the source again; the api adapter otherwise keeps the full list for the screen. */
-  listOrders(session: Session, query: OrdersQuery, options?: { fresh?: boolean }): Promise<OrdersPage>;
+  listOrders(
+    session: Session,
+    query: OrdersQuery,
+    options?: { fresh?: boolean },
+  ): Promise<OrdersPage>;
   /** C03, by tracking number. Another account's order answers like an unknown one. */
   getOrderDetail(session: Session, code: string): Promise<OrderDetailResult>;
   /** CMD-08. Replay by state: no Idempotency-Key. `acceptedFee` is the fee the dialog showed. */
@@ -104,4 +110,33 @@ export interface AuthPort {
   signOut(): Promise<void>;
   /** Api: GET /v1/me, keeps the copy in step. Mock: the stored session. */
   refreshSession(): Promise<Session | null>;
+}
+
+/** GH-20 (20-d): the profile screens (C09). `phoneVerified` is `me.phone_verified` on the api (RV-28). */
+export type PortProfile = Profile & { phoneVerified: boolean };
+export type ProfileWrite = { status: "ok" } | { status: "notFound" } | { status: "forbidden" };
+
+export interface ProfilePort {
+  readonly kind: "mock" | "api";
+  /**
+   * Capabilities. A screen with no API route is hidden on the api adapter and says so; it never
+   * renders mock data as a fact (RV-28). #122 turns the address book on.
+   */
+  readonly emailAvailable: boolean;
+  readonly googleAvailable: boolean;
+  readonly closeAvailable: boolean;
+  readonly addressBookAvailable: boolean;
+  readonly invoicesAvailable: boolean;
+  readonly claimsAvailable: boolean;
+  /** C01 reads the dashboard from mock tables only (no route aggregates it yet). */
+  readonly homeAvailable: boolean;
+  /** Throws NetworkError, AuthRequiredError or ServerError. */
+  get(session: Session): Promise<PortProfile>;
+  updateName(session: Session, name: string): Promise<ProfileWrite | { status: "invalidName" }>;
+  /** All three flags together: the caller builds them from the latest wanted state. */
+  setNotifications(session: Session, prefs: NotificationPrefs): Promise<ProfileWrite>;
+  /** R902 / RV-17: the language of the person, not of the company. */
+  setLocale(session: Session, locale: Locale): Promise<ProfileWrite>;
+  /** The header switcher: silent, never throws. */
+  saveLocaleIfSignedIn(locale: Locale): Promise<void>;
 }

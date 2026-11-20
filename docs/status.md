@@ -1,6 +1,6 @@
 # GOFAST launch status
 
-Snapshot of 17 Nov 2026, 22:39 Tunis time (week S2). Source: GitHub (merged PRs, open issues and PRs). Update this file when a PR merges or a blocker clears.
+Snapshot of 20 Nov 2026 (week S2). Source: GitHub (merged PRs, open issues and PRs). Update this file when a PR merges or a blocker clears.
 
 ## Team
 
@@ -28,8 +28,8 @@ Snapshot of 17 Nov 2026, 22:39 Tunis time (week S2). Source: GitHub (merged PRs,
 | Issue | What | Who | Left to do |
 |---|---|---|---|
 | #9 | API accounts and sign-in, part 4a-2: Google sign-in, close account | Ala | Plan first, then build |
-| #22 | Orders, states, public tracking, cancel | Ala | Plan PR 4b-2 OK with changes (supervisor, 17 Nov). After the #9 fix PR: 4b-2a (create, list, get, tracking, SMS), then 4b-2b (cancel, confirm, auto-confirm) |
-| #20 | Web on the real API | Helmi | Account screens are next (profile, addresses, close account) |
+| #22 | Orders, states, public tracking, cancel | Ala | 4b-2 in review on the issue |
+| #20 | Web on the real API | Helmi | 20-d (profile on the API, `account` switch plan) pushed on `web/GH-20-account-profile`, Report 1 on the issue. Then addresses and recipients (#122) |
 | #75 | `packages/domain` | Helmi | PR 3 |
 | #62 | Driver application, documents | Helmi | Review of the document storage part |
 | #94 | Handover of `apps/api` to Ala | Ala | Read the note, review PR #97, take #10, #22, #25 |
@@ -47,14 +47,14 @@ Snapshot of 17 Nov 2026, 22:39 Tunis time (week S2). Source: GitHub (merged PRs,
 
 ## Rule kept
 
-Nobody sets `NEXT_PUBLIC_API_DOMAINS=auth` for real use until `account` is switched too. Sign-in on the API and the account screens on mock data do not match.
+Nobody sets `NEXT_PUBLIC_API_DOMAINS=auth` for real use until `account` is switched too. With `account` on, the profile is on the API and every screen without an API route is hidden and says so (table in `apps/web/CLAUDE.md`). Still to move before `auth` goes live: the `accounts.ts` reads in the order flow (follow-up issue).
 
 ## Next actions
 
 | # | Who | Action |
 |---|---|---|
-| 1 | Ala | #22 PR 4b-2a (create, list, get, tracking, SMS) |
-| 2 | Helmi | Order the staging host, then run `infra/servers/setup.sh` |
-| 3 | Helmi | #20 account screens on the API adapter |
+| 1 | Ala | #22 orders on the API; #122 address book and recipients routes; e-mail route and balance route (follow-up issue) |
+| 2 | Helmi | Supervisor review of #20 20-d, then #122 on the web side |
+| 3 | Helmi | Order the staging host, then run `infra/servers/setup.sh` |
 | 4 | Helmi | Merge or close PR #69 after review |
 | 5 | Helmi | Send the open questions to GOFAST (#17) |

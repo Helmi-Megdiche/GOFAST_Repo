@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { EmailScreen } from "@/components/account/email-screen";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
@@ -18,7 +19,10 @@ function EmailContent() {
     <>
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
-        <EmailScreen />
+        <FeatureGate feature="email">
+          {" "}
+          <EmailScreen />
+        </FeatureGate>
       </RequireSession>
     </>
   );
