@@ -26,6 +26,8 @@ const Env = z.object({
   ALLOWED_ORIGINS: z.string().default(""),
   /** The key of the second-factor secrets (T60): 32 bytes in base64. Required in production; a fake one lives in `.env.example`. */
   TOTP_KEY: z.string().optional(),
+  /** The public web origin, for the link of the tracking SMS (https://gofast.tn). Required in production. */
+  PUBLIC_WEB_URL: z.string().optional(),
   /** Only `fake` exists for now (it sends nothing); the provider is not chosen yet. */
   SMS_PROVIDER: z.enum(["fake"]).default("fake"),
 });
@@ -43,6 +45,7 @@ export type Config = {
   authSecret?: string;
   allowedOrigins: string[];
   totpKey?: Buffer;
+  publicWebUrl?: string;
   smsProvider: "fake";
 };
 
@@ -79,8 +82,22 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
       throw new Error("Invalid environment: TOTP_KEY must be 32 bytes in base64");
     }
   }
+  if (e.PUBLIC_WEB_URL !== undefined) {
+    let url: URL | undefined;
+    try {
+      url = new URL(e.PUBLIC_WEB_URL);
+    } catch {
+      url = undefined;
+    }
+    if (!url || url.origin !== e.PUBLIC_WEB_URL) {
+      throw new Error(`Invalid environment: PUBLIC_WEB_URL: ${e.PUBLIC_WEB_URL} must be an origin (scheme, host, port)`);
+    }
+  }
   if (e.NODE_ENV === "production" && e.SMS_PROVIDER === "fake") {
     throw new Error("Invalid environment: SMS_PROVIDER=fake sends nothing and is refused in production");
+  }
+  if (e.NODE_ENV === "production" && !e.PUBLIC_WEB_URL) {
+    throw new Error("Invalid environment: PUBLIC_WEB_URL is required in production (the link of the tracking SMS)");
   }
   return {
     port: e.PORT,
@@ -94,6 +111,7 @@ export function loadConfig(env: Record<string, string | undefined> = process.env
     authSecret: e.AUTH_SECRET,
     allowedOrigins,
     totpKey,
+    publicWebUrl: e.PUBLIC_WEB_URL,
     smsProvider: e.SMS_PROVIDER,
   };
 }

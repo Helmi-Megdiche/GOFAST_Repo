@@ -183,7 +183,7 @@ export interface paths {
         put?: never;
         /**
          * Place an order
-         * @description Idempotent (R202). The server refuses a quote that expired (410 QUOTE_EXPIRED), a total that is not the quote's (RV-05), a phone that is not verified, a payment on account without a validated contract (R104) and more parcels than the settings allow. An unknown `quote_id` answers 404 NOT_FOUND; an unverified phone answers 422 RULE_REFUSED `phoneRequired` (field `phone_check_id`). Writes the order, its parcels and the tracking SMS in the outbox in one transaction. The cahier's role list for the route family also names staff; creating an order on behalf of a customer is not in this version.
+         * @description Idempotent (R202). The server refuses a quote that expired (410 QUOTE_EXPIRED), a total that is not the quote's (RV-05), a phone that is not verified, a payment on account without a validated contract (R104) and more parcels than the settings allow. An unknown `quote_id` answers 404 NOT_FOUND; an unverified phone answers 422 RULE_REFUSED `phoneRequired` (field `phone_check_id`). The 422 reasons are `quoteChanged` (the grid or `accepted_total_millimes` moved, RV-05), `phoneRequired`, `contractRequired` (payment `account`, until contracts exist), `addressMismatch` (an address is not the quoted one), `tooManyParcels`, `freightPayerRequired` (`cashDelivery` without the R607 acceptance) and `slotInvalid` (field `service.slot` or `sender.slot`: `scheduled` with no slot, a slot for another service, a window that ends before it starts, a pickup window already over; checked before the phone proof is spent), and `invalid` on `phone_check_id` for a spent or wrong proof. A proof for `sender.phone` lets the order through; the account is marked verified only when that phone is the account's phone. Writes the order, its parcels and the tracking SMS in the outbox in one transaction. The cahier's role list for the route family also names staff; creating an order on behalf of a customer is not in this version.
          */
         post: operations["createOrder"];
         delete?: never;
@@ -243,7 +243,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm an order that waits for an agent
-         * @description R209, D8. The system confirms an order by itself only for a verified customer under the amount set in the settings; an agent confirms the others. Replay by state: an order that is already confirmed answers 200 again with no new event. An order that is not waiting for confirmation (for example canceled) answers 409 STATE_CONFLICT.
+         * @description R209, D8. The system confirms an order by itself only for a verified customer under the amount set in the settings; an agent confirms the others. Replay by state: an order that is already confirmed answers 200 again with no new event. An order that is not waiting for confirmation (for example canceled) answers 409 STATE_CONFLICT with the field `status` and the reason `notWaitingForConfirmation`.
          */
         post: operations["confirmOrder"];
         delete?: never;
@@ -442,7 +442,7 @@ export interface paths {
         };
         /**
          * Follow an order by its tracking number
-         * @description Public, with limited attempts. Returns only the allowed fields (R405). An unknown number answers 404; a number that does not have the FG-XXXX-XXXX shape answers 400.
+         * @description Public, with limited attempts. Returns only the allowed fields (R405). An unknown number answers 404; a number that does not have the FG-XXXX-XXXX shape answers 400. Both count as a miss, and every call counts in the 120 a minute of the IP (T11). `from_city` and `to_city` are the names of the délégations in the language of the `Accept-Language` header (fr when missing).
          */
         get: operations["getTracking"];
         put?: never;
@@ -516,7 +516,7 @@ export interface components {
          */
         CancelFee: "none" | "applies" | "backOfficeDecides";
         CancelRequest: {
-            /** @description The fee the customer saw before cancelling (RV-05). The server compares it with the fee that applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written. */
+            /** @description The fee the customer saw before cancelling (RV-05). The server compares it with the fee that applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written. For staff (agent, operations, logistics, admin) it is the fee they choose to record: `none` (the default, free) or the fee that applies now; any other value gives `feeRequired`. The choice is recorded with the staff member's id. */
             accepted_fee: components["schemas"]["CancelFee"];
         };
         /** @description Replay by state (R212). Cancelling an order that is already canceled answers the same, with no new event. */
@@ -648,8 +648,14 @@ export interface components {
             sms: boolean;
         };
         Order: {
+            /** @description True when an address of the quote had no pin (R201). The order stays `received` until an agent checks it, and is never confirmed automatically. */
+            address_unconfirmed: boolean;
+            /** @description The délégation of the delivery address, copied from the quote. */
+            arrival: components["schemas"]["QuoteZone"];
             cancel: components["schemas"]["OrderCancelRecord"] | null;
             created_at: components["schemas"]["UtcTimestamp"];
+            /** @description The délégation of the pickup address, copied from the quote. */
+            departure: components["schemas"]["QuoteZone"];
             eta_at: components["schemas"]["UtcTimestamp"] | null;
             freight_payer: components["schemas"]["FreightPayer"];
             id: components["schemas"]["ResourceId"];

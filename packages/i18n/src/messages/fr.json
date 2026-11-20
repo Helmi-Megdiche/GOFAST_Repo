@@ -493,6 +493,10 @@
       "title": "Numéro introuvable",
       "text": "Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez GOFAST."
     },
+    "unavailable": {
+      "title": "Suivi momentanément indisponible",
+      "text": "Nous n'avons pas pu lire ce numéro pour le moment. Réessayez dans quelques instants."
+    },
     "yourParcel": {
       "title": "C'est votre colis ?",
       "text": "Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau."
@@ -1284,7 +1288,9 @@
         "title": "Impossible de charger cette commande.",
         "retry": "Réessayer"
       },
-      "loading": "Chargement de la commande…"
+      "loading": "Chargement de la commande…",
+      "fromNoAddress": "De {name}",
+      "toNoAddress": "À {name}"
     },
     "cancel": {
       "button": "Annuler la commande",
@@ -1305,7 +1311,8 @@
         "none": "Annulation sans frais.",
         "applies": "Frais d'annulation : <fee></fee>.",
         "backOfficeDecides": "Des frais peuvent s'appliquer : GOFAST vous le confirmera."
-      }
+      },
+      "freeUnlessArrived": "L'annulation est gratuite tant que le livreur n'est pas arrivé. S'il est déjà là, des frais de <fee></fee> s'appliquent selon les CGV."
     }
   },
   "parcels": {
@@ -1743,9 +1750,20 @@
     "addressUnconfirmed": "Cette adresse n'a pas pu être placée sur la carte : choisissez la délégation dans la liste.",
     "tooManyParcels": "Il y a trop de colis pour une seule commande.",
     "tooHeavy": "Un colis dépasse le poids maximal.",
-    "priceUnavailable": "Le prix de cette option n'est pas encore disponible."
+    "priceUnavailable": "Le prix de cette option n'est pas encore disponible.",
+    "quoteChanged": "Le prix a changé : vérifiez le nouveau total avant de valider.",
+    "phoneRequired": "Vérifiez votre numéro de téléphone par SMS pour passer commande.",
+    "contractRequired": "Le paiement sur compte demande un contrat validé.",
+    "addressMismatch": "Les adresses ne sont pas celles du prix calculé : calculez le prix à nouveau.",
+    "freightPayerRequired": "Acceptez les conditions du port dû pour payer à la livraison.",
+    "slotInvalid": "Le créneau choisi n'est pas valable : vérifiez les heures, ou choisissez un créneau à venir.",
+    "feeRequired": "Les frais d'annulation ont changé : vérifiez-les avant de confirmer.",
+    "claimOnly": "Le colis est déjà pris en charge : faites une réclamation.",
+    "notCancellable": "Cette commande ne peut plus être annulée.",
+    "notWaitingForConfirmation": "Cette commande n'attend pas de confirmation."
   },
   "apiSms": {
-    "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne."
+    "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne.",
+    "tracking": "GOFAST : un colis vous est destiné. Numéro de suivi {tracking_number}. Suivez-le ici : {link}"
   }
 }

@@ -15,8 +15,9 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  # `code` is false only when every changed file is under docs/ or infra/ or is a Markdown
-  # file. A push to main is always code. Plain git, no third-party action.
+  # What a change needs, decided by .github/scripts/changes.sh (rules and tests are there, #114):
+  # `code` = any job that builds or tests code, `api` = API integration tests, `web` = the 3 web e2e shards.
+  # A push to main is always everything. Plain git and bash, no third-party action.
   changes:
     name: Changed files
     runs-on: ubuntu-24.04
@@ -24,6 +25,7 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
       api: ${{ steps.diff.outputs.api }}
+      web: ${{ steps.diff.outputs.web }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -35,28 +37,16 @@ jobs:
           EVENT: ${{ github.event_name }}
           BASE_SHA: ${{ github.event.pull_request.base.sha }}
         run: |
-          code=true
-          api=true
+          : > changed-files.txt # a push to main gets an empty list, which the script reads as "everything"
           if [ "$EVENT" = "pull_request" ]; then
-            files=$(git diff --name-only "$BASE_SHA" HEAD)
+            # --no-renames: a moved file lists its old path too (RV-26), so moving apps/api/a.ts to docs/ is still code.
+            git diff --name-only --no-renames "$BASE_SHA" HEAD > changed-files.txt
             echo "Changed files:"
-            echo "$files"
-            if [ -n "$files" ]; then
-              code=false
-              api=false
-              while IFS= read -r f; do
-                case "$f" in
-                  docs/* | infra/* | *.md) ;;
-                  apps/api/* | packages/contract/* | packages/i18n/* | packages/domain/* | packages/config/* | turbo.json | package.json | pnpm-lock.yaml | pnpm-workspace.yaml | .node-version | .github/*) code=true; api=true ;;
-                  *) code=true ;;
-                esac
-              done <<< "$files"
-            fi
+            cat changed-files.txt
           fi
-          echo "code=$code"
-          echo "api=$api"
-          echo "code=$code" >> "$GITHUB_OUTPUT"
-          echo "api=$api" >> "$GITHUB_OUTPUT"
+          bash .github/scripts/changes.sh < changed-files.txt > decision.txt
+          cat decision.txt
+          cat decision.txt >> "$GITHUB_OUTPUT"
 
   checks:
     name: Lint, typecheck, unit tests, build
@@ -140,7 +130,7 @@ jobs:
     name: E2E shard ${{ matrix.shard }}/3
     needs: [checks, changes, e2e-prior]
     if: >-
-      ${{ !cancelled() && needs.checks.result == 'success' && needs.changes.outputs.code == 'true'
+      ${{ !cancelled() && needs.checks.result == 'success' && needs.changes.outputs.web == 'true'
       && needs.e2e-prior.outputs.passed != 'true' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
@@ -338,10 +328,11 @@ jobs:
             apps/web/playwright-report-api
           retention-days: 14
 
-  # The check name seen on a PR. Green when every shard passed, or when the shards were
-  # skipped because only docs and infra changed, or (push to main) because the same tree
-  # already passed e2e on its PR. Red on a failed or cancelled shard, and
-  # also when the shards did not run although code changed (a failed `checks` job).
+  # The check name seen on a PR. The decision is .github/scripts/e2e-verdict.sh (tested, #114): green when the
+  # shards and the api-mode e2e passed, or were skipped on purpose (only docs, Markdown, infra or deploy.yml
+  # changed; or only apps/api changed, which skips the web shards but not api mode; or, push to main, the same
+  # tree already passed e2e on its PR). Red on a failed or cancelled job, and also when a job did not run
+  # although it should have (a failed `checks` or `changes` job).
   e2e:
     name: E2E (Playwright, axe-core)
     needs: [changes, e2e-shard, e2e-api, e2e-prior]
@@ -349,29 +340,19 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
-      - name: Summarise the shards
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Summarise the e2e jobs
         env:
           CODE: ${{ needs.changes.outputs.code }}
+          WEB: ${{ needs.changes.outputs.web }}
           SHARDS: ${{ needs.e2e-shard.result }}
           API: ${{ needs.e2e-api.result }}
           PRIOR: ${{ needs.e2e-prior.outputs.passed }}
-        run: |
-          echo "code=$CODE shards=$SHARDS api=$API prior=$PRIOR"
-          if [ "$API" = "failure" ] || [ "$API" = "cancelled" ]; then
-            echo "The api-mode e2e did not pass."
-            exit 1
-          fi
-          if [ "$SHARDS" = "success" ] && [ "$API" = "success" ]; then exit 0; fi
-          if [ "$SHARDS" = "skipped" ] && [ "$CODE" = "false" ]; then
-            echo "Only docs, Markdown or infra changed: e2e skipped."
-            exit 0
-          fi
-          if [ "$SHARDS" = "skipped" ] && [ "$PRIOR" = "true" ]; then
-            echo "This tree already passed e2e on its PR: e2e skipped."
-            exit 0
-          fi
-          echo "e2e did not pass."
-          exit 1
+        run: bash .github/scripts/e2e-verdict.sh
 
   # Integration tests of the API: Docker is on the runner (Testcontainers, Schemathesis). #7, #21.
   api-int:
@@ -422,6 +403,49 @@ jobs:
           if [ "$INT" = "skipped" ] && [ "$API" = "false" ]; then exit 0; fi
           echo "API integration tests did not pass."
           exit 1
+
+  # Server scripts and workflows (#14 PR 4): shell only, no pnpm, about a minute. Linters and the base image are
+  # pinned by digest. The deploy tests use fake docker, curl and git; the setup test changes users, so it runs
+  # in a throwaway container.
+  shell:
+    name: Shell scripts and workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: shellcheck (deploy.sh, setup.sh, the CI scripts and their tests)
+        run: >-
+          docker run --rm -v "$PWD:/mnt:ro" -w /mnt
+          koalaman/shellcheck@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d
+          infra/servers/deploy.sh infra/servers/setup.sh infra/servers/test/deploy.test.sh infra/servers/test/setup-deploy.test.sh
+          .github/scripts/changes.sh .github/scripts/changes.test.sh .github/scripts/e2e-verdict.sh .github/scripts/e2e-verdict.test.sh
+
+      # The change filters and the e2e verdict (#114): they decide which CI jobs run, so they are tested here,
+      # with twins, on every PR (a change to ci.yml or to these scripts is "everything", so this always runs).
+      - name: CI change filters and e2e verdict tests (with twins)
+        run: |
+          bash .github/scripts/changes.test.sh
+          bash .github/scripts/e2e-verdict.test.sh
+
+      - name: actionlint (all workflows)
+        run: >-
+          docker run --rm -v "$PWD:/repo:ro" -w /repo
+          rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color=false
+
+      - name: deploy.sh tests (with twins)
+        run: >-
+          docker run --rm -v "$PWD/infra/servers:/s:ro"
+          ubuntu@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+          bash /s/test/deploy.test.sh
+
+      - name: setup.sh deploy-user tests (with twins)
+        run: >-
+          docker run --rm -v "$PWD/infra/servers:/s:ro"
+          ubuntu@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+          bash /s/test/setup-deploy.test.sh
 
   gitleaks:
     name: Secret scan (Gitleaks)

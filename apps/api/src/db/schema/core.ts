@@ -79,6 +79,10 @@ export const pricingSettings = core.table("pricing_settings", {
   rainActive: boolean("rain_active").notNull().default(false),
   rainSurchargeMillimes: millimes("rain_surcharge_millimes"),
   rainCeilingMillimes: millimes("rain_ceiling_millimes"),
+  /** D7: the fee after the driver arrived (5 DT), PROVISIONAL (0012). */
+  cancelFeeMillimes: millimes("cancel_fee_millimes").notNull().default(5000),
+  /** D8: automatic confirmation up to this total (100 DT), PROVISIONAL (0012). */
+  autoConfirmMaxMillimes: millimes("auto_confirm_max_millimes").notNull().default(100000),
 });
 
 /** A public quote: no owner, a keyed hash of each address and no address text. */
@@ -214,6 +218,34 @@ export const orders = core.table("orders", {
   updatedAt: tstz("updated_at").notNull().defaultNow(),
   /** Set by a trigger when the status enters an end state; R406 closes the recipient link 24 h later. */
   endedAt: tstz("ended_at"),
+  // GH-22 (0011): what the quote and the form give. Nullable: a row made before the API has no quote.
+  quoteId: uuid("quote_id"),
+  lines: jsonb("lines"),
+  nullLines: text("null_lines").array(),
+  priceListValidFrom: tstz("price_list_valid_from"),
+  departureZoneId: uuid("departure_zone_id").references(() => zones.id),
+  arrivalZoneId: uuid("arrival_zone_id").references(() => zones.id),
+  addressUnconfirmed: boolean("address_unconfirmed").notNull().default(false),
+  senderName: text("sender_name"),
+  senderPhone: text("sender_phone"),
+  pickupSlotStart: tstz("pickup_slot_start"),
+  pickupSlotEnd: tstz("pickup_slot_end"),
+  deliverySlotStart: tstz("delivery_slot_start"),
+  deliverySlotEnd: tstz("delivery_slot_end"),
+  deliveryInstructions: text("delivery_instructions").notNull().default(""),
+  content: text("content"),
+  fragile: boolean("fragile").notNull().default(false),
+  packaging: boolean("packaging").notNull().default(false),
+  declaredValueMillimes: bigint("declared_value_millimes", { mode: "number" }),
+  freightPayerAccepted: boolean("freight_payer_accepted").notNull().default(false),
+  termsAcceptedAt: tstz("terms_accepted_at"),
+  /** R202: a keyed MAC of the request body, set with the idempotency scope (0011). */
+  idempotencyBodyHash: text("idempotency_body_hash"),
+  // GH-22 (0012): set by the cancel definer only.
+  canceledAt: tstz("canceled_at"),
+  cancelFee: text("cancel_fee"),
+  cancelFeeMillimes: bigint("cancel_fee_millimes", { mode: "number" }),
+  canceledBy: uuid("canceled_by").references(() => accounts.id),
 });
 
 export const parcels = core.table("parcels", {
@@ -222,6 +254,8 @@ export const parcels = core.table("parcels", {
     .notNull()
     .references(() => orders.id),
   barcode: text("barcode").unique(),
+  /** 1 to n, the order of the parcels in the request (0011). An old row has none. */
+  position: integer("position"),
   size: text("size").notNull(),
   weightDeclaredG: integer("weight_declared_g").notNull(),
   weightMeasuredG: integer("weight_measured_g"),
@@ -264,6 +298,8 @@ export const statusEvents = core.table("status_events", {
   occurredAt: tstz("occurred_at").notNull().defaultNow(),
   receivedAt: tstz("received_at").notNull().defaultNow(),
   location: geography("location", "Point"),
+  /** Orders events that share an instant (0011). */
+  seq: bigint("seq", { mode: "number" }).generatedAlwaysAsIdentity(),
 });
 
 export const proofs = core.table("proofs", {

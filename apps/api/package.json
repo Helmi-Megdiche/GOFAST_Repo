@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "db:migrate": "node --experimental-strip-types src/db/cli.ts",
     "staff:totp": "node --experimental-strip-types src/auth/staff-totp-main.ts",
-    "test": "vitest run",
+    "test": "vitest run && node scripts/test-shifted.mjs",
     "test:int": "vitest run --config vitest.int.config.ts"
   },
   "dependencies": {

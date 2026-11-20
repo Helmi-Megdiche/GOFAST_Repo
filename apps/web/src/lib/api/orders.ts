@@ -3,6 +3,7 @@ import type { OrderRequest } from "../order/request";
 import type { createApiClient } from "./client";
 import { AuthRequiredError, ServerError, mapOrderFailure } from "./errors";
 import { serializeOrderBody, type OrderCreate } from "./order-create";
+import { createApiOrdersRead } from "./orders-read";
 
 /** The API forgets an Idempotency-Key after 24 h (contract, `x-replay: key`). */
 export const KEY_LIFETIME_MS = 24 * 60 * 60 * 1000;
@@ -35,5 +36,7 @@ export function createApiOrders(client: ReturnType<typeof createApiClient>): Ord
     async findOrderByKey() {
       return null;
     },
+
+    ...createApiOrdersRead(client),
   };
 }

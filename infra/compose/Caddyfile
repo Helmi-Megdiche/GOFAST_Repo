@@ -1,0 +1,86 @@
+# Caddy: the only public door of the stack (#14 PR 3). One file for the laptop and for staging.
+#   SITE_ADDRESS  site name. Laptop: localhost (Caddy's own internal certificate). Staging: STAGING_DOMAIN.
+#   CADDY_MODE    open (laptop) or staging (compose.staging.yaml): basic_auth, noindex, robots.txt, HSTS.
+#   CADDY_TLS     acme (default: Let's Encrypt for a real domain) or internal (Caddy's own CA: the laptop,
+#                 or the staging override run locally with a fake domain).
+# Routes: /v1/* -> api:4000, /ws/* -> ws:4001 (the /ws prefix is removed), everything else -> web:3000.
+# Next never sees /v1.
+{
+	# Admin API stays inside the container (the healthcheck uses it); it is never published.
+	admin 127.0.0.1:2019
+}
+
+(acme) {
+}
+
+(internal) {
+	tls internal
+}
+
+# Every answer: no Server header, no sniffing, no referrer leak. HSTS is added by `secure`.
+(common) {
+	header {
+		-Server
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+	}
+	# Errors raised inside Caddy (the staging 401 from basic_auth) take the error route and skip the
+	# header block above, so Caddy's own `Server: Caddy` would survive on exactly those answers.
+	handle_errors {
+		header -Server
+		respond "{err.status_code} {err.status_text}"
+	}
+}
+
+(open) {
+	import common
+}
+
+# Staging and production.
+(secure) {
+	import common
+	header Strict-Transport-Security "max-age=31536000"
+}
+
+# Staging: closed to the public. `header` runs before `basic_auth`, so the 401 carries X-Robots-Tag too.
+# robots.txt is behind basic_auth like every other staging route.
+(staging) {
+	import secure
+	header X-Robots-Tag "noindex, nofollow"
+	basic_auth {
+		{$STAGING_USER:gofast} {$STAGING_PASSWORD_HASH:disabled}
+	}
+	handle /robots.txt {
+		respond "User-agent: *
+Disallow: /
+" 200
+	}
+}
+
+# The client address is written here from the socket; whatever the client sent is dropped. The api
+# (TRUST_PROXY=1: one hop, this one) therefore reads an address nobody but Caddy wrote.
+(upstream) {
+	header_up X-Forwarded-For {remote_host}
+	header_up X-Real-IP {remote_host}
+}
+
+{$SITE_ADDRESS:localhost} {
+	import {$CADDY_TLS:acme}
+	import {$CADDY_MODE:open}
+
+	handle /v1/* {
+		reverse_proxy api:4000 {
+			import upstream
+		}
+	}
+	handle_path /ws/* {
+		reverse_proxy ws:4001 {
+			import upstream
+		}
+	}
+	handle {
+		reverse_proxy web:3000 {
+			import upstream
+		}
+	}
+}

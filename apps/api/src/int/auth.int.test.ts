@@ -700,3 +700,51 @@ describe("minor: sign-in and sign-up", () => {
     expect((await signUp(phone, check)).statusCode).toBe(201);
   });
 });
+
+describe("GH-9 R102: a wrong code puts attempts_left in fields[].details", () => {
+  it("answers 422 RULE_REFUSED with details on the code field and no top-level details, then counts down", async () => {
+    currentIp = "10.8.0.1";
+    const phone = "+21620444001";
+    const sent = await call("POST", "/v1/phone-checks", { body: { phone, purpose: "signUp" } });
+    expect(sent.statusCode).toBe(202);
+    for (let i = 0; i < 6; i += 1) await runSmsOutbox(workerDb, sms);
+    const real = sms.codeFor(phone);
+    const wrong = real === "000000" ? "111111" : "000000";
+    const verify = () => call("POST", "/v1/phone-checks/verify", { body: { phone, purpose: "signUp", code: wrong } });
+
+    const first = await verify();
+    expect(first.statusCode).toBe(422);
+    const body = first.json();
+    expect(body.error.code).toBe("RULE_REFUSED");
+    expect(body.error.fields).toEqual([{ name: "code", reason: "wrong", details: { attempts_left: 4 } }]);
+    expect("details" in body.error).toBe(false); // the contract has no top-level details (ErrorInfo)
+
+    const second = await verify();
+    expect(second.json().error.fields[0].details).toEqual({ attempts_left: 3 });
+    expect("details" in second.json().error).toBe(false);
+  });
+});
+
+describe("GH-9 R102: reset checks the password length before it spends the proof", () => {
+  it("a 9-character password is refused with passwordTooShort, and the same proof still resets with a valid one, once", async () => {
+    currentIp = "10.8.0.2";
+    const phone = "+21620444002";
+    await newCustomer(phone);
+    const check = await verifiedCheck(phone, "reset");
+    const reset = (new_password: string) =>
+      call("POST", "/v1/password-resets", { body: { phone, phone_check_id: check, new_password } });
+
+    const short = await reset("123456789");
+    expect(short.statusCode).toBe(422);
+    expect(short.json().error.fields).toEqual([{ name: "new_password", reason: "passwordTooShort" }]);
+
+    const done = await reset("a brand new secret");
+    expect(done.statusCode).toBe(204);
+    const signedIn = await call("POST", "/v1/sessions", { body: { identifier: phone, password: "a brand new secret" } });
+    expect(signedIn.statusCode).toBe(201);
+
+    const again = await reset("another new secret");
+    expect(again.statusCode).toBe(422);
+    expect(again.json().error.fields).toEqual([{ name: "phone_check_id", reason: "invalid" }]); // still single use
+  });
+});

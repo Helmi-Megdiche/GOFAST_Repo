@@ -1,6 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useLocale } from "next-intl";
+import { AuthRequiredError } from "@/lib/api/errors";
+import { signInUrl } from "@/lib/api/unauthorized";
 import { useSession } from "@/lib/data/use-session";
 import type { Session } from "@/lib/data/session";
 
@@ -17,19 +20,27 @@ export function useLoader<T>(
   key: string,
 ): { state: Loaded<T>; reload: () => void } {
   const session = useSession();
+  const locale = useLocale();
   const [version, setVersion] = useState(0);
-  const [stored, setStored] = useState<{ id: string; result: Loaded<T> } | null>(null);
-  const id = `${session?.accountId ?? ""}|${key}|${version}`;
+  const [stored, setStored] = useState<{ id: string; scope: string; result: Loaded<T> } | null>(null);
+  const scope = `${session?.accountId ?? ""}|${key}`;
+  const id = `${scope}|${version}`;
 
   useEffect(() => {
     if (!session) return;
     let cancelled = false;
     load(session).then(
       (data) => {
-        if (!cancelled) setStored({ id, result: { status: "ready", data } });
+        if (!cancelled) setStored({ id, scope, result: { status: "ready", data } });
       },
-      () => {
-        if (!cancelled) setStored({ id, result: { status: "error" } });
+      (error: unknown) => {
+        if (cancelled) return;
+        // The session is gone (401): sign in again and come back to this page (S2).
+        if (error instanceof AuthRequiredError) {
+          window.location.assign(signInUrl(locale, window.location.pathname));
+          return;
+        }
+        setStored({ id, scope, result: { status: "error" } });
       },
     );
     return () => {
@@ -40,6 +51,13 @@ export function useLoader<T>(
   }, [id, session]);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
-  const state: Loaded<T> = stored?.id === id ? stored.result : { status: "loading" };
+  // A reload of the same screen keeps the data it shows until the new answer arrives, so what the
+  // screen holds (an open dialog, an alert) is not thrown away. A new key never shows an old answer.
+  const state: Loaded<T> =
+    stored?.id === id
+      ? stored.result
+      : stored?.scope === scope && stored.result.status === "ready"
+        ? stored.result
+        : { status: "loading" };
   return { state, reload };
 }

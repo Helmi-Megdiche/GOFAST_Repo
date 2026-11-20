@@ -111,6 +111,14 @@ export class MemoryIdempotencyStore extends IdempotencyStore {
   }
 }
 
+/** The scope of a keyed request: account, route and key (R202). Null when the route is not keyed or has no key. */
+export const scopeOf = (req: FastifyRequest): string | null => {
+  const op = req.operation;
+  const key = req.headers["idempotency-key"];
+  if (op?.replay !== "key" || typeof key !== "string") return null;
+  return `${req.actor?.accountId ?? "anonymous"}|${op.method} ${op.path}|${key}`;
+};
+
 /** JSON with object keys sorted at every depth: key order in the body does not change the print. */
 export const canonical = (value: unknown): string =>
   JSON.stringify(value ?? null, (_k, v: unknown) =>
@@ -148,11 +156,9 @@ export class IdempotencyInterceptor implements NestInterceptor {
     const http = context.switchToHttp();
     const req = http.getRequest<FastifyRequest>();
     const reply = http.getResponse<FastifyReply>();
+    const scope = scopeOf(req);
+    if (scope === null || !req.operation) return next.handle();
     const op = req.operation;
-    const key = req.headers["idempotency-key"];
-    if (op?.replay !== "key" || typeof key !== "string") return next.handle();
-
-    const scope = `${req.actor?.accountId ?? "anonymous"}|${op.method} ${op.path}|${key}`;
     const fp = fingerprint(`${op.method} ${op.path}`, req.params, req.query, req.body);
 
     return defer(async () => {

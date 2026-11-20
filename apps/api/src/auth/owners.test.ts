@@ -13,7 +13,7 @@ describe("AuthOwners: deny by default (PR 4a)", () => {
 
   it("refuses every other operation until its PR binds a check", async () => {
     const owners = new AuthOwners();
-    for (const id of ["getOrder", "listOrders", "createOrder", ""]) expect(await owners.allows(actor, op(id))).toBe(false);
+    for (const id of [""]) expect(await owners.allows(actor, op(id))).toBe(false);
   });
 
   it.each(["listServices", "createZoneCheck", "createQuote", "getQuote"])(
@@ -23,16 +23,25 @@ describe("AuthOwners: deny by default (PR 4a)", () => {
     },
   );
 
-  it("allows exactly these seven of the operations of the contract, whatever the contract grows to", async () => {
+  it.each(["createOrder", "listOrders", "getOrder", "cancelOrder", "confirmOrder"])("GH-22: %s is on the allow-list (the RLS and the service answer 404 for another's order)", async (id) => {
+    expect(await new AuthOwners().allows(actor, op(id))).toBe(true);
+  });
+
+  it("allows exactly these twelve of the operations of the contract, whatever the contract grows to", async () => {
     const owners = new AuthOwners();
     const allowed: string[] = [];
     for (const id of loadOperations().keys()) if (await owners.allows(actor, op(id))) allowed.push(id);
     expect(allowed.sort()).toEqual([
+      "cancelOrder",
+      "confirmOrder",
+      "createOrder",
       "createQuote",
       "createZoneCheck",
       "deleteSession",
       "getMe",
+      "getOrder",
       "getQuote",
+      "listOrders",
       "listServices",
       "updateMe",
     ]);

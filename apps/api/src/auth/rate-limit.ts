@@ -24,6 +24,12 @@ export class RateLimiter {
     return { allowed: count <= limit, count, retryAfterMs: ttl > 0 ? ttl : windowMs };
   }
 
+  /** Reads a counter without counting (GH-22: the misses of the public tracking are counted only when they happen). */
+  async peek(key: string): Promise<{ count: number; retryAfterMs: number }> {
+    const [value, ttl] = await Promise.all([this.redis.get(key), this.redis.pttl(key)]);
+    return { count: Number(value ?? 0), retryAfterMs: ttl > 0 ? ttl : 0 };
+  }
+
   async reset(key: string): Promise<void> {
     await this.redis.del(key);
   }
