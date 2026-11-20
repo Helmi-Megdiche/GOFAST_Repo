@@ -154,12 +154,14 @@ describe("GH-25 S1: core.staff_totp_use refuses a step far ahead of the clock, a
   const use = async (id: string, step: bigint | number) =>
     ((await app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_use(${id}::uuid, ${String(step)}::bigint) as ok`))).rows[0] as { ok: boolean }).ok;
 
-  it("2^40 (and two steps ahead) return false and last_step is unchanged; the current step and the next one are accepted", async () => {
+  it("2^40 (and three steps ahead) return false and last_step is unchanged; the next step is accepted", async () => {
     const id = await account("agent");
     await enrol(id);
-    const current = BigInt(Math.floor(Date.now() / 30_000));
+    // The DATABASE's step, not this process's clock: the container's clock can differ, and a 30-second boundary can pass between the
+    // two calls (one step of margin each way: "+1" is always accepted, "+3" always refused).
+    const current = BigInt((await one("select (extract(epoch from now()) / 30)::bigint as s")).s);
     expect(await use(id, 2 ** 40)).toBe(false);
-    expect(await use(id, current + 2n)).toBe(false);
+    expect(await use(id, current + 3n)).toBe(false);
     expect((await one("select last_step from core.staff_totp where account_id = $1", [id])).last_step).toBe("0");
     expect(await use(id, current + 1n)).toBe(true); // the window's upper edge
     expect(await use(id, 5)).toBe(false); // no lower bound beyond "newer than the last": 5 < last_step
