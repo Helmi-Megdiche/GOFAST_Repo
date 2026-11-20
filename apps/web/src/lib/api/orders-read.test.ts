@@ -4,6 +4,7 @@ import type { Session } from "../data/session";
 import { AuthRequiredError, NetworkError, ServerError } from "./errors";
 import { createApiClient } from "./client";
 import { createApiOrders } from "./orders";
+import { CLOSED_ACCOUNT_NAME } from "../data/order-model";
 
 /**
  * GH-20 (20-c): the client's orders on the real API. Fake fetch, no network. Every status code the
@@ -176,12 +177,43 @@ describe("api orders adapter, list (GET /v1/orders)", () => {
     });
   });
 
-  it("a closed account (null recipient name) is a row with an empty name, not a crash", async () => {
+  it("S4: a closed account (null recipient name) is a row with the closed-account marker, never a blank", async () => {
     const closed = apiOrder({
       recipient: { name: null, phone: null, address: null, city: null },
     });
     const { orders } = setup(() => json(200, { items: [closed], next_cursor: null }));
-    expect((await orders.listOrders(SESSION, query)).rows[0]?.recipientName).toBe("");
+    expect((await orders.listOrders(SESSION, query)).rows[0]?.recipientName).toBe(
+      CLOSED_ACCOUNT_NAME,
+    );
+  });
+
+  it("S6: keeps the full list for the life of the screen; only fresh:true reads it again", async () => {
+    const { calls, orders } = setup(() => json(200, { items: [apiOrder()], next_cursor: null }));
+    await orders.listOrders(SESSION, query);
+    await orders.listOrders(SESSION, { ...query, filter: "delivered" });
+    await orders.listOrders(SESSION, { ...query, q: "sami" });
+    expect(calls).toHaveLength(1);
+    await orders.listOrders(SESSION, query, { fresh: true });
+    expect(calls).toHaveLength(2);
+  });
+
+  it("S6: a failed read is not kept: the next call asks again", async () => {
+    let failing = true;
+    const { calls, orders } = setup(() =>
+      failing
+        ? json(500, err("INTERNAL_ERROR"))
+        : json(200, { items: [apiOrder()], next_cursor: null }),
+    );
+    await expect(orders.listOrders(SESSION, query)).rejects.toBeInstanceOf(ServerError);
+    failing = false;
+    expect((await orders.listOrders(SESSION, query)).rows).toHaveLength(1);
+    expect(calls).toHaveLength(2);
+  });
+
+  it("S6: a list that never ends is an error, not a silently cut list", async () => {
+    const { calls, orders } = setup(() => json(200, { items: [apiOrder()], next_cursor: "again" }));
+    await expect(orders.listOrders(SESSION, query)).rejects.toBeInstanceOf(ServerError);
+    expect(calls).toHaveLength(100);
   });
 
   it("401 throws the sign-in signal", async () => {
@@ -223,6 +255,7 @@ describe("api orders adapter, detail (GET /v1/orders/{id})", () => {
       service: "express",
       status: "confirmed",
       lossReported: false,
+      slipHref: null,
       sender: { name: "Amel Test", address: "1 rue A" },
       recipient: { name: "Sami Test", address: "2 rue B" },
       totalMillimes: 12500,
@@ -258,7 +291,7 @@ describe("api orders adapter, detail (GET /v1/orders/{id})", () => {
   it.each([
     ["received", "free"],
     ["confirmed", "free"],
-    ["assigned", "free"],
+    ["assigned", "freeUnlessArrived"],
     ["pickup_failed", "mayHaveFee"],
     ["picked_up", "claimOnly"],
     ["in_transit", "claimOnly"],
@@ -268,6 +301,49 @@ describe("api orders adapter, detail (GET /v1/orders/{id})", () => {
     const { orders } = setup(happy(apiOrder({ status })));
     const result = await orders.getOrderDetail(SESSION, CODE);
     expect(result.status === "found" && result.order.cancelOption).toBe(option);
+  });
+
+  it("S7: loss_reported and attempts are read from the order, not left at their default", async () => {
+    const order = apiOrder({
+      loss_reported: true,
+      parcels: [{ ...apiOrder().parcels[0], attempts: 2 }],
+    });
+    const { orders } = setup(happy(order));
+    const result = await orders.getOrderDetail(SESSION, CODE);
+    if (result.status !== "found") throw new Error("not found");
+    expect(result.order.lossReported).toBe(true);
+    expect(result.order.parcels[0]?.attempts).toBe(2);
+  });
+
+  it("S7: a lower-case number is normalized before the id lookup", async () => {
+    const { calls, orders } = setup(happy());
+    const result = await orders.getOrderDetail(SESSION, CODE.toLowerCase());
+    expect(result.status).toBe("found");
+    expect(calls[0]?.search.get("tracking")).toBe(CODE);
+  });
+
+  it("S1: a malformed number is notFound and nothing is sent (the API would answer 400)", async () => {
+    const { calls, orders } = setup(() => json(400, err("VALIDATION_FAILED")));
+    expect(await orders.getOrderDetail(SESSION, "nope")).toEqual({ status: "notFound" });
+    expect(await orders.cancelOrder(SESSION, "nope", { acceptedFee: "none" })).toEqual({
+      status: "notFound",
+    });
+    expect(calls).toHaveLength(0);
+  });
+
+  it("S4: a closed account (null names and addresses) shows the marker and no blank address", async () => {
+    const closed = { name: null, phone: null, address: null, city: null };
+    const { orders } = setup(happy(apiOrder({ sender: closed, recipient: closed })));
+    const result = await orders.getOrderDetail(SESSION, CODE);
+    if (result.status !== "found") throw new Error("not found");
+    expect(result.order.sender).toEqual({ name: CLOSED_ACCOUNT_NAME, address: null });
+    expect(result.order.recipient).toEqual({ name: CLOSED_ACCOUNT_NAME, address: null });
+  });
+
+  it("B3: the API order has no slip, so there is no link (never an empty href)", async () => {
+    const { orders } = setup(happy());
+    const result = await orders.getOrderDetail(SESSION, CODE);
+    expect(result.status === "found" && result.order.slipHref).toBeNull();
   });
 
   it("a canceled order carries the cancel record", async () => {
@@ -405,24 +481,92 @@ describe("api orders adapter, cancel (POST /v1/orders/{id}/cancel)", () => {
     });
   });
 
+  it("B2, RV-01, RV-12: every state x every accepted fee terminates in at most three POSTs against a strict server", async () => {
+    // The API demands an exact match (accepted === fee). The driver's arrival is not in the order,
+    // so `assigned` is tried with and without it.
+    const statuses: Status[] = [
+      "received",
+      "confirmed",
+      "assigned",
+      "pickup_failed",
+      "picked_up",
+      "in_transit",
+      "delivered",
+      "canceled",
+    ];
+    const fees = ["none", "applies", "backOfficeDecides"] as const;
+    let cases = 0;
+    for (const status of statuses) {
+      for (const arrived of status === "assigned" ? [false, true] : [false]) {
+        for (const first of fees) {
+          const serverFee =
+            status === "received" || status === "confirmed" || (status === "assigned" && !arrived)
+              ? "none"
+              : status === "assigned"
+                ? "applies"
+                : "backOfficeDecides";
+          const post = (call: Call) => {
+            const body = JSON.parse(call.body) as { accepted_fee: string };
+            if (status === "canceled") return json(200, { status: "canceled", fee: "none" });
+            if (status === "picked_up" || status === "in_transit")
+              return json(409, err("STATE_CONFLICT", [{ name: "status", reason: "claimOnly" }]));
+            if (status === "delivered")
+              return json(409, err("STATE_CONFLICT", [{ name: "status", reason: "notCancellable" }]));
+            if (body.accepted_fee !== serverFee)
+              return json(422, err("RULE_REFUSED", [{ name: "accepted_fee", reason: "feeRequired" }]));
+            return json(200, { status: "canceled", fee: serverFee });
+          };
+          const { calls, orders } = setup((call) =>
+            call.method === "POST" ? post(call) : happy(apiOrder({ status }))(call),
+          );
+          const label = `${status} arrived=${arrived} first=${first}`;
+          let result = await orders.cancelOrder(SESSION, CODE, { acceptedFee: first });
+          let rounds = 1;
+          // What the dialog does: show the answered fee, the customer accepts it, send it.
+          while (result.status === "feeRequired" && rounds < 4) {
+            result = await orders.cancelOrder(SESSION, CODE, { acceptedFee: result.fee });
+            rounds += 1;
+          }
+          expect(result.status, label).not.toBe("feeRequired");
+          expect(calls.filter((c) => c.method === "POST").length, label).toBeLessThanOrEqual(3);
+          cases += 1;
+        }
+      }
+    }
+    expect(cases).toBe(27);
+  });
+
   it.each([
-    ["assigned", "applies"],
-    ["pickup_failed", "backOfficeDecides"],
-  ] as [Status, string][])(
-    "422 feeRequired on an order now %s reads it again and answers the fee %s",
-    async (status, fee) => {
+    ["claimOnly", "picked_up", "none", { status: "claimOnly" }],
+    ["notCancellable", "delivered", "none", { status: "notCancellable" }],
+    ["backOfficeDecides", "pickup_failed", "none", { status: "feeRequired", fee: "backOfficeDecides" }],
+    ["applies (the driver arrived)", "assigned", "none", { status: "feeRequired", fee: "applies" }],
+    ["none (the fee was dropped)", "assigned", "applies", { status: "feeRequired", fee: "none" }],
+    ["applies (a stale may-have-fee)", "assigned", "backOfficeDecides", { status: "feeRequired", fee: "applies" }],
+    ["none (a free state)", "confirmed", "applies", { status: "feeRequired", fee: "none" }],
+  ] as [string, Status, "none" | "applies" | "backOfficeDecides", unknown][])(
+    "B2: 422 then a re-read gives %s",
+    async (_name, status, acceptedFee, expected) => {
       const { calls, orders } = setup((call) =>
         call.method === "POST"
           ? json(422, err("RULE_REFUSED", [{ name: "accepted_fee", reason: "feeRequired" }]))
           : happy(apiOrder({ status }))(call),
       );
-      expect(await orders.cancelOrder(SESSION, CODE, { acceptedFee: "none" })).toEqual({
-        status: "feeRequired",
-        fee,
-      });
+      expect(await orders.cancelOrder(SESSION, CODE, { acceptedFee })).toEqual(expected);
       expect(calls.filter((c) => c.path === `/v1/orders/${ID}` && c.method === "GET")).toHaveLength(1);
     },
   );
+
+  it("B2: a 422 on a free state that was sent 'none' is a server error, not a guess", async () => {
+    const { orders } = setup((call) =>
+      call.method === "POST"
+        ? json(422, err("RULE_REFUSED", [{ name: "accepted_fee", reason: "feeRequired" }]))
+        : happy(apiOrder({ status: "confirmed" }))(call),
+    );
+    await expect(orders.cancelOrder(SESSION, CODE, { acceptedFee: "none" })).rejects.toBeInstanceOf(
+      ServerError,
+    );
+  });
 
   it("422 with another reason is a server error, not a fee prompt", async () => {
     const { orders } = setup((call) =>

@@ -1288,7 +1288,9 @@
         "title": "We could not load this order.",
         "retry": "Try again"
       },
-      "loading": "Loading the order…"
+      "loading": "Loading the order…",
+      "fromNoAddress": "From {name}",
+      "toNoAddress": "To {name}"
     },
     "cancel": {
       "button": "Cancel the order",
@@ -1309,7 +1311,8 @@
         "none": "Cancelled at no cost.",
         "applies": "Cancellation fee: <fee></fee>.",
         "backOfficeDecides": "A fee may apply: GOFAST will confirm it to you."
-      }
+      },
+      "freeUnlessArrived": "Canceling is free unless the driver has already arrived. If they have, a fee of <fee></fee> applies under the terms."
     }
   },
   "parcels": {

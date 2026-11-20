@@ -1,6 +1,12 @@
 import { cancelOption, isValidTrackingCode, normalizeTrackingCode } from "@fastgo/domain";
 import type { components } from "@fastgo/contract";
-import type { OrderDetail, OrderDetailResult, TimelineEntry } from "../data/account-orders";
+import {
+  type DetailCancelOption,
+  type OrderDetail,
+  type OrderDetailResult,
+  type TimelineEntry,
+} from "../data/account-orders";
+import { CLOSED_ACCOUNT_NAME } from "../data/order-model";
 import type { CancelResult } from "../data/cancel";
 import type { OrdersPort } from "../data/ports";
 import { buildOrdersPage, type OrderRow } from "../data/orders-page";
@@ -25,7 +31,7 @@ function fail(status: number, error: unknown): never {
 
 const rowOf = (order: ApiOrder): OrderRow => ({
   code: order.tracking_number,
-  recipientName: order.recipient.name ?? "",
+  recipientName: order.recipient.name ?? CLOSED_ACCOUNT_NAME,
   service: order.service,
   status: order.status,
   createdAt: order.created_at,
@@ -44,11 +50,14 @@ async function listAll(client: Client): Promise<ApiOrder[]> {
     if (!data.next_cursor) return all;
     cursor = data.next_cursor;
   }
-  return all;
+  // A list that never ends is an error: a silently cut list would hide orders.
+  throw new ServerError(null);
 }
 
 /** The API addresses an order by id; the screens by tracking number. */
 async function idOf(client: Client, code: string): Promise<string | null> {
+  // A malformed number is "not found" (the API would answer 400, which is not a server fault).
+  if (!isValidTrackingCode(code)) return null;
   const tracking = normalizeTrackingCode(code);
   const { data, error, response } = await client.GET("/v1/orders", {
     params: { query: { tracking, limit: 1 } },
@@ -78,6 +87,14 @@ async function readHistory(client: Client, code: string): Promise<ApiTracking> {
  * The detail screen also shows what the API order does not carry (measured weight, failure reason,
  * proof, fragile flag): those stay at their empty value until the contract adds them.
  */
+/**
+ * The driver's arrival (R-cancel) is on the mission, which the API order does not carry: for
+ * `assigned` the screen says "free unless the driver has arrived" instead of a fact (RV-28).
+ */
+function cancelOptionOf(status: ApiOrder["status"]): DetailCancelOption {
+  return status === "assigned" ? "freeUnlessArrived" : cancelOption({ status }, null);
+}
+
 function detailOf(order: ApiOrder, history: ApiTracking): OrderDetail {
   const timeline: TimelineEntry[] = history.history.map((e) => ({
     kind: "order",
@@ -91,8 +108,8 @@ function detailOf(order: ApiOrder, history: ApiTracking): OrderDetail {
     status: order.status,
     etaUtc: order.eta_at,
     lossReported: order.loss_reported,
-    sender: { name: order.sender.name ?? "", address: order.sender.address ?? "" },
-    recipient: { name: order.recipient.name ?? "", address: order.recipient.address ?? "" },
+    sender: { name: order.sender.name ?? CLOSED_ACCOUNT_NAME, address: order.sender.address },
+    recipient: { name: order.recipient.name ?? CLOSED_ACCOUNT_NAME, address: order.recipient.address },
     totalMillimes: order.total_millimes,
     priceLines: order.lines.map((line) => ({
       kind: line.kind,
@@ -102,7 +119,7 @@ function detailOf(order: ApiOrder, history: ApiTracking): OrderDetail {
     })),
     paymentMode: order.payment_mode,
     cancel: order.cancel,
-    cancelOption: cancelOption({ status: order.status }, null),
+    cancelOption: cancelOptionOf(order.status),
     parcels: order.parcels.map((p) => ({
       index: p.index,
       barcode: p.barcode,
@@ -117,7 +134,7 @@ function detailOf(order: ApiOrder, history: ApiTracking): OrderDetail {
       proof: null,
     })),
     timeline,
-    slipHref: "",
+    slipHref: null,
   };
 }
 
@@ -127,9 +144,19 @@ type OrdersRead = Pick<
 >;
 
 export function createApiOrdersRead(client: Client): OrdersRead {
+  // The full list lives as long as the screen: chips, months, search and pages filter it locally.
+  let cached: { userId: string; list: Promise<ApiOrder[]> } | null = null;
   return {
-    async listOrders(_session, query) {
-      const orders = await listAll(client);
+    async listOrders(session, query, options) {
+      if (!cached || cached.userId !== session.userId || options?.fresh) {
+        const entry = { userId: session.userId, list: listAll(client) };
+        cached = entry;
+        // A failed read is not kept: the next call asks again.
+        entry.list.catch(() => {
+          if (cached === entry) cached = null;
+        });
+      }
+      const orders = await cached.list;
       return buildOrdersPage(orders.map(rowOf), query);
     },
 
@@ -146,6 +173,7 @@ export function createApiOrdersRead(client: Client): OrdersRead {
     async cancelOrder(_session, code, { acceptedFee }): Promise<CancelResult> {
       const id = await idOf(client, code);
       if (!id) return { status: "notFound" };
+      cached = null; // the list changes with a cancel
       // Replay by state (x-replay: state): no Idempotency-Key, the server answers 200 again.
       const { data, error, response } = await client.POST("/v1/orders/{id}/cancel", {
         params: { path: { id } },
@@ -162,13 +190,20 @@ export function createApiOrdersRead(client: Client): OrdersRead {
         response.status === 422 &&
         fields.some((f) => f.name === "accepted_fee" && f.reason === "feeRequired")
       ) {
-        // The fee changed since the dialog: read the order again to say which one applies now.
+        // The API wants the exact fee. Read the order again and say what to accept now (B2).
         const current = await readOrder(client, id);
         if (!current) return { status: "notFound" };
-        return {
-          status: "feeRequired",
-          fee: current.status === "pickup_failed" ? "backOfficeDecides" : "applies",
-        };
+        const option = cancelOptionOf(current.status);
+        if (option === "claimOnly") return { status: "claimOnly" };
+        if (option === "none") return { status: "notCancellable" };
+        if (option === "mayHaveFee") return { status: "feeRequired", fee: "backOfficeDecides" };
+        if (option === "freeUnlessArrived") {
+          // The driver's arrival is unknown here: toggle between the two fees it can be.
+          return { status: "feeRequired", fee: acceptedFee === "applies" ? "none" : "applies" };
+        }
+        // free (received, confirmed): a fee can only be "none". Refused after "none" is a fault.
+        if (acceptedFee === "none") throw new ServerError(traceIdOf(error));
+        return { status: "feeRequired", fee: "none" };
       }
       return fail(response.status, error);
     },

@@ -84,6 +84,13 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
   const showEta = !final && order.status !== "pickup_failed";
   const counted = order.parcels.filter((parcel) => parcel.status !== "canceled").length;
   const timeline = [...order.timeline].reverse();
+  // R105: a closed account has no name; a missing address is left out, never a blank in the sentence.
+  const party = (key: "from" | "to", who: { name: string; address: string | null }) => {
+    const name = who.name === CLOSED_ACCOUNT_NAME ? account("closedName") : who.name;
+    return who.address
+      ? t(key, { name, address: who.address })
+      : t(key === "from" ? "fromNoAddress" : "toNoAddress", { name });
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -101,10 +108,12 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
           </p>
         </div>
         <div className="flex min-w-0 max-w-full flex-wrap items-start gap-3">
-          <Button as="a" href={order.slipHref} download variant="secondary">
-            <Icon name="dl" />
-            {t("slip")}
-          </Button>
+          {order.slipHref ? (
+            <Button as="a" href={order.slipHref} download variant="secondary">
+              <Icon name="dl" />
+              {t("slip")}
+            </Button>
+          ) : null}
           <CancelPlacedOrder code={order.code} option={order.cancelOption} onChanged={onChanged} />
         </div>
       </div>
@@ -159,17 +168,8 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
             <h2 id="route-title" className="text-h4">
               {t("route")}
             </h2>
-            <p className="text-sm">
-              {t("from", {
-                ...order.sender,
-                // R105: the sender closed their account, so the name is the catalog key.
-                name:
-                  order.sender.name === CLOSED_ACCOUNT_NAME
-                    ? account("closedName")
-                    : order.sender.name,
-              })}
-            </p>
-            <p className="text-sm">{t("to", order.recipient)}</p>
+            <p className="text-sm">{party("from", order.sender)}</p>
+            <p className="text-sm">{party("to", order.recipient)}</p>
           </Card>
           <Card as="section" aria-labelledby="price-title" className="flex flex-col gap-3">
             <h2 id="price-title" className="text-h4">

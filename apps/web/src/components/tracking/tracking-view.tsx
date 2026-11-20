@@ -54,7 +54,11 @@ export function TrackingView({ code }: { code: string }) {
   const router = useRouter();
   const inputId = useId();
   const current = normalizeTrackingCode(code);
-  const [stored, setStored] = useState<{ code: string; result: TrackingResult } | null>(null);
+  const [stored, setStored] = useState<{ code: string; attempt: number; result: TrackingResult } | null>(
+    null,
+  );
+  // "Try again" on the same number: the URL does not change, so a counter re-runs the lookup (S5).
+  const [attempt, setAttempt] = useState(0);
 
   const {
     register,
@@ -78,19 +82,20 @@ export function TrackingView({ code }: { code: string }) {
       .lookupTracking(current)
       .then(
         (result) => {
-          if (!cancelled) setStored({ code: current, result });
+          if (!cancelled) setStored({ code: current, attempt, result });
         },
         // The port does not throw; a mock cut still must not leave "searching" forever.
         () => {
-          if (!cancelled) setStored({ code: current, result: { status: "unavailable" } });
+          if (!cancelled) setStored({ code: current, attempt, result: { status: "unavailable" } });
         },
       );
     return () => {
       cancelled = true;
     };
-  }, [current]);
+  }, [current, attempt]);
 
-  const result = current && stored?.code === current ? stored.result : null;
+  const result =
+    current && stored?.code === current && stored.attempt === attempt ? stored.result : null;
   const loading = current !== "" && result === null;
   // A badly formed number in the field hides the previous answer: it must not look like its result.
   const fieldInvalid = Boolean(errors.code);
@@ -114,7 +119,12 @@ export function TrackingView({ code }: { code: string }) {
 
   const onSubmit = handleSubmit(({ code: typed }) => {
     if (loading) return;
-    router.replace(`/suivi?n=${encodeURIComponent(normalizeTrackingCode(typed))}`, {
+    const typedCode = normalizeTrackingCode(typed);
+    if (typedCode === current && result?.status === "unavailable") {
+      setAttempt((n) => n + 1);
+      return;
+    }
+    router.replace(`/suivi?n=${encodeURIComponent(typedCode)}`, {
       scroll: false,
     });
   });

@@ -22,7 +22,8 @@ export interface OrdersPort {
   /** How long the server remembers a key; null when it never forgets (mock). */
   readonly keyLifetimeMs: number | null;
   /** C02. Throws NetworkError, AuthRequiredError or ServerError. */
-  listOrders(session: Session, query: OrdersQuery): Promise<OrdersPage>;
+  /** `fresh` asks the source again; the api adapter otherwise keeps the full list for the screen. */
+  listOrders(session: Session, query: OrdersQuery, options?: { fresh?: boolean }): Promise<OrdersPage>;
   /** C03, by tracking number. Another account's order answers like an unknown one. */
   getOrderDetail(session: Session, code: string): Promise<OrderDetailResult>;
   /** CMD-08. Replay by state: no Idempotency-Key. `acceptedFee` is the fee the dialog showed. */

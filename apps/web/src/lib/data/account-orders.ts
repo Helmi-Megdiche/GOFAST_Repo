@@ -155,19 +155,23 @@ export type OrderDetail = {
   etaUtc: string | null;
   lossReported: boolean;
   /** Names and addresses only: a phone is never shown in the client space (privacy rule). */
-  sender: { name: string; address: string };
-  recipient: { name: string; address: string };
+  sender: { name: string; address: string | null };
+  recipient: { name: string; address: string | null };
   /** The price fixed at creation (R204, R206), never priced again. */
   totalMillimes: number;
   /** `millimes` is null for a VAT or stamp line the server has not confirmed yet (shown as [PRIX]). */
   priceLines: PriceLineView[];
   paymentMode: AccountOrder["paymentMode"];
   cancel: AccountOrder["cancel"];
-  cancelOption: CancelOption;
+  /** `freeUnlessArrived`: the API order carries no mission, so the driver's arrival is unknown (RV-28). */
+  cancelOption: DetailCancelOption;
   parcels: ParcelView[];
   timeline: TimelineEntry[];
-  slipHref: string;
+  /** Null when the source has no slip (the API path): the button is hidden, never an empty link. */
+  slipHref: string | null;
 };
+
+export type DetailCancelOption = CancelOption | "freeUnlessArrived";
 
 export type OrderDetailResult = { status: "found"; order: OrderDetail } | { status: "notFound" };
 

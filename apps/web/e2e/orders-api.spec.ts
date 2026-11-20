@@ -171,6 +171,8 @@ test("C03: the detail reads the order by id and the timeline from the public tra
   const api = await fakeApi(page);
   await page.goto(`/fr/compte/commandes/${CODE}`);
   await expect(page.getByText("Sami Test").first()).toBeVisible();
+  // B3: the API has no slip URL, so there is no "Bon de commande" button (not a dead link).
+  await expect(page.getByRole("link", { name: "Bon de commande" })).toHaveCount(0);
   expect(api.calls("GET /v1/orders")[0]?.search.get("tracking")).toBe(CODE);
   expect(api.calls(`GET /v1/orders/${ID}`)).toHaveLength(1);
   expect(api.calls(`GET /v1/tracking/${CODE}`).length).toBeGreaterThan(0);
@@ -227,6 +229,44 @@ test("CMD-08: a 422 feeRequired re-opens the dialog with the fee line", async ({
   await page.getByRole("button", { name: "Annuler la commande" }).click();
   await dialog(page).getByRole("button", { name: "Oui, annuler" }).click();
   await expect(dialog(page)).toContainText("Des frais d'annulation s'appliquent");
+  // The page said "free" and the order changed: the dialog says so.
+  await expect(dialog(page)).toContainText("La situation de votre commande a changé");
+});
+
+test("CMD-08 (B1): an assigned order is not announced as free; a 422 shows the fee without the changed line", async ({
+  page,
+}) => {
+  const posts: unknown[] = [];
+  const api = await fakeApi(page, {
+    [`POST /v1/orders/${ID}/cancel`]: (call) => {
+      posts.push(call.body);
+      const accepted = (call.body as { accepted_fee: string }).accepted_fee;
+      if (accepted === "none") {
+        return { status: 422, body: err("RULE_REFUSED", [{ name: "accepted_fee", reason: "feeRequired" }]) };
+      }
+      api.state.order = order({ status: "canceled" });
+      return { status: 200, body: { status: "canceled", fee: "applies" } };
+    },
+  });
+  api.state.order = order({ status: "assigned" });
+  await page.goto(`/fr/compte/commandes/${CODE}`);
+  await page.getByRole("button", { name: "Annuler la commande" }).click();
+  await expect(dialog(page)).toContainText("gratuite tant que le livreur n'est pas arrivé");
+  await expect(dialog(page)).not.toContainText("n'est pas encore arrivé");
+  await dialog(page).getByRole("button", { name: "Oui, annuler" }).click();
+  await expect(dialog(page)).toContainText("Des frais d'annulation s'appliquent");
+  await expect(dialog(page)).not.toContainText("La situation de votre commande a changé");
+  await dialog(page).getByRole("button", { name: "Oui, annuler" }).click();
+  await expect(page.getByText("Commande annulée").first()).toBeVisible();
+  expect(posts).toEqual([{ accepted_fee: "none" }, { accepted_fee: "applies" }]);
+});
+
+test("S2: a 401 on the list sends the client to sign-in, with the page to come back to", async ({
+  page,
+}) => {
+  await fakeApi(page, { "GET /v1/orders": () => ({ status: 401, body: err("AUTH_REQUIRED") }) });
+  await page.goto("/fr/compte/commandes");
+  await page.waitForURL(/\/fr\/connexion\?next=%2Fcompte%2Fcommandes/);
 });
 
 test("SUI-01: /suivi reads GET /v1/tracking/{number}; the URL stays the source of truth", async ({
@@ -239,15 +279,49 @@ test("SUI-01: /suivi reads GET /v1/tracking/{number}; the URL stays the source o
   await expect(page.locator("input").first()).toHaveValue(CODE);
 });
 
-test("SUI-01: a 404 is the not-found message, a 503 says tracking is unavailable", async ({
+test("SUI-01: a 404 is the not-found message, a 500 says tracking is unavailable", async ({
   page,
 }) => {
   await fakeApi(page, {
     [`GET /v1/tracking/${CODE}`]: () => ({ status: 404, body: err("NOT_FOUND") }),
-    "GET /v1/tracking/FG-7K4M-2QXP": () => ({ status: 503, body: err("UNAVAILABLE") }),
+    "GET /v1/tracking/FG-7K4M-2QXP": () => ({ status: 500, body: err("INTERNAL_ERROR") }),
   });
   await page.goto(`/fr/suivi?n=${CODE}`);
   await expect(page.getByText("Numéro introuvable").or(page.getByText(/introuvable/i)).first()).toBeVisible();
   await page.goto("/fr/suivi?n=FG-7K4M-2QXP");
   await expect(page.getByText("Suivi momentanément indisponible")).toBeVisible();
+});
+
+test("SUI-01 (S5): Try again on the same number asks the API again", async ({ page }) => {
+  let hits = 0;
+  const api = await fakeApi(page, {
+    [`GET /v1/tracking/${CODE}`]: () =>
+      ++hits === 1
+        ? { status: 500, body: err("INTERNAL_ERROR") }
+        : { status: 200, body: tracking() },
+  });
+  await page.goto(`/fr/suivi?n=${CODE}`);
+  await expect(page.getByText("Suivi momentanément indisponible")).toBeVisible();
+  await page.getByRole("button", { name: "Suivre" }).click();
+  await expect(page.getByText("Tunis")).toBeVisible();
+  expect(api.calls(`GET /v1/tracking/${CODE}`)).toHaveLength(2);
+});
+
+test("CMD-08 (S3): a server error on cancel keeps the alert and reads the order again", async ({
+  page,
+}) => {
+  const api = await fakeApi(page, {
+    [`POST /v1/orders/${ID}/cancel`]: () => {
+      // The cancel went through on the server, but the answer was an error.
+      api.state.order = order({ status: "canceled" });
+      return { status: 500, body: err("INTERNAL_ERROR") };
+    },
+  });
+  await page.goto(`/fr/compte/commandes/${CODE}`);
+  await page.getByRole("button", { name: "Annuler la commande" }).click();
+  const reads = () => api.calls(`GET /v1/orders/${ID}`).length;
+  const before = reads();
+  await dialog(page).getByRole("button", { name: "Oui, annuler" }).click();
+  await expect.poll(reads).toBeGreaterThan(before);
+  await expect(page.getByText("Commande annulée").first()).toBeVisible();
 });
