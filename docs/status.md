@@ -38,7 +38,7 @@ Snapshot of 20 Nov 2026 (week S2). Source: GitHub (merged PRs, open issues and P
 | Item | Waiting for | Who |
 |---|---|---|
 | #14, #15 staging and deploy to staging | Code merged (#105, #108, #111, #113). Host order, then `infra/servers/setup.sh`. Temporary host abroad, fake data only | Helmi |
-| #69 recette matrix (T, DR, EX, CC) | PR #69 is open, not merged | Helmi, reviewer |
+| #69 recette matrix (T, DR, EX, CC) | The matrix exists in `docs/spec/recette.md`, 118 rows checked against `main` at `704dabd` (20 Nov): Covered 15, Partial 20, Not covered 15, Blocked 68 (T 61, DR 36, EX 17, CC 4). PR #69 is open, waiting for review | Helmi |
 | GOFAST open questions (#17, #94 section 8) | Answers through Helmi: TTC or HT, VAT, stamp duty, packaging price on Programmée, company members, ticket categories, SMS provider, what closes with a merchant account, Google sign-up type | GOFAST, accountant |
 | Real phone tests (G2) | 3 Android phones and an iPhone. G2 moved from 21 Nov to about 25 Nov (Helmi, 20 Nov) | GOFAST |
 | Required checks before merge | Turn them on in the repo settings. The repo is public since 19 Nov (GOFAST agreed in writing), so it is free | Helmi |
@@ -54,5 +54,5 @@ Nobody sets `NEXT_PUBLIC_API_DOMAINS=auth` for real use until `account` is switc
 | 1 | Ala | #22 what is left, with the read gaps (#120); #122 address book and recipients routes; e-mail route and balance route (follow-up issue) |
 | 2 | Helmi | Supervisor review of #20 20-d, then #122 on the web side |
 | 3 | Helmi | Order the staging host, then run `infra/servers/setup.sh` |
-| 4 | Helmi | Merge or close PR #69 after review |
+| 4 | Helmi | Merge PR #69 after review, then update the matrix rows when a PR covers them |
 | 5 | Helmi | Send the open questions to GOFAST (#17) |
