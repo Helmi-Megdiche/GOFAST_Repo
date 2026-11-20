@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
-import { RECIPIENT_LINK_AFTER_DELIVERY_MS } from "../order/constants";
+import { RECIPIENT_LINK_AFTER_DELIVERY_MS } from "@fastgo/domain";
 import { readTable, writeRow } from "./mock-db";
 import {
   ACCOUNT_ORDERS,
@@ -17,9 +17,7 @@ import {
   activePickupMission,
   createMission,
   DERIVED_ORDER_STATES,
-  deriveOrderOutcome,
   FINAL_ORDER_STATES,
-  FINAL_PARCEL_STATES,
   MISSION_NEXT,
   ORDER_NEXT,
   PARCEL_NEXT,
@@ -52,7 +50,7 @@ function makeOrder(n: number): { order: AccountOrder; parcels: Parcel[] } {
     status: "received",
     lossReported: false,
     totalMillimes: 7000,
-    priceLines: [{ kind: "base", millimes: 7000 }],
+    priceLines: [{ kind: "base", unitMillimes: 7000, count: 1, millimes: 7000 }],
     paymentMode: "cashPickup",
     freightPayer: "sender",
     freightPayerAccepted: false,
@@ -256,6 +254,18 @@ describe("mission table", () => {
         });
       }
     }
+
+    it("an order or a parcel has no end reason either: asking for one is endReasonInternal", () => {
+      expect(transition(O, "canceled", "staff-1", { endReason: "orderCanceled" })).toEqual({
+        refused: "endReasonInternal",
+      });
+      expect(order().status).toBe("received");
+      expect(
+        transition({ type: "parcel", id: `${CODE}-p1` }, "taken", "driver-1", {
+          endReason: "driverRemoved",
+        }),
+      ).toEqual({ refused: "endReasonInternal" });
+    });
 
     it("a direct normal finish (endReason null) stays public", () => {
       const m = toAssigned();
@@ -620,37 +630,7 @@ describe("cancel cascade", () => {
   });
 });
 
-describe("deriveOrderOutcome", () => {
-  it("picked_up while every counted parcel is taken", () => {
-    expect(deriveOrderOutcome(["taken", "taken"])).toBe("picked_up");
-  });
-
-  for (const s of [
-    "in_transit",
-    "at_depot",
-    "delivery_failed",
-    "returning",
-    "handed_over",
-  ] as const) {
-    it(`in_transit with ${s} and the other taken`, () => {
-      expect(deriveOrderOutcome([s, "taken"])).toBe("in_transit");
-    });
-  }
-
-  it("the four outcomes", () => {
-    expect(deriveOrderOutcome(["handed_over", "handed_over", "handed_over"])).toBe("delivered");
-    expect(deriveOrderOutcome(["handed_over", "handed_over", "returned"])).toBe(
-      "partially_delivered",
-    ); // T19
-    expect(deriveOrderOutcome(["handed_over", "lost"])).toBe("partially_delivered");
-    expect(deriveOrderOutcome(["returned", "lost"])).toBe("returned");
-    expect(deriveOrderOutcome(["lost", "lost"])).toBe("lost");
-  });
-
-  it("ignores canceled parcels", () => {
-    expect(deriveOrderOutcome(["handed_over", "canceled"])).toBe("delivered");
-  });
-});
+// deriveOrderOutcome and the guards are tested in packages/domain (states.test.ts).
 
 describe("lossReported", () => {
   function deliverWith(outcomes: ParcelStatus[]) {
@@ -734,19 +714,41 @@ describe("event log", () => {
       endReason: "driverRemoved",
     });
   });
-
-  it("final parcel states are handed_over returned lost canceled", () => {
-    expect([...FINAL_PARCEL_STATES].sort()).toEqual(
-      ["canceled", "handed_over", "lost", "returned"].sort(),
-    );
-  });
 });
 
-describe("recomputeOrder refuses a derived move the order table does not list", () => {
+describe("a derived move the order table does not list throws before any write (RV-04)", () => {
   it("an assigned order whose parcel is at_depot throws instead of writing assigned -> in_transit", () => {
     setOrderStatus("assigned");
     setParcelStatus(1, "at_depot");
     expect(() => transition(P(1), "in_transit", "driver-1")).toThrow(/not in ORDER_NEXT/);
+  });
+
+  it("after the throw the parcel, the order and the events are unchanged", () => {
+    setOrderStatus("assigned");
+    setParcelStatus(1, "at_depot");
+    const before = { parcel: parcel(1), order: order(), events: events().length };
+    expect(() => transition(P(1), "in_transit", "driver-1")).toThrow();
+    expect(parcel(1)).toEqual(before.parcel);
+    expect(order()).toEqual(before.order);
+    expect(events()).toHaveLength(before.events);
+  });
+});
+
+describe("endReasonInternal comes before anything is read (checkPublicEndReason)", () => {
+  it("an unknown mission, order or parcel id with an endReason is endReasonInternal, not notFound", () => {
+    for (const subject of [
+      M("no-such-mission"),
+      { type: "order" as const, id: "FG-NOPE" },
+      { type: "parcel" as const, id: "no-such-parcel" },
+    ]) {
+      expect(transition(subject, "finished", "driver-1", { endReason: "driverRemoved" })).toEqual({
+        refused: "endReasonInternal",
+      });
+    }
+    // Without an endReason the same ids are notFound.
+    expect(transition(M("no-such-mission"), "accepted", "driver-1")).toEqual({
+      refused: "notFound",
+    });
   });
 });
 

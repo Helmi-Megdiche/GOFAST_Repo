@@ -13,13 +13,14 @@ import {
   TimelineItem,
 } from "@fastgo/ui";
 import type { Locale } from "@fastgo/i18n";
+import { CLOSED_ACCOUNT_NAME } from "@/lib/data/order-model";
 import { CancelPlacedOrder, CanceledNotice } from "@/components/order/cancel-placed-order";
 import { DateTime, Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
-import { getOrderDetail, type OrderDetail, type ParcelView } from "@/lib/data/account-orders";
+import type { OrderDetail, ParcelView } from "@/lib/data/account-orders";
+import { ordersPort } from "@/lib/data";
 import { FINAL_ORDER_STATES } from "@/lib/data/states";
-import type { ProofLevel } from "@/lib/order/proof";
-import { formatKg, weightToleranceG } from "@/lib/order/weight";
+import { type ProofLevel, formatKg, weightToleranceG } from "@fastgo/domain";
 import { OrderStatusBadge } from "./order-status";
 import { useLoader } from "./use-loader";
 
@@ -33,7 +34,10 @@ const PROOF_TEXT = {
 /** C03 (ESP-04, SUI-05, CMD-08): one order of the account, from the event log. */
 export function OrderDetailView({ code }: { code: string }) {
   const t = useTranslations("orders.detail");
-  const { state, reload } = useLoader((session) => getOrderDetail(session, code), code);
+  const { state, reload } = useLoader(
+    (session) => ordersPort().getOrderDetail(session, code),
+    code,
+  );
 
   if (state.status === "loading") {
     return (
@@ -73,12 +77,20 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
   const o = useTranslations("offers");
   const p = useTranslations("placeholders");
   const review = useTranslations("order.review");
+  const account = useTranslations("account");
   const status = useTranslations("orders.status");
   const failure = useTranslations("parcels.failure");
   const final = FINAL_ORDER_STATES.includes(order.status);
   const showEta = !final && order.status !== "pickup_failed";
   const counted = order.parcels.filter((parcel) => parcel.status !== "canceled").length;
   const timeline = [...order.timeline].reverse();
+  // R105: a closed account has no name; a missing address is left out, never a blank in the sentence.
+  const party = (key: "from" | "to", who: { name: string; address: string | null }) => {
+    const name = who.name === CLOSED_ACCOUNT_NAME ? account("closedName") : who.name;
+    return who.address
+      ? t(key, { name, address: who.address })
+      : t(key === "from" ? "fromNoAddress" : "toNoAddress", { name });
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -96,10 +108,12 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
           </p>
         </div>
         <div className="flex min-w-0 max-w-full flex-wrap items-start gap-3">
-          <Button as="a" href={order.slipHref} download variant="secondary">
-            <Icon name="dl" />
-            {t("slip")}
-          </Button>
+          {order.slipHref ? (
+            <Button as="a" href={order.slipHref} download variant="secondary">
+              <Icon name="dl" />
+              {t("slip")}
+            </Button>
+          ) : null}
           <CancelPlacedOrder code={order.code} option={order.cancelOption} onChanged={onChanged} />
         </div>
       </div>
@@ -154,8 +168,8 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
             <h2 id="route-title" className="text-h4">
               {t("route")}
             </h2>
-            <p className="text-sm">{t("from", order.sender)}</p>
-            <p className="text-sm">{t("to", order.recipient)}</p>
+            <p className="text-sm">{party("from", order.sender)}</p>
+            <p className="text-sm">{party("to", order.recipient)}</p>
           </Card>
           <Card as="section" aria-labelledby="price-title" className="flex flex-col gap-3">
             <h2 id="price-title" className="text-h4">
@@ -165,7 +179,8 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
               items={[
                 ...order.priceLines.map((line) => ({
                   term: t(`priceLines.${line.kind}`),
-                  value: <Money millimes={line.millimes} />,
+                  value:
+                    line.millimes === null ? p("price") : <Money millimes={line.millimes} />,
                 })),
                 { term: <b>{t("total")}</b>, value: <Money millimes={order.totalMillimes} /> },
                 { term: t("payment"), value: review(`payments.${order.paymentMode}.title`) },

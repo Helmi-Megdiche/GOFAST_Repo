@@ -1,4 +1,4 @@
-import { isValidTrackingCode, normalizeTrackingCode } from "../tracking-code";
+import { isValidTrackingCode, normalizeTrackingCode } from "@fastgo/domain";
 import { orderHistory, parcelsOf } from "./account-orders";
 import { mockDelay } from "./delay";
 import { seedOrderFixtures } from "./fixtures/orders";
@@ -27,7 +27,9 @@ export type PublicTracking = {
 export type TrackingResult =
   | { status: "found"; tracking: PublicTracking }
   | { status: "not-found" }
-  | { status: "invalid-format" };
+  | { status: "invalid-format" }
+  /** Api only: 429, 5xx or a cut. The page says to try again; nothing is known about the order. */
+  | { status: "unavailable" };
 
 export function publicTrackingOf(code: string): PublicTracking | null {
   seedOrderFixtures();

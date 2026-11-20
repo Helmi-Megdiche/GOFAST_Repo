@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { MAX_ATTACHMENT_BYTES } from "../limits";
-import { isValidTrackingCode } from "../tracking-code";
+import { fileError, MAX_ATTACHMENT_BYTES, isValidTrackingCode } from "@fastgo/domain";
+import { DRIVER_DOCUMENTS, DRIVER_VEHICLES } from "../data/driver";
 
 /**
  * Validation rules for the public forms. Messages are error codes, not text: each form looks the
@@ -13,6 +13,8 @@ export type FormErrorCode =
   | "trackingInvalid"
   | "addressTooShort"
   | "attachmentTooLarge"
+  | "attachmentBadType"
+  | "documentRequired"
   | "captchaRequired";
 
 const code = (value: FormErrorCode) => value;
@@ -72,11 +74,24 @@ export const contactFormSchema = z.object({
 });
 export type ContactFormValues = z.infer<typeof contactFormSchema>;
 
+/** One required identity document: the shared file rule (images and PDF, 5 MB; packages/domain/src/attachments.ts). */
+export const requiredDocumentField = z.custom<File | null>().superRefine((file, ctx) => {
+  const fail = (message: FormErrorCode) => ctx.addIssue({ code: "custom", message });
+  if (file == null) return fail("documentRequired");
+  const problem = fileError({ name: file.name, type: file.type, sizeBytes: file.size });
+  if (problem) fail(problem === "tooLarge" ? "attachmentTooLarge" : "attachmentBadType");
+});
+
 export const driverFormSchema = z.object({
   fullName: requiredText,
   phone: phoneField,
-  vehicle: z.enum(["moto", "other"]),
+  vehicle: z.enum(DRIVER_VEHICLES),
   zone: z.enum(["city"]),
-  document: attachmentField,
+  documents: z.object(
+    Object.fromEntries(DRIVER_DOCUMENTS.map((key) => [key, requiredDocumentField])) as Record<
+      (typeof DRIVER_DOCUMENTS)[number],
+      typeof requiredDocumentField
+    >,
+  ),
 });
 export type DriverFormValues = z.infer<typeof driverFormSchema>;

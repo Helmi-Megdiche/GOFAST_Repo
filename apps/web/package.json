@@ -9,14 +9,17 @@
     "lint": "eslint .",
     "typecheck": "next typegen && tsc --noEmit",
     "test": "vitest run",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:api": "playwright test -c playwright.api.config.ts"
   },
   "dependencies": {
+    "@fastgo/domain": "workspace:*",
     "@fastgo/i18n": "workspace:*",
     "@fastgo/ui": "workspace:*",
     "@hookform/resolvers": "^7.0.2",
     "next": "16.4.5",
     "next-intl": "4.14.9",
+    "openapi-fetch": "0.14.1",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-hook-form": "^7.91.0",
@@ -25,6 +28,7 @@
   "devDependencies": {
     "@axe-core/playwright": "4.14.0",
     "@fastgo/config": "workspace:*",
+    "@fastgo/contract": "workspace:*",
     "@playwright/test": "1.64.1",
     "@tailwindcss/postcss": "4.3.4",
     "@types/node": "^24.0.0",

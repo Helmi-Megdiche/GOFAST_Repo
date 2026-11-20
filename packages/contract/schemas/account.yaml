@@ -1,0 +1,205 @@
+NotificationPrefs:
+  type: object
+  required: [sms, email, offers]
+  additionalProperties: false
+  properties:
+    sms: { type: boolean }
+    email: { type: boolean }
+    offers: { type: boolean }
+Me:
+  type: object
+  description: The signed-in person and their account. Also the answer of every sign-in route.
+  required:
+    [
+      account_id,
+      user_id,
+      kind,
+      role,
+      contract,
+      phone_verified,
+      name,
+      phone,
+      email,
+      google,
+      locale,
+      notifications,
+    ]
+  additionalProperties: false
+  properties:
+    account_id: { $ref: "common.yaml#/ResourceId" }
+    user_id:
+      description: The person signed in. The account itself for a customer, a team member for a merchant.
+      $ref: "common.yaml#/ResourceId"
+    kind:
+      type: string
+      enum: [customer, merchant, staff]
+    role:
+      type: [string, "null"]
+      description: >-
+        Staff or team role (an `x-roles` slug); null for a customer. The cahier does not detail the
+        roles inside a company (regles.md:168), so a merchant gets `admin` or `user`.
+    contract:
+      type: [string, "null"]
+      enum: [validated, pending, null]
+      description: Merchant contract state (R104). Null for a customer.
+    phone_verified: { type: boolean }
+    name: { type: [string, "null"] }
+    phone:
+      oneOf:
+        - $ref: "common.yaml#/PhoneE164"
+        - type: "null"
+    email: { type: [string, "null"], format: email }
+    google:
+      type: boolean
+      description: True while a Google account is linked (R103).
+    locale: { $ref: "common.yaml#/Locale" }
+    notifications: { $ref: "#/NotificationPrefs" }
+MeChange:
+  type: object
+  description: R902. Only the fields sent change. The phone is read-only in L1.
+  additionalProperties: false
+  minProperties: 1
+  properties:
+    name: { type: string, minLength: 1 }
+    locale: { $ref: "common.yaml#/Locale" }
+    notifications: { $ref: "#/NotificationPrefs" }
+SignInRequest:
+  type: object
+  required: [identifier, password]
+  additionalProperties: false
+  properties:
+    identifier:
+      type: string
+      description: A phone number or an e-mail address.
+    password:
+      type: string
+      format: password
+GoogleSignInRequest:
+  type: object
+  required: [credential]
+  additionalProperties: false
+  properties:
+    credential:
+      type: string
+      description: The Google ID token.
+    phone_check_id:
+      description: Required for a new Google account, whose phone is verified once (R103).
+      oneOf:
+        - $ref: "#/PhoneCheckId"
+        - type: "null"
+    link_code:
+      description: >-
+        The code sent by SMS to the stored phone when the Google e-mail already has an account
+        (R103). Absent on the first call.
+      type: [string, "null"]
+      pattern: "^[0-9]+$"
+SignUpRequest:
+  type: object
+  required: [kind, name, phone, phone_check_id, password, locale, terms_accepted]
+  additionalProperties: false
+  properties:
+    kind:
+      type: string
+      enum: [customer, merchant]
+    name: { type: string, minLength: 1 }
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    phone_check_id: { $ref: "#/PhoneCheckId" }
+    email: { type: [string, "null"], format: email }
+    password:
+      type: string
+      format: password
+      description: The minimum length is checked from the settings; a short one gives RULE_REFUSED `passwordTooShort`.
+    locale: { $ref: "common.yaml#/Locale" }
+    terms_accepted:
+      type: boolean
+      const: true
+PasswordResetRequest:
+  type: object
+  required: [phone, phone_check_id, new_password]
+  additionalProperties: false
+  properties:
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    phone_check_id: { $ref: "#/PhoneCheckId" }
+    new_password:
+      type: string
+      format: password
+PhoneCheckId:
+  type: string
+  format: uuid
+  description: Proof that a code was verified for a phone and a purpose. Valid for a short time and used once.
+PhoneCheckPurpose:
+  type: string
+  enum: [order, signUp, reset, googlePhone]
+PhoneCheckRequest:
+  type: object
+  required: [phone, purpose]
+  additionalProperties: false
+  properties:
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    purpose: { $ref: "#/PhoneCheckPurpose" }
+PhoneCheckSent:
+  type: object
+  description: The answer is the same for a known and an unknown phone (R102), so it does not tell whether the phone has an account (a choice of this contract, not a rule of the cahier).
+  required: [expires_at, resend_at]
+  additionalProperties: false
+  properties:
+    expires_at: { $ref: "common.yaml#/UtcTimestamp" }
+    resend_at: { $ref: "common.yaml#/UtcTimestamp" }
+PhoneCheckVerifyRequest:
+  type: object
+  required: [phone, purpose, code]
+  additionalProperties: false
+  properties:
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    purpose: { $ref: "#/PhoneCheckPurpose" }
+    code:
+      type: string
+      pattern: "^[0-9]+$"
+      description: The digits of the SMS code. Their number comes from the settings.
+PhoneCheckVerified:
+  type: object
+  required: [phone_check_id, valid_until]
+  additionalProperties: false
+  properties:
+    phone_check_id: { $ref: "#/PhoneCheckId" }
+    valid_until: { $ref: "common.yaml#/UtcTimestamp" }
+SavedAddress:
+  type: object
+  required: [id, label, text, landmark]
+  additionalProperties: false
+  properties:
+    id: { $ref: "common.yaml#/ResourceId" }
+    label: { type: string }
+    text: { type: string }
+    landmark: { type: string }
+SavedAddressInput:
+  type: object
+  required: [label, text]
+  additionalProperties: false
+  properties:
+    label: { type: string, minLength: 1 }
+    text: { type: string, minLength: 1 }
+    landmark: { type: string, default: "" }
+SavedRecipient:
+  type: object
+  required: [id, name, phone, address, landmark, locale]
+  additionalProperties: false
+  properties:
+    id: { $ref: "common.yaml#/ResourceId" }
+    name: { type: string }
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    address: { type: string }
+    landmark: { type: string }
+    locale:
+      description: R903. The language of the SMS and the link this recipient gets.
+      $ref: "common.yaml#/Locale"
+SavedRecipientInput:
+  type: object
+  required: [name, phone, address]
+  additionalProperties: false
+  properties:
+    name: { type: string, minLength: 1 }
+    phone: { $ref: "common.yaml#/PhoneE164" }
+    address: { type: string, minLength: 1 }
+    landmark: { type: string, default: "" }
+    locale: { $ref: "common.yaml#/Locale" }

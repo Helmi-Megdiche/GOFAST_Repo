@@ -187,7 +187,8 @@ describe("getDashboard (C01)", () => {
     expect(dash.inProgress.every((o) => o.parcelCount >= 1)).toBe(true);
     expect(dash.lastDeliveries).toHaveLength(3);
     expect(dash.lastDeliveries.some((o) => o.status === "canceled")).toBe(false);
-    expect(dash.amountDueMillimes).toBe(0);
+    // The unpaid and the partly paid invoice of the billing fixtures (RV-15: same figure as C04).
+    expect(dash.amountDueMillimes).toBe(29_000);
   });
 
   it("an account with nothing has empty lists, and the return balance is in millimes", async () => {
@@ -208,10 +209,10 @@ describe("getOrderDetail (C03)", () => {
   it("R204: the price lines and total stored at creation add up", async () => {
     const order = await detail("FG-5A1C-0002");
     expect(order.priceLines).toEqual([
-      { kind: "base", millimes: 9000 },
-      { kind: "distance", millimes: 3000 },
+      { kind: "base", unitMillimes: 9000, count: 1, millimes: 9000 },
+      { kind: "distance", unitMillimes: 3000, count: 1, millimes: 3000 },
     ]);
-    expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
+    expect(order.priceLines.reduce((sum, line) => sum + (line.millimes ?? 0), 0)).toBe(
       order.totalMillimes,
     );
   });
@@ -227,7 +228,7 @@ describe("getOrderDetail (C03)", () => {
     setClock(() => T0 + 20 * 24 * 3_600_000);
     const order = await detail(created.code);
     expect(order.totalMillimes).toBe(request.quote.totalMillimes);
-    expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
+    expect(order.priceLines.reduce((sum, line) => sum + (line.millimes ?? 0), 0)).toBe(
       request.quote.totalMillimes,
     );
   });

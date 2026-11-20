@@ -8,16 +8,18 @@ import {
   CODE_SEND_WINDOW_MS,
   CODE_VALIDITY_MS,
   CODE_VERIFIED_WINDOW_MS,
-} from "../order/constants";
-import { toLatinDigits } from "../digits";
-import { normalizePhone } from "../phone";
+  toLatinDigits,
+  normalizePhone,
+} from "@fastgo/domain";
 import { mockDelay } from "./delay";
 import { FIXTURE_CODES } from "./fixtures/accounts";
+import { writeJson } from "../storage";
 import { readTable, writeRow } from "./mock-db";
 
 /** Mock of POST /v1/codes and POST /v1/codes/verify (R102, ESP-01, CMD-03). */
 export type CodeTarget = { channel: "sms" | "email"; value: string };
-export type CodePurpose = "order" | "signUp" | "reset" | "googlePhone" | "googleEmail";
+export type CodePurpose =
+  "order" | "signUp" | "reset" | "googlePhone" | "googleEmail" | "emailConfirm";
 
 export type SendResult =
   | { status: "sent"; expiresAt: string; resendAt: string }
@@ -94,6 +96,34 @@ function stillVerified(entry: CodeEntry | undefined, at: number): boolean {
   );
 }
 
+/**
+ * Removes the state of every target that is out of all its windows (sends, wrong attempts, lock, code
+ * validity and verified window): it can no longer limit anything, so keeping it only keeps a phone or
+ * an e-mail in storage for nothing (R105). Runs when a code is sent.
+ */
+function pruneExpiredTargets(at: number): void {
+  const table = readTable<Partial<TargetState>>(TABLE);
+  const kept = Object.entries(table).filter(([, row]) => {
+    // The moment each thing that can still limit this target ends: the last one decides.
+    const ends = [
+      ...(row.sends ?? []).map((time) => time + CODE_SEND_WINDOW_MS),
+      ...(row.wrong ?? []).map((time) => time + CODE_LOCK_MS),
+      row.lockedUntil ?? 0,
+      ...Object.values(row.codes ?? {}).flatMap((entry) =>
+        entry
+          ? [
+              entry.issuedAt + CODE_RESEND_DELAY_MS,
+              entry.expiresAt,
+              (entry.verifiedAt ?? 0) + CODE_VERIFIED_WINDOW_MS,
+            ]
+          : [],
+      ),
+    ];
+    return at <= Math.max(0, ...ends);
+  });
+  if (kept.length !== Object.keys(table).length) writeJson(TABLE, Object.fromEntries(kept));
+}
+
 /** The code the mock sent last to this target (for this purpose). Tests and the mock only, never the UI. */
 export function mockCodeFor(target: CodeTarget, purpose?: CodePurpose): string | null {
   const state = readState(target)?.state;
@@ -111,6 +141,7 @@ export function mockCodeFor(target: CodeTarget, purpose?: CodePurpose): string |
  */
 export async function sendCode(target: CodeTarget, purpose: CodePurpose): Promise<SendResult> {
   await mockDelay();
+  pruneExpiredTargets(now());
   const found = readState(target);
   if (!found) return { status: "invalidTarget" };
   const { id, state: previous } = found;

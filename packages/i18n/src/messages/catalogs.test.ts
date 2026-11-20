@@ -39,6 +39,41 @@ describe("message catalogs", () => {
   });
 });
 
+describe("apiErrors", () => {
+  it("R201_T04: outOfZone, the zone check reason, is an apiErrors key in fr, en and ar", () => {
+    for (const [locale, entries] of Object.entries(flat))
+      expect(entries["apiErrors.outOfZone"], locale).toBeTruthy();
+  });
+  it("R204: every RULE_REFUSED reason of a quote has a message in fr, en and ar", () => {
+    for (const reason of ["outOfZone", "addressUnconfirmed", "tooManyParcels", "tooHeavy", "priceUnavailable"])
+      for (const [locale, entries] of Object.entries(flat))
+        expect(entries[`apiErrors.${reason}`], `${locale} ${reason}`).toBeTruthy();
+  });
+  it("GH-22 RV-05 R607: every RULE_REFUSED reason of an order has a message in fr, en and ar", () => {
+    for (const reason of ["quoteChanged", "phoneRequired", "contractRequired", "addressMismatch", "freightPayerRequired"])
+      for (const [locale, entries] of Object.entries(flat))
+        expect(entries[`apiErrors.${reason}`], `${locale} ${reason}`).toBeTruthy();
+  });
+});
+
+describe("apiErrors of cancel and confirm", () => {
+  it("GH-22 R212 R209: every refusal reason of cancelOrder and confirmOrder has a message in fr, en and ar", () => {
+    for (const reason of ["feeRequired", "claimOnly", "notCancellable", "notWaitingForConfirmation"])
+      for (const [locale, entries] of Object.entries(flat))
+        expect(entries[`apiErrors.${reason}`], `${locale} ${reason}`).toBeTruthy();
+  });
+});
+
+describe("apiSms", () => {
+  it("GH-22 R903 R904: the tracking SMS exists in fr, en and ar with the same two placeholders", () => {
+    for (const [locale, entries] of Object.entries(flat)) {
+      const text = entries["apiSms.tracking"] ?? "";
+      expect(text, locale).toContain("{tracking_number}");
+      expect(text, locale).toContain("{link}");
+    }
+  });
+});
+
 describe("business placeholders", () => {
   it("stay visible in square brackets in fr, en and ar", () => {
     const keys = Object.keys(flat.fr).filter((key) => key.startsWith("placeholders."));

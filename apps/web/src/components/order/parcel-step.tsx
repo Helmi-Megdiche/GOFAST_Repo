@@ -7,11 +7,10 @@ import { useLocale, useTranslations } from "next-intl";
 import type { Locale } from "@fastgo/i18n";
 import { Button, Card, Checkbox, Field, Icon, Input, RadioCard } from "@fastgo/ui";
 import { Money } from "@/components/money";
-import type { ParcelTypeCode } from "@/lib/data/services";
+import { type ParcelTypeCode, millimesInputText, parseMillimes } from "@fastgo/domain";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import type { OrderDraft } from "@/lib/order/draft";
-import { millimesInputText, parseMillimes } from "@/lib/order/money-input";
-import { parcelSchema } from "@/lib/order/schemas";
+import { parcelSchema, parseCount } from "@/lib/order/schemas";
 import { StepBusy } from "./busy";
 import { PricePending, PriceProvisional } from "./price-aside";
 import { useOrderStep } from "./use-order-step";
@@ -19,20 +18,28 @@ import { useOrderStep } from "./use-order-step";
 const TYPES: ParcelTypeCode[] = ["document", "small", "medium", "large"];
 
 /** The form keeps the typed text; the draft keeps millimes, parsed in the language typed in. */
-type Values = Omit<OrderDraft["parcel"], "declaredValueMillimes"> & { declaredValue: string };
+type Values = Omit<OrderDraft["parcel"], "declaredValueMillimes" | "weights"> & {
+  declaredValue: string;
+  weights: (string | undefined)[];
+};
 
 function parcelOf(values: Partial<Values>, locale: Locale, current: OrderDraft["parcel"]) {
   const declared = parseMillimes(values.declaredValue ?? "", locale);
+  // One weight per parcel. While the count is not a valid number the saved weights are kept.
+  const n = parseCount(values.count ?? "");
+  const weights =
+    n == null ? current.weights : Array.from({ length: n }, (_, i) => values.weights?.[i] ?? "");
   return {
     type: values.type ?? null,
     count: values.count ?? "",
-    weightKg: values.weightKg ?? "",
+    weights,
     content: values.content ?? "",
     // Text that does not parse (yet) leaves the last valid amount but marks it unreadable: Continue
     // refuses it, and the step guard and the order request refuse the marked draft (final review I2).
     declaredValueMillimes: declared.ok ? declared.millimes : current.declaredValueMillimes,
     declaredValueInvalid: !declared.ok,
     fragile: values.fragile === true,
+    packaging: values.packaging === true,
   };
 }
 
@@ -75,14 +82,17 @@ function ParcelForm({
     defaultValues: {
       type: draft.parcel.type,
       count: draft.parcel.count,
-      weightKg: draft.parcel.weightKg,
+      weights: draft.parcel.weights,
       content: draft.parcel.content,
       declaredValue: millimesInputText(draft.parcel.declaredValueMillimes ?? null, locale),
       fragile: draft.parcel.fragile,
+      packaging: draft.parcel.packaging,
     },
   });
   const { errors } = formState;
   const declared = parseMillimes(useWatch({ control, name: "declaredValue" }) ?? "", locale);
+  // One weight field per parcel (the count is the list length, 1 to 10).
+  const parcelCount = parseCount(useWatch({ control, name: "count" }) ?? "") ?? 0;
 
   useEffect(() => {
     return subscribe({
@@ -127,9 +137,16 @@ function ParcelForm({
           <Field label={t("count")} error={message(errors.count?.message)} required>
             <Input {...register("count")} inputMode="numeric" dir="ltr" />
           </Field>
-          <Field label={t("weight")} error={message(errors.weightKg?.message)} required>
-            <Input {...register("weightKg")} inputMode="decimal" dir="ltr" />
-          </Field>
+          {Array.from({ length: parcelCount }, (_, i) => (
+            <Field
+              key={i}
+              label={parcelCount === 1 ? t("weight") : t("weightN", { n: i + 1 })}
+              error={message(errors.weights?.[i]?.message)}
+              required
+            >
+              <Input {...register(`weights.${i}` as const)} inputMode="decimal" dir="ltr" />
+            </Field>
+          ))}
         </div>
         <Field label={t("content")} error={message(errors.content?.message)} required>
           <Input {...register("content")} />
@@ -153,6 +170,12 @@ function ParcelForm({
               id="parcel-fragile"
               label={t("fragile")}
               {...register("fragile")}
+              className="min-h-11 justify-center"
+            />
+            <Checkbox
+              id="parcel-packaging"
+              label={t("packaging")}
+              {...register("packaging")}
               className="min-h-11 justify-center"
             />
           </fieldset>

@@ -1,0 +1,28 @@
+post:
+  operationId: verifyPhoneCheck
+  summary: Verify the code received by SMS
+  description: >-
+    A wrong code gives 422 RULE_REFUSED with the field `code`, the reason `wrong`, `expired` or
+    `noCode`, and `details.attempts_left`. Too many wrong codes lock the phone: 429
+    TOO_MANY_ATTEMPTS with `Retry-After`.
+  tags: [auth]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: cahier
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/account.yaml#/PhoneCheckVerifyRequest" }
+  responses:
+    "200":
+      description: The code is right.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/account.yaml#/PhoneCheckVerified" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
+    "422": { $ref: "../responses/errors.yaml#/RuleRefused" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

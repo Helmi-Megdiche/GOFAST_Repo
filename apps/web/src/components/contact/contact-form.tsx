@@ -146,6 +146,7 @@ export function ContactForm({ requestedType }: { requestedType: string }) {
         name="attachment"
         render={({ field, fieldState }) => (
           <FileAttach
+            ref={field.ref}
             label={t("form.attach")}
             removeLabel={t("form.removeAttachment")}
             value={field.value}

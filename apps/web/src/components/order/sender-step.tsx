@@ -9,11 +9,13 @@ import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { now } from "@/lib/order/clock";
 import { withSenderPhone, type AddressDraft } from "@/lib/order/draft";
 import { senderFormSchema } from "@/lib/order/schemas";
-import { availableSlots } from "@/lib/order/slots";
+import { exampleAvailableSlots } from "@/lib/order/example-data";
 import { StepBusy } from "./busy";
 import { CancelOrder } from "./cancel-order";
 import { PricePending } from "./price-aside";
+import { addressDraftFromSaved } from "@/lib/order/saved";
 import { AddressField } from "./address-field";
+import { SavedAddressPicker } from "./saved-picker";
 import { useSlotLabel } from "./slot-label";
 import { useOrderStep } from "./use-order-step";
 
@@ -56,19 +58,20 @@ function SenderForm({
   const c = useTranslations("cmd");
   const message = useErrorMessage();
   const slotLabel = useSlotLabel();
-  const slots = useMemo(() => availableSlots(now()), []);
+  const slots = useMemo(() => exampleAvailableSlots(now()), []);
   const savedSlot = slots.find((slot) => slot.id === draft.sender.slot?.id);
 
-  const { control, register, handleSubmit, subscribe, setError, formState } = useForm<Values>({
-    resolver: zodResolver(senderFormSchema),
-    defaultValues: {
-      address: draft.sender.address,
-      landmark: draft.sender.address.landmark,
-      name: draft.sender.name,
-      phone: draft.sender.phone,
-      slotId: savedSlot?.id ?? "",
-    },
-  });
+  const { control, register, handleSubmit, subscribe, setError, setValue, formState } =
+    useForm<Values>({
+      resolver: zodResolver(senderFormSchema),
+      defaultValues: {
+        address: draft.sender.address,
+        landmark: draft.sender.address.landmark,
+        name: draft.sender.name,
+        phone: draft.sender.phone,
+        slotId: savedSlot?.id ?? "",
+      },
+    });
   const { errors } = formState;
   // Registered before the other fields, so on submit the form focuses the address first when it
   // is wrong (react-hook-form focuses the first registered field in error, through field.ref).
@@ -97,7 +100,7 @@ function SenderForm({
   }, [subscribe, save, slots]);
 
   const onSubmit = handleSubmit((values) => {
-    const slot = availableSlots(now()).find((item) => item.id === values.slotId);
+    const slot = exampleAvailableSlots(now()).find((item) => item.id === values.slotId);
     if (!slot) {
       setError("slotId", { message: "slotPast" });
       return;
@@ -108,6 +111,15 @@ function SenderForm({
   return (
     <form noValidate onSubmit={onSubmit} className="flex flex-col gap-4">
       <Card className="flex flex-col gap-4">
+        <SavedAddressPicker
+          onPick={(saved) => {
+            // The zone is checked now: an address that left the zone goes to W17 (R201).
+            void addressDraftFromSaved(saved.text, saved.landmark).then((address) => {
+              addressField.onChange(address);
+              setValue("landmark", saved.landmark);
+            });
+          }}
+        />
         <AddressField
           label={t("address")}
           value={addressField.value}

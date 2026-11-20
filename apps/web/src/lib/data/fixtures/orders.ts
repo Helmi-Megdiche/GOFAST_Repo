@@ -1,4 +1,4 @@
-import { proofLevelFor } from "../../order/proof";
+import { proofLevelFor, type ParcelTypeCode, type ServiceCode } from "@fastgo/domain";
 import { readJson, writeJson } from "../../storage";
 import { readTable, writeRow } from "../mock-db";
 import {
@@ -12,7 +12,6 @@ import {
   type StatusEvent,
 } from "../order-model";
 import { mintRecipientLink } from "../recipient-links";
-import type { ParcelTypeCode, ServiceCode } from "../services";
 import {
   activePickupMission,
   createMission,
@@ -33,6 +32,7 @@ export const SEED_VERSION = "orders-v2";
 
 type ParcelSpec = {
   codMillimes?: number;
+  declaredValueMillimes?: number;
   fragile?: boolean;
   size?: ParcelTypeCode;
   weightDeclaredG?: number;
@@ -118,8 +118,8 @@ function createFixtureOrder(spec: OrderSpec): { ids: string[]; next: Next } {
     lossReported: false,
     totalMillimes: total,
     priceLines: [
-      { kind: "base", millimes: 9000 },
-      { kind: "distance", millimes: 3000 },
+      { kind: "base", unitMillimes: 9000, count: 1, millimes: 9000 },
+      { kind: "distance", unitMillimes: 3000, count: 1, millimes: 3000 },
     ],
     paymentMode: spec.paymentMode ?? "cashPickup",
     freightPayer: spec.paymentMode === "cashDelivery" ? "recipient" : "sender",
@@ -145,7 +145,7 @@ function createFixtureOrder(spec: OrderSpec): { ids: string[]; next: Next } {
       size: p.size ?? "small",
       weightDeclaredG: p.weightDeclaredG ?? 1500,
       weightMeasuredG: p.weightMeasuredG ?? null,
-      declaredValueMillimes: null,
+      declaredValueMillimes: p.declaredValueMillimes ?? null,
       codMillimes,
       fragile,
       proofLevel: proofLevelFor(
@@ -293,7 +293,10 @@ const BUILDERS: [string, Builder][] = [
   [
     "FG-5A1D-0008",
     (code) => {
-      const { ids, next } = customerOrder(code, DAY(2, 10, 0), RECIPIENTS.b);
+      // Declared value 120 DT (ESP-06: C07 shows it, R802).
+      const { ids, next } = customerOrder(code, DAY(2, 10, 0), RECIPIENTS.b, [
+        { declaredValueMillimes: 120_000 },
+      ]);
       pickUp(code, ids, next);
       parcelStep(ids[0]!, "in_transit", next);
       parcelStep(ids[0]!, "handed_over", next, true);

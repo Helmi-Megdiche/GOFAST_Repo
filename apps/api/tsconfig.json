@@ -1,0 +1,10 @@
+{
+  "extends": "@fastgo/config/tsconfig/library.json",
+  "compilerOptions": {
+    "allowImportingTsExtensions": true,
+    "experimentalDecorators": true,
+    "types": ["node"],
+    "jsx": "preserve"
+  },
+  "include": ["src", "*.ts"]
+}

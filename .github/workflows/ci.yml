@@ -1,0 +1,463 @@
+# CI for every pull request and every push to main (#13, #76).
+# Actions are pinned by commit SHA; the tag is in the comment.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  # What a change needs, decided by .github/scripts/changes.sh (rules and tests are there, #114):
+  # `code` = any job that builds or tests code, `api` = API integration tests, `web` = the 3 web e2e shards.
+  # A push to main is always everything. Plain git and bash, no third-party action.
+  changes:
+    name: Changed files
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+      api: ${{ steps.diff.outputs.api }}
+      web: ${{ steps.diff.outputs.web }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Decide whether code changed
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          : > changed-files.txt # a push to main gets an empty list, which the script reads as "everything"
+          if [ "$EVENT" = "pull_request" ]; then
+            # --no-renames: a moved file lists its old path too (RV-26), so moving apps/api/a.ts to docs/ is still code.
+            git diff --name-only --no-renames "$BASE_SHA" HEAD > changed-files.txt
+            echo "Changed files:"
+            cat changed-files.txt
+          fi
+          bash .github/scripts/changes.sh < changed-files.txt > decision.txt
+          cat decision.txt
+          cat decision.txt >> "$GITHUB_OUTPUT"
+
+  checks:
+    name: Lint, typecheck, unit tests, build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm (version from package.json)
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          pnpm --version
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+
+  # On a push to main, the merge commit usually has the same git tree as the merge commit
+  # that already passed e2e on its PR (main did not move in between). Same tree = same code,
+  # so the shards are skipped. The PR run leaves its tree in the `e2e-tree` artifact.
+  # This job never fails: on any API error it says "not passed" and e2e runs as usual.
+  e2e-prior:
+    name: E2E already passed on the PR
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+    outputs:
+      tree: ${{ steps.prior.outputs.tree }}
+      passed: ${{ steps.prior.outputs.passed }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+
+      - name: Look for a PR run that passed e2e on this tree
+        id: prior
+        env:
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set +e
+          tree=$(git rev-parse 'HEAD^{tree}')
+          passed=false
+          pr_head=$(git rev-parse -q --verify 'HEAD^2')
+          if [ "$EVENT" = "push" ] && [ -n "$pr_head" ]; then
+            ids=$(gh api "repos/$REPO/actions/workflows/ci.yml/runs?event=pull_request&head_sha=$pr_head&per_page=20" \
+              --jq '.workflow_runs[] | select(.conclusion == "success") | .id')
+            for id in $ids; do
+              rm -rf prior
+              if gh run download "$id" --repo "$REPO" --name e2e-tree --dir prior \
+                && [ "$(cat prior/tree)" = "$tree" ]; then
+                echo "PR run $id passed e2e on the same tree."
+                passed=true
+                break
+              fi
+            done
+          fi
+          echo "tree=$tree passed=$passed"
+          echo "tree=$tree" >> "$GITHUB_OUTPUT"
+          echo "passed=$passed" >> "$GITHUB_OUTPUT"
+
+  # Three machines, each runs a third of the tests (one worker per machine).
+  e2e-shard:
+    name: E2E shard ${{ matrix.shard }}/3
+    needs: [checks, changes, e2e-prior]
+    if: >-
+      ${{ !cancelled() && needs.checks.result == 'success' && needs.changes.outputs.web == 'true'
+      && needs.e2e-prior.outputs.passed != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm (version from package.json)
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Playwright version
+        id: pw
+        working-directory: apps/web
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium and its system libraries
+        working-directory: apps/web
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+
+      # playwright.config.ts builds apps/web and serves it on port 3100 by itself.
+      # With CI=true it writes a blob report, merged by the e2e-report job.
+      - name: Run this shard
+        run: pnpm --filter @fastgo/web exec playwright test --shard=${{ matrix.shard }}/3
+
+      - name: Upload blob report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: blob-report-${{ matrix.shard }}
+          path: apps/web/blob-report
+          retention-days: 14
+
+      - name: Upload traces and screenshots of failed tests
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-failures-${{ matrix.shard }}
+          path: apps/web/test-results
+          retention-days: 14
+
+  # One HTML report from the three blobs, named as before.
+  e2e-report:
+    name: E2E report
+    needs: [e2e-shard, e2e-prior]
+    if: ${{ !cancelled() && needs.e2e-shard.result != 'skipped' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm (version from package.json)
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          pattern: blob-report-*
+          path: apps/web/all-blob-reports
+          merge-multiple: true
+
+      - name: Merge the shard reports
+        working-directory: apps/web
+        run: |
+          pnpm exec playwright merge-reports --reporter list ./all-blob-reports | tail -n 40
+          pnpm exec playwright merge-reports --reporter html ./all-blob-reports
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-report
+          path: apps/web/playwright-report
+          retention-days: 14
+
+      # Read by `e2e-prior` on the push to main after the merge.
+      - name: Record the tree that passed e2e
+        if: ${{ github.event_name == 'pull_request' && needs.e2e-shard.result == 'success' }}
+        env:
+          TREE: ${{ needs.e2e-prior.outputs.tree }}
+        run: mkdir -p e2e-tree && echo "$TREE" > e2e-tree/tree
+
+      - name: Upload the tree that passed e2e
+        if: ${{ github.event_name == 'pull_request' && needs.e2e-shard.result == 'success' }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-tree
+          path: e2e-tree
+          retention-days: 7
+
+  # Api-mode e2e (#20): the same app built with NEXT_PUBLIC_API_DOMAINS=auth, every /v1 call faked
+  # in the spec. Own config, port and build folder; runs once (not sharded). The "E2E" check below
+  # includes its result.
+  e2e-api:
+    name: E2E api mode (auth)
+    needs: [checks, changes, e2e-prior]
+    if: >-
+      ${{ !cancelled() && needs.checks.result == 'success' && needs.changes.outputs.code == 'true'
+      && needs.e2e-prior.outputs.passed != 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm (version from package.json)
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Playwright version
+        id: pw
+        working-directory: apps/web
+        run: echo "version=$(pnpm exec playwright --version | awk '{print $2}')" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        id: pw-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.pw.outputs.version }}
+
+      - name: Install Chromium and its system libraries
+        working-directory: apps/web
+        run: |
+          if [ "${{ steps.pw-cache.outputs.cache-hit }}" = "true" ]; then
+            pnpm exec playwright install-deps chromium
+          else
+            pnpm exec playwright install --with-deps chromium
+          fi
+
+      # playwright.api.config.ts builds apps/web with the auth flag on and serves it on port 3200.
+      - name: Run the api-mode spec
+        run: pnpm --filter @fastgo/web test:e2e:api
+
+      - name: Upload traces and screenshots of failed tests
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: playwright-api-failures
+          path: |
+            apps/web/test-results
+            apps/web/playwright-report-api
+          retention-days: 14
+
+  # The check name seen on a PR. The decision is .github/scripts/e2e-verdict.sh (tested, #114): green when the
+  # shards and the api-mode e2e passed, or were skipped on purpose (only docs, Markdown, infra or deploy.yml
+  # changed; or only apps/api changed, which skips the web shards but not api mode; or, push to main, the same
+  # tree already passed e2e on its PR). Red on a failed or cancelled job, and also when a job did not run
+  # although it should have (a failed `checks` or `changes` job).
+  e2e:
+    name: E2E (Playwright, axe-core)
+    needs: [changes, e2e-shard, e2e-api, e2e-prior]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/scripts
+          persist-credentials: false
+
+      - name: Summarise the e2e jobs
+        env:
+          CODE: ${{ needs.changes.outputs.code }}
+          WEB: ${{ needs.changes.outputs.web }}
+          SHARDS: ${{ needs.e2e-shard.result }}
+          API: ${{ needs.e2e-api.result }}
+          PRIOR: ${{ needs.e2e-prior.outputs.passed }}
+        run: bash .github/scripts/e2e-verdict.sh
+
+  # Integration tests of the API: Docker is on the runner (Testcontainers, Schemathesis). #7, #21.
+  api-int:
+    name: API integration tests
+    needs: [checks, changes]
+    if: ${{ needs.changes.outputs.api == 'true' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: .node-version
+
+      - name: Enable pnpm (version from package.json)
+        run: |
+          npm install -g corepack@latest
+          corepack enable
+          echo "PNPM_STORE=$(pnpm store path --silent)" >> "$GITHUB_ENV"
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ env.PNPM_STORE }}
+          key: pnpm-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+          restore-keys: pnpm-${{ runner.os }}-
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @fastgo/contract bundle
+      - run: pnpm --filter @fastgo/api test:int
+
+  # The one name to require for the API: green when the integration tests passed, or were skipped
+  # because nothing the API depends on changed. Red when they failed or did not run although they should have.
+  api:
+    name: API (tests, contract)
+    needs: [changes, api-int]
+    if: ${{ always() }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Summarise the API tests
+        env:
+          API: ${{ needs.changes.outputs.api }}
+          INT: ${{ needs.api-int.result }}
+        run: |
+          echo "api=$API api-int=$INT"
+          if [ "$INT" = "success" ]; then exit 0; fi
+          if [ "$INT" = "skipped" ] && [ "$API" = "false" ]; then exit 0; fi
+          echo "API integration tests did not pass."
+          exit 1
+
+  # Server scripts and workflows (#14 PR 4): shell only, no pnpm, about a minute. Linters and the base image are
+  # pinned by digest. The deploy tests use fake docker, curl and git; the setup test changes users, so it runs
+  # in a throwaway container.
+  shell:
+    name: Shell scripts and workflows
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: shellcheck (deploy.sh, setup.sh, the CI scripts and their tests)
+        run: >-
+          docker run --rm -v "$PWD:/mnt:ro" -w /mnt
+          koalaman/shellcheck@sha256:bb596a0d169b85ddd81d8b6d3a2ff6d5baf5fca10b97f575ebc647c3dff62b3d
+          infra/servers/deploy.sh infra/servers/setup.sh infra/servers/test/deploy.test.sh infra/servers/test/setup-deploy.test.sh
+          .github/scripts/changes.sh .github/scripts/changes.test.sh .github/scripts/e2e-verdict.sh .github/scripts/e2e-verdict.test.sh
+
+      # The change filters and the e2e verdict (#114): they decide which CI jobs run, so they are tested here,
+      # with twins, on every PR (a change to ci.yml or to these scripts is "everything", so this always runs).
+      - name: CI change filters and e2e verdict tests (with twins)
+        run: |
+          bash .github/scripts/changes.test.sh
+          bash .github/scripts/e2e-verdict.test.sh
+
+      - name: actionlint (all workflows)
+        run: >-
+          docker run --rm -v "$PWD:/repo:ro" -w /repo
+          rhysd/actionlint@sha256:b1934ee5f1c509618f2508e6eb47ee0d3520686341fec936f3b79331f9315667 -color=false
+
+      - name: deploy.sh tests (with twins)
+        run: >-
+          docker run --rm -v "$PWD/infra/servers:/s:ro"
+          ubuntu@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+          bash /s/test/deploy.test.sh
+
+      - name: setup.sh deploy-user tests (with twins)
+        run: >-
+          docker run --rm -v "$PWD/infra/servers:/s:ro"
+          ubuntu@sha256:73b999393d07f2bf65a40373778a44dc9a6d54ad7718d29247d8ff9413c4d6a8
+          bash /s/test/setup-deploy.test.sh
+
+  gitleaks:
+    name: Secret scan (Gitleaks)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e # v3.0.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

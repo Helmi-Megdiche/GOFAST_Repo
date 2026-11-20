@@ -5,10 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Button, Checkbox, Field, Input, RadioCard } from "@fastgo/ui";
 import { Link, useRouter } from "@/i18n/navigation";
+import { sharedAuthPort } from "@/lib/data";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { startFlow } from "@/lib/auth/flow";
 import { withNext } from "@/lib/auth/next";
-import { PASSWORD_MIN_LENGTH } from "@/lib/order/constants";
+import { PASSWORD_MIN_LENGTH } from "@fastgo/domain";
 import { signUpSchema } from "@/lib/order/schemas";
 import { GoogleSignIn, OrDivider } from "./google-sign-in";
 
@@ -63,8 +64,12 @@ export function SignUpForm({ next }: { next: string | null }) {
   return (
     <>
       <h1 className="text-d3">{t("title")}</h1>
-      <GoogleSignIn next={next} kind={kind} />
-      <OrDivider />
+      {sharedAuthPort().googleAvailable ? (
+        <>
+          <GoogleSignIn next={next} kind={kind} />
+          <OrDivider />
+        </>
+      ) : null}
       <form
         noValidate
         method="post"

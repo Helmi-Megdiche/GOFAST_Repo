@@ -3,7 +3,7 @@
 import { useLocale, useTranslations } from "next-intl";
 import { formatDate, type Locale } from "@fastgo/i18n";
 import { now } from "@/lib/order/clock";
-import { slotDay, type Slot } from "@/lib/order/slots";
+import { slotDay, type Slot } from "@fastgo/domain";
 
 /**
  * "Aujourd'hui, de 11 h à 13 h", from the UTC instants of the slot, shown in Africa/Tunis. Today

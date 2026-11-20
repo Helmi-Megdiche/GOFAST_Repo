@@ -1,0 +1,95 @@
+openapi: 3.1.0
+info:
+  title: GOFAST API
+  version: 1.0.0-g2
+  description: |
+    The reference for the API (docs/spec/technique-api.md). Written by hand; the API is tested
+    against it at every merge (Schemathesis) and the web client types are generated from it.
+
+    **Version for G2 (21 Nov 2026).** Only the routes the public site, the order flow, the client
+    space and the staff order list need. Routes of the cahier that are not here yet (recipient
+    links, imports, tickets, invoices, missions, dispatch, back-office) join with their lots.
+
+    **Conventions.**
+    - JSON uses snake_case. Money is an integer number of millimes. Times are UTC.
+    - Every error has the same body (`ErrorBody`). The message follows `Accept-Language` (fr, ar,
+      en; fr when missing or unsupported); the code never changes.
+    - `x-roles` lists the roles allowed on an operation: `public`, `individual`, `merchant`,
+      `agent`, `operations`, `logistics`, `customer_service`, `accountant`, `management`, `admin`,
+      `driver`, `cashier`. A guard reads it by `operationId`. "Own only" is decided by the rights
+      layer and answers 404.
+    - `x-replay` says how a resend has no effect: `key` (Idempotency-Key), `state`, `event` or `none`.
+    - `x-cahier` is `cahier` when the route is in the cahier's table, `addition` when it is not
+      (accepted by Helmi and the lead on 14 Nov 2026).
+    - Order of checks: authentication (401), roles (403), validation (400), then the handler.
+servers:
+  - url: /
+    description: Same origin. Every route is under `/v1`.
+tags:
+  - name: system
+    description: Process health.
+  - name: auth
+    description: Sessions, phone codes, sign-up and password reset.
+  - name: pricing
+    description: Services, zone check and price quotes.
+  - name: orders
+    description: Create, list, read and cancel orders.
+  - name: tracking
+    description: Public tracking by number.
+  - name: account
+    description: Profile, address book and recipients of the signed-in account.
+security:
+  - sessionCookie: []
+paths:
+  /v1/health:
+    $ref: paths/health.yaml
+  /v1/sessions:
+    $ref: paths/sessions.yaml
+  /v1/sessions/google:
+    $ref: paths/sessions-google.yaml
+  /v1/phone-checks:
+    $ref: paths/phone-checks.yaml
+  /v1/phone-checks/verify:
+    $ref: paths/phone-checks-verify.yaml
+  /v1/accounts:
+    $ref: paths/accounts.yaml
+  /v1/password-resets:
+    $ref: paths/password-resets.yaml
+  /v1/services:
+    $ref: paths/services.yaml
+  /v1/zone-checks:
+    $ref: paths/zone-checks.yaml
+  /v1/quotes:
+    $ref: paths/quotes.yaml
+  /v1/quotes/{id}:
+    $ref: paths/quote.yaml
+  /v1/orders:
+    $ref: paths/orders.yaml
+  /v1/orders/{id}:
+    $ref: paths/order.yaml
+  /v1/orders/{id}/confirm:
+    $ref: paths/order-confirm.yaml
+  /v1/orders/{id}/cancel:
+    $ref: paths/order-cancel.yaml
+  /v1/tracking/{number}:
+    $ref: paths/tracking.yaml
+  /v1/me:
+    $ref: paths/me.yaml
+  /v1/me/addresses:
+    $ref: paths/me-addresses.yaml
+  /v1/me/addresses/{id}:
+    $ref: paths/me-addresses-id.yaml
+  /v1/me/recipients:
+    $ref: paths/me-recipients.yaml
+  /v1/me/recipients/{id}:
+    $ref: paths/me-recipients-id.yaml
+components:
+  securitySchemes:
+    sessionCookie:
+      type: apiKey
+      in: cookie
+      name: session
+      description: >-
+        The session lives in Redis and the cookie carries its id. The cookie name, the CSRF
+        protection and the lifetime (customer 30 days sliding, staff 12 h) are provisional, set from
+        the settings and listed in the PR.

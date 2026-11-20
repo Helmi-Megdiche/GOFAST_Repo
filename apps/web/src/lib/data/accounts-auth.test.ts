@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
 import { useMemoryStorage } from "../storage";
-import { GOOGLE_PENDING_MAX_AGE_MS } from "../order/constants";
+import { GOOGLE_PENDING_MAX_AGE_MS } from "@fastgo/domain";
 import {
   attachPhone,
   claimOrderPhone,

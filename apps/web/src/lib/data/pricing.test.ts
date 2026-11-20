@@ -1,17 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { suggestAddresses } from "./addresses";
 import { getQuote } from "./pricing";
-import { checkPoint, checkZone, type ZoneResult } from "./zones";
+import { checkPoint, checkZone } from "./zones";
+import type { PriceInput, ZoneResult } from "@fastgo/domain";
 
 const T0 = Date.parse("2026-11-04T10:00:00Z");
-const input = {
+const input: Omit<PriceInput, "zone"> = {
   service: "standard",
   parcelType: "small",
-  weightKg: 2,
+  parcels: [{ weightG: 2_000 }],
   fragile: false,
+  packaging: false,
   from: "Avenue Habib Bourguiba",
   to: "Rue Ibn Khaldoun",
-} as const;
+};
 const inZone: ZoneResult = { status: "in-zone", services: ["express", "standard"], zone: "A" };
 
 describe("getQuote (R201)", () => {
@@ -36,6 +38,22 @@ describe("getQuote (R201)", () => {
     if (result.status !== "ok") throw new Error();
     expect(result.quote.input.zone).toBe("A");
     expect(result.quote.totalMillimes).toBe(11_305);
+  });
+
+  it("prices every parcel: 3 parcels of 2 kg, the distance, rain and VAT once", async () => {
+    const three = {
+      ...input,
+      parcels: [{ weightG: 2_000 }, { weightG: 2_000 }, { weightG: 2_000 }],
+    };
+    const result = await getQuote(three, inZone, inZone, T0);
+    if (result.status !== "ok") throw new Error();
+    expect(result.quote.lines.base).toEqual({
+      unitMillimes: 6_000,
+      count: 3,
+      totalMillimes: 18_000,
+    });
+    expect(result.quote.lines.distance.count).toBe(1);
+    expect(result.quote.totalMillimes).toBe(18_000 + 2_500 + 1_000 + 1_805);
   });
 });
 

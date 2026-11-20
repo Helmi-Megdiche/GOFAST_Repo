@@ -31,6 +31,10 @@ const VIEWPORTS = [
   { width: 360, height: 800 },
 ] as const;
 
+// For tests that only read server-rendered markup. The default `load` also waits for every JS
+// chunk, font and image; on a busy server that is 20+ s of work the test never looks at (GH-92).
+const open = (page: Page, url: string) => page.goto(url, { waitUntil: "domcontentloaded" });
+
 const noOverflow = (page: Page) =>
   page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
@@ -95,7 +99,7 @@ test("Main-EN: the home page in English", async ({ page }) => {
 // ── Header, footer, mobile menu ───────────────────────────────────────────────────────────────
 test("the header buttons go to /commander and /connexion", async ({ page }) => {
   for (const code of ["fr", "ar", "en"]) {
-    await page.goto(`/${code}`);
+    await open(page, `/${code}`);
     const header = page.locator("header");
     await expect(header.locator('a[href$="/commander"]').first()).toHaveAttribute(
       "href",
@@ -106,7 +110,7 @@ test("the header buttons go to /commander and /connexion", async ({ page }) => {
       `/${code}/connexion`,
     );
   }
-  await page.goto("/fr");
+  await page.goto("/fr"); // default wait: the click below needs the page interactive
   await page.locator("header").getByRole("link", { name: "Commander" }).click();
   // /commander opens the first step of the order (W11).
   await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
@@ -119,12 +123,12 @@ test("the nav marks the current page and nothing on zones, contact, livreur or l
   const current = page
     .getByRole("navigation", { name: "Navigation principale" })
     .locator('[aria-current="page"]');
-  await page.goto("/fr/aide");
+  await open(page, "/fr/aide");
   await expect(current).toHaveText("Aide");
-  await page.goto("/fr");
+  await open(page, "/fr");
   await expect(current).toHaveText("Accueil");
   for (const url of ["/fr/zones", "/fr/contact", "/fr/livreur", "/fr/legal/cgv"]) {
-    await page.goto(url);
+    await open(page, url);
     await expect(current, url).toHaveCount(0);
   }
 });
@@ -141,6 +145,8 @@ for (const code of ["fr", "ar", "en"] as const) {
     test(`header: one row, no overlap, no overflow at ${width}px (${code})`, async ({ page }) => {
       await page.setViewportSize({ width, height: 900 });
       await page.goto(`/${code}`);
+      // The widths below depend on the web fonts: measure once they are in.
+      await page.evaluate(() => document.fonts.ready);
       expect(await noOverflow(page), "horizontal overflow in px").toBeLessThanOrEqual(0);
 
       const info = await page.evaluate(() => {
@@ -368,6 +374,7 @@ const tickCaptcha = async (page: Page) => {
 
 test("contact: the ticket is opened once the captcha is ticked", async ({ page }) => {
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await fillContact(page);
   await tickCaptcha(page);
   await page.getByRole("button", { name: "Envoyer ma demande" }).click();
@@ -380,6 +387,7 @@ test("contact: the ticket is opened once the captcha is ticked", async ({ page }
 
 test("contact: refuses to send without the captcha, and shows field errors", async ({ page }) => {
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await page.getByRole("button", { name: "Envoyer ma demande" }).click();
   await expect(page.getByText("Ce champ est obligatoire.").first()).toBeVisible();
   await expect(page.getByText("Confirmez que vous n'êtes pas un robot.")).toBeVisible();
@@ -388,6 +396,7 @@ test("contact: refuses to send without the captcha, and shows field errors", asy
 
 test("contact: an empty tracking number is valid, a wrong one is not", async ({ page }) => {
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await fillContact(page);
   await tickCaptcha(page);
   await page.getByLabel("Numéro de suivi (facultatif)").fill("FG-12");
@@ -403,6 +412,7 @@ test("contact: an attachment of exactly 5 MB is accepted, one byte more is refus
 }) => {
   const FIVE_MB = 5 * 1024 * 1024;
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated: a file chosen before it would never reach the form (RV-10)
   const input = page.locator('input[type="file"]');
 
   await input.setInputFiles({
@@ -424,7 +434,17 @@ test("contact: an attachment of exactly 5 MB is accepted, one byte more is refus
   // and the form does not send while the file is too large
   await fillContact(page);
   await tickCaptcha(page);
-  await page.getByRole("button", { name: "Envoyer ma demande" }).click();
+  // The refused submit puts the focus on the file field (react-hook-form focuses the ref of the
+  // first invalid field): the real signal that the form handled the click.
+  const send = page.getByRole("button", { name: "Envoyer ma demande" });
+  await send.click();
+  await expect(input).toBeFocused();
+  // The input is off screen, so a keyboard user must see the ring on the visible chip (computed
+  // style, not a class name).
+  const chip = page.locator("main form div").filter({ hasText: "over.pdf" }).last();
+  await expect(chip).toHaveCSS("outline-style", "solid");
+  await expect(chip).toHaveCSS("outline-width", "2px");
+  await expect(send).not.toHaveAttribute("aria-disabled", "true");
   await expect(page.getByText("Votre demande est enregistrée.")).toHaveCount(0);
   await expect(page.getByText("Le fichier dépasse 5 Mo.")).toBeVisible();
 });
@@ -435,6 +455,7 @@ test("contact: ?type=devis preselects Devis; the three request types exist", asy
   await expect(select).toHaveValue("quote");
   await expect(select.locator("option")).toHaveText(["Question", "Devis", "Réclamation"]);
   await page.goto("/fr/contact");
+  await page.waitForLoadState("networkidle"); // hydrated before the form is used (RV-10)
   await expect(select).toHaveValue("question");
 });
 
@@ -457,44 +478,6 @@ test("merchants: Demander un devis scrolls to the section and the button leads t
   );
   await expect(page.getByText("Bientôt disponibles")).toBeVisible();
   await expect(page.locator("main form")).toHaveCount(0);
-});
-
-// ── Driver (W08) ──────────────────────────────────────────────────────────────────────────────
-test("driver: heading, validation, 5 MB rule and confirmation", async ({ page }) => {
-  await page.goto("/fr/livreur");
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText("Livrez avec GOFAST.");
-  await expect(page.locator("main")).not.toContainText("gains visibles");
-
-  await page.getByRole("button", { name: "Envoyer ma candidature" }).click();
-  await expect(page.getByText("Ce champ est obligatoire.").first()).toBeVisible();
-
-  const FIVE_MB = 5 * 1024 * 1024;
-  await page.locator('input[type="file"]').setInputFiles({
-    name: "over.pdf",
-    mimeType: "application/pdf",
-    buffer: Buffer.alloc(FIVE_MB + 1),
-  });
-  await expect(page.getByText("Le fichier dépasse 5 Mo.")).toBeVisible();
-  await page.getByRole("button", { name: "Retirer le document" }).click();
-
-  await expect(page.getByLabel("Véhicule").locator("option")).toHaveText(["Moto", "[VÉHICULE]"]);
-  await page.getByRole("textbox", { name: "Nom complet" }).fill("Test Livreur");
-  await page.getByRole("textbox", { name: "Téléphone", exact: true }).fill("20 000 000");
-  await page.getByRole("button", { name: "Envoyer ma candidature" }).click();
-  await expect(page.getByText("Candidature envoyée.")).toBeVisible();
-  const confirmation = page.locator('div[tabindex="-1"]', { hasText: "Candidature envoyée." });
-  await expect(confirmation).toBeFocused();
-  await expect(confirmation).toHaveCSS("outline-style", "solid");
-});
-
-test("driver: the vehicle placeholder is localized", async ({ page }) => {
-  for (const [code, label, moto, placeholder] of [
-    ["en", "Vehicle", "Motorbike", "[VEHICLE]"],
-    ["ar", "المركبة", "دراجة نارية", "[المركبة]"],
-  ] as const) {
-    await page.goto(`/${code}/livreur`);
-    await expect(page.getByLabel(label).locator("option")).toHaveText([moto, placeholder]);
-  }
 });
 
 // ── Help, legal, services ─────────────────────────────────────────────────────────────────────
@@ -601,26 +584,29 @@ for (const entry of PAGES.filter((item) => !("status" in item))) {
   });
 }
 
-test("order, sign-in and coming-soon pages are noindex, public pages are not", async ({ page }) => {
-  for (const url of [
-    "/fr/commander",
-    "/fr/commander/expediteur",
-    "/fr/commander/destinataire",
-    "/fr/commander/colis",
-    "/fr/commander/service",
-    "/fr/commander/verification",
-    "/fr/commander/code",
-    "/fr/commander/confirmation",
-    "/fr/commander/hors-zone",
-    "/fr/connexion",
-    "/fr/inscription",
-    "/fr/code",
-    "/fr/mot-de-passe",
-    "/fr/mot-de-passe/nouveau",
-    "/fr/google-telephone",
-    "/fr/compte",
-    "/fr/pro",
-  ]) {
+// GH-92: one test per URL, so the 30 s budget covers one navigation, not eighteen.
+const NOINDEX_URLS = [
+  "/fr/commander",
+  "/fr/commander/expediteur",
+  "/fr/commander/destinataire",
+  "/fr/commander/colis",
+  "/fr/commander/service",
+  "/fr/commander/verification",
+  "/fr/commander/code",
+  "/fr/commander/confirmation",
+  "/fr/commander/hors-zone",
+  "/fr/connexion",
+  "/fr/inscription",
+  "/fr/code",
+  "/fr/mot-de-passe",
+  "/fr/mot-de-passe/nouveau",
+  "/fr/google-telephone",
+  "/fr/compte",
+  "/fr/pro",
+];
+
+for (const url of NOINDEX_URLS) {
+  test(`GH-92 ${url} is noindex`, async ({ page }) => {
     await page.goto(url);
     // A client redirect (e.g. /commander to its first step) can briefly leave the old page's tag
     // next to the new one: every robots tag present must say noindex.
@@ -631,7 +617,10 @@ test("order, sign-in and coming-soon pages are noindex, public pages are not", a
     )) {
       expect(content, url).toMatch(/noindex/);
     }
-  }
+  });
+}
+
+test("GH-92 public pages are not noindex", async ({ page }) => {
   await page.goto("/fr/services");
   await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
 });

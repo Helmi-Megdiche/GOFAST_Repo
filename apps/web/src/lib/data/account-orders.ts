@@ -1,7 +1,6 @@
-import type { ProofLevel } from "../order/proof";
-import { exceedsWeightTolerance } from "../order/weight";
-import { normalizeTrackingCode } from "../tracking-code";
-import { findById, returnBalanceMillimes } from "./accounts";
+import { type ProofLevel, exceedsWeightTolerance, normalizeTrackingCode } from "@fastgo/domain";
+import { findById } from "./accounts";
+import { amountDueMillimes } from "./amount-due";
 import { cancelOption, type CancelOption } from "./cancel-option";
 import { mockDelay } from "./delay";
 import { seedOrderFixtures } from "./fixtures/orders";
@@ -16,6 +15,13 @@ import {
   type StatusEvent,
 } from "./order-model";
 import { NetworkError, ORDER_SLIP_EXAMPLE_PATH } from "./orders";
+import {
+  buildOrdersPage,
+  type OrderFilter,
+  type OrderRow,
+  type OrdersPage,
+  type OrdersQuery,
+} from "./orders-page";
 import type { Session } from "./session";
 import {
   activePickupMission,
@@ -63,79 +69,11 @@ export function orderHistory(orderCode: string): { status: OrderStatus; atUtc: s
 
 // ── Async readers of the client space (C01 to C03). Codes, millimes and ISO dates only. ──────────
 
-/** Chips of C02: "en cours", "livrées", "échecs et retours". A canceled order shows under "all" only. */
-export type OrderFilter = "all" | "inProgress" | "delivered" | "failed";
+export { ORDERS_PAGE_SIZE, monthOf } from "./orders-page";
+export type { OrderFilter, OrderRow, OrdersPage, OrdersQuery };
 
 /** What C01 calls "en cours": every order that is not over, including a failed pickup the client may still act on. */
 const isOpen = (status: OrderStatus) => !FINAL_ORDER_STATES.includes(status);
-
-const IN_PROGRESS: readonly OrderStatus[] = [
-  "received",
-  "confirmed",
-  "assigned",
-  "picked_up",
-  "in_transit",
-];
-const FILTER_STATES: Record<Exclude<OrderFilter, "all">, readonly OrderStatus[]> = {
-  inProgress: IN_PROGRESS,
-  delivered: ["delivered"],
-  failed: ["pickup_failed", "partially_delivered", "returned", "lost"],
-};
-
-export const ORDERS_PAGE_SIZE = 10;
-
-export type OrderRow = {
-  code: string;
-  recipientName: string;
-  service: AccountOrder["service"];
-  status: OrderStatus;
-  createdAt: string;
-  totalMillimes: number;
-};
-
-export type OrdersQuery = {
-  filter: OrderFilter;
-  /** "YYYY-MM" in Africa/Tunis, or null for every month. */
-  month: string | null;
-  /** Search text: part of the tracking code or of the recipient's name. */
-  q: string;
-  /** 1-based. */
-  page: number;
-};
-
-export type OrdersPage = {
-  rows: OrderRow[];
-  /** Orders matching the filter, month and search (every page). */
-  total: number;
-  /** Orders of the account, whatever the filter. */
-  accountTotal: number;
-  inProgressCount: number;
-  /** Months with at least one order, newest first, "YYYY-MM". */
-  months: string[];
-  page: number;
-  pages: number;
-};
-
-const tunisMonth = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Africa/Tunis",
-  year: "numeric",
-  month: "2-digit",
-});
-
-/** The month of an instant in Africa/Tunis, "YYYY-MM". */
-export function monthOf(isoUtc: string): string {
-  const parts = tunisMonth.formatToParts(new Date(isoUtc));
-  const part = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
-  return `${part("year")}-${part("month")}`;
-}
-
-/** Lower case, no accents, no spaces or dashes: "fg-5a1c 0002" finds FG-5A1C-0002. */
-const plain = (text: string) =>
-  text
-    .normalize("NFD")
-    .replace(/\p{M}/gu, "")
-    .toLowerCase()
-    .replace(/[\s-]+/g, "");
 
 const rowOf = (order: AccountOrder): OrderRow => ({
   code: order.code,
@@ -150,27 +88,7 @@ const rowOf = (order: AccountOrder): OrderRow => ({
 export async function listOrders(session: Session, query: OrdersQuery): Promise<OrdersPage> {
   await mockDelay();
   if (consumeFailNext("listOrders")) throw new NetworkError();
-  const all = listAccountOrders(session);
-  const needle = plain(query.q);
-  const matching = all.filter(
-    (order) =>
-      (query.filter === "all" || FILTER_STATES[query.filter].includes(order.status)) &&
-      (!query.month || monthOf(order.createdAt) === query.month) &&
-      (!needle ||
-        plain(order.code).includes(needle) ||
-        plain(order.recipient.name).includes(needle)),
-  );
-  const pages = Math.max(1, Math.ceil(matching.length / ORDERS_PAGE_SIZE));
-  const page = Math.min(Math.max(1, query.page), pages);
-  return {
-    rows: matching.slice((page - 1) * ORDERS_PAGE_SIZE, page * ORDERS_PAGE_SIZE).map(rowOf),
-    total: matching.length,
-    accountTotal: all.length,
-    inProgressCount: all.filter((order) => IN_PROGRESS.includes(order.status)).length,
-    months: [...new Set(all.map((order) => monthOf(order.createdAt)))],
-    page,
-    pages,
-  };
+  return buildOrdersPage(listAccountOrders(session).map(rowOf), query);
 }
 
 export type Dashboard = {
@@ -179,7 +97,7 @@ export type Dashboard = {
   inProgress: (OrderRow & { etaUtc: string | null; parcelCount: number })[];
   /** The last three orders that ended (not canceled), newest first. */
   lastDeliveries: OrderRow[];
-  /** R605: what the account owes for returned parcels. */
+  /** What the account owes: its unpaid invoices and its return balance (R605), from `amountDueMillimes`. */
   amountDueMillimes: number;
 };
 
@@ -201,7 +119,7 @@ export async function getDashboard(session: Session): Promise<Dashboard> {
       .filter((order) => FINAL_ORDER_STATES.includes(order.status) && order.status !== "canceled")
       .slice(0, 3)
       .map(rowOf),
-    amountDueMillimes: returnBalanceMillimes(session.accountId),
+    amountDueMillimes: amountDueMillimes(session.accountId),
   };
 }
 
@@ -225,6 +143,10 @@ export type ParcelView = {
   proof: { level: ProofLevel; capturedAt: string } | null;
 };
 
+export type PriceLineView = Omit<AccountOrder["priceLines"][number], "millimes"> & {
+  millimes: number | null;
+};
+
 export type OrderDetail = {
   code: string;
   createdAt: string;
@@ -233,18 +155,23 @@ export type OrderDetail = {
   etaUtc: string | null;
   lossReported: boolean;
   /** Names and addresses only: a phone is never shown in the client space (privacy rule). */
-  sender: { name: string; address: string };
-  recipient: { name: string; address: string };
+  sender: { name: string; address: string | null };
+  recipient: { name: string; address: string | null };
   /** The price fixed at creation (R204, R206), never priced again. */
   totalMillimes: number;
-  priceLines: AccountOrder["priceLines"];
+  /** `millimes` is null for a VAT or stamp line the server has not confirmed yet (shown as [PRIX]). */
+  priceLines: PriceLineView[];
   paymentMode: AccountOrder["paymentMode"];
   cancel: AccountOrder["cancel"];
-  cancelOption: CancelOption;
+  /** `freeUnlessArrived`: the API order carries no mission, so the driver's arrival is unknown (RV-28). */
+  cancelOption: DetailCancelOption;
   parcels: ParcelView[];
   timeline: TimelineEntry[];
-  slipHref: string;
+  /** Null when the source has no slip (the API path): the button is hidden, never an empty link. */
+  slipHref: string | null;
 };
+
+export type DetailCancelOption = CancelOption | "freeUnlessArrived";
 
 export type OrderDetailResult = { status: "found"; order: OrderDetail } | { status: "notFound" };
 

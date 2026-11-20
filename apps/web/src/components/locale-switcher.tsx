@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
-import { localeLabels, switcherOrder } from "@fastgo/i18n";
+import { localeLabels, switcherOrder, type Locale } from "@fastgo/i18n";
 import { LanguageSwitcher } from "@fastgo/ui";
 import { Link, usePathname } from "@/i18n/navigation";
 
@@ -60,6 +60,13 @@ function Switcher({ variant, search }: { variant: Variant; search: string }) {
           lang={item.code}
           hrefLang={item.code}
           aria-current={current ? "true" : undefined}
+          // R902: signed in, the choice is saved on the account like C09 does; signed out, nothing is saved.
+          onClick={() => {
+            // Loaded on click: the account data layer stays out of the header bundle of every public page.
+            void import("@/lib/data").then(({ profilePort }) =>
+              profilePort().saveLocaleIfSignedIn(item.code as Locale),
+            );
+          }}
           className={className}
         >
           {children}

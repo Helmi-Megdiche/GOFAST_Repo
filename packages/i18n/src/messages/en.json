@@ -126,6 +126,38 @@
       "accountOrder": {
         "title": "My order | GOFAST",
         "description": "The details of a GOFAST order: tracking, parcels, price and proof of delivery."
+      },
+      "accountInvoices": {
+        "title": "Invoices and receipts | GOFAST",
+        "description": "Your GOFAST invoices, receipts and credit notes, with their payment status."
+      },
+      "accountInvoice": {
+        "title": "Invoice | GOFAST",
+        "description": "The detail of a GOFAST invoice or credit note."
+      },
+      "accountClaims": {
+        "title": "Claims | GOFAST",
+        "description": "Your GOFAST claims and their follow-up."
+      },
+      "accountClaimNew": {
+        "title": "New claim | GOFAST",
+        "description": "Open a claim about a GOFAST order."
+      },
+      "accountClaim": {
+        "title": "Claim | GOFAST",
+        "description": "The follow-up of a GOFAST claim and the exchanges with customer service."
+      },
+      "accountAddresses": {
+        "title": "Addresses and recipients | GOFAST",
+        "description": "Your saved GOFAST addresses and recipients."
+      },
+      "accountProfile": {
+        "title": "Profile and preferences | GOFAST",
+        "description": "Your GOFAST details, notifications and language."
+      },
+      "accountEmail": {
+        "title": "E-mail address | GOFAST",
+        "description": "Add or change the e-mail of your GOFAST account."
       }
     }
   },
@@ -133,7 +165,8 @@
     "skipToContent": "Skip to content",
     "home": "Home",
     "loading": "Loading…",
-    "from": "From"
+    "from": "From",
+    "notAvailableYet": "This section is not available yet."
   },
   "languageSwitcher": {
     "label": "Language"
@@ -316,8 +349,9 @@
     "list": "[LIST TO BE VALIDATED BY GOFAST]",
     "text": "[TEXT]",
     "answer": "[ANSWER]",
-    "vehicle": "[VEHICLE]",
-    "ceiling": "[CEILING]"
+    "ceiling": "[CEILING]",
+    "vat": "[VAT]",
+    "taxId": "[TAX ID]"
   },
   "nav": {
     "label": "Main navigation",
@@ -460,6 +494,10 @@
       "title": "Number not found",
       "text": "No parcel matches this number. Check it or contact GOFAST."
     },
+    "unavailable": {
+      "title": "Tracking temporarily unavailable",
+      "text": "We could not read this number right now. Please try again in a moment."
+    },
     "yourParcel": {
       "title": "Is this your parcel?",
       "text": "The link you received by SMS shows the amount to pay and the delivery code, and lets you change the time slot."
@@ -583,13 +621,27 @@
       "phone": "Phone",
       "vehicle": "Vehicle",
       "vehicles": {
-        "moto": "Motorbike"
+        "scooter": "Scooter",
+        "motorbike": "Motorbike",
+        "car": "Car",
+        "lightVan": "Light van"
       },
       "zone": "Preferred area",
-      "attach": "Licence and insurance (5 MB)",
-      "removeAttachment": "Remove the document",
       "submit": "Send my application",
-      "sending": "Sending…"
+      "sending": "Sending…",
+      "documentsTitle": "Your documents",
+      "documentsHint": "Images or PDF, {size} MB at most per file.",
+      "addFile": "Add a file",
+      "removeDocument": "Remove the file: {document}",
+      "documents": {
+        "cin": "National ID card (CIN)",
+        "licence": "Driving licence for your vehicle",
+        "registration": "Vehicle registration (carte grise)",
+        "insurance": "Insurance certificate",
+        "vehiclePhoto": "Vehicle photo",
+        "bankDetails": "Bank or postal details (RIB or postal certificate)"
+      },
+      "requiredLabel": "required"
     },
     "success": {
       "title": "Application sent.",
@@ -642,7 +694,7 @@
       "slotRequired": "Choose a time slot.",
       "slotPast": "This time slot has passed. Choose another one.",
       "parcelTypeRequired": "Choose a shipment type.",
-      "countInvalid": "Enter a whole number, at least 1.",
+      "countInvalid": "Enter a whole number from 1 to 10.",
       "weightInvalid": "Enter a weight in kg, for example 2 or 2.5.",
       "declaredValueInvalid": "Invalid amount. Example: 48.500 or 1,152.000.",
       "serviceRequired": "Choose a service.",
@@ -650,12 +702,15 @@
       "termsRequired": "Accept the terms to continue.",
       "passwordTooShort": "At least 10 characters.",
       "codeIncomplete": "Enter the full code.",
-      "freightPayerRequired": "Accept these terms to pay on delivery."
+      "freightPayerRequired": "Accept these terms to pay on delivery.",
+      "documentRequired": "Add this document.",
+      "attachmentBadType": "Only images and PDF files are accepted."
     },
     "serverErrors": {
       "attachmentTooLarge": "The file is larger than 5 MB.",
       "captchaFailed": "The anti-robot check failed. Try again.",
-      "invalidTrackingCode": "A tracking number looks like FG-7K4M-2QXP."
+      "invalidTrackingCode": "A tracking number looks like FG-7K4M-2QXP.",
+      "vehicleInvalid": "Choose a vehicle from the list."
     }
   },
   "home": {
@@ -837,11 +892,13 @@
       },
       "count": "Number of parcels",
       "weight": "Estimated weight (kg)",
+      "weightN": "Weight of parcel {n} (kg)",
       "content": "Contents",
       "declaredValue": "Declared value (TND, optional)",
       "declaredValueParsed": "That is <amount></amount>",
-      "option": "Option",
-      "fragile": "Fragile parcel"
+      "option": "Options",
+      "fragile": "Fragile parcel",
+      "packaging": "GOFAST packaging (per parcel)"
     },
     "service": {
       "title": "When must it arrive?",
@@ -855,7 +912,8 @@
       "surcharge": "{name} surcharge of <amount></amount> included, capped at <ceiling></ceiling>. It is shown now so the price does not change at the end.",
       "submit": "Review my order",
       "pricing": "Calculating the price…",
-      "unavailable": "Not available yet for these addresses."
+      "unavailable": "Not available yet for these addresses.",
+      "unavailablePackaging": "No price yet with GOFAST packaging."
     },
     "price": {
       "title": "Your price",
@@ -865,6 +923,8 @@
       "example": "Example amounts.",
       "provisionalNote": "Example amount, to be confirmed by the parcel and the service.",
       "guarantee": "Incl. VAT, guaranteed for 15 minutes. Example amounts.",
+      "unitTimes": "<unit></unit> × {count}",
+      "mixedWeights": "Weight differs by parcel",
       "detail": "Price breakdown",
       "lines": {
         "base": "Service and area: {service}, area {zone}",
@@ -874,7 +934,8 @@
         "surcharge": "{name} surcharge (cap: <ceiling></ceiling>)",
         "discount": "Discount",
         "vat": "VAT",
-        "stamp": "Fiscal stamp"
+        "stamp": "Fiscal stamp",
+        "packaging": "GOFAST packaging"
       },
       "surchargeNames": {
         "rain": "Rain"
@@ -899,7 +960,7 @@
       "parcel": "Parcel",
       "proof": "Proof",
       "person": "{name}, {address}",
-      "parcelSummary": "{type, select, document {{count, plural, one {# envelope} other {# envelopes}}} small {{count, plural, one {# small parcel} other {# small parcels}}} medium {{count, plural, one {# medium parcel} other {# medium parcels}}} large {{count, plural, one {# large parcel} other {# large parcels}}} other {{count, plural, one {# parcel} other {# parcels}}}}, {weight} kg{fragile, select, yes {, fragile} other {}}",
+      "parcelSummary": "{type, select, document {{count, plural, one {# envelope} other {# envelopes}}} small {{count, plural, one {# small parcel} other {# small parcels}}} medium {{count, plural, one {# medium parcel} other {# medium parcels}}} large {{count, plural, one {# large parcel} other {# large parcels}}} other {{count, plural, one {# parcel} other {# parcels}}}}, <w>{weight} kg</w>{packaging, select, yes {, GOFAST packaging} other {}}{fragile, select, yes {, fragile} other {}}",
       "proofs": {
         "codeOrPhotoPosition": "Code sent to the recipient, or photo with location",
         "codeOrSignaturePhoto": "Code sent to the recipient, or signature and photo",
@@ -943,7 +1004,8 @@
         "draftChanged": "Your order was changed in another tab. Check it, then confirm.",
         "serviceUnavailable": "This service is no longer available for these addresses. Choose another one.",
         "returnBalanceDue": "A return fee balance must be settled before a new cash order.",
-        "freightPayerNotAccepted": "Accept the pay-on-delivery terms to confirm."
+        "freightPayerNotAccepted": "Accept the pay-on-delivery terms to confirm.",
+        "accountClosed": "This account is closed. Sign in or create an account to order."
       },
       "serviceLines": {
         "express": "{service}, in under 1 hour",
@@ -994,6 +1056,11 @@
       "change": "Change the address",
       "zones": "See the areas",
       "request": "Request this area"
+    },
+    "saved": {
+      "addressLabel": "Saved address",
+      "recipientLabel": "Saved recipient",
+      "placeholder": "Choose from my address book"
     }
   },
   "auth": {
@@ -1016,6 +1083,12 @@
       "noAccount": "New customer?",
       "signUp": "Create an account",
       "invalid": "Wrong phone, email or password."
+    },
+    "notices": {
+      "retry": "Try again",
+      "wait": "Too many attempts. Try again in {seconds} s.",
+      "unavailable": "The service is not answering right now. Your details are kept: try again in a moment.",
+      "maybeChanged": "Your password may already be changed. Try signing in with the new one."
     },
     "signUp": {
       "title": "Create an account",
@@ -1040,7 +1113,8 @@
       "submit": "Continue",
       "created": "Account created.",
       "emailLater": "Account created. Your e-mail is not added yet: you can confirm it later, with a code sent to that address.",
-      "emailLaterContinue": "Continue"
+      "emailLaterContinue": "Continue",
+      "emailLaterConfirm": "Confirm my e-mail"
     },
     "code": {
       "title": "Enter the code you received",
@@ -1186,7 +1260,8 @@
         "surcharge": "Surcharge",
         "discount": "Discount",
         "vat": "VAT",
-        "stamp": "Fiscal stamp"
+        "stamp": "Fiscal stamp",
+        "packaging": "GOFAST packaging"
       },
       "total": "Total incl. tax",
       "payment": "Payment",
@@ -1214,7 +1289,9 @@
         "title": "We could not load this order.",
         "retry": "Try again"
       },
-      "loading": "Loading the order…"
+      "loading": "Loading the order…",
+      "fromNoAddress": "From {name}",
+      "toNoAddress": "To {name}"
     },
     "cancel": {
       "button": "Cancel the order",
@@ -1235,7 +1312,8 @@
         "none": "Cancelled at no cost.",
         "applies": "Cancellation fee: <fee></fee>.",
         "backOfficeDecides": "A fee may apply: GOFAST will confirm it to you."
-      }
+      },
+      "freeUnlessArrived": "Canceling is free unless the driver has already arrived. If they have, a fee of <fee></fee> applies under the terms."
     }
   },
   "parcels": {
@@ -1290,7 +1368,7 @@
       "noneDelivered": "No finished delivery yet.",
       "seeAll": "See all",
       "settled": "You are up to date.",
-      "owed": "Return fees to settle before your next cash order.",
+      "owed": "Amount still to pay on your account.",
       "error": {
         "title": "We could not load your space.",
         "retry": "Try again"
@@ -1313,6 +1391,381 @@
       "notAllowed": "You do not have access to this page.",
       "noscript": "This page needs JavaScript to show your space."
     },
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "closedName": "Closed account"
+  },
+  "invoices": {
+    "status": {
+      "paid": "Paid",
+      "partial": "Partly paid",
+      "unpaid": "To pay"
+    },
+    "example": "Example amounts.",
+    "list": {
+      "title": "Invoices and receipts",
+      "caption": "Your invoices and credit notes",
+      "loading": "Loading invoices…",
+      "error": {
+        "title": "The invoices could not be loaded.",
+        "retry": "Try again"
+      },
+      "emptyTitle": "No invoice yet",
+      "emptyText": "Your invoices appear here once your deliveries are done.",
+      "dueLabel": "To pay",
+      "dueNone": "No invoice to pay",
+      "dueSome": "Amount still to pay on your account",
+      "columns": {
+        "number": "Number",
+        "date": "Date",
+        "orders": "Orders",
+        "status": "Status",
+        "amount": "Amount",
+        "action": "Action"
+      },
+      "creditNote": "Credit note",
+      "creditNoteOf": "On invoice <num></num>",
+      "view": "View",
+      "viewOf": "View {number}"
+    },
+    "detail": {
+      "title": "Invoice",
+      "back": "Invoices and receipts",
+      "loading": "Loading the invoice…",
+      "error": {
+        "title": "The invoice could not be loaded.",
+        "retry": "Try again"
+      },
+      "notFound": {
+        "title": "Invoice not found",
+        "text": "This invoice does not exist in your account."
+      },
+      "heading": "Invoice <num></num>",
+      "issuedOn": "Issue date",
+      "issuer": "Issued by",
+      "issuerName": "GOFAST",
+      "issuerTaxId": "Tax ID {value}",
+      "buyer": "Customer",
+      "buyerTaxId": "Tax ID <num></num>",
+      "orders": "Billed orders",
+      "lines": {
+        "caption": "Billed services",
+        "service": "Service",
+        "amount": "Amount",
+        "freight": "{service} delivery",
+        "freightParcel": "{service} delivery, parcel {index}",
+        "returnFee": "Return fee, parcel {index}",
+        "cancelFee": "Cancellation fee"
+      },
+      "totals": {
+        "subtotal": "Subtotal",
+        "vat": "VAT",
+        "stamp": "Stamp duty",
+        "total": "Total"
+      },
+      "status": "Status",
+      "paidOn": "Paid on",
+      "due": "Still to pay",
+      "receipt": "Receipt available.",
+      "ttn": {
+        "registered": "Invoice registered on El Fatoora.",
+        "id": "TTN identifier <num></num>",
+        "qr": "El Fatoora QR code"
+      },
+      "creditNotes": {
+        "title": "Credit notes linked to this invoice",
+        "item": "Corrected by credit note <num></num>",
+        "amount": "Credit note amount"
+      },
+      "downloadInvoice": "Download the invoice",
+      "downloadReceipt": "Download the receipt",
+      "exampleFiles": "The PDF files are examples, marked EXEMPLE.",
+      "contest": "Dispute this invoice"
+    },
+    "creditNote": {
+      "heading": "Credit note <num></num>",
+      "of": "This credit note corrects invoice <num></num>",
+      "amount": "Credit note amount",
+      "issuedOn": "Issue date",
+      "download": "Download the credit note"
+    }
+  },
+  "claims": {
+    "category": {
+      "damage": "Damaged parcel",
+      "loss": "Lost parcel",
+      "delay": "Late delivery",
+      "billing": "Invoice dispute",
+      "other": "Other request"
+    },
+    "state": {
+      "open": "Open",
+      "toComplete": "To complete",
+      "resolved": "Resolved",
+      "archived": "Archived"
+    },
+    "list": {
+      "title": "Claims",
+      "caption": "Your claims",
+      "new": "New request",
+      "loading": "Loading claims…",
+      "error": {
+        "title": "The claims could not be loaded.",
+        "retry": "Try again"
+      },
+      "emptyTitle": "No claim",
+      "emptyText": "A problem with a delivery or an invoice? Open a request and customer service will answer.",
+      "columns": {
+        "ref": "Reference",
+        "subject": "Subject",
+        "order": "Order",
+        "status": "Status",
+        "updated": "Updated",
+        "action": "Action"
+      },
+      "open": "Open",
+      "openOf": "Open {ref}"
+    },
+    "new": {
+      "title": "New claim",
+      "back": "Claims",
+      "loading": "Loading…",
+      "error": {
+        "title": "The page could not be loaded.",
+        "retry": "Try again"
+      },
+      "notFound": {
+        "title": "Order or invoice not found",
+        "text": "This order or invoice does not exist in your account."
+      },
+      "contesting": "You are disputing invoice <num></num>.",
+      "pick": {
+        "title": "Choose the order concerned",
+        "text": "This invoice covers several orders. Tell us which one has a problem.",
+        "continue": "Continue"
+      },
+      "order": "Order concerned",
+      "orderPlaceholder": "Choose an order",
+      "orderOption": "{code}, {service}",
+      "category": "Subject",
+      "message": "Your message",
+      "attach": "Add attachments",
+      "attachHelp": "Images and PDF, up to {size} MB per file, up to {count} files.",
+      "removeAttachment": "Remove {name}",
+      "submit": "Send the claim",
+      "sending": "Sending…",
+      "errors": {
+        "orderRequired": "Choose the order concerned.",
+        "messageRequired": "Write your message.",
+        "attachmentTooLarge": "A file is larger than {size} MB.",
+        "attachmentBadType": "Only images and PDF files are accepted.",
+        "attachmentTooMany": "{count} files at most.",
+        "network": "The request could not be sent. You can safely try again: it will be saved only once.",
+        "refused": "The request was refused. Check the fields and try again.",
+        "categoryRequired": "Choose a subject."
+      },
+      "categoryPlaceholder": "Choose a subject"
+    },
+    "rules": {
+      "title": "Good to know",
+      "reportDelay": "Report damage or a loss within {hours} h of delivery or of the finding.",
+      "declaredValue": "Declared value of the order",
+      "cap": "Compensation never exceeds the declared value.",
+      "noDeclared": "Without a declared value, the flat amount of the terms applies",
+      "replyTime": "Expected reply",
+      "replyWithin": "Within {hours} h"
+    },
+    "detail": {
+      "title": "Claim",
+      "back": "Claims",
+      "loading": "Loading the claim…",
+      "error": {
+        "title": "The claim could not be loaded.",
+        "retry": "Try again"
+      },
+      "notFound": {
+        "title": "Claim not found",
+        "text": "This claim does not exist in your account."
+      },
+      "ref": "Reference",
+      "thread": "Messages",
+      "you": "You",
+      "staff": "GOFAST customer service",
+      "attachments": "Attachments",
+      "linkedOrder": "Linked order",
+      "viewOrder": "View the order",
+      "deliveredOn": "Delivered on",
+      "noDeclaredValue": "No declared value",
+      "invoice": "Disputed invoice",
+      "reply": {
+        "label": "Your reply",
+        "submit": "Send"
+      },
+      "reopen": {
+        "text": "This claim is closed. You can reopen it if the problem continues.",
+        "until": "Possible until",
+        "button": "Reopen the claim",
+        "notClosed": "This claim is no longer closed. The page was updated."
+      },
+      "archived": "This claim is archived: you can still read it, but it can no longer be reopened. Open a new request if needed.",
+      "toComplete": "Customer service is waiting for your reply.",
+      "closedNow": "This claim has just been closed. The page was updated."
+    }
+  },
+  "addressBook": {
+    "title": "Addresses and recipients",
+    "loading": "Loading your addresses…",
+    "error": {
+      "title": "We could not load your addresses.",
+      "retry": "Try again"
+    },
+    "addresses": {
+      "title": "My addresses",
+      "add": "Add",
+      "empty": "No saved address.",
+      "edit": "Edit",
+      "editLabel": "Edit {label}",
+      "remove": "Remove",
+      "removeLabel": "Remove {label}",
+      "landmark": "Landmark: <landmark></landmark>"
+    },
+    "form": {
+      "addTitle": "Add an address",
+      "editTitle": "Edit the address",
+      "label": "Address name",
+      "labelHint": "For example: Home, Office.",
+      "text": "Address",
+      "landmark": "Landmark (optional)",
+      "save": "Save",
+      "cancel": "Cancel",
+      "saved": "Address saved.",
+      "network": "Saving failed. Try again."
+    },
+    "recipients": {
+      "title": "Saved recipients",
+      "empty": "No saved recipient. Tick “Save this recipient” when you order.",
+      "sendTo": "Send them a parcel",
+      "sendToLabel": "Send them a parcel: {name}",
+      "remove": "Remove",
+      "removeLabel": "Remove {name}"
+    },
+    "removeDialog": {
+      "addressTitle": "Remove this address?",
+      "recipientTitle": "Remove this recipient?",
+      "text": "It will be removed from your address book. Your orders do not change.",
+      "confirm": "Yes, remove",
+      "keep": "No, keep it"
+    }
+  },
+  "profile": {
+    "title": "Profile and preferences",
+    "loading": "Loading your profile…",
+    "error": {
+      "title": "We could not load your profile.",
+      "retry": "Try again"
+    },
+    "saved": "Saved.",
+    "saveFailed": "Saving failed. Try again.",
+    "info": {
+      "title": "My details",
+      "name": "Full name",
+      "phone": "Phone",
+      "phoneVerified": "Verified",
+      "phoneHint": "The number cannot be changed for now.",
+      "email": "E-mail",
+      "noEmail": "No e-mail",
+      "addEmail": "Add an e-mail",
+      "changeEmail": "Change the e-mail",
+      "save": "Save"
+    },
+    "notifications": {
+      "title": "Notifications",
+      "sms": "SMS for my deliveries",
+      "email": "E-mail for my invoices",
+      "offers": "GOFAST offers"
+    },
+    "google": {
+      "title": "Google account",
+      "linked": "A Google account is linked.",
+      "none": "No Google account is linked.",
+      "unlink": "Unlink",
+      "unlinked": "Google account unlinked."
+    },
+    "language": {
+      "title": "Language",
+      "names": {
+        "fr": "Français",
+        "en": "English",
+        "ar": "العربية"
+      }
+    },
+    "account": {
+      "title": "My account",
+      "text": "Closing your account erases your identity: name, phone and e-mail. Your orders and invoices are kept.",
+      "close": "Close my account"
+    },
+    "close": {
+      "title": "Close your account?",
+      "text": "Your name, phone and e-mail will be erased and you will no longer be able to sign in with them. Your invoices are kept. This cannot be undone.",
+      "confirm": "Yes, close my account",
+      "keep": "No, keep my account",
+      "network": "Closing failed. Try again.",
+      "refused": {
+        "title": "You cannot close your account right now",
+        "activeOrder": "An order is still in progress. You can close your account once it is over.",
+        "amountDue": "An amount is still due on your account. Pay it before closing your account.",
+        "seeOrders": "See my orders",
+        "seeInvoices": "See my invoices",
+        "dismiss": "Close"
+      }
+    },
+    "unavailable": "Google sign-in and closing the account are not available yet."
+  },
+  "emailScreen": {
+    "title": "E-mail address",
+    "intro": "We send a code to this address to confirm it. It is added to your account only after that.",
+    "current": "Current e-mail: <email></email>",
+    "field": "New e-mail address",
+    "send": "Send me a code",
+    "sending": "Sending the code…",
+    "change": "Use another address",
+    "back": "Back to my profile",
+    "done": "Your e-mail is confirmed and added to your account.",
+    "taken": "This e-mail address is already used by another account. Use another address.",
+    "notVerified": "The code is no longer valid. Ask for a new one.",
+    "network": "The operation failed. Try again.",
+    "loading": "Loading…"
+  },
+  "apiErrors": {
+    "VALIDATION_FAILED": "Some fields are missing or invalid.",
+    "AUTH_REQUIRED": "Sign-in required or wrong credentials.",
+    "ACCESS_DENIED": "You are not allowed to do this.",
+    "NOT_FOUND": "Resource not found.",
+    "STATE_CONFLICT": "This action is not possible in the current state.",
+    "KEY_REUSED": "This idempotency key was already used for another request.",
+    "QUOTE_EXPIRED": "The price has expired and must be recalculated.",
+    "RULE_REFUSED": "A business rule is not met.",
+    "TOO_MANY_ATTEMPTS": "Too many attempts, try again later.",
+    "PROVIDER_UNAVAILABLE": "An external service is unavailable.",
+    "INTERNAL_ERROR": "Internal error.",
+    "SAME_ACTOR": "You cannot validate your own work.",
+    "outOfZone": "This address is not served yet.",
+    "addressUnconfirmed": "This address could not be placed on the map: pick the délégation from the list.",
+    "tooManyParcels": "There are too many parcels for one order.",
+    "tooHeavy": "A parcel is over the maximum weight.",
+    "priceUnavailable": "The price of this option is not available yet.",
+    "quoteChanged": "The price has changed: check the new total before you confirm.",
+    "phoneRequired": "Verify your phone number by SMS to place an order.",
+    "contractRequired": "Payment on account needs a validated contract.",
+    "addressMismatch": "The addresses are not the ones of the quote: get a new price.",
+    "freightPayerRequired": "Accept the freight-due terms to pay on delivery.",
+    "slotInvalid": "The chosen time slot is not valid: check the times, or pick a slot that has not passed.",
+    "feeRequired": "The cancellation fee has changed: check it before you confirm.",
+    "claimOnly": "The parcel has already been picked up: open a claim.",
+    "notCancellable": "This order can no longer be canceled.",
+    "notWaitingForConfirmation": "This order is not waiting for confirmation."
+  },
+  "apiSms": {
+    "code": "GOFAST: your code is {code}. It is valid for {minutes} minutes. Do not share it with anyone.",
+    "tracking": "GOFAST: a parcel is on its way to you. Tracking number {tracking_number}. Follow it here: {link}"
   }
 }

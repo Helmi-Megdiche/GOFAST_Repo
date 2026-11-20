@@ -1,0 +1,291 @@
+# GOFAST stack (#14). One file for the laptop and for staging; compose.staging.yaml overrides it.
+# Laptop: docker compose --env-file .env.example up -d      (fake values, db-setup runs by itself)
+# Images are pinned by digest; the tag is in the comment. api, ws, worker, web are built from infra/docker.
+name: gofast
+
+# Hardening for the five app containers: code is read-only, /tmp is the only writable path, no extra
+# privileges, no capabilities. Merged into each service with `<<: *hardened`.
+x-hardened: &hardened
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
+
+services:
+  postgres:
+    image: postgis/postgis@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6 # 17-3.5
+    environment:
+      POSTGRES_DB: fastgo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set it in the env file}
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    command: ["postgres", "-c", "password_encryption=scram-sha-256"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${PG_PORT:-15432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d fastgo"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # One-time roles, extension and grants (infra/servers/db-setup.sql). Profile "setup": the laptop
+  # env file turns it on (fake passwords from variables). On staging it is not started: db-setup.sql
+  # is run by hand once, in a terminal, with real passwords.
+  db-setup:
+    profiles: ["setup"]
+    image: postgis/postgis@sha256:01a6a70e41e6c4467c8f55f6063555ed72db2d6662cd0d571040d42eadaeb6f6 # 17-3.5
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGPASSWORD: ${POSTGRES_PASSWORD}
+      PW_MIGRATOR: ${FASTGO_MIGRATOR_PASSWORD:-}
+      PW_APP: ${FASTGO_APP_PASSWORD:-}
+      PW_READONLY: ${FASTGO_READONLY_PASSWORD:-}
+      PW_WORKER: ${FASTGO_WORKER_PASSWORD:-}
+      PW_PGBOUNCER: ${PGBOUNCER_AUTH_PASSWORD:-}
+    volumes:
+      - ../servers/db-setup.sql:/db-setup.sql:ro
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        psql -h postgres -U postgres -d fastgo -v ON_ERROR_STOP=1
+        -v pw_migrator="$$PW_MIGRATOR" -v pw_app="$$PW_APP" -v pw_readonly="$$PW_READONLY"
+        -v pw_worker="$$PW_WORKER" -v pw_pgbouncer="$$PW_PGBOUNCER" -f /db-setup.sql
+    restart: "no"
+
+  # Transaction pooling. The apps (api, worker) connect here as fastgo_app / fastgo_worker. The
+  # migrations never do: they connect straight to postgres (advisory lock, see migrate.ts).
+  pgbouncer:
+    image: edoburu/pgbouncer@sha256:8638aa563607256d3c7440437534195f1066a92b68015d89ae9d6b935b444a6d # 1.26.1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_NAME: fastgo
+      DB_USER: pgbouncer_auth
+      DB_PASSWORD: ${PGBOUNCER_AUTH_PASSWORD:?set it in the env file}
+      AUTH_TYPE: scram-sha-256
+      AUTH_USER: pgbouncer_auth
+      AUTH_QUERY: select usename, passwd from pgbouncer.get_auth($$1)
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: "200"
+      DEFAULT_POOL_SIZE: "10"
+      MAX_PREPARED_STATEMENTS: "100"
+    ports:
+      - "127.0.0.1:${PGBOUNCER_PORT:-16432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -p 5432 || nc -z 127.0.0.1 5432"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  redis:
+    image: redis@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe # 7.4-alpine
+    command: ["sh", "-c", 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?set it in the env file}
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    volumes:
+      - redisdata:/data
+    ports:
+      - "127.0.0.1:${REDIS_PORT:-16379}:6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep -q PONG"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # S3-compatible storage. MinIO's community image is no longer published, so: SeaweedFS (Apache-2.0).
+  s3:
+    image: chrislusf/seaweedfs@sha256:4b42c212543a0acd4c0e675215ecdcaf62a186ef98def76c7e12701871222d15 # 4.54
+    command: ["server", "-dir=/data", "-s3", "-s3.port=8333", "-ip.bind=0.0.0.0"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY:?set it in the env file}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY:?set it in the env file}
+    volumes:
+      - s3data:/data
+    ports:
+      - "127.0.0.1:${S3_PORT:-18333}:8333"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:9333/cluster/status"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # One-shot: applies apps/api/migrations straight to postgres as fastgo_migrator (never through
+  # PgBouncer: advisory lock, one transaction per file). api and worker wait for it. On the laptop
+  # it also waits for db-setup (roles must exist); on staging db-setup is run by hand, so not required.
+  migrate:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: &api-build
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
+        required: false
+    environment:
+      DATABASE_MIGRATOR_URL: postgres://fastgo_migrator:${FASTGO_MIGRATOR_PASSWORD:?set it in the env file}@postgres:5432/fastgo
+    command: ["node", "src/db/cli.ts"]
+    restart: "no"
+
+  api:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on: &api-deps
+      migrate:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment: &api-env
+      NODE_ENV: ${APP_ENV:-development}
+      TRUST_PROXY: ${TRUST_PROXY:-0} # hops in front of the api; 1 = Caddy. Env files choose it.
+      DATABASE_URL: postgres://fastgo_app:${FASTGO_APP_PASSWORD:?set it in the env file}@pgbouncer:5432/fastgo
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      AUTH_SECRET: ${AUTH_SECRET:?set it in the env file}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:13000}
+    command: ["node", "dist/main.js"]
+    ports:
+      - "127.0.0.1:${API_PORT:-14000}:4000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/v1/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    stop_grace_period: 10s # shutdown.ts hardLimitMs (8 s) must stay below this
+
+  ws:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: ${APP_ENV:-development}
+    command: ["node", "dist/ws.js"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    stop_grace_period: 10s # shutdown.ts hardLimitMs (8 s) must stay below this
+
+  worker:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgres://fastgo_worker:${FASTGO_WORKER_PASSWORD:?set it in the env file}@pgbouncer:5432/fastgo
+    command: ["node", "dist/worker.js"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4002/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+    stop_grace_period: 10s # shutdown.ts hardLimitMs (8 s) must stay below this
+
+  web:
+    <<: *hardened
+    image: ${WEB_IMAGE:-gofast-web:local}
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:13000}
+        NEXT_PUBLIC_API_DOMAINS: ${API_DOMAINS:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-13000}:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/fr').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # The only service with public ports. Routes in ./Caddyfile. CADDY_BIND is 0.0.0.0 on a server and
+  # 127.0.0.1 on the laptop (.env.example), so the fake-password stack is not reachable from the LAN.
+  caddy:
+    image: caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d # 2.10-alpine
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    depends_on:
+      api:
+        condition: service_healthy
+      ws:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      CADDY_TLS: ${CADDY_TLS:-internal}
+      CADDY_MODE: ${CADDY_MODE:-open}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${CADDY_BIND:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${CADDY_BIND:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+  redisdata:
+  s3data:
+  caddy_data:
+  caddy_config:

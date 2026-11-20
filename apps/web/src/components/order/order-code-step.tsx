@@ -10,7 +10,7 @@ import { claimOrderPhone, isVerifiedPhoneForSession } from "@/lib/data/accounts"
 import { editDraft } from "@/lib/order/draft";
 import { draftPhoneProven, STEP_PATHS } from "@/lib/order/steps";
 import { handOffRefusal, submitOrder } from "@/lib/order/submit";
-import { maskPhone, normalizePhone } from "@/lib/phone";
+import { maskPhone, normalizePhone } from "@fastgo/domain";
 import { StepBusy } from "./busy";
 import { markStepChange } from "./step-heading";
 import { useOrderStep } from "./use-order-step";

@@ -1,12 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { useBrokenStorage, useMemoryStorage } from "../storage";
 import { setClock } from "./clock";
-import { DRAFT_RETENTION_MS } from "./constants";
+import { DRAFT_RETENTION_MS } from "@fastgo/domain";
 import {
   clearDraft,
   DRAFT_KEY,
   editDraft,
   emptyDraft,
+  type OrderDraft,
   loadDraft,
   saveDraft,
   seedFromHome,
@@ -27,6 +28,131 @@ beforeEach(() => {
 
 afterEach(() => {
   setClock();
+});
+
+describe("a draft saved before the parcel count (PR 1b)", () => {
+  const old = (count: string) => {
+    const draft = JSON.parse(JSON.stringify(readyDraft(T0))) as { parcel: Record<string, unknown> };
+    const { weights, packaging, ...rest } = draft.parcel;
+    void weights;
+    void packaging;
+    draft.parcel = { ...rest, count, weightKg: "2,5" };
+    return draft;
+  };
+
+  it("a one-parcel draft keeps its weight, loses its old quote and is saved in the new shape", () => {
+    store.set(DRAFT_KEY, JSON.stringify(old("1")));
+    const loaded = loadDraft(T0);
+    expect(loaded?.parcel.weights).toEqual(["2,5"]);
+    expect(loaded?.parcel.packaging).toBe(false);
+    expect(loaded?.quote).toBeNull();
+    expect(JSON.parse(store.get(DRAFT_KEY)!).parcel.weightKg).toBeUndefined();
+  });
+
+  it("an old draft with several parcels is not read and its key is removed", () => {
+    store.set(DRAFT_KEY, JSON.stringify(old("3")));
+    expect(loadDraft(T0)).toBeNull();
+    expect(store.has(DRAFT_KEY)).toBe(false);
+  });
+});
+
+describe("draft v2: a v1 draft is migrated, never dropped (GH-10, RV-08)", () => {
+  // One ready draft per test (each call makes a new idempotency key and quote id).
+  const asV1 = (ready: OrderDraft = readyDraft(T0)) =>
+    ({ ...JSON.parse(JSON.stringify(ready)), version: 1 }) as Record<string, unknown> & {
+      quote: { lines: Record<string, unknown> } | null;
+    };
+
+  it("GH-10-D1 a stored v1 draft loads as v2 with the same addresses, parcels and choices", () => {
+    const ready = readyDraft(T0);
+    store.set(DRAFT_KEY, JSON.stringify(asV1(ready)));
+    const loaded = loadDraft(T0);
+    expect(loaded).not.toBeNull();
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.sender).toEqual(ready.sender);
+    expect(loaded?.recipient).toEqual(ready.recipient);
+    expect(loaded?.parcel).toEqual(ready.parcel);
+    expect(loaded?.service).toEqual(ready.service);
+    expect(loaded?.payment).toEqual(ready.payment);
+    expect(loaded?.idempotencyKey).toBe(ready.idempotencyKey);
+    expect(JSON.parse(store.get(DRAFT_KEY)!).version).toBe(2);
+  });
+
+  it("GH-10-D2 a draft missing one price line is kept, its quote dropped so W14 prices it again", () => {
+    const ready = readyDraft(T0);
+    const stored = asV1(ready);
+    expect(stored.quote).not.toBeNull();
+    delete stored.quote!.lines.stamp;
+    store.set(DRAFT_KEY, JSON.stringify({ ...stored, version: 2 }));
+    const loaded = loadDraft(T0);
+    expect(loaded).not.toBeNull();
+    expect(loaded?.sender).toEqual(ready.sender);
+    expect(loaded?.parcel).toEqual(ready.parcel);
+    expect(loaded?.quote).toBeNull();
+    expect(loaded?.acceptedQuoteId).toBeNull();
+    expect(loaded?.previousTotalMillimes).toBeNull();
+  });
+
+  it("GH-10-D3 a complete quote survives the migration unchanged", () => {
+    const ready = readyDraft(T0);
+    store.set(DRAFT_KEY, JSON.stringify(asV1(ready)));
+    expect(loadDraft(T0)?.quote).toEqual(ready.quote);
+  });
+
+  it("GH-10-D4 an unknown price line key is refused and the draft is cleared", () => {
+    const stored = asV1();
+    stored.quote!.lines.teleport = { unitMillimes: 1, count: 1, totalMillimes: 1 };
+    store.set(DRAFT_KEY, JSON.stringify({ ...stored, version: 2 }));
+    expect(loadDraft(T0)).toBeNull();
+    expect(store.has(DRAFT_KEY)).toBe(false);
+  });
+
+  it("GH-10-D5 an unknown version is still cleared", () => {
+    store.set(DRAFT_KEY, JSON.stringify({ ...asV1(), version: 3 }));
+    expect(loadDraft(T0)).toBeNull();
+    expect(store.has(DRAFT_KEY)).toBe(false);
+  });
+
+  it("GH-10-D6 a PR 1b draft (weightKg, version 1) still migrates to v2", () => {
+    const old = asV1() as unknown as { parcel: Record<string, unknown> };
+    const { weights, packaging, ...rest } = old.parcel;
+    void weights;
+    void packaging;
+    old.parcel = { ...rest, count: "1", weightKg: "2,5" };
+    store.set(DRAFT_KEY, JSON.stringify(old));
+    const loaded = loadDraft(T0);
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.parcel.weights).toEqual(["2,5"]);
+  });
+
+  // RV-18: a lost submit must stay retryable. A quote with a pending submit is never dropped, even
+  // when it lacks a price line, because the fingerprint (and the stored body) were made from it.
+  it.each([
+    ["without a stored body", undefined],
+    ["with a stored body", '{"sent":"as-is"}'],
+  ])("GH-10-D7 a pending submit %s keeps its quote when a price line is missing", (_name, body) => {
+    const ready = readyDraft(T0);
+    const stored = asV1(ready);
+    delete stored.quote!.lines.stamp;
+    const pending = body === undefined ? { fingerprint: "fp" } : { fingerprint: "fp", body };
+    store.set(
+      DRAFT_KEY,
+      JSON.stringify({
+        ...stored,
+        pendingSubmit: pending,
+        submitAttemptedAt: T0,
+        acceptedQuoteId: ready.quote!.id,
+        previousTotalMillimes: 1234,
+      }),
+    );
+    const loaded = loadDraft(T0);
+    expect(loaded?.version).toBe(2);
+    expect(loaded?.pendingSubmit).toEqual(pending);
+    expect(loaded?.quote).toEqual(stored.quote);
+    expect(loaded?.quote?.totalMillimes).toBe(ready.quote!.totalMillimes);
+    expect(loaded?.acceptedQuoteId).toBe(ready.quote!.id);
+    expect(loaded?.previousTotalMillimes).toBe(1234);
+  });
 });
 
 describe("order draft (CMD-07)", () => {
@@ -66,7 +192,7 @@ describe("order draft (CMD-07)", () => {
   });
 
   it("reads a draft with the right version but a broken shape as empty, and deletes it", () => {
-    const base = { version: 1, expiresAt: T0 + 60_000, idempotencyKey: "k" };
+    const base = { version: 2, expiresAt: T0 + 60_000, idempotencyKey: "k" };
     const broken = [
       { ...base, sender: null, recipient: null, parcel: null, service: null },
       { ...base, sender: {}, recipient: {}, parcel: {}, service: {} },

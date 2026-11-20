@@ -1,8 +1,9 @@
 import { describe, expect, it } from "vitest";
-import type { ZoneResult } from "../data/zones";
-import { makeQuote } from "./pricing";
+import { type ZoneResult } from "@fastgo/domain";
+import { exampleMakeQuote, exampleAvailableSlots } from "@/lib/order/example-data";
 import { buildOrderRequest } from "./request";
 import {
+  lacksPackagingPrice,
   offeredServices,
   priceInputOf,
   quoteMatches,
@@ -10,7 +11,6 @@ import {
   STEPS,
   withNewQuote,
 } from "./steps";
-import { availableSlots } from "./slots";
 import { readyDraft } from "./test-draft";
 
 const T0 = Date.parse("2026-11-04T08:30:00Z"); // 09:30 in Tunis
@@ -52,9 +52,33 @@ describe("declared value typed but not readable (final review I2)", () => {
 describe("W15 guard and the quote (R205)", () => {
   it("a weight changed after the quote sends W15 back to W14", () => {
     const draft = readyDraft(T0);
-    draft.parcel.weightKg = "5";
+    draft.parcel.weights = ["5"];
     expect(quoteMatches(draft)).toBe(false);
     expect(redirectFor(draft, "review", T0)).toBe("service");
+  });
+
+  it("each parcel has its own weight: the count and the packaging are priced inputs too", () => {
+    const draft = readyDraft(T0);
+    draft.parcel.count = "2";
+    draft.parcel.weights = ["2", "3,5"];
+    expect(priceInputOf(draft)?.parcels).toEqual([{ weightG: 2_000 }, { weightG: 3_500 }]);
+    expect(quoteMatches(draft)).toBe(false);
+    const packed = readyDraft(T0);
+    packed.parcel.packaging = true;
+    expect(priceInputOf(packed)?.packaging).toBe(true);
+    expect(quoteMatches(packed)).toBe(false);
+  });
+
+  it("a missing weight for one of the parcels, or more than 10 parcels, keeps the order on W13", () => {
+    const draft = readyDraft(T0);
+    draft.parcel.count = "2";
+    draft.parcel.weights = ["2"];
+    expect(priceInputOf(draft)).toBeNull();
+    expect(redirectFor(draft, "service", T0)).toBe("parcel");
+    draft.parcel.count = "11";
+    draft.parcel.weights = Array.from({ length: 11 }, () => "1");
+    expect(priceInputOf(draft)).toBeNull();
+    expect(redirectFor(draft, "service", T0)).toBe("parcel");
   });
 
   it("a changed address needs a new quote too, since distance is priced", () => {
@@ -68,20 +92,20 @@ describe("W15 guard and the quote (R205)", () => {
 
   it("the recalculation input is rebuilt from the draft, not from the old quote", () => {
     const draft = readyDraft(T0);
-    draft.parcel.weightKg = "5";
-    expect(priceInputOf(draft)?.weightKg).toBe(5);
-    const next = withNewQuote(draft, makeQuote(priceInputOf(draft)!, T0 + 1));
+    draft.parcel.weights = ["5"];
+    expect(priceInputOf(draft)?.parcels).toEqual([{ weightG: 5_000 }]);
+    const next = withNewQuote(draft, exampleMakeQuote(priceInputOf(draft)!, T0 + 1));
     expect(quoteMatches(next)).toBe(true);
   });
 
   it("keeps the previous accepted total in the draft until the new price is accepted", () => {
     const draft = readyDraft(T0);
-    const first = withNewQuote(draft, makeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
+    const first = withNewQuote(draft, exampleMakeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
     expect(first.previousTotalMillimes).toBe(11_305);
     expect(first.acceptedQuoteId).toBe(draft.quote!.id);
     // A second recalculation before acceptance keeps the price the customer had accepted.
     const changed = { ...first, quote: { ...first.quote!, totalMillimes: 99_000 } };
-    const second = withNewQuote(changed, makeQuote(priceInputOf(draft)!, T0 + 30 * 60_000));
+    const second = withNewQuote(changed, exampleMakeQuote(priceInputOf(draft)!, T0 + 30 * 60_000));
     expect(second.previousTotalMillimes).toBe(11_305);
   });
 });
@@ -105,15 +129,25 @@ describe("services offered by both addresses (CMD-04)", () => {
   /** Programmée accepted at W14, then one address changed to a zone without it. */
   function scheduledThenTwoServices(side: "sender" | "recipient") {
     const draft = readyDraft(T0);
-    const slots = availableSlots(T0);
+    const slots = exampleAvailableSlots(T0);
     draft.sender.slot = slots[slots.length - 1]!;
     draft.service = { code: "scheduled", slot: slots[0]! };
     draft[side].address = { ...draft[side].address, zone: TWO };
     // Priced again with the new address, as the old W14 did: the quote matches the draft.
-    draft.quote = makeQuote(priceInputOf(draft)!, T0);
+    draft.quote = exampleMakeQuote(priceInputOf(draft)!, T0);
     draft.acceptedQuoteId = draft.quote.id;
     return draft;
   }
+
+  it("packaging is not offered on a service with no packaging price (Programmée, [PRIX])", () => {
+    const draft = readyDraft(T0);
+    draft.parcel.packaging = true;
+    expect(offeredServices(draft)).toEqual(["express", "standard"]);
+    expect(lacksPackagingPrice(draft, "scheduled")).toBe(true);
+    expect(lacksPackagingPrice(draft, "standard")).toBe(false);
+    draft.parcel.packaging = false;
+    expect(offeredServices(draft)).toEqual(["express", "standard", "scheduled"]);
+  });
 
   it("are the services both the departure and the arrival zones offer", () => {
     const draft = readyDraft(T0);
@@ -145,7 +179,7 @@ describe("R607 acceptance and a new quote (RV-05)", () => {
       payment: "cashDelivery" as const,
       freightPayerAccepted: true,
     };
-    const next = withNewQuote(draft, makeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
+    const next = withNewQuote(draft, exampleMakeQuote(priceInputOf(draft)!, T0 + 15 * 60_000));
     expect(next.freightPayerAccepted).toBe(false);
     expect(next.payment).toBe("cashDelivery");
   });

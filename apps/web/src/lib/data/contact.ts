@@ -1,5 +1,4 @@
-import { MAX_ATTACHMENT_BYTES } from "../limits";
-import { isValidTrackingCode } from "../tracking-code";
+import { MAX_ATTACHMENT_BYTES, isValidTrackingCode } from "@fastgo/domain";
 import { mockDelay } from "./delay";
 import { verifyCaptcha } from "./captcha";
 import { FIXTURE_TICKET_ID } from "./fixtures/contact";

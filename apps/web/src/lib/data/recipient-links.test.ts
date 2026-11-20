@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { RECIPIENT_LINK_AFTER_DELIVERY_MS } from "../order/constants";
+import { RECIPIENT_LINK_AFTER_DELIVERY_MS } from "@fastgo/domain";
 import { useMemoryStorage } from "../storage";
 import { readTable } from "./mock-db";
 import { RECIPIENT_LINKS } from "./order-model";

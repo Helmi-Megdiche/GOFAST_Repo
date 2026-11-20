@@ -10,6 +10,7 @@ native-speaker review before release (CLAUDE.md).
 
 | Key | Arabic | French (source) | Reviewed |
 | --- | --- | --- | --- |
+| `account.closedName` | حساب مغلق | Compte fermé | [ ] |
 | `account.guard.busy` | جارٍ تحميل مساحتك… | Chargement de votre espace… | [ ] |
 | `account.guard.noscript` | تحتاج هذه الصفحة إلى JavaScript لعرض مساحتك. | Cette page a besoin de JavaScript pour afficher votre espace. | [ ] |
 | `account.guard.notAllowed` | ليس لديك صلاحية الوصول إلى هذه الصفحة. | Vous n'avez pas accès à cette page. | [ ] |
@@ -22,7 +23,7 @@ native-speaker review before release (CLAUDE.md).
 | `account.home.noneDelivered` | لا توجد توصيلات منتهية حتى الآن. | Aucune livraison terminée pour le moment. | [ ] |
 | `account.home.noneInProgress` | لا توجد طلبات قيد التنفيذ. | Aucune commande en cours. | [ ] |
 | `account.home.orderLine` | {count, plural, zero {لا طرود} one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}} · {service} | {count, plural, one {# colis} other {# colis}} · {service} | [ ] |
-| `account.home.owed` | رسوم إرجاع يجب تسويتها قبل طلبك النقدي القادم. | Frais de retour à régler avant votre prochaine commande en espèces. | [ ] |
+| `account.home.owed` | المبلغ المتبقي للسداد في حسابك. | Montant restant à régler sur votre compte. | [ ] |
 | `account.home.seeAll` | عرض الكل | Tout voir | [ ] |
 | `account.home.seeDetail` | عرض التفاصيل | Voir le détail | [ ] |
 | `account.home.seeDetailOf` | عرض تفاصيل الطلب {code} | Voir le détail de la commande {code} | [ ] |
@@ -50,6 +51,68 @@ native-speaker review before release (CLAUDE.md).
 | `account.pro.slots.lastDeliveries` | آخر عمليات التسليم | Dernières livraisons | [ ] |
 | `account.pro.title` | مساحة التاجر | Espace commerçant | [ ] |
 | `account.signOut` | تسجيل الخروج | Se déconnecter | [ ] |
+| `addressBook.addresses.add` | إضافة | Ajouter | [ ] |
+| `addressBook.addresses.edit` | تعديل | Modifier | [ ] |
+| `addressBook.addresses.editLabel` | تعديل {label} | Modifier {label} | [ ] |
+| `addressBook.addresses.empty` | لا يوجد عنوان محفوظ. | Aucune adresse enregistrée. | [ ] |
+| `addressBook.addresses.landmark` | معلم قريب: <landmark></landmark> | Repère : <landmark></landmark> | [ ] |
+| `addressBook.addresses.remove` | حذف | Supprimer | [ ] |
+| `addressBook.addresses.removeLabel` | حذف {label} | Supprimer {label} | [ ] |
+| `addressBook.addresses.title` | عناويني | Mes adresses | [ ] |
+| `addressBook.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `addressBook.error.title` | تعذّر تحميل عناوينك. | Impossible de charger vos adresses. | [ ] |
+| `addressBook.form.addTitle` | إضافة عنوان | Ajouter une adresse | [ ] |
+| `addressBook.form.cancel` | إلغاء | Annuler | [ ] |
+| `addressBook.form.editTitle` | تعديل العنوان | Modifier l'adresse | [ ] |
+| `addressBook.form.label` | اسم العنوان | Nom de l'adresse | [ ] |
+| `addressBook.form.labelHint` | مثال: المنزل، المكتب. | Par exemple : Domicile, Bureau. | [ ] |
+| `addressBook.form.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
+| `addressBook.form.network` | فشل الحفظ. أعد المحاولة. | L'enregistrement a échoué. Réessayez. | [ ] |
+| `addressBook.form.save` | حفظ | Enregistrer | [ ] |
+| `addressBook.form.saved` | تم حفظ العنوان. | Adresse enregistrée. | [ ] |
+| `addressBook.form.text` | العنوان | Adresse | [ ] |
+| `addressBook.loading` | جارٍ تحميل عناوينك… | Chargement de vos adresses… | [ ] |
+| `addressBook.recipients.empty` | لا يوجد مستلم محفوظ. فعّل «حفظ هذا المستلم» عند الطلب. | Aucun destinataire enregistré. Cochez « Enregistrer ce destinataire » en commandant. | [ ] |
+| `addressBook.recipients.remove` | حذف | Supprimer | [ ] |
+| `addressBook.recipients.removeLabel` | حذف {name} | Supprimer {name} | [ ] |
+| `addressBook.recipients.sendTo` | إرسال طرد إليه | Lui envoyer un colis | [ ] |
+| `addressBook.recipients.sendToLabel` | إرسال طرد إليه: {name} | Lui envoyer un colis : {name} | [ ] |
+| `addressBook.recipients.title` | المستلمون المحفوظون | Destinataires enregistrés | [ ] |
+| `addressBook.removeDialog.addressTitle` | حذف هذا العنوان؟ | Supprimer cette adresse ? | [ ] |
+| `addressBook.removeDialog.confirm` | نعم، احذف | Oui, supprimer | [ ] |
+| `addressBook.removeDialog.keep` | لا، أبقِه | Non, garder | [ ] |
+| `addressBook.removeDialog.recipientTitle` | حذف هذا المستلم؟ | Supprimer ce destinataire ? | [ ] |
+| `addressBook.removeDialog.text` | سيُحذف من دفتر عناوينك. لن تتغير طلباتك. | Il sera retiré de votre carnet. Vos commandes ne changent pas. | [ ] |
+| `addressBook.title` | العناوين والمستلمون | Adresses et destinataires | [ ] |
+| `apiErrors.ACCESS_DENIED` | ليست لديك صلاحية القيام بهذا الإجراء. | Vous n'avez pas le droit d'effectuer cette action. | [ ] |
+| `apiErrors.AUTH_REQUIRED` | تسجيل الدخول مطلوب أو بيانات الدخول غير صحيحة. | Connexion requise ou identifiants incorrects. | [ ] |
+| `apiErrors.INTERNAL_ERROR` | خطأ داخلي. | Erreur interne. | [ ] |
+| `apiErrors.KEY_REUSED` | تم استخدام مفتاح عدم التكرار هذا لطلب آخر. | Cette clé d'idempotence a déjà servi pour une autre requête. | [ ] |
+| `apiErrors.NOT_FOUND` | المورد غير موجود. | Ressource introuvable. | [ ] |
+| `apiErrors.PROVIDER_UNAVAILABLE` | خدمة خارجية غير متاحة. | Un service externe est indisponible. | [ ] |
+| `apiErrors.QUOTE_EXPIRED` | انتهت صلاحية السعر ويجب إعادة حسابه. | Le prix a expiré, il doit être recalculé. | [ ] |
+| `apiErrors.RULE_REFUSED` | قاعدة عمل غير مستوفاة. | Une règle métier n'est pas respectée. | [ ] |
+| `apiErrors.SAME_ACTOR` | لا يمكنك اعتماد عملك بنفسك. | Vous ne pouvez pas valider votre propre travail. | [ ] |
+| `apiErrors.STATE_CONFLICT` | هذا الإجراء غير ممكن في الحالة الحالية. | Cette action n'est pas possible dans l'état actuel. | [ ] |
+| `apiErrors.TOO_MANY_ATTEMPTS` | محاولات كثيرة جدًا، حاول لاحقًا. | Trop de tentatives, réessayez plus tard. | [ ] |
+| `apiErrors.VALIDATION_FAILED` | بعض الحقول مفقودة أو غير صالحة. | Certains champs sont manquants ou invalides. | [ ] |
+| `apiErrors.addressMismatch` | العنوانان ليسا عنواني السعر المحسوب: احسب السعر من جديد. | Les adresses ne sont pas celles du prix calculé : calculez le prix à nouveau. | [ ] |
+| `apiErrors.addressUnconfirmed` | تعذّر تحديد هذا العنوان على الخريطة: اختر المعتمدية من القائمة. | Cette adresse n'a pas pu être placée sur la carte : choisissez la délégation dans la liste. | [ ] |
+| `apiErrors.claimOnly` | تم استلام الطرد بالفعل: قدّم شكوى. | Le colis est déjà pris en charge : faites une réclamation. | [ ] |
+| `apiErrors.contractRequired` | الدفع على الحساب يتطلب عقدًا مصادقًا عليه. | Le paiement sur compte demande un contrat validé. | [ ] |
+| `apiErrors.feeRequired` | تغيّرت رسوم الإلغاء: راجعها قبل التأكيد. | Les frais d'annulation ont changé : vérifiez-les avant de confirmer. | [ ] |
+| `apiErrors.freightPayerRequired` | اقبل شروط دفع الشحن عند الاستلام لتتمكن من الدفع عند التسليم. | Acceptez les conditions du port dû pour payer à la livraison. | [ ] |
+| `apiErrors.notCancellable` | لا يمكن إلغاء هذا الطلب بعد الآن. | Cette commande ne peut plus être annulée. | [ ] |
+| `apiErrors.notWaitingForConfirmation` | هذا الطلب لا ينتظر التأكيد. | Cette commande n'attend pas de confirmation. | [ ] |
+| `apiErrors.outOfZone` | هذا العنوان غير مشمول بالخدمة بعد. | Cette adresse n'est pas encore desservie. | [ ] |
+| `apiErrors.phoneRequired` | تحقّق من رقم هاتفك عبر رسالة نصية لإتمام الطلب. | Vérifiez votre numéro de téléphone par SMS pour passer commande. | [ ] |
+| `apiErrors.priceUnavailable` | سعر هذا الخيار غير متوفر بعد. | Le prix de cette option n'est pas encore disponible. | [ ] |
+| `apiErrors.quoteChanged` | تغيّر السعر: راجع المجموع الجديد قبل التأكيد. | Le prix a changé : vérifiez le nouveau total avant de valider. | [ ] |
+| `apiErrors.slotInvalid` | الفترة الزمنية المختارة غير صالحة: تحقق من الأوقات أو اختر فترة لم تنقضِ بعد. | Le créneau choisi n'est pas valable : vérifiez les heures, ou choisissez un créneau à venir. | [ ] |
+| `apiErrors.tooHeavy` | أحد الطرود يتجاوز الوزن الأقصى. | Un colis dépasse le poids maximal. | [ ] |
+| `apiErrors.tooManyParcels` | عدد الطرود كبير جدًا لطلب واحد. | Il y a trop de colis pour une seule commande. | [ ] |
+| `apiSms.code` | GOFAST: رمزك هو {code}. صالح لمدة {minutes} دقائق. لا تشاركه مع أحد. | GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne. | [ ] |
+| `apiSms.tracking` | GOFAST: لديك طرد قادم. رقم التتبع {tracking_number}. تابعه هنا: {link} | GOFAST : un colis vous est destiné. Numéro de suivi {tracking_number}. Suivez-le ici : {link} | [ ] |
 | `auth.code.label` | رمز من {length} أرقام | Code à {length} chiffres | [ ] |
 | `auth.code.missing.back` | العودة إلى النموذج | Retour au formulaire | [ ] |
 | `auth.code.missing.text` | ابدأ من جديد من النموذج. | Recommencez depuis le formulaire. | [ ] |
@@ -97,6 +160,10 @@ native-speaker review before release (CLAUDE.md).
 | `auth.newPassword.submit` | حفظ | Enregistrer | [ ] |
 | `auth.newPassword.title` | اختر كلمة مرور جديدة | Choisissez un nouveau mot de passe | [ ] |
 | `auth.noJs` | تحتاج هذه الصفحة إلى JavaScript. فعّله في متصفحك. | Cette page a besoin de JavaScript. Activez-le dans votre navigateur. | [ ] |
+| `auth.notices.maybeChanged` | ربما تم تغيير كلمة المرور بالفعل. جرّب تسجيل الدخول بكلمة المرور الجديدة. | Votre mot de passe a peut-être déjà été changé. Essayez de vous connecter avec le nouveau. | [ ] |
+| `auth.notices.retry` | أعد المحاولة | Réessayer | [ ] |
+| `auth.notices.unavailable` | الخدمة لا تستجيب حاليًا. بياناتك محفوظة: أعد المحاولة بعد قليل. | Le service ne répond pas pour le moment. Vos informations sont conservées : réessayez dans un instant. | [ ] |
+| `auth.notices.wait` | محاولات كثيرة. أعد المحاولة بعد {seconds} ث. | Trop de tentatives. Réessayez dans {seconds} s. | [ ] |
 | `auth.or` | أو | ou | [ ] |
 | `auth.signIn.forgot` | نسيت كلمة المرور | Mot de passe oublié | [ ] |
 | `auth.signIn.identifier` | الهاتف أو البريد الإلكتروني | Téléphone ou e-mail | [ ] |
@@ -111,6 +178,7 @@ native-speaker review before release (CLAUDE.md).
 | `auth.signUp.created` | تم إنشاء الحساب. | Compte créé. | [ ] |
 | `auth.signUp.email` | البريد الإلكتروني (اختياري) | E-mail (facultatif) | [ ] |
 | `auth.signUp.emailLater` | تم إنشاء الحساب. لم تتم إضافة بريدك الإلكتروني بعد: يمكنك تأكيده لاحقًا برمز يُرسل إلى هذا العنوان. | Compte créé. Votre e-mail n'est pas encore ajouté : vous pourrez le confirmer plus tard, avec un code envoyé à cette adresse. | [ ] |
+| `auth.signUp.emailLaterConfirm` | تأكيد بريدي الإلكتروني | Confirmer mon e-mail | [ ] |
 | `auth.signUp.emailLaterContinue` | متابعة | Continuer | [ ] |
 | `auth.signUp.kindLegend` | نوع الحساب | Type de compte | [ ] |
 | `auth.signUp.kinds.customer.text` | شحنات عرضية | Envois ponctuels | [ ] |
@@ -125,6 +193,94 @@ native-speaker review before release (CLAUDE.md).
 | `auth.signUp.submit` | متابعة | Continuer | [ ] |
 | `auth.signUp.terms` | أوافق على <cgv>شروط البيع</cgv> و<privacy>سياسة الخصوصية</privacy>. | J'accepte les <cgv>CGV</cgv> et la <privacy>politique de confidentialité</privacy>. | [ ] |
 | `auth.signUp.title` | إنشاء حساب | Créer un compte | [ ] |
+| `claims.category.billing` | اعتراض على فاتورة | Contestation de facture | [ ] |
+| `claims.category.damage` | طرد متضرر | Colis endommagé | [ ] |
+| `claims.category.delay` | تأخر في التسليم | Retard de livraison | [ ] |
+| `claims.category.loss` | طرد مفقود | Colis perdu | [ ] |
+| `claims.category.other` | طلب آخر | Autre demande | [ ] |
+| `claims.detail.archived` | هذه الشكوى مؤرشفة: يمكنك الاطلاع عليها لكن لا يمكن إعادة فتحها. افتح طلبًا جديدًا عند الحاجة. | Cette réclamation est archivée : elle reste consultable, mais elle ne peut plus être rouverte. Ouvrez une nouvelle demande si besoin. | [ ] |
+| `claims.detail.attachments` | المرفقات | Pièces jointes | [ ] |
+| `claims.detail.back` | الشكاوى | Réclamations | [ ] |
+| `claims.detail.closedNow` | تم إغلاق هذه الشكوى للتو. تم تحديث الصفحة. | Cette réclamation vient d'être close. La page a été mise à jour. | [ ] |
+| `claims.detail.deliveredOn` | تاريخ التسليم | Livrée le | [ ] |
+| `claims.detail.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `claims.detail.error.title` | تعذّر تحميل الشكوى. | La réclamation n'a pas pu être chargée. | [ ] |
+| `claims.detail.invoice` | الفاتورة المعترَض عليها | Facture contestée | [ ] |
+| `claims.detail.linkedOrder` | الطلب المرتبط | Commande liée | [ ] |
+| `claims.detail.loading` | جارٍ تحميل الشكوى… | Chargement de la réclamation… | [ ] |
+| `claims.detail.noDeclaredValue` | بلا قيمة مصرّح بها | Sans valeur déclarée | [ ] |
+| `claims.detail.notFound.text` | هذه الشكوى غير موجودة في حسابك. | Cette réclamation n'existe pas dans votre compte. | [ ] |
+| `claims.detail.notFound.title` | الشكوى غير موجودة | Réclamation introuvable | [ ] |
+| `claims.detail.ref` | المرجع | Référence | [ ] |
+| `claims.detail.reopen.button` | إعادة فتح الشكوى | Rouvrir la réclamation | [ ] |
+| `claims.detail.reopen.notClosed` | لم تعد هذه الشكوى مغلقة. تم تحديث الصفحة. | Cette réclamation n'est plus close. La page a été mise à jour. | [ ] |
+| `claims.detail.reopen.text` | هذه الشكوى مغلقة. يمكنك إعادة فتحها إذا استمرت المشكلة. | Cette réclamation est close. Vous pouvez la rouvrir si le problème continue. | [ ] |
+| `claims.detail.reopen.until` | ممكن حتى | Possible jusqu'au | [ ] |
+| `claims.detail.reply.label` | ردّك | Votre réponse | [ ] |
+| `claims.detail.reply.submit` | إرسال | Envoyer | [ ] |
+| `claims.detail.staff` | خدمة عملاء GOFAST | Service client GOFAST | [ ] |
+| `claims.detail.thread` | المراسلات | Échanges | [ ] |
+| `claims.detail.title` | شكوى | Réclamation | [ ] |
+| `claims.detail.toComplete` | خدمة العملاء بانتظار ردّك. | Le service client attend votre réponse. | [ ] |
+| `claims.detail.viewOrder` | عرض الطلب | Voir la commande | [ ] |
+| `claims.detail.you` | أنت | Vous | [ ] |
+| `claims.list.caption` | شكاواك | Vos réclamations | [ ] |
+| `claims.list.columns.action` | إجراء | Action | [ ] |
+| `claims.list.columns.order` | الطلب | Commande | [ ] |
+| `claims.list.columns.ref` | المرجع | Référence | [ ] |
+| `claims.list.columns.status` | الحالة | Statut | [ ] |
+| `claims.list.columns.subject` | الموضوع | Sujet | [ ] |
+| `claims.list.columns.updated` | آخر تحديث | Mise à jour | [ ] |
+| `claims.list.emptyText` | هل واجهت مشكلة في توصيلة أو فاتورة؟ افتح طلبًا وسترد عليك خدمة العملاء. | Un problème avec une livraison ou une facture ? Ouvrez une demande, le service client vous répond. | [ ] |
+| `claims.list.emptyTitle` | لا توجد شكاوى | Aucune réclamation | [ ] |
+| `claims.list.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `claims.list.error.title` | تعذّر تحميل الشكاوى. | Les réclamations n'ont pas pu être chargées. | [ ] |
+| `claims.list.loading` | جارٍ تحميل الشكاوى… | Chargement des réclamations… | [ ] |
+| `claims.list.new` | طلب جديد | Nouvelle demande | [ ] |
+| `claims.list.open` | فتح | Ouvrir | [ ] |
+| `claims.list.openOf` | فتح {ref} | Ouvrir {ref} | [ ] |
+| `claims.list.title` | الشكاوى | Réclamations | [ ] |
+| `claims.new.attach` | إضافة مرفقات | Ajouter des pièces jointes | [ ] |
+| `claims.new.attachHelp` | صور وملفات PDF، حتى {size} ميغابايت للملف الواحد، وحتى {count} ملفات. | Images et PDF, {size} Mo au maximum par fichier, {count} fichiers au maximum. | [ ] |
+| `claims.new.back` | الشكاوى | Réclamations | [ ] |
+| `claims.new.category` | الموضوع | Sujet | [ ] |
+| `claims.new.categoryPlaceholder` | اختر موضوعًا | Choisissez un sujet | [ ] |
+| `claims.new.contesting` | أنت تعترض على الفاتورة <num></num>. | Vous contestez la facture <num></num>. | [ ] |
+| `claims.new.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `claims.new.error.title` | تعذّر تحميل الصفحة. | La page n'a pas pu être chargée. | [ ] |
+| `claims.new.errors.attachmentBadType` | يُقبل فقط الصور وملفات PDF. | Seuls les images et les PDF sont acceptés. | [ ] |
+| `claims.new.errors.attachmentTooLarge` | حجم أحد الملفات يتجاوز {size} ميغابايت. | Un fichier dépasse {size} Mo. | [ ] |
+| `claims.new.errors.attachmentTooMany` | الحد الأقصى {count} ملفات. | {count} fichiers au maximum. | [ ] |
+| `claims.new.errors.categoryRequired` | اختر موضوعًا. | Choisissez un sujet. | [ ] |
+| `claims.new.errors.messageRequired` | اكتب رسالتك. | Écrivez votre message. | [ ] |
+| `claims.new.errors.network` | تعذّر إرسال الطلب. يمكنك إعادة المحاولة دون خوف: سيُسجَّل مرة واحدة فقط. | La demande n'a pas pu être envoyée. Vous pouvez réessayer sans risque : elle ne sera enregistrée qu'une fois. | [ ] |
+| `claims.new.errors.orderRequired` | اختر الطلب المعني. | Choisissez la commande concernée. | [ ] |
+| `claims.new.errors.refused` | تم رفض الطلب. تحقق من الحقول وأعد المحاولة. | La demande a été refusée. Vérifiez les champs et réessayez. | [ ] |
+| `claims.new.loading` | جارٍ التحميل… | Chargement… | [ ] |
+| `claims.new.message` | رسالتك | Votre message | [ ] |
+| `claims.new.notFound.text` | هذا الطلب أو هذه الفاتورة غير موجودة في حسابك. | Cette commande ou cette facture n'existe pas dans votre compte. | [ ] |
+| `claims.new.notFound.title` | الطلب أو الفاتورة غير موجودة | Commande ou facture introuvable | [ ] |
+| `claims.new.order` | الطلب المعني | Commande concernée | [ ] |
+| `claims.new.orderOption` | {code}، {service} | {code}, {service} | [ ] |
+| `claims.new.orderPlaceholder` | اختر طلبًا | Choisissez une commande | [ ] |
+| `claims.new.pick.continue` | متابعة | Continuer | [ ] |
+| `claims.new.pick.text` | تشمل هذه الفاتورة عدة طلبات. حدّد الطلب الذي توجد به مشكلة. | Cette facture porte sur plusieurs commandes. Indiquez celle qui pose problème. | [ ] |
+| `claims.new.pick.title` | اختر الطلب المعني | Choisissez la commande concernée | [ ] |
+| `claims.new.removeAttachment` | إزالة {name} | Retirer {name} | [ ] |
+| `claims.new.sending` | جارٍ الإرسال… | Envoi en cours… | [ ] |
+| `claims.new.submit` | إرسال الشكوى | Envoyer la réclamation | [ ] |
+| `claims.new.title` | شكوى جديدة | Nouvelle réclamation | [ ] |
+| `claims.rules.cap` | لا يتجاوز التعويض القيمة المصرّح بها. | L'indemnité ne dépasse pas la valeur déclarée. | [ ] |
+| `claims.rules.declaredValue` | القيمة المصرّح بها للطلب | Valeur déclarée de la commande | [ ] |
+| `claims.rules.noDeclared` | في غياب قيمة مصرّح بها، يُطبَّق المبلغ الجزافي المنصوص عليه في الشروط العامة | Sans valeur déclarée, le forfait des CGV s'applique | [ ] |
+| `claims.rules.replyTime` | موعد الرد | Réponse attendue | [ ] |
+| `claims.rules.replyWithin` | خلال {hours} ساعة | Sous {hours} h | [ ] |
+| `claims.rules.reportDelay` | أبلغ عن الضرر أو الفقدان خلال {hours} ساعة من التسليم أو من اكتشافه. | Signalez un dommage ou une perte dans les {hours} h qui suivent la livraison ou la constatation. | [ ] |
+| `claims.rules.title` | للعلم | À savoir | [ ] |
+| `claims.state.archived` | مؤرشفة | Archivée | [ ] |
+| `claims.state.open` | مفتوحة | Ouverte | [ ] |
+| `claims.state.resolved` | تمت تسويتها | Résolue | [ ] |
+| `claims.state.toComplete` | بانتظار ردّك | À compléter | [ ] |
 | `cmd.back` | رجوع | Retour | [ ] |
 | `cmd.busy` | لحظة… | Un instant… | [ ] |
 | `cmd.cancel` | إلغاء | Annuler | [ ] |
@@ -155,6 +311,7 @@ native-speaker review before release (CLAUDE.md).
 | `common.from` | ابتداءً من | À partir de | [ ] |
 | `common.home` | الرئيسية | Accueil | [ ] |
 | `common.loading` | جارٍ التحميل… | Chargement… | [ ] |
+| `common.notAvailableYet` | هذا القسم غير متاح بعد. | Cette section n’est pas encore disponible. | [ ] |
 | `common.skipToContent` | انتقل إلى المحتوى | Aller au contenu | [ ] |
 | `contact.eyebrow` | اتصل بنا | Contact | [ ] |
 | `contact.form.attach` | إضافة مرفق (5 ميغابايت) | Ajouter une pièce jointe (5 Mo) | [ ] |
@@ -303,15 +460,27 @@ native-speaker review before release (CLAUDE.md).
 | `devUi.typography.h4` | رقم التتبع | Numéro de suivi | [ ] |
 | `devUi.typography.lead` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
 | `driver.eyebrow` | انضم إلى GOFAST | Rejoindre GOFAST | [ ] |
-| `driver.form.attach` | الرخصة والتأمين (5 ميغابايت) | Permis et assurance (5 Mo) | [ ] |
+| `driver.form.addFile` | إضافة ملف | Ajouter un fichier | [ ] |
+| `driver.form.documents.bankDetails` | المعطيات البنكية أو البريدية (RIB أو شهادة بريدية) | Coordonnées bancaires ou postales (RIB ou attestation postale) | [ ] |
+| `driver.form.documents.cin` | بطاقة التعريف الوطنية | Carte d'identité nationale (CIN) | [ ] |
+| `driver.form.documents.insurance` | شهادة التأمين | Attestation d'assurance | [ ] |
+| `driver.form.documents.licence` | رخصة السياقة المناسبة | Permis de conduire adapté | [ ] |
+| `driver.form.documents.registration` | البطاقة الرمادية | Carte grise | [ ] |
+| `driver.form.documents.vehiclePhoto` | صورة المركبة | Photo du véhicule | [ ] |
+| `driver.form.documentsHint` | صور أو ملفات PDF، بحد أقصى {size} ميغابايت للملف. | Images ou PDF, {size} Mo au maximum par fichier. | [ ] |
+| `driver.form.documentsTitle` | وثائقك | Vos documents | [ ] |
 | `driver.form.fullName` | الاسم الكامل | Nom complet | [ ] |
 | `driver.form.phone` | الهاتف | Téléphone | [ ] |
-| `driver.form.removeAttachment` | إزالة الوثيقة | Retirer le document | [ ] |
+| `driver.form.removeDocument` | إزالة الملف: {document} | Retirer le fichier : {document} | [ ] |
+| `driver.form.requiredLabel` | مطلوب | obligatoire | [ ] |
 | `driver.form.sending` | جارٍ الإرسال… | Envoi… | [ ] |
 | `driver.form.submit` | إرسال ترشحي | Envoyer ma candidature | [ ] |
 | `driver.form.title` | الترشح | Candidature | [ ] |
 | `driver.form.vehicle` | المركبة | Véhicule | [ ] |
-| `driver.form.vehicles.moto` | دراجة نارية | Moto | [ ] |
+| `driver.form.vehicles.car` | سيارة | Voiture | [ ] |
+| `driver.form.vehicles.lightVan` | مركبة نفعية خفيفة | Utilitaire léger | [ ] |
+| `driver.form.vehicles.motorbike` | دراجة نارية | Moto | [ ] |
+| `driver.form.vehicles.scooter` | سكوتر | Scooter | [ ] |
 | `driver.form.zone` | المنطقة المفضلة | Zone souhaitée | [ ] |
 | `driver.needs.licence` | رخصة سياقة سارية، إذا كانت مركبتك تتطلبها | Un permis valide, si votre véhicule en demande un | [ ] |
 | `driver.needs.phone` | هاتف أندرويد 10 أو أحدث، أو آيفون بنظام iOS 16.4 أو أحدث | Un téléphone Android 10 ou plus, ou un iPhone sous iOS 16.4 ou plus | [ ] |
@@ -326,6 +495,19 @@ native-speaker review before release (CLAUDE.md).
 | `driver.success.text` | سنتحقق من وثائقك. | Nous vérifions vos documents. | [ ] |
 | `driver.success.title` | تم إرسال الترشح. | Candidature envoyée. | [ ] |
 | `driver.title` | وصّل مع GOFAST. | Livrez avec GOFAST. | [ ] |
+| `emailScreen.back` | العودة إلى ملفي | Retour au profil | [ ] |
+| `emailScreen.change` | استخدام عنوان آخر | Changer d'adresse | [ ] |
+| `emailScreen.current` | البريد الحالي: <email></email> | E-mail actuel : <email></email> | [ ] |
+| `emailScreen.done` | تم تأكيد بريدك الإلكتروني وإضافته إلى حسابك. | Votre e-mail est confirmé et ajouté à votre compte. | [ ] |
+| `emailScreen.field` | عنوان البريد الإلكتروني الجديد | Nouvelle adresse e-mail | [ ] |
+| `emailScreen.intro` | نرسل رمزًا إلى هذا العنوان لتأكيده. لا يُضاف إلى حسابك إلا بعد ذلك. | Nous envoyons un code à cette adresse pour la confirmer. Elle ne sera ajoutée à votre compte qu'après. | [ ] |
+| `emailScreen.loading` | جارٍ التحميل… | Chargement… | [ ] |
+| `emailScreen.network` | فشلت العملية. أعد المحاولة. | L'opération a échoué. Réessayez. | [ ] |
+| `emailScreen.notVerified` | لم يعد الرمز صالحًا. اطلب رمزًا جديدًا. | Le code n'est plus valable. Demandez-en un nouveau. | [ ] |
+| `emailScreen.send` | إرسال رمز إليّ | Recevoir un code | [ ] |
+| `emailScreen.sending` | جارٍ إرسال الرمز… | Envoi du code… | [ ] |
+| `emailScreen.taken` | عنوان البريد هذا مستخدم في حساب آخر. استخدم عنوانًا آخر. | Cette adresse e-mail est déjà utilisée par un autre compte. Utilisez une autre adresse. | [ ] |
+| `emailScreen.title` | البريد الإلكتروني | Adresse e-mail | [ ] |
 | `footer.contact` | اتصل بنا | Contact | [ ] |
 | `footer.driver` | كن عامل توصيل | Devenir livreur | [ ] |
 | `footer.faq` | الأسئلة الشائعة | Questions fréquentes | [ ] |
@@ -341,11 +523,13 @@ native-speaker review before release (CLAUDE.md).
 | `footer.zones` | المناطق المشمولة | Zones desservies | [ ] |
 | `forms.errors.addressNotConfirmed` | اختر اقتراحًا أو ضع علامة على الخريطة. | Choisissez une suggestion ou placez un repère sur la carte. | [ ] |
 | `forms.errors.addressTooShort` | أدخل 3 أحرف على الأقل. | Saisissez au moins 3 caractères. | [ ] |
+| `forms.errors.attachmentBadType` | تُقبل الصور وملفات PDF فقط. | Seuls les images et les PDF sont acceptés. | [ ] |
 | `forms.errors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.errors.captchaRequired` | أكّد أنك لست روبوتًا. | Confirmez que vous n'êtes pas un robot. | [ ] |
 | `forms.errors.codeIncomplete` | أدخل الرمز كاملًا. | Saisissez le code complet. | [ ] |
-| `forms.errors.countInvalid` | أدخل عددًا صحيحًا، 1 على الأقل. | Indiquez un nombre entier, 1 au minimum. | [ ] |
+| `forms.errors.countInvalid` | أدخل عددًا صحيحًا من 1 إلى 10. | Indiquez un nombre entier de 1 à 10. | [ ] |
 | `forms.errors.declaredValueInvalid` | مبلغ غير صالح. مثال: 48.500 أو 1,152.000. | Montant invalide. Exemple : 48,500 ou 48.5. | [ ] |
+| `forms.errors.documentRequired` | أضف هذه الوثيقة. | Ajoutez ce document. | [ ] |
 | `forms.errors.emailInvalid` | عنوان البريد الإلكتروني غير صالح. | Adresse e-mail invalide. | [ ] |
 | `forms.errors.freightPayerRequired` | اقبل هذه الشروط للدفع عند التسليم. | Acceptez ces conditions pour payer à la livraison. | [ ] |
 | `forms.errors.parcelTypeRequired` | اختر نوع الشحنة. | Choisissez un type d'envoi. | [ ] |
@@ -362,6 +546,7 @@ native-speaker review before release (CLAUDE.md).
 | `forms.serverErrors.attachmentTooLarge` | حجم الملف يتجاوز 5 ميغابايت. | Le fichier dépasse 5 Mo. | [ ] |
 | `forms.serverErrors.captchaFailed` | فشل التحقق من أنك لست روبوتًا. حاول مرة أخرى. | La vérification anti-robot a échoué. Réessayez. | [ ] |
 | `forms.serverErrors.invalidTrackingCode` | رقم التتبع يشبه ‎FG-7K4M-2QXP‎. | Le numéro de suivi ressemble à FG-7K4M-2QXP. | [ ] |
+| `forms.serverErrors.vehicleInvalid` | اختر مركبة من القائمة. | Choisissez un véhicule de la liste. | [ ] |
 | `help.noResult` | لا يوجد سؤال يطابق بحثك. | Aucune question ne correspond à votre recherche. | [ ] |
 | `help.notFound.cta` | اتصل بنا | Nous contacter | [ ] |
 | `help.notFound.title` | لم تجد ما تبحث عنه؟ | Vous n'avez pas trouvé ? | [ ] |
@@ -431,6 +616,75 @@ native-speaker review before release (CLAUDE.md).
 | `home.steps.recipient.text` | يرى وقت الوصول والمبلغ المطلوب، ويمكنه اختيار موعد آخر. | Il voit l'heure d'arrivée, le montant à payer et peut choisir un autre créneau. | [ ] |
 | `home.steps.recipient.title` | يعرف المستلم متى وكم | Le destinataire sait quand et combien | [ ] |
 | `home.steps.title` | من الطلب إلى التسليم، لا أحد يبقى دون جواب | De la commande à la remise, personne ne reste sans réponse | [ ] |
+| `invoices.creditNote.amount` | مبلغ إشعار الدائن | Montant de l'avoir | [ ] |
+| `invoices.creditNote.download` | تنزيل إشعار الدائن | Télécharger l'avoir | [ ] |
+| `invoices.creditNote.heading` | إشعار الدائن <num></num> | Avoir <num></num> | [ ] |
+| `invoices.creditNote.issuedOn` | تاريخ الإصدار | Date d'émission | [ ] |
+| `invoices.creditNote.of` | يصحّح إشعار الدائن هذا الفاتورة <num></num> | Cet avoir corrige la facture <num></num> | [ ] |
+| `invoices.detail.back` | الفواتير والإيصالات | Factures et reçus | [ ] |
+| `invoices.detail.buyer` | الحريف | Client | [ ] |
+| `invoices.detail.buyerTaxId` | المعرّف الجبائي <num></num> | Matricule fiscal <num></num> | [ ] |
+| `invoices.detail.contest` | الاعتراض على هذه الفاتورة | Contester cette facture | [ ] |
+| `invoices.detail.creditNotes.amount` | مبلغ إشعار الدائن | Montant de l'avoir | [ ] |
+| `invoices.detail.creditNotes.item` | مصحَّحة بإشعار الدائن <num></num> | Corrigée par l'avoir <num></num> | [ ] |
+| `invoices.detail.creditNotes.title` | إشعارات الدائن المرتبطة بهذه الفاتورة | Avoirs liés à cette facture | [ ] |
+| `invoices.detail.downloadInvoice` | تنزيل الفاتورة | Télécharger la facture | [ ] |
+| `invoices.detail.downloadReceipt` | تنزيل الإيصال | Télécharger le reçu | [ ] |
+| `invoices.detail.due` | المتبقي للسداد | Reste à régler | [ ] |
+| `invoices.detail.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `invoices.detail.error.title` | تعذّر تحميل الفاتورة. | La facture n'a pas pu être chargée. | [ ] |
+| `invoices.detail.exampleFiles` | ملفات PDF أمثلة توضيحية تحمل علامة EXEMPLE. | Les fichiers PDF sont des exemples, marqués EXEMPLE. | [ ] |
+| `invoices.detail.heading` | الفاتورة <num></num> | Facture <num></num> | [ ] |
+| `invoices.detail.issuedOn` | تاريخ الإصدار | Date d'émission | [ ] |
+| `invoices.detail.issuer` | صادرة عن | Émise par | [ ] |
+| `invoices.detail.issuerName` | GOFAST | GOFAST | [ ] |
+| `invoices.detail.issuerTaxId` | المعرّف الجبائي {value} | Matricule fiscal {value} | [ ] |
+| `invoices.detail.lines.amount` | المبلغ | Montant | [ ] |
+| `invoices.detail.lines.cancelFee` | رسوم الإلغاء | Frais d'annulation | [ ] |
+| `invoices.detail.lines.caption` | الخدمات المفوترة | Prestations facturées | [ ] |
+| `invoices.detail.lines.freight` | توصيل {service} | Livraison {service} | [ ] |
+| `invoices.detail.lines.freightParcel` | توصيل {service}، الطرد {index} | Livraison {service}, colis {index} | [ ] |
+| `invoices.detail.lines.returnFee` | رسوم الإرجاع، الطرد {index} | Frais de retour, colis {index} | [ ] |
+| `invoices.detail.lines.service` | الخدمة | Prestation | [ ] |
+| `invoices.detail.loading` | جارٍ تحميل الفاتورة… | Chargement de la facture… | [ ] |
+| `invoices.detail.notFound.text` | هذه الفاتورة غير موجودة في حسابك. | Cette facture n'existe pas dans votre compte. | [ ] |
+| `invoices.detail.notFound.title` | الفاتورة غير موجودة | Facture introuvable | [ ] |
+| `invoices.detail.orders` | الطلبات المفوترة | Commandes facturées | [ ] |
+| `invoices.detail.paidOn` | تاريخ السداد | Réglée le | [ ] |
+| `invoices.detail.receipt` | الإيصال متوفر. | Reçu disponible. | [ ] |
+| `invoices.detail.status` | الحالة | Statut | [ ] |
+| `invoices.detail.title` | فاتورة | Facture | [ ] |
+| `invoices.detail.totals.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
+| `invoices.detail.totals.subtotal` | المجموع الفرعي | Sous-total | [ ] |
+| `invoices.detail.totals.total` | المجموع | Total | [ ] |
+| `invoices.detail.totals.vat` | الضريبة على القيمة المضافة | TVA | [ ] |
+| `invoices.detail.ttn.id` | معرّف TTN <num></num> | Identifiant TTN <num></num> | [ ] |
+| `invoices.detail.ttn.qr` | رمز الاستجابة السريعة El Fatoora | Code QR El Fatoora | [ ] |
+| `invoices.detail.ttn.registered` | الفاتورة مسجّلة على منصة الفاتورة الإلكترونية (El Fatoora). | Facture enregistrée sur El Fatoora. | [ ] |
+| `invoices.example` | مبالغ توضيحية. | Montants d'exemple. | [ ] |
+| `invoices.list.caption` | فواتيرك وإشعارات الدائن الخاصة بك | Vos factures et vos avoirs | [ ] |
+| `invoices.list.columns.action` | إجراء | Action | [ ] |
+| `invoices.list.columns.amount` | المبلغ | Montant | [ ] |
+| `invoices.list.columns.date` | التاريخ | Date | [ ] |
+| `invoices.list.columns.number` | الرقم | Numéro | [ ] |
+| `invoices.list.columns.orders` | الطلبات | Commandes | [ ] |
+| `invoices.list.columns.status` | الحالة | Statut | [ ] |
+| `invoices.list.creditNote` | إشعار دائن | Avoir | [ ] |
+| `invoices.list.creditNoteOf` | على الفاتورة <num></num> | Sur la facture <num></num> | [ ] |
+| `invoices.list.dueLabel` | المبلغ المستحق | À régler | [ ] |
+| `invoices.list.dueNone` | لا توجد فواتير مستحقة السداد | Aucune facture à régler | [ ] |
+| `invoices.list.dueSome` | المبلغ المتبقي للسداد في حسابك | Montant restant à régler sur votre compte | [ ] |
+| `invoices.list.emptyText` | تظهر فواتيرك هنا بعد انتهاء عمليات التسليم. | Vos factures apparaissent ici une fois vos livraisons terminées. | [ ] |
+| `invoices.list.emptyTitle` | لا توجد فواتير حاليًا | Aucune facture pour le moment | [ ] |
+| `invoices.list.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `invoices.list.error.title` | تعذّر تحميل الفواتير. | Les factures n'ont pas pu être chargées. | [ ] |
+| `invoices.list.loading` | جارٍ تحميل الفواتير… | Chargement des factures… | [ ] |
+| `invoices.list.title` | الفواتير والإيصالات | Factures et reçus | [ ] |
+| `invoices.list.view` | عرض | Voir | [ ] |
+| `invoices.list.viewOf` | عرض {number} | Voir {number} | [ ] |
+| `invoices.status.paid` | مسدَّدة | Réglée | [ ] |
+| `invoices.status.partial` | مسدَّدة جزئيًا | Partielle | [ ] |
+| `invoices.status.unpaid` | مستحقة السداد | À régler | [ ] |
 | `languageSwitcher.label` | اللغة | Langue | [ ] |
 | `legal.cgvSections.cancellation` | الإلغاء والرسوم | Annulation et frais | [ ] |
 | `legal.cgvSections.data` | البيانات الشخصية | Données personnelles | [ ] |
@@ -477,10 +731,26 @@ native-speaker review before release (CLAUDE.md).
 | `meta.description` | توصيل سريع للوثائق والطرود. | Livraison express de plis et de colis. | [ ] |
 | `meta.pages.account.description` | مساحة عميل GOFAST الخاصة بك. | Votre espace client GOFAST. | [ ] |
 | `meta.pages.account.title` | حسابي \| GOFAST | Mon compte \| GOFAST | [ ] |
+| `meta.pages.accountAddresses.description` | عناوينك ومستلموك المحفوظون في GOFAST. | Vos adresses et destinataires enregistrés GOFAST. | [ ] |
+| `meta.pages.accountAddresses.title` | العناوين والمستلمون \| GOFAST | Adresses et destinataires \| GOFAST | [ ] |
+| `meta.pages.accountClaim.description` | متابعة شكوى لدى GOFAST والمراسلات مع خدمة العملاء. | Le suivi d'une réclamation GOFAST et les échanges avec le service client. | [ ] |
+| `meta.pages.accountClaim.title` | شكوى \| GOFAST | Réclamation \| GOFAST | [ ] |
+| `meta.pages.accountClaimNew.description` | فتح شكوى متعلقة بطلب لدى GOFAST. | Ouvrir une réclamation liée à une commande GOFAST. | [ ] |
+| `meta.pages.accountClaimNew.title` | شكوى جديدة \| GOFAST | Nouvelle réclamation \| GOFAST | [ ] |
+| `meta.pages.accountClaims.description` | شكاواك لدى GOFAST ومتابعتها. | Vos réclamations GOFAST et leur suivi. | [ ] |
+| `meta.pages.accountClaims.title` | الشكاوى \| GOFAST | Réclamations \| GOFAST | [ ] |
+| `meta.pages.accountEmail.description` | إضافة أو تغيير البريد الإلكتروني لحسابك في GOFAST. | Ajouter ou changer l'e-mail de votre compte GOFAST. | [ ] |
+| `meta.pages.accountEmail.title` | البريد الإلكتروني \| GOFAST | Adresse e-mail \| GOFAST | [ ] |
+| `meta.pages.accountInvoice.description` | تفاصيل فاتورة أو إشعار دائن من GOFAST. | Le détail d'une facture ou d'un avoir GOFAST. | [ ] |
+| `meta.pages.accountInvoice.title` | فاتورة \| GOFAST | Facture \| GOFAST | [ ] |
+| `meta.pages.accountInvoices.description` | فواتيرك وإيصالاتك وإشعارات الدائن لدى GOFAST مع حالة السداد. | Vos factures, reçus et avoirs GOFAST, avec leur statut de règlement. | [ ] |
+| `meta.pages.accountInvoices.title` | الفواتير والإيصالات \| GOFAST | Factures et reçus \| GOFAST | [ ] |
 | `meta.pages.accountOrder.description` | تفاصيل طلب GOFAST: التتبع والطرود والسعر وإثبات التسليم. | Le détail d'une commande GOFAST : suivi, colis, prix et preuve de remise. | [ ] |
 | `meta.pages.accountOrder.title` | طلبي \| GOFAST | Ma commande \| GOFAST | [ ] |
 | `meta.pages.accountOrders.description` | طلباتك لدى GOFAST: بحث وتصفية وتفاصيل. | Vos commandes GOFAST : recherche, filtres et détail. | [ ] |
 | `meta.pages.accountOrders.title` | طلباتي \| GOFAST | Mes commandes \| GOFAST | [ ] |
+| `meta.pages.accountProfile.description` | معلوماتك وإشعاراتك ولغتك في GOFAST. | Vos informations, notifications et langue GOFAST. | [ ] |
+| `meta.pages.accountProfile.title` | الملف الشخصي والتفضيلات \| GOFAST | Profil et préférences \| GOFAST | [ ] |
 | `meta.pages.cgv.description` | شروط البيع الخاصة بـ GOFAST. | Conditions générales de vente de GOFAST. | [ ] |
 | `meta.pages.cgv.title` | شروط البيع \| GOFAST | Conditions générales de vente \| GOFAST | [ ] |
 | `meta.pages.code.description` | أدخل الرمز الذي وصلك. | Saisissez le code reçu. | [ ] |
@@ -598,7 +868,8 @@ native-speaker review before release (CLAUDE.md).
 | `order.parcel.declaredValue` | القيمة المصرّح بها (د.ت، اختياري) | Valeur déclarée (TND, facultatif) | [ ] |
 | `order.parcel.declaredValueParsed` | أي <amount></amount> | Soit <amount></amount> | [ ] |
 | `order.parcel.fragile` | طرد هش | Colis fragile | [ ] |
-| `order.parcel.option` | خيار | Option | [ ] |
+| `order.parcel.option` | خيارات | Options | [ ] |
+| `order.parcel.packaging` | تغليف GOFAST (لكل طرد) | Emballage GOFAST (par colis) | [ ] |
 | `order.parcel.title` | ماذا سنوصل؟ | Que livrons-nous ? | [ ] |
 | `order.parcel.typeLegend` | نوع الشحنة | Type d'envoi | [ ] |
 | `order.parcel.types.document.hint` | وثائق | Documents | [ ] |
@@ -610,6 +881,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.parcel.types.small.hint` | [الحد] | [LIMITE] | [ ] |
 | `order.parcel.types.small.name` | طرد صغير | Petit colis | [ ] |
 | `order.parcel.weight` | الوزن التقديري (كغ) | Poids estimé (kg) | [ ] |
+| `order.parcel.weightN` | وزن الطرد {n} (كغ) | Poids du colis {n} (kg) | [ ] |
 | `order.price.detail` | تفاصيل السعر | Détail du prix | [ ] |
 | `order.price.example` | مبالغ على سبيل المثال. | Montants d'exemple. | [ ] |
 | `order.price.expired.accept` | قبول السعر الجديد | Accepter le nouveau prix | [ ] |
@@ -622,10 +894,12 @@ native-speaker review before release (CLAUDE.md).
 | `order.price.lines.discount` | تخفيض | Remise | [ ] |
 | `order.price.lines.distance` | المسافة | Distance | [ ] |
 | `order.price.lines.options` | الخيارات | Options | [ ] |
+| `order.price.lines.packaging` | تغليف GOFAST | Emballage GOFAST | [ ] |
 | `order.price.lines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
 | `order.price.lines.surcharge` | رسوم إضافية: {name} (الحد الأقصى: <ceiling></ceiling>) | Majoration {name} (plafond : <ceiling></ceiling>) | [ ] |
 | `order.price.lines.vat` | الأداء على القيمة المضافة | TVA | [ ] |
 | `order.price.lines.weight` | الوزن | Poids | [ ] |
+| `order.price.mixedWeights` | الوزن يختلف حسب الطرد | Poids différent selon le colis | [ ] |
 | `order.price.pending` | سيظهر بمجرد معرفة عنوان التسليم. | Il s'affichera dès que l'adresse de livraison sera connue. | [ ] |
 | `order.price.provisional` | سعر مبدئي | Prix provisoire | [ ] |
 | `order.price.provisionalNote` | مبلغ على سبيل المثال، يُحدَّد حسب الطرد والخدمة. | Montant d'exemple, à préciser selon le colis et l'offre. | [ ] |
@@ -634,6 +908,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.price.timeLeftShort` | {minutes, plural, zero {لم يبقَ وقت من الضمان.} one {بقيت دقيقة واحدة من الضمان.} two {بقيت دقيقتان من الضمان.} few {بقيت # دقائق من الضمان.} many {بقيت # دقيقة من الضمان.} other {بقيت # دقيقة من الضمان.}} | {minutes, plural, one {Plus que # min de garantie.} other {Plus que # min de garantie.}} | [ ] |
 | `order.price.title` | السعر | Votre prix | [ ] |
 | `order.price.total` | المجموع شامل الضريبة | Total TTC | [ ] |
+| `order.price.unitTimes` | <unit></unit> × {count} | <unit></unit> × {count} | [ ] |
 | `order.recipient.address` | عنوان التسليم | Adresse de livraison | [ ] |
 | `order.recipient.instructions` | تعليمات (اختياري) | Instructions (facultatif) | [ ] |
 | `order.recipient.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
@@ -654,6 +929,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.dropoff` | التسليم | Livraison | [ ] |
 | `order.review.edit` | تعديل | Modifier | [ ] |
 | `order.review.editSection` | تعديل: {section} | Modifier : {section} | [ ] |
+| `order.review.errors.accountClosed` | هذا الحساب مغلق. سجّل الدخول أو أنشئ حسابًا للطلب. | Ce compte est fermé. Connectez-vous ou créez un compte pour commander. | [ ] |
 | `order.review.errors.draftChanged` | تم تعديل طلبك في علامة تبويب أخرى. راجعه ثم أكّده. | Votre commande a été modifiée dans un autre onglet. Vérifiez-la, puis validez. | [ ] |
 | `order.review.errors.freightPayerNotAccepted` | اقبل شروط الدفع عند التسليم للتأكيد. | Acceptez les conditions du paiement à la livraison pour valider. | [ ] |
 | `order.review.errors.idempotencyConflict` | أُرسل هذا الطلب سابقًا بمعلومات مختلفة. أعد تحميل الصفحة. | Cette commande a déjà été envoyée avec d'autres informations. Rechargez la page. | [ ] |
@@ -673,7 +949,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.lost.text` | لا نعرف إن وصل الطلب. أعد المحاولة: لن يُنشأ مرتين. | Nous ne savons pas si la commande est arrivée. Réessayez : elle ne sera pas créée deux fois. | [ ] |
 | `order.review.lost.title` | انقطع الاتصال. | La connexion a été coupée. | [ ] |
 | `order.review.parcel` | الطرد | Colis | [ ] |
-| `order.review.parcelSummary` | {type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، {weight} كغ{fragile, select, yes {، هش} other {}} | {type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, {weight} kg{fragile, select, yes {, fragile} other {}} | [ ] |
+| `order.review.parcelSummary` | {type, select, document {{count, plural, one {مظروف واحد} two {مظروفان} few {# مظاريف} many {# مظروفًا} other {# مظروف}}} small {{count, plural, one {طرد صغير واحد} two {طردان صغيران} few {# طرود صغيرة} many {# طردًا صغيرًا} other {# طرد صغير}}} medium {{count, plural, one {طرد متوسط واحد} two {طردان متوسطان} few {# طرود متوسطة} many {# طردًا متوسطًا} other {# طرد متوسط}}} large {{count, plural, one {طرد كبير واحد} two {طردان كبيران} few {# طرود كبيرة} many {# طردًا كبيرًا} other {# طرد كبير}}} other {{count, plural, one {طرد واحد} two {طردان} few {# طرود} many {# طردًا} other {# طرد}}}}، <w>{weight} كغ</w>{packaging, select, yes {، تغليف GOFAST} other {}}{fragile, select, yes {، هش} other {}} | {type, select, document {{count, plural, one {# pli} other {# plis}}} small {{count, plural, one {# petit colis} other {# petits colis}}} medium {{count, plural, one {# colis moyen} other {# colis moyens}}} large {{count, plural, one {# colis volumineux} other {# colis volumineux}}} other {{count, plural, one {# colis} other {# colis}}}}, <w>{weight} kg</w>{packaging, select, yes {, emballage GOFAST} other {}}{fragile, select, yes {, fragile} other {}} | [ ] |
 | `order.review.paymentLegend` | كيف تدفع؟ | Comment réglez-vous ? | [ ] |
 | `order.review.payments.account.text` | فاتورة شهرية، للتجار المتعاقدين. | Facture mensuelle, commerçants sous contrat. | [ ] |
 | `order.review.payments.account.title` | حساب العميل | Compte client | [ ] |
@@ -697,6 +973,9 @@ native-speaker review before release (CLAUDE.md).
 | `order.review.submitting` | جارٍ التأكيد… | Validation… | [ ] |
 | `order.review.terms` | أوافق على <link>شروط البيع</link> وأؤكد أن الطرد لا يحتوي على أي شيء محظور. | J'accepte les <link>CGV</link> et je confirme que le colis ne contient pas d'objet interdit. | [ ] |
 | `order.review.title` | راجع وأكّد | Vérifiez et validez | [ ] |
+| `order.saved.addressLabel` | عنوان محفوظ | Adresse enregistrée | [ ] |
+| `order.saved.placeholder` | اختيار من دفتر عناويني | Choisir dans mon carnet | [ ] |
+| `order.saved.recipientLabel` | مستلم محفوظ | Destinataire enregistré | [ ] |
 | `order.sender.address` | عنوان الاستلام | Adresse de collecte | [ ] |
 | `order.sender.landmark` | معلم قريب (اختياري) | Point de repère (facultatif) | [ ] |
 | `order.sender.name` | اسمك | Votre nom | [ ] |
@@ -715,6 +994,7 @@ native-speaker review before release (CLAUDE.md).
 | `order.service.surcharge` | رسوم إضافية ({name}) بقيمة <amount></amount> مشمولة، بحد أقصى <ceiling></ceiling>. نعرضها الآن حتى لا يتغير السعر في النهاية. | Majoration {name} de <amount></amount> incluse, plafonnée à <ceiling></ceiling>. Elle est affichée pour que le prix ne change pas à la fin. | [ ] |
 | `order.service.title` | متى يجب أن يصل؟ | Quand doit-il arriver ? | [ ] |
 | `order.service.unavailable` | غير متاح بعد لهذين العنوانين. | Pas encore disponible pour ces adresses. | [ ] |
+| `order.service.unavailablePackaging` | لا يوجد سعر بعد مع تغليف GOFAST. | Pas encore de prix avec l'emballage GOFAST. | [ ] |
 | `order.slot.onDate` | يوم {date}، من {start} إلى {end} | Le {date}, de {start} à {end} | [ ] |
 | `order.slot.today` | اليوم، من {start} إلى {end} | Aujourd'hui, de {start} à {end} | [ ] |
 | `order.slot.tomorrow` | غدًا، من {start} إلى {end} | Demain, de {start} à {end} | [ ] |
@@ -729,6 +1009,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.cancel.claimOnly` | تم استلام طردك: لم يعد الإلغاء ممكنًا. استخدم شكوى بدلًا من ذلك. | Votre colis est pris en charge : l'annulation n'est plus possible. Passez par une réclamation. | [ ] |
 | `orders.cancel.confirm` | نعم، ألغِ | Oui, annuler | [ ] |
 | `orders.cancel.free` | الإلغاء مجاني: لم يصل السائق بعد. | L'annulation est gratuite : le livreur n'est pas encore arrivé. | [ ] |
+| `orders.cancel.freeUnlessArrived` | الإلغاء مجاني ما لم يكن السائق قد وصل. إذا وصل، تُطبَّق رسوم قدرها <fee></fee> وفق الشروط العامة. | L'annulation est gratuite tant que le livreur n'est pas arrivé. S'il est déjà là, des frais de <fee></fee> s'appliquent selon les CGV. | [ ] |
 | `orders.cancel.keep` | الاحتفاظ بالطلب | Garder la commande | [ ] |
 | `orders.cancel.mayHaveFee` | تعذّر الاستلام. قد تُطبَّق رسوم إلغاء حسب الشروط العامة للبيع: <fee></fee>. وتقرّر GOFAST ذلك. | La collecte n'a pas pu se faire. Des frais d'annulation peuvent s'appliquer selon les CGV : <fee></fee>. C'est GOFAST qui décide. | [ ] |
 | `orders.cancel.network` | انقطع الاتصال. أعد المحاولة. | La connexion a été coupée. Réessayez. | [ ] |
@@ -754,6 +1035,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.detail.eta` | الوصول المتوقع | Arrivée estimée | [ ] |
 | `orders.detail.failureReason` | سبب الإخفاق | Motif de l'échec | [ ] |
 | `orders.detail.from` | من {name}، {address} | De {name}, {address} | [ ] |
+| `orders.detail.fromNoAddress` | من {name} | De {name} | [ ] |
 | `orders.detail.history` | سجل الطلب | Historique de la commande | [ ] |
 | `orders.detail.loading` | جارٍ تحميل الطلب… | Chargement de la commande… | [ ] |
 | `orders.detail.lossReported` | تم التبليغ عن فقدان طرد من هذا الطلب. | Un colis de cette commande a été déclaré perdu. | [ ] |
@@ -767,6 +1049,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.detail.priceLines.discount` | خصم | Remise | [ ] |
 | `orders.detail.priceLines.distance` | المسافة | Distance | [ ] |
 | `orders.detail.priceLines.options` | خيارات | Options | [ ] |
+| `orders.detail.priceLines.packaging` | تغليف GOFAST | Emballage GOFAST | [ ] |
 | `orders.detail.priceLines.stamp` | الطابع الجبائي | Timbre fiscal | [ ] |
 | `orders.detail.priceLines.surcharge` | زيادة | Majoration | [ ] |
 | `orders.detail.priceLines.vat` | الأداء على القيمة المضافة | TVA | [ ] |
@@ -781,6 +1064,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.detail.timeline.deliveryFailedNoReason` | الطرد <n></n>: فشل التسليم | Colis <n></n> : remise ratée | [ ] |
 | `orders.detail.title` | طلبي | Ma commande | [ ] |
 | `orders.detail.to` | إلى {name}، {address} | À {name}, {address} | [ ] |
+| `orders.detail.toNoAddress` | إلى {name} | À {name} | [ ] |
 | `orders.detail.total` | المجموع مع احتساب الأداءات | Total TTC | [ ] |
 | `orders.detail.weightDeclared` | الوزن المصرَّح به | Poids déclaré | [ ] |
 | `orders.detail.weightKg` | {kg} كغ | {kg} kg | [ ] |
@@ -860,9 +1144,54 @@ native-speaker review before release (CLAUDE.md).
 | `placeholders.price` | [السعر] | [PRIX] | [ ] |
 | `placeholders.priceTnd` | [السعر] د.ت | [PRIX] TND | [ ] |
 | `placeholders.supportHours` | [ساعات عمل خدمة العملاء] | [HORAIRES DU SERVICE CLIENT] | [ ] |
+| `placeholders.taxId` | [المعرّف الجبائي] | [MATRICULE] | [ ] |
 | `placeholders.text` | [النص] | [TEXTE] | [ ] |
 | `placeholders.time` | [الساعة] | [HEURE] | [ ] |
-| `placeholders.vehicle` | [المركبة] | [VÉHICULE] | [ ] |
+| `placeholders.vat` | [الضريبة على القيمة المضافة] | [TVA] | [ ] |
+| `profile.account.close` | إغلاق حسابي | Fermer mon compte | [ ] |
+| `profile.account.text` | إغلاق حسابك يمحو هويتك: الاسم والهاتف والبريد الإلكتروني. تبقى طلباتك وفواتيرك محفوظة. | Fermer votre compte efface votre identité : nom, téléphone et e-mail. Vos commandes et vos factures restent conservées. | [ ] |
+| `profile.account.title` | حسابي | Mon compte | [ ] |
+| `profile.close.confirm` | نعم، أغلق حسابي | Oui, fermer mon compte | [ ] |
+| `profile.close.keep` | لا، أبقِ حسابي | Non, garder mon compte | [ ] |
+| `profile.close.network` | فشل الإغلاق. أعد المحاولة. | La fermeture a échoué. Réessayez. | [ ] |
+| `profile.close.refused.activeOrder` | هناك طلب لا يزال قيد التنفيذ. يمكنك إغلاق حسابك عند انتهائه. | Une commande est encore en cours. Vous pourrez fermer votre compte quand elle sera terminée. | [ ] |
+| `profile.close.refused.amountDue` | هناك مبلغ مستحق على حسابك. سدّده قبل إغلاق حسابك. | Un montant reste à régler sur votre compte. Réglez-le avant de fermer votre compte. | [ ] |
+| `profile.close.refused.dismiss` | إغلاق | Fermer | [ ] |
+| `profile.close.refused.seeInvoices` | عرض فواتيري | Voir mes factures | [ ] |
+| `profile.close.refused.seeOrders` | عرض طلباتي | Voir mes commandes | [ ] |
+| `profile.close.refused.title` | لا يمكنك إغلاق حسابك حاليًا | Vous ne pouvez pas fermer votre compte pour le moment | [ ] |
+| `profile.close.text` | سيُمحى اسمك وهاتفك وبريدك الإلكتروني ولن تتمكن من تسجيل الدخول بها. تبقى فواتيرك محفوظة. لا يمكن التراجع عن هذا الإجراء. | Votre nom, votre téléphone et votre e-mail seront effacés, et vous ne pourrez plus vous connecter avec. Vos factures restent conservées. Cette action est définitive. | [ ] |
+| `profile.close.title` | إغلاق حسابك؟ | Fermer votre compte ? | [ ] |
+| `profile.error.retry` | إعادة المحاولة | Réessayer | [ ] |
+| `profile.error.title` | تعذّر تحميل ملفك الشخصي. | Impossible de charger votre profil. | [ ] |
+| `profile.google.linked` | حساب Google مرتبط. | Un compte Google est lié. | [ ] |
+| `profile.google.none` | لا يوجد حساب Google مرتبط. | Aucun compte Google n'est lié. | [ ] |
+| `profile.google.title` | حساب Google | Compte Google | [ ] |
+| `profile.google.unlink` | إلغاء الربط | Dissocier | [ ] |
+| `profile.google.unlinked` | تم إلغاء ربط حساب Google. | Compte Google dissocié. | [ ] |
+| `profile.info.addEmail` | إضافة بريد إلكتروني | Ajouter un e-mail | [ ] |
+| `profile.info.changeEmail` | تغيير البريد الإلكتروني | Changer l'e-mail | [ ] |
+| `profile.info.email` | البريد الإلكتروني | E-mail | [ ] |
+| `profile.info.name` | الاسم الكامل | Nom complet | [ ] |
+| `profile.info.noEmail` | لا يوجد بريد إلكتروني | Aucun e-mail | [ ] |
+| `profile.info.phone` | الهاتف | Téléphone | [ ] |
+| `profile.info.phoneHint` | لا يمكن تغيير الرقم حاليًا. | Le numéro ne peut pas être modifié pour le moment. | [ ] |
+| `profile.info.phoneVerified` | تم التحقق | Vérifié | [ ] |
+| `profile.info.save` | حفظ | Enregistrer | [ ] |
+| `profile.info.title` | معلوماتي | Mes informations | [ ] |
+| `profile.language.names.ar` | العربية | العربية | [ ] |
+| `profile.language.names.en` | English | English | [ ] |
+| `profile.language.names.fr` | Français | Français | [ ] |
+| `profile.language.title` | اللغة | Langue | [ ] |
+| `profile.loading` | جارٍ تحميل ملفك الشخصي… | Chargement de votre profil… | [ ] |
+| `profile.notifications.email` | بريد إلكتروني لفواتيري | E-mail pour mes factures | [ ] |
+| `profile.notifications.offers` | عروض GOFAST | Offres GOFAST | [ ] |
+| `profile.notifications.sms` | رسائل SMS لتوصيلاتي | SMS pour mes livraisons | [ ] |
+| `profile.notifications.title` | الإشعارات | Notifications | [ ] |
+| `profile.saveFailed` | فشل الحفظ. أعد المحاولة. | L'enregistrement a échoué. Réessayez. | [ ] |
+| `profile.saved` | تم الحفظ. | Enregistré. | [ ] |
+| `profile.title` | الملف الشخصي والتفضيلات | Profil et préférences | [ ] |
+| `profile.unavailable` | تسجيل الدخول عبر Google وإغلاق الحساب غير متاحين بعد. | Google et la fermeture du compte ne sont pas encore disponibles. | [ ] |
 | `services.extras.declaredValue` | القيمة المصرّح بها | Valeur déclarée | [ ] |
 | `services.extras.fragile` | طرد هش | Colis fragile | [ ] |
 | `services.extras.retry` | محاولة جديدة | Nouvelle tentative | [ ] |
@@ -899,6 +1228,8 @@ native-speaker review before release (CLAUDE.md).
 | `tracking.searching` | جارٍ البحث… | Recherche… | [ ] |
 | `tracking.submit` | تتبع | Suivre | [ ] |
 | `tracking.title` | تتبع طرد | Suivre un colis | [ ] |
+| `tracking.unavailable.text` | تعذّرت قراءة هذا الرقم حاليًا. أعد المحاولة بعد قليل. | Nous n'avons pas pu lire ce numéro pour le moment. Réessayez dans quelques instants. | [ ] |
+| `tracking.unavailable.title` | التتبع غير متاح مؤقتًا | Suivi momentanément indisponible | [ ] |
 | `tracking.yourParcel.text` | يعرض الرابط الذي وصلك برسالة نصية المبلغ المطلوب ورمز التسليم، ويتيح تغيير الموعد. | Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau. | [ ] |
 | `tracking.yourParcel.title` | هل هذا طردك؟ | C'est votre colis ? | [ ] |
 | `zones.addressLabel` | عنوانك | Votre adresse | [ ] |

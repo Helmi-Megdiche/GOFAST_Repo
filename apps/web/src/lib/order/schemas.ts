@@ -1,10 +1,13 @@
 import { z } from "zod";
 import type { Locale } from "@fastgo/i18n";
-import { toLatinDigits } from "../digits";
-import { normalizePhone } from "../phone";
+import {
+  toLatinDigits,
+  normalizePhone,
+  PASSWORD_MIN_LENGTH,
+  parseMillimes,
+  MAX_PARCELS,
+} from "@fastgo/domain";
 import type { AddressDraft } from "./draft";
-import { PASSWORD_MIN_LENGTH } from "./constants";
-import { parseMillimes } from "./money-input";
 
 /** Error codes of the order and sign-in forms, looked up in forms.errors.<code> (fr, ar, en). */
 export type OrderErrorCode =
@@ -34,12 +37,12 @@ export const orderPhone = z
   .refine((value) => value.trim() !== "", code("required"))
   .refine((value) => normalizePhone(value) != null, code("phoneInvalid"));
 
-/** Number of parcels: a whole number from 1 to 99 (input sanity only; GOFAST's limit is [LIMITE]). */
+/** Number of parcels: a whole number from 1 to 10 (MAX_PARCELS, provisional: GOFAST's setting). */
 export function parseCount(input: string): number | null {
   const text = toLatinDigits(input).trim();
   if (!/^\d{1,2}$/.test(text)) return null;
   const value = Number(text);
-  return value >= 1 ? value : null;
+  return value >= 1 && value <= MAX_PARCELS ? value : null;
 }
 
 /** Estimated weight in kg, one decimal at most, "2,5" or "2.5". Not money, so a number is fine. */
@@ -50,20 +53,48 @@ export function parseWeightKg(input: string): number | null {
   return value > 0 ? value : null;
 }
 
+/** The same weight in whole grams (one decimal in kg at most, so no float is left over). */
+export function parseWeightG(input: string): number | null {
+  const kg = parseWeightKg(input);
+  return kg == null ? null : Math.round(kg * 10) * 100;
+}
+
+/**
+ * The weights the order has: one per parcel, null while one of the first `count` is missing or
+ * unreadable (or the count itself is).
+ */
+export function parcelWeightsG(count: string, weights: readonly (string | undefined)[]) {
+  const n = parseCount(count);
+  if (n == null) return null;
+  const grams = Array.from({ length: n }, (_, i) => parseWeightG(weights[i] ?? ""));
+  return grams.every((value): value is number => value != null) ? grams : null;
+}
+
 export function parcelSchema(locale: Locale) {
-  return z.object({
-    type: z
-      .enum(["document", "small", "medium", "large"])
-      .nullable()
-      .refine((value) => value != null, code("parcelTypeRequired")),
-    count: z.string().refine((value) => parseCount(value) != null, code("countInvalid")),
-    weightKg: z.string().refine((value) => parseWeightKg(value) != null, code("weightInvalid")),
-    content: requiredText,
-    declaredValue: z
-      .string()
-      .refine((value) => parseMillimes(value, locale).ok, code("declaredValueInvalid")),
-    fragile: z.boolean(),
-  });
+  return z
+    .object({
+      type: z
+        .enum(["document", "small", "medium", "large"])
+        .nullable()
+        .refine((value) => value != null, code("parcelTypeRequired")),
+      count: z.string().refine((value) => parseCount(value) != null, code("countInvalid")),
+      weights: z.array(z.string().optional()),
+      content: requiredText,
+      declaredValue: z
+        .string()
+        .refine((value) => parseMillimes(value, locale).ok, code("declaredValueInvalid")),
+      fragile: z.boolean(),
+      packaging: z.boolean(),
+    })
+    .superRefine((value, ctx) => {
+      // One weight per parcel: each of the first `count` is checked, the error shows under its field.
+      const n = parseCount(value.count);
+      if (n == null) return;
+      for (let i = 0; i < n; i++) {
+        if (parseWeightKg(value.weights[i] ?? "") == null)
+          ctx.addIssue({ code: "custom", message: code("weightInvalid"), path: ["weights", i] });
+      }
+    });
 }
 
 export const personSchema = z.object({ name: requiredText, phone: orderPhone });

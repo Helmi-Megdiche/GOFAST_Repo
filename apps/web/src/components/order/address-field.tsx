@@ -6,6 +6,7 @@ import { Field, Input, MapPlaceholder, type MapPoint } from "@fastgo/ui";
 import { suggestAddresses } from "@/lib/data/addresses";
 import { checkPoint, checkZone } from "@/lib/data/zones";
 import type { AddressDraft } from "@/lib/order/draft";
+import { confirmedText } from "@/lib/order/saved";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 
 /**
@@ -55,11 +56,11 @@ export function AddressField({
   }, [value.text, value.confirmed]);
 
   async function confirmText(text: string) {
-    onChange({ ...latest.current, text, confirmed: true, pin: null, zone: null });
+    onChange({ ...latest.current, ...confirmedText(text, null) });
     setChecking(true);
     const zone = await checkZone(text);
     setChecking(false);
-    onChange({ ...latest.current, text, confirmed: true, pin: null, zone });
+    onChange({ ...latest.current, ...confirmedText(text, zone) });
   }
 
   // The pin is the address now: it replaces the typed text, which may name another place. The text

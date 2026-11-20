@@ -33,6 +33,34 @@ export function writeJson(key: string, value: unknown): void {
   }
 }
 
+/**
+ * Writes several keys as one write: every value is stored, or none is. Unlike writeJson it does not
+ * hide a failure: a full or missing storage throws, after the keys already written were put back.
+ * Used where a business action must never be half done (closing an account, R105).
+ */
+export function writeManyJson(entries: [key: string, value: unknown][]): void {
+  const target = storage();
+  if (!target) throw new Error("storage unavailable");
+  const done: [string, string | null][] = [];
+  try {
+    for (const [key, value] of entries) {
+      const previous = target.getItem(key);
+      target.setItem(key, JSON.stringify(value));
+      done.push([key, previous]);
+    }
+  } catch (error) {
+    for (const [key, previous] of done.reverse()) {
+      try {
+        if (previous == null) target.removeItem(key);
+        else target.setItem(key, previous);
+      } catch {
+        // Nothing more can be done: the storage itself is failing.
+      }
+    }
+    throw error;
+  }
+}
+
 export function removeKey(key: string): void {
   try {
     storage()?.removeItem(key);

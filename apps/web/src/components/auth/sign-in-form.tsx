@@ -6,7 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useTranslations } from "next-intl";
 import { Alert, Button, Checkbox, Field, Input } from "@fastgo/ui";
 import { Link, useRouter } from "@/i18n/navigation";
-import { signIn } from "@/lib/data/auth";
+import { sharedAuthPort } from "@/lib/data";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { afterSignInPath, withNext } from "@/lib/auth/next";
 import { signInSchema } from "@/lib/order/schemas";
@@ -17,11 +17,23 @@ type Values = { identifier: string; password: string; remember: boolean };
 /** W18 (ESP-01). Wrong password and unknown account give the same message (decision 16). */
 export function SignInForm({ next }: { next: string | null }) {
   const t = useTranslations("auth.signIn");
+  const n = useTranslations("auth.notices");
+  const auth = sharedAuthPort();
   const message = useErrorMessage();
   const router = useRouter();
   const alertRef = useRef<HTMLDivElement>(null);
   // Counts failed attempts: each one moves the focus to the message again.
   const [failures, setFailures] = useState(0);
+  const [outcome, setOutcome] = useState<
+    { kind: "invalid" } | { kind: "unavailable" } | { kind: "wait"; until: number } | null
+  >(null);
+  const [now, setNow] = useState(() => Date.now());
+  const waiting = outcome?.kind === "wait" ? outcome.until : null;
+  useEffect(() => {
+    if (waiting == null) return;
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, [waiting]);
   useEffect(() => {
     if (failures > 0) alertRef.current?.focus();
   }, [failures]);
@@ -41,12 +53,18 @@ export function SignInForm({ next }: { next: string | null }) {
     let signedIn = false;
     try {
       await handleSubmit(async (values) => {
-        const result = await signIn(values.identifier, values.password);
+        const result = await auth.signIn(values.identifier, values.password);
         if (result.status === "ok") {
           signedIn = true;
-          router.push(afterSignInPath(next, result.session));
+          // R902: the page opens in the language saved on the account.
+          router.push(afterSignInPath(next, result.session), { locale: result.locale });
           return;
         }
+        if (result.status === "wait") {
+          setNow(Date.now());
+          setOutcome({ kind: "wait", until: Date.parse(result.retryAt) });
+        } else if (result.status === "unavailable") setOutcome({ kind: "unavailable" });
+        else setOutcome({ kind: "invalid" });
         setFailures((count) => count + 1);
       })(event);
     } finally {
@@ -58,8 +76,12 @@ export function SignInForm({ next }: { next: string | null }) {
   return (
     <>
       <h1 className="text-d3">{t("title")}</h1>
-      <GoogleSignIn next={next} />
-      <OrDivider />
+      {auth.googleAvailable ? (
+        <>
+          <GoogleSignIn next={next} />
+          <OrDivider />
+        </>
+      ) : null}
       <form
         noValidate
         method="post"
@@ -68,7 +90,13 @@ export function SignInForm({ next }: { next: string | null }) {
       >
         {failures > 0 ? (
           <div ref={alertRef} tabIndex={-1} className="outline-none">
-            <Alert tone="error">{t("invalid")}</Alert>
+            <Alert tone="error">
+              {outcome?.kind === "wait"
+                ? n("wait", { seconds: Math.max(0, Math.ceil((outcome.until - now) / 1000)) })
+                : outcome?.kind === "unavailable"
+                  ? n("unavailable")
+                  : t("invalid")}
+            </Alert>
           </div>
         ) : null}
         <Field label={t("identifier")} error={message(errors.identifier?.message)} required>
@@ -83,7 +111,11 @@ export function SignInForm({ next }: { next: string | null }) {
           <Input {...register("password")} type="password" autoComplete="current-password" />
         </Field>
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <Checkbox id="sign-in-remember" label={t("remember")} {...register("remember")} />
+          {auth.rememberMe ? (
+            <Checkbox id="sign-in-remember" label={t("remember")} {...register("remember")} />
+          ) : (
+            <span />
+          )}
           <Link
             href={withNext("/mot-de-passe", next)}
             className="text-sm font-semibold text-orange-dark"

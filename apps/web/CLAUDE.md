@@ -33,14 +33,14 @@ apps/web/
    │     │  ├─ services, commercants, suivi, zones, aide, contact, livreur, legal/[doc]   public site (French slugs in every language)
    │     │  ├─ connexion, inscription, code, mot-de-passe(/nouveau), google-telephone   W18 to W22, noindex
    │     │     │  └─ dev/ui/page.tsx  component showcase (see below)
-   │     ├─ (account)/      client space chrome (header, SpaceNav, sign-out, footer): compte (C01), compte/commandes (C02), compte/commandes/[code] (C03), noindex
+   │     ├─ (account)/      client space chrome (header, SpaceNav, sign-out, footer): compte (C01), compte/commandes (C02), compte/commandes/[code] (C03), compte/factures(/[number]) (C04, C05), compte/reclamations (C06), reclamations/nouvelle and reclamations/[ref] (C07), compte/adresses (C08), compte/profil (C09), compte/email (ESP-01), noindex
    │     ├─ (pro)/          merchant space chrome, same parts: pro (P01 skeleton), noindex
    │     └─ (cmd)/          order chrome: logo, language, "Enregistrer et quitter", no nav or footer
    │        └─ commander/   entry (first incomplete step), expediteur, destinataire, colis, service,
    │                        verification, code, confirmation, hors-zone (W11 to W17), all noindex
    ├─ components/           app-level components (site-header/footer, mobile-menu, money, page-hero...)
    │  ├─ home/, tracking/, zones/, help/, contact/, driver/   one folder per page that has client forms
-   │  ├─ account/           C01 to C03 views, use-loader (loading/error/retry), order status badge, guard, nav
+   │  ├─ account/           C01 to C09 views (orders, invoices, claims, address book, profile, close-account dialog, e-mail screen), use-loader (loading/error/retry), order status badge, guard, nav
    │  ├─ order/             cmd header, cancel-placed-order (CMD-08, on C03 and W16), step frame, one component per step, price aside, address field
    │  ├─ auth/              W18 to W22 forms, the shared code step (W20), mock Google chooser
    │  └─ dev/ui-showcase.tsx
@@ -48,13 +48,14 @@ apps/web/
       ├─ data/              mock data layer. Pages read from here; swapped for the API client later.
       │  └─ fixtures/       example data (names, amounts, tracking codes). Never in components.
       ├─ forms/             zod schemas (error codes, not text) and useErrorMessage
-      ├─ order/             constants (every unsourced value), draft (the one localStorage module), clock,
-      │                     pricing, slots, proof, schemas, steps (guard), request, submit (idempotency)
-      ├─ auth/              safeNext (?next= only on this site), in-memory auth flow
+      ├─ order/             draft (the one localStorage module), clock, example-data, schemas, steps (guard),
+      │                     request, submit (idempotency). Unsourced values: packages/domain/src/order/constants.ts
+      ├─ auth/              route guard, in-memory auth flow (safeNext is in packages/domain)
       ├─ seo.ts, page.ts    title/description/canonical/hreflang helper, locale + metadata helpers
       ├─ storage.ts         safe localStorage access (missing, full or broken storage never breaks a page)
-      ├─ phone.ts, digits.ts   Tunisian phone normalize/mask, Arabic-Indic digits to Latin
-      └─ tracking-code.ts, limits.ts   shared validator and generator (FG-XXXX-XXXX), the 5 MB limit
+      └─ the pure rules (phone, digits, tracking code, limits, constants, pricing, slots, proof, split,
+         weight, money input, safeNext, attachments) are in `packages/domain`: import them from
+         `@fastgo/domain`. `order/example-data.ts` binds pricing and slots to the example fixtures.
 ```
 
 ## Mock data rules
@@ -70,7 +71,7 @@ apps/web/
 - The mock "server" keeps its tables in localStorage on this device (`lib/data/mock-db.ts`):
   `fg.mock.accounts`, `fg.mock.codes` (no code is stored: the n-th code sent is a fixture),
   `fg.mock.orders`, `fg.mock.idempotency`, and since ESP-00 the order model: `fg.mock.accountOrders`,
-  `parcels`, `missions`, `statusEvents`, `deliveryCodes`, `recipientLinks`, `outbox`, plus `fg.mock.seed`
+  `parcels`, `missions`, `statusEvents`, `deliveryCodes`, `recipientLinks`, `outbox`, since ESP-02 `addresses` and `recipients` (the address book, scoped by `accountId`), since ESP-05/06 `invoices`, `invoiceLines`, `creditNotes` (readers only: no writer of an issued invoice, R602), `tickets`, `ticketMessages`, `ticketKeys` (seed `fg.mock.seed.billing`), plus `fg.mock.seed`
   ("orders-v1": the fixture orders are built once through `transition`) and `fg.mock.failNext:<op>`.
   The session is `fg.mock.session` (account id, user id, role, kind, contract,
   verified flag, masked phone only); sign-out never touches the `fg.mock.*` tables. The draft is `fg.order.draft.v1`. Nothing else.
@@ -80,6 +81,11 @@ apps/web/
   Google chooser: Amel B. (new e-mail) and Sami T. (known e-mail). Team members of the validated
   merchant (same password): Yasmine K. `+216 71 000 011` (admin) and Walid H. `+216 71 000 012`
   (user); both land on `/pro`. Other fake customers: Lina M. (no orders), Karim S., Hana R.
+- Accounts (ESP-02, R105, R902): a row has `locale` (saved from C09 or the site switcher when signed in, applied at
+  sign-in), `status` and `closedAt`, and `notifications`. Closing (`lib/data/close-account.ts`, individuals only)
+  keeps the row and the id, erases name, phone, e-mail and Google link, turns the owner's sender copies into
+  `CLOSED_ACCOUNT_NAME` (a catalog key) and empties the owner's outbox `params` name and phone, in one write
+  (`writeManyJson`). No business record is deleted. A new sign-up with the same phone is a new account.
 - `localStorage["fg.mock.failNextOrderResponse"] = "true"` makes the next order answer get lost
   after the order was created, and `fg.mock.failNextOrderRequest` loses the next request before
   any order exists (tests of the network cut, R202).
@@ -87,7 +93,7 @@ apps/web/
   Express, Standard and Programmée (W14); Rue de Marseille offers Express and Standard only (W05's
   answer, and the disabled Programmée card); Route de Sousse is out of zone.
 - Unsourced values (code length, validity, resend delay, attempts, password length, draft
-  retention) live in `lib/order/constants.ts` only. Prices are example fixtures
+  retention) live in `packages/domain/src/order/constants.ts` only. Prices are example fixtures
   (`lib/data/fixtures/pricing.ts`), labelled "Montants d'exemple".
 - Steps read the draft in the browser: each page server-renders its h1 and a busy placeholder, and
   `<noscript>` says ordering needs JavaScript.
@@ -142,3 +148,31 @@ draft, `?next=`, and every code case. Tests use `page.clock` and the fixture cod
 - `?type=` on `/contact` (`constructor`, `__proto__` fall back to Question);
 - the header at 900, 1000, 1100, 1200 and 1440 px in fr, ar and en: one row, no overlap, no overflow,
   logo 42 px and 44 px buttons from 1200 px, burger menu below 1100 px.
+
+## API layer (#20)
+
+- `lib/api/`: typed client (`openapi-fetch` on `@fastgo/contract`), error mapping, request mapping. `lib/data/ports.ts`: one interface per domain (orders, pricing, auth, profile), `mock-adapters.ts` and `lib/api/*` are the two adapters; `lib/data/index.ts` picks one. Components and `lib/order` use `ordersPort()`, `pricingPort()`, `profilePort()` and `authPort()`, never an adapter.
+- `NEXT_PUBLIC_API_DOMAINS` (comma list: auth, orders, pricing, account). Empty = all mock (CI, e2e). An unknown name throws, and so does `account` without `auth`.
+- Same origin: the browser calls `/v1/...`; `next.config.ts` rewrites it to the server-side `API_ORIGIN`. `proxy.ts` skips `/v1`. No CORS, no `NEXT_PUBLIC_API_URL`.
+- R202 on the api adapter: the draft stores the exact request body next to the key (`pendingSubmit.body`); a retry re-sends those bytes. Over 24 h (key purged) nothing is sent and the "lost" message stays.
+- Api-mode e2e: files named `e2e/*-api.spec.ts` run only with `pnpm --filter @fastgo/web test:e2e:api` (`playwright.api.config.ts`: own build in `.next-api` through `NEXT_DIST_DIR`, port 3200, `NEXT_PUBLIC_API_DOMAINS=auth,orders,account`, `/v1` faked with `page.route`). The default config ignores them. CI job `e2e-api`. Specs: `auth-api`, `orders-api` (list, detail, cancel, `/suivi`), `profile-api` (profile, hidden screens).
+- Orders on the api adapter (`lib/api/orders-read.ts`): the API addresses an order by id, the screens by tracking number, so the id comes from `GET /v1/orders?tracking=CODE&limit=1`; the detail timeline comes from `GET /v1/tracking/CODE`. Cancel sends `{accepted_fee}` and no Idempotency-Key (`x-replay: state`). Confirm is staff-only: the web client has no confirm method. Fields the API order lacks (measured weight, failure reason, proof, fragile) stay at their empty value.
+- Server text is never shown, only `trace_id` is kept. A 401 goes to `/connexion?next=` with a same-site path only (`signInUrl`).
+
+### The `account` switch plan (20-d)
+
+Rule: `ProfilePort` has capability flags. A screen with no API route is hidden on the api adapter (`FeatureGate`, nav filter), says "not available yet", and never shows mock data (RV-28). Each hidden screen has an api e2e test that fails if mock data renders.
+
+| Screen / port | With `account` on | Waits for |
+|---|---|---|
+| C09 name, language, notifications, phone (`ProfilePort`) | on the API (`GET`/`PATCH /v1/me`) | none |
+| C09 e-mail row, ESP-01 | hidden | an e-mail route (follow-up issue) |
+| C09 Google card, C09 close account | hidden | Google on the API (#9); a later web PR for `DELETE /v1/me` |
+| C08 address book, saved pickers in the order flow | hidden | #122 |
+| C04, C05 invoices, C06, C07 claims | hidden | finance and ticket routes (Ala) |
+| C01 home | hidden (reads mock tables only) | an aggregate route or an orders-port build |
+| `accounts.ts` reads in the order flow (`isVerifiedPhoneForSession`, `returnBalanceMillimes`) | untouched | **must move before `auth` is turned on for real** (#125) |
+| `claimOrderPhone`, `isVerifiedPhoneForSession` in `order-code-step.tsx` (lines 9, 40, 71) | untouched | **must move before `auth` is turned on for real** (#125) |
+| Sign-up "add an e-mail later" link (`code-page.tsx`, to `/compte/email`) | lives under `auth`; the page it opens is hidden under `account` | an e-mail route (#125) |
+
+Notifications: one `PATCH` at a time, built from the latest wanted state (`lib/data/prefs-queue.ts`).

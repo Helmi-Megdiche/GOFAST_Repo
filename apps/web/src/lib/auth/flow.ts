@@ -14,8 +14,10 @@ export type AuthFlow =
         password: string;
       };
       next: string;
+      /** The proof from the api's verify step (never stored, lost on reload). */
+      phoneCheckId?: string;
     }
-  | { kind: "reset"; phone: string; next: string }
+  | { kind: "reset"; phone: string; next: string; phoneCheckId?: string }
   | { kind: "googleEmail"; next: string }
   | { kind: "googlePhone"; phone: string; next: string };
 

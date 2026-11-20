@@ -1,19 +1,24 @@
 import { now } from "../order/clock";
-import { DELIVERY_CODE_DIGITS } from "../order/constants";
-import { addressPriceKey, isQuoteValid, priceKey, type PriceLine } from "../order/pricing";
-import { fingerprint, type OrderRequest } from "../order/request";
-import { isSlotInFuture } from "../order/slots";
-import { proofLevelFor } from "../order/proof";
-import { servicesOffered } from "../order/steps";
+import { NetworkError } from "../api/errors";
 import {
+  DELIVERY_CODE_DIGITS,
+  addressPriceKey,
+  isQuoteValid,
+  priceKey,
+  type PriceLine,
+  isSlotInFuture,
+  proofLevelFor,
   isValidTrackingCode,
   normalizeTrackingCode,
   randomTrackingCode,
   type RandomBytes,
-} from "../tracking-code";
-import { splitWhole, kgTextToGrams } from "../order/split";
+  splitWhole,
+  digest,
+} from "@fastgo/domain";
+import { fingerprint, type OrderRequest } from "../order/request";
+import { servicesOffered } from "../order/steps";
 import { readJson, removeKey } from "../storage";
-import { isVerifiedPhoneForSession, returnBalanceMillimes } from "./accounts";
+import { isClosedSession, isVerifiedPhoneForSession, returnBalanceMillimes } from "./accounts";
 import { mockDelay } from "./delay";
 import { FIXTURE_ORDER_CODES } from "./fixtures/orders";
 import {
@@ -35,6 +40,7 @@ import {
 } from "./order-model";
 import { isTargetVerified } from "./otp";
 import { writeOutbox } from "./outbox";
+import { saveRecipient } from "./address-book";
 import { mintRecipientLink } from "./recipient-links";
 import { canPayOnAccount, getSession } from "./session";
 
@@ -47,6 +53,7 @@ export type OrderError =
   | "quoteNotAccepted"
   | "serviceUnavailable"
   | "paymentNotAllowed"
+  | "accountClosed"
   | "returnBalanceDue"
   | "freightPayerNotAccepted"
   | "slotPast"
@@ -55,13 +62,8 @@ export type OrderError =
 export type CreateOrderResult =
   { status: "created"; code: string; replay: boolean } | { status: "refused"; error: OrderError };
 
-/** Thrown when the request or its answer was lost (simulated network cut): the order may exist. */
-export class NetworkError extends Error {
-  constructor() {
-    super("network");
-    this.name = "NetworkError";
-  }
-}
+/** Moved to lib/api/errors (#20); re-exported so existing imports keep the same class. */
+export { NetworkError };
 
 type StoredOrder = {
   code: string;
@@ -106,8 +108,9 @@ function check(request: OrderRequest, at: number): OrderError | null {
   const current = priceKey({
     service: request.service.code,
     parcelType: request.parcel.type,
-    weightKg: request.parcel.weightKg,
+    parcels: request.parcel.weightsG.map((weightG) => ({ weightG })),
     fragile: request.parcel.fragile,
+    packaging: request.parcel.packaging,
     zone: zone.zone,
     from: addressPriceKey({ text: request.sender.address, pin: request.sender.pin }),
     to: addressPriceKey({ text: request.recipient.address, pin: request.recipient.pin }),
@@ -162,9 +165,7 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
   const actor = session?.userId ?? "guest";
   const recipientLocale = request.recipient.smsLanguage;
   const { count, declaredValueMillimes } = request.parcel;
-  const grams = kgTextToGrams(request.parcel.weightText);
-  if (typeof grams !== "number") throw new Error("createOrder: weightText was validated before");
-  const weights = splitWhole(grams, count);
+  const weights = request.parcel.weightsG;
   const values =
     declaredValueMillimes == null
       ? Array.from({ length: count }, () => null)
@@ -194,9 +195,11 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
     status: "received",
     lossReported: false,
     totalMillimes: request.quote.totalMillimes,
-    priceLines: Object.entries(request.quote.lines).map(([kind, millimes]) => ({
+    priceLines: Object.entries(request.quote.lines).map(([kind, line]) => ({
       kind: kind as PriceLine,
-      millimes,
+      unitMillimes: line.unitMillimes,
+      count: line.count,
+      millimes: line.totalMillimes,
     })),
     paymentMode: request.payment,
     // R607: the recipient pays the freight on delivery only for "cashDelivery", and the sender
@@ -238,6 +241,17 @@ function writeAccountOrder(code: string, request: OrderRequest, at: number): voi
       code: randomDeliveryCode(),
       failedAttempts: 0,
       expiresAt: null,
+    });
+  }
+
+  // CMD-02: "Enregistrer ce destinataire" is kept only now that the order exists, one per phone.
+  if (session && request.recipient.save) {
+    saveRecipient(session, {
+      name: request.recipient.name,
+      phone: request.recipient.phone,
+      address: request.recipient.address,
+      landmark: request.recipient.landmark,
+      locale: recipientLocale,
     });
   }
 
@@ -312,7 +326,10 @@ function createOrderNow(
   randomBytes?: RandomBytes,
 ): CreateOrderResult {
   const at = now();
-  const print = fingerprint(request);
+  // A closed account's stale session never creates an order (R105).
+  if (isClosedSession(getSession())) return { status: "refused", error: "accountClosed" };
+  // Only the digest is stored: a request's text holds the sender's name and phone (R105).
+  const print = digest(fingerprint(request));
 
   const known = replayOf(idempotencyKey, print);
   if (known) return known;

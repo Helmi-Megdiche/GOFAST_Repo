@@ -1,0 +1,25 @@
+get:
+  operationId: getHealth
+  summary: The process is up
+  description: >-
+    Liveness of the process. It reads no database and needs no session. Its answer is an addition to
+    the cahier (decision of 14 Nov 2026).
+  tags: [system]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: addition
+  security: []
+  responses:
+    "200":
+      description: The process is up.
+      content:
+        application/json:
+          schema:
+            type: object
+            required: [status]
+            additionalProperties: false
+            properties:
+              status:
+                type: string
+                enum: [ok]
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

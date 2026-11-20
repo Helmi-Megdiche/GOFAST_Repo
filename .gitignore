@@ -13,3 +13,6 @@ coverage/
 __pycache__/
 *.pyc
 .superpowers/
+blob-report/
+.next-api/
+playwright-report-api/

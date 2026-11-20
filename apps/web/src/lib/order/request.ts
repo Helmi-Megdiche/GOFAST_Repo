@@ -1,11 +1,15 @@
 import type { Locale } from "@fastgo/i18n";
-import type { ServiceCode, ParcelTypeCode } from "../data/services";
-import type { ZoneResult } from "../data/zones";
-import { normalizePhone } from "../phone";
-import type { OrderDraft, PaymentCode } from "./draft";
-import type { Quote } from "./pricing";
-import { parseCount, parseWeightKg } from "./schemas";
-import type { Slot } from "./slots";
+import {
+  type ServiceCode,
+  type ParcelTypeCode,
+  type ZoneResult,
+  normalizePhone,
+  type PaymentCode,
+  type Quote,
+  type Slot,
+} from "@fastgo/domain";
+import type { OrderDraft } from "./draft";
+import { parcelWeightsG } from "./schemas";
 import { declaredValueValid } from "./steps";
 
 /** What "Valider la commande" sends (mock of POST /v1/orders). Built from the draft only. */
@@ -28,16 +32,18 @@ export type OrderRequest = {
     phone: string;
     instructions: string;
     smsLanguage: Locale;
+    /** "Enregistrer ce destinataire": kept in the address book once the order is created (CMD-02). */
+    save: boolean;
   };
   parcel: {
     type: ParcelTypeCode;
     count: number;
-    weightKg: number;
-    /** The W13 weight text from the draft ("2,5"): converted to grams without a float. */
-    weightText: string;
+    /** One weight per parcel, in whole grams (the length is the count). */
+    weightsG: number[];
     content: string;
     declaredValueMillimes: number | null;
     fragile: boolean;
+    packaging: boolean;
   };
   service: { code: ServiceCode; slot: Slot | null };
   quote: Quote;
@@ -53,8 +59,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
   const { sender, recipient, parcel, service } = draft;
   const senderPhone = normalizePhone(sender.phone);
   const recipientPhone = normalizePhone(recipient.phone);
-  const count = parseCount(parcel.count);
-  const weightKg = parseWeightKg(parcel.weightKg);
+  const weightsG = parcelWeightsG(parcel.count, parcel.weights);
   if (
     !senderPhone ||
     !recipientPhone ||
@@ -62,8 +67,7 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
     !recipient.address.zone ||
     !sender.slot ||
     !parcel.type ||
-    count == null ||
-    weightKg == null ||
+    weightsG == null ||
     !declaredValueValid(parcel.declaredValueMillimes) ||
     parcel.declaredValueInvalid === true ||
     !service.code ||
@@ -91,15 +95,16 @@ export function buildOrderRequest(draft: OrderDraft, termsAccepted: boolean): Or
       phone: recipientPhone,
       instructions: recipient.instructions.trim(),
       smsLanguage: recipient.smsLanguage,
+      save: recipient.save,
     },
     parcel: {
       type: parcel.type,
-      count,
-      weightKg,
-      weightText: parcel.weightKg,
+      count: weightsG.length,
+      weightsG,
       content: parcel.content.trim(),
       declaredValueMillimes: parcel.declaredValueMillimes,
       fragile: parcel.fragile,
+      packaging: parcel.packaging,
     },
     service: { code: service.code, slot: service.code === "scheduled" ? service.slot : null },
     quote: draft.quote,

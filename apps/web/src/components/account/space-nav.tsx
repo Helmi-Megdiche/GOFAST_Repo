@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { Link, usePathname } from "@/i18n/navigation";
+import { profilePort } from "@/lib/data";
+import { featureAvailable } from "./feature-available";
 import { useSession } from "@/lib/data/use-session";
 import { visibleNav } from "./space-nav-items";
 
@@ -11,11 +13,12 @@ export function SpaceNav({ kind }: { kind: "customer" | "merchant" }) {
   const pathname = usePathname();
   // The role lives in the browser session: null on the server, so the server HTML is the same.
   const role = useSession()?.role ?? null;
+  const port = profilePort();
 
   return (
     <nav aria-label={t("label")}>
       <ul className="flex flex-wrap gap-2 md:flex-col">
-        {visibleNav(kind, role).map((entry) => (
+        {visibleNav(kind, role, (feature) => featureAvailable(port, feature)).map((entry) => (
           <li key={entry.key}>
             <Link
               href={entry.href}

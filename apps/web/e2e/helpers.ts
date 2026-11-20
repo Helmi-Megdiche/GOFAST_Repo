@@ -52,3 +52,21 @@ export const MORNING = new Date("2026-11-04T08:30:00Z");
 /** Fixture code of the mock (lib/data/fixtures/accounts.ts): the first code sent to a phone. */
 export const FIRST_CODE = "482615";
 export const SECOND_CODE = "731904";
+
+/**
+ * goto, then wait until React has attached to the first form of `main` (RV-10). A click before
+ * that submits the form natively (a full POST), so the sign-in or sign-up never happens.
+ * `networkidle` is only a proxy for this; the form's own React props are the signal.
+ */
+export async function openForm(page: Page, url: string) {
+  await page.goto(url);
+  await formHydrated(page);
+}
+
+/** Wait for React on the first form of `main`, after a goto or a client-side navigation. */
+export async function formHydrated(page: Page) {
+  await page.waitForFunction(() => {
+    const form = document.querySelector("main form");
+    return !!form && Object.keys(form).some((key) => key.startsWith("__reactProps"));
+  });
+}

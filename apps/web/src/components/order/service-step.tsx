@@ -5,14 +5,18 @@ import { useTranslations } from "next-intl";
 import { Alert, Button, Field, Icon, RadioCard, Select } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { getQuote } from "@/lib/data/pricing";
-import type { ServiceCode } from "@/lib/data/services";
+import { type ServiceCode, sumLines, isSlotInFuture } from "@fastgo/domain";
+import { examplePriceLines, exampleAvailableSlots } from "@/lib/order/example-data";
 import { EXAMPLE_SURCHARGE } from "@/lib/data/fixtures/pricing";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { now } from "@/lib/order/clock";
 import type { OrderDraft } from "@/lib/order/draft";
-import { priceLines, sumLines } from "@/lib/order/pricing";
-import { availableSlots, isSlotInFuture } from "@/lib/order/slots";
-import { offeredServices, priceInputOf, quoteMatches } from "@/lib/order/steps";
+import {
+  lacksPackagingPrice,
+  offeredServices,
+  priceInputOf,
+  quoteMatches,
+} from "@/lib/order/steps";
 import { StepBusy } from "./busy";
 import { PricePending, PriceTotal } from "./price-aside";
 import { useSlotLabel } from "./slot-label";
@@ -56,7 +60,7 @@ function ServiceForm({
   const c = useTranslations("cmd");
   const message = useErrorMessage();
   const slotLabel = useSlotLabel();
-  const slots = useMemo(() => availableSlots(now()), []);
+  const slots = useMemo(() => exampleAvailableSlots(now()), []);
   const [error, setError] = useState<string | undefined>();
   const [slotError, setSlotError] = useState<string | undefined>();
   // Moved once the error is on screen, so it is read with the control.
@@ -70,7 +74,7 @@ function ServiceForm({
     priceInputOf({ ...draft, service: { ...draft.service, code: service } });
   const totalFor = (service: ServiceCode) => {
     const input = inputFor(service);
-    return input ? sumLines(priceLines(input)) : 0;
+    return input ? sumLines(examplePriceLines(input)) : 0;
   };
 
   async function choose(service: ServiceCode) {
@@ -155,7 +159,9 @@ function ServiceForm({
                 end={enabled ? <Money millimes={totalFor(service)} /> : null}
                 description={
                   !enabled
-                    ? t("unavailable")
+                    ? lacksPackagingPrice(draft, service)
+                      ? t("unavailablePackaging")
+                      : t("unavailable")
                     : service === "standard"
                       ? t("delays.standard", { time: p("time") })
                       : t(`delays.${service}`)

@@ -1,15 +1,14 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { setClock } from "../order/clock";
-import { CODE_VERIFIED_WINDOW_MS } from "../order/constants";
+import { CODE_VERIFIED_WINDOW_MS, isValidTrackingCode } from "@fastgo/domain";
+import { exampleMakeQuote, exampleAvailableSlots } from "@/lib/order/example-data";
 import type { OrderDraft } from "../order/draft";
-import { makeQuote } from "../order/pricing";
 import { priceInputOf } from "../order/steps";
 import { buildOrderRequest, type OrderRequest } from "../order/request";
-import { availableSlots } from "../order/slots";
 import { readyDraft as readyTestDraft } from "../order/test-draft";
-import { isValidTrackingCode } from "../tracking-code";
 import { readJson, useMemoryStorage, writeJson } from "../storage";
 import { createAccount, returnBalanceMillimes, sessionFor } from "./accounts";
+import { savedRecipients } from "./address-book";
 import { signIn } from "./auth";
 import { FIXTURE_ACCOUNTS, FIXTURE_PASSWORD, FIXTURE_TEAM_MEMBERS } from "./fixtures/accounts";
 import { FOUND_TRACKING_CODE } from "./fixtures/tracking";
@@ -144,7 +143,7 @@ describe("createOrder: checks at creation", () => {
     });
     clock = T0;
     const changed = readyDraft();
-    changed.parcel.weightKg = "5";
+    changed.parcel.weights = ["5"];
     expect(await createOrder(request(changed), "k2")).toEqual({
       status: "refused",
       error: "quoteExpired",
@@ -154,7 +153,7 @@ describe("createOrder: checks at creation", () => {
   it("refuses a recalculated quote the customer did not accept", async () => {
     await verifyPhone();
     const draft = readyDraft();
-    draft.quote = makeQuote(draft.quote!.input, T0);
+    draft.quote = exampleMakeQuote(draft.quote!.input, T0);
     expect(await createOrder(request(draft), "k")).toEqual({
       status: "refused",
       error: "quoteNotAccepted",
@@ -192,7 +191,7 @@ describe("createOrder: checks at creation", () => {
     const draft = readyDraft();
     clock = Date.parse(draft.sender.slot!.startUtc);
     await verifyPhone();
-    draft.quote = makeQuote(draft.quote!.input, clock);
+    draft.quote = exampleMakeQuote(draft.quote!.input, clock);
     draft.acceptedQuoteId = draft.quote.id;
     expect(await createOrder(request(draft), "k")).toEqual({
       status: "refused",
@@ -203,15 +202,15 @@ describe("createOrder: checks at creation", () => {
   it("refuses a scheduled delivery slot that has started", async () => {
     await verifyPhone();
     const draft = readyDraft();
-    const slots = availableSlots(T0);
+    const slots = exampleAvailableSlots(T0);
     draft.sender.slot = slots[slots.length - 1]!; // the pickup slot is still ahead
     draft.service = { code: "scheduled", slot: slots[0]! };
-    draft.quote = makeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
+    draft.quote = exampleMakeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
     draft.acceptedQuoteId = draft.quote.id;
     expect((await createOrder(request(structuredClone(draft)), "k1")).status).toBe("created");
     clock = Date.parse(slots[0]!.startUtc);
     await verifyPhone();
-    draft.quote = makeQuote(draft.quote.input, clock);
+    draft.quote = exampleMakeQuote(draft.quote.input, clock);
     draft.acceptedQuoteId = draft.quote.id;
     expect(await createOrder(request(draft), "k2")).toEqual({
       status: "refused",
@@ -226,13 +225,13 @@ describe("createOrder: checks at creation", () => {
       services: ["express" as const, "standard" as const],
       zone: "A",
     };
-    const slots = availableSlots(T0);
+    const slots = exampleAvailableSlots(T0);
     for (const side of ["sender", "recipient"] as const) {
       const draft = readyDraft();
       draft.sender.slot = slots[slots.length - 1]!;
       draft.service = { code: "scheduled", slot: slots[0]! };
       draft[side].address.zone = two;
-      draft.quote = makeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
+      draft.quote = exampleMakeQuote({ ...draft.quote!.input, service: "scheduled" }, T0);
       draft.acceptedQuoteId = draft.quote.id;
       expect(await createOrder(request(draft), `k-${side}`)).toEqual({
         status: "refused",
@@ -318,9 +317,9 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     const draft = readyDraft();
     draft.parcel.count = "3";
     draft.parcel.fragile = false;
-    draft.parcel.weightKg = "2,5";
+    draft.parcel.weights = ["2,5", "1", "3"];
     draft.parcel.declaredValueMillimes = 100_000;
-    const quote = makeQuote(priceInputOf(draft)!, T0);
+    const quote = exampleMakeQuote(priceInputOf(draft)!, T0);
     return { ...draft, quote, acceptedQuoteId: quote.id };
   }
   const parcelsOf = (code: string) =>
@@ -339,10 +338,15 @@ describe("createOrder: account order, parcels, codes, link, outbox (ESP-00)", ()
     expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
       order.totalMillimes,
     );
+    // the unit price and the count are kept with each line
+    const line = (kind: string) => order.priceLines.find((l) => l.kind === kind)!;
+    expect(line("base")).toMatchObject({ unitMillimes: 6_000, count: 3, millimes: 18_000 });
+    expect(line("weight")).toMatchObject({ unitMillimes: null, count: 3 });
+    expect(line("distance")).toMatchObject({ count: 1 });
     expect(order.freightPayerAccepted).toBe(false);
     expect(order.ownerAccountId).toBeNull();
     const parcels = parcelsOf(created.code);
-    expect(parcels.map((p) => p.weightDeclaredG)).toEqual([833, 833, 834]);
+    expect(parcels.map((p) => p.weightDeclaredG)).toEqual([2_500, 1_000, 3_000]);
     expect(parcels.map((p) => p.declaredValueMillimes)).toEqual([33_333, 33_333, 33_334]);
     expect(parcels.map((p) => p.status)).toEqual(["to_collect", "to_collect", "to_collect"]);
     expect(parcels.map((p) => p.barcode)).toEqual([1, 2, 3].map((i) => `${created.code}-${i}`));
@@ -573,5 +577,45 @@ describe("createOrder: R605 return balance and R607 port dû", () => {
     await verifyPhone();
     const result = await createOrder(request({ ...readyDraft(), payment: "cashPickup" }), "r607-c");
     expect(result.status).toBe("created");
+  });
+});
+
+describe("createOrder: Enregistrer ce destinataire (CMD-02)", () => {
+  const sami = () => sessionFor({ ...FIXTURE_ACCOUNTS[0]!, google: false });
+  const saveDraft = (save: boolean): OrderDraft => {
+    const draft = readyDraft();
+    return { ...draft, recipient: { ...draft.recipient, save } };
+  };
+
+  it("saves the recipient only when the order is created, once per phone", async () => {
+    setSession(sami());
+    const before = savedRecipients(sami());
+    expect(before).toEqual([]);
+    const draft = saveDraft(true);
+    // A refused order saves nothing (phone not verified yet).
+    expect((await createOrder(request(draft), "k0")).status).toBe("refused");
+    expect(savedRecipients(sami())).toEqual([]);
+    await verifyPhone();
+    expect((await createOrder(request(draft), "k1")).status).toBe("created");
+    const saved = savedRecipients(sami());
+    expect(saved).toHaveLength(1);
+    expect(saved[0]).toMatchObject({
+      name: draft.recipient.name.trim(),
+      locale: draft.recipient.smsLanguage,
+    });
+    // A replay of the same key writes nothing again; another order to the same phone updates it.
+    expect(await createOrder(request(draft), "k1")).toMatchObject({ replay: true });
+    expect((await createOrder(request(draft), "k2")).status).toBe("created");
+    expect(savedRecipients(sami())).toHaveLength(1);
+  });
+
+  it("saves nothing when the box is not ticked, or when nobody is signed in", async () => {
+    await verifyPhone();
+    setSession(sami());
+    expect((await createOrder(request(saveDraft(false)), "k1")).status).toBe("created");
+    expect(savedRecipients(sami())).toEqual([]);
+    signOut();
+    expect((await createOrder(request(saveDraft(true)), "k2")).status).toBe("created");
+    expect(savedRecipients(sami())).toEqual([]);
   });
 });

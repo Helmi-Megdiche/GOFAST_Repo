@@ -1,4 +1,6 @@
+import { cancelFeeOf as domainFeeOf } from "@fastgo/domain";
 import { cancelOption, type CancelOption } from "./cancel-option";
+import { isClosedSession } from "./accounts";
 import { mockDelay } from "./delay";
 import { getAccountOrder } from "./account-orders";
 import { consumeFailNext } from "./mock-db";
@@ -13,12 +15,12 @@ import { activePickupMission, cancelOrderWithFee, type CancelFee } from "./state
 
 /** The fee a cancel records for an option that lets the client cancel. */
 export function cancelFeeOf(option: Exclude<CancelOption, "claimOnly" | "none">): CancelFee {
-  return option === "free" ? "none" : option === "withFee" ? "applies" : "backOfficeDecides";
+  return domainFeeOf(option) as CancelFee; // never null for these three options
 }
 
 export type CancelResult =
   | { status: "canceled"; fee: CancelFee }
-  | { status: "feeRequired"; fee: "applies" | "backOfficeDecides" }
+  | { status: "feeRequired"; fee: CancelFee }
   | { status: "claimOnly" }
   | { status: "notCancellable" }
   | { status: "notFound" };
@@ -37,6 +39,7 @@ export async function cancelOrder(
 ): Promise<CancelResult> {
   await mockDelay();
   if (consumeFailNext("cancelOrder")) throw new NetworkError();
+  if (isClosedSession(session)) return { status: "notFound" };
   const order = getAccountOrder(session, code);
   if ("notFound" in order) return { status: "notFound" };
   if (order.status === "canceled") return { status: "canceled", fee: order.cancel?.fee ?? "none" };

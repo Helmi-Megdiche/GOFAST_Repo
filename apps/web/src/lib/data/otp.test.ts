@@ -7,7 +7,7 @@ import {
   CODE_MAX_SENDS,
   CODE_VALIDITY_MS,
   CODE_VERIFIED_WINDOW_MS,
-} from "../order/constants";
+} from "@fastgo/domain";
 import { useMemoryStorage } from "../storage";
 import { FIXTURE_ACCOUNTS, FIXTURE_CODES } from "./fixtures/accounts";
 import { consumeVerification, isTargetVerified, mockCodeFor, sendCode, verifyCode } from "./otp";
@@ -137,8 +137,11 @@ describe("one code per target and purpose (PR #5 review, item 16)", () => {
     expect(purposes).toHaveLength(CODE_MAX_SENDS);
     expect((await sendCode(phone, "reset")).status).toBe("tooMany");
 
+    // An hour later the earlier state is out of every window and removed (R105): a live code for each
+    // purpose is needed again, and the lock then counts both together.
     clock = T0 + 60 * 60_000;
     await sendCode(phone, "order");
+    await sendCode(phone, "signUp");
     for (let i = 0; i < CODE_MAX_ATTEMPTS; i += 1) await verifyCode(phone, "000000", "order");
     expect((await sendCode(phone, "reset")).status).toBe("tooMany");
     expect((await verifyCode(phone, "000000", "signUp")).status).toBe("locked");

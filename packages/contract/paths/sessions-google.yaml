@@ -1,0 +1,36 @@
+post:
+  operationId: createGoogleSession
+  summary: Sign in with Google
+  description: >-
+    R103. Public, because the caller has no session yet; the handler refuses a driver or an
+    internal account (403 ACCESS_DENIED), as the cahier lists Particulier and Commerçant only. A new
+    Google account needs a verified phone (`phone_check_id`); without it the answer is 422
+    RULE_REFUSED with the field `phone_check_id` and the reason `phoneRequired`. A Google e-mail that
+    already has an account joins it after a code sent by SMS to the phone stored on that account.
+    The first call answers 422 RULE_REFUSED with `fields: [{ name: credential, reason: linkCodeRequired }]`
+    and sends the code. The client calls again with the same `credential` and the `link_code`. A wrong
+    code answers 422 RULE_REFUSED with `fields: [{ name: link_code, reason: wrong, details: { attempts_left } }]`;
+    when no attempt is left, 429 TOO_MANY_ATTEMPTS.
+  tags: [auth]
+  x-roles: [public]
+  x-replay: none
+  x-cahier: cahier
+  security: []
+  requestBody:
+    required: true
+    content:
+      application/json:
+        schema: { $ref: "../schemas/account.yaml#/GoogleSignInRequest" }
+  responses:
+    "201":
+      description: Signed in.
+      content:
+        application/json:
+          schema: { $ref: "../schemas/account.yaml#/Me" }
+    "400": { $ref: "../responses/errors.yaml#/ValidationFailed" }
+    "401": { $ref: "../responses/errors.yaml#/AuthRequired" }
+    "403": { $ref: "../responses/errors.yaml#/AccessDenied" }
+    "422": { $ref: "../responses/errors.yaml#/RuleRefused" }
+    "429": { $ref: "../responses/errors.yaml#/TooManyAttempts" }
+    "503": { $ref: "../responses/errors.yaml#/ProviderUnavailable" }
+    "500": { $ref: "../responses/errors.yaml#/InternalError" }

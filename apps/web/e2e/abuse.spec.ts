@@ -50,6 +50,9 @@ const orders = (page: Page) =>
 const draft = (page: Page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("fg.order.draft.v1") ?? "null"));
 
+/** A step is interactive once its busy placeholder is gone: the draft is read, so React has hydrated. */
+const ready = (page: Page) => expect(page.locator("[aria-busy=true]")).toHaveCount(0);
+
 async function start(page: Page, locale = "fr") {
   await page.clock.install({ time: MORNING });
   await page.goto(`/${locale}/commander`);
@@ -57,6 +60,8 @@ async function start(page: Page, locale = "fr") {
 }
 
 async function fillSender(page: Page, phone = SENDER_PHONE) {
+  await expect(page).toHaveURL(/\/commander\/expediteur$/);
+  await ready(page);
   await textbox(page, "Adresse de collecte").fill("Avenue");
   await page.getByRole("button", { name: "Avenue Habib Bourguiba" }).click();
   await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
@@ -68,6 +73,7 @@ async function fillSender(page: Page, phone = SENDER_PHONE) {
 
 async function fillRecipient(page: Page) {
   await expect(page).toHaveURL(/\/commander\/destinataire$/);
+  await ready(page);
   await textbox(page, "Adresse de livraison").fill("Rue Ib");
   await page.getByRole("button", { name: "Rue Ibn Khaldoun" }).click();
   await expect(page.getByRole("status").filter({ hasText: /desservie/ })).toBeVisible();
@@ -78,6 +84,7 @@ async function fillRecipient(page: Page) {
 
 async function fillParcel(page: Page) {
   await expect(page).toHaveURL(/\/commander\/colis$/);
+  await ready(page);
   await page.getByRole("radio", { name: /Petit colis/ }).check();
   await textbox(page, "Poids estimé (kg)").fill("2");
   await textbox(page, "Contenu").fill("Vêtements");
@@ -88,6 +95,7 @@ async function fillParcel(page: Page) {
 
 async function chooseStandard(page: Page) {
   await expect(page).toHaveURL(/\/commander\/service$/);
+  await ready(page);
   await page.getByRole("radio", { name: /Standard/ }).click();
   await expect(page.getByRole("radio", { name: /Standard/ })).toBeChecked();
 }
@@ -198,13 +206,13 @@ test.describe("abuse", () => {
     const other = await page.context().newPage();
     await other.goto("/fr/commander/colis");
     await textbox(other, "Poids estimé (kg)").fill("5");
-    await expect.poll(async () => (await draft(page)).parcel.weightKg).toBe("5");
+    await expect.poll(async () => (await draft(page)).parcel.weights).toEqual(["5"]);
 
     // The first tab still shows 2 kg and its price: it must not send them, nor write them back.
     await page.getByRole("button", { name: "Valider la commande" }).click();
     await expect(page).toHaveURL(/\/commander\/service$/);
     expect(await orders(page)).toBe(0);
-    expect((await draft(page)).parcel.weightKg).toBe("5");
+    expect((await draft(page)).parcel.weights).toEqual(["5"]);
     await expect(page.getByRole("complementary", { name: "Votre prix" })).toContainText(
       "12,805 TND",
     );
@@ -299,6 +307,7 @@ test.describe("abuse", () => {
     const total = await page.getByRole("complementary", { name: "Votre prix" }).textContent();
     await page.getByRole("button", { name: "Vérifier ma commande" }).click();
     await expect(page).toHaveURL(/\/commander\/verification$/);
+    await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
     await expect(page.getByText("Le prix a été recalculé.")).toHaveCount(0);
     const detail = page.getByRole("complementary", { name: "Détail du prix" });
     const amount = /(\d+,\d{3})\sTND/.exec(total ?? "")?.[1] ?? "none";
@@ -430,7 +439,7 @@ test.describe("abuse", () => {
     // Arabic-Indic weight and count are read too, through to W14.
     await page.goto("/ar/commander/colis");
     await page.locator('input[name="type"][value="small"]').check();
-    await page.locator('input[name="weightKg"]').fill("٢");
+    await page.locator('input[name="weights.0"]').fill("٢");
     await page.locator('input[name="count"]').fill("١");
     await page.locator('input[name="content"]').fill("Vêtements");
     await page.locator('button[type="submit"]').click();
@@ -479,11 +488,12 @@ test.describe("abuse", () => {
       const errors: string[] = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.clock.install({ time: MORNING });
-      await page.goto("/fr");
+      await page.goto("/fr", { waitUntil: "domcontentloaded" }); // only an origin for localStorage
       for (const path of ["", "/colis", "/service", "/verification", "/code", "/expediteur"]) {
         await page.evaluate((text) => localStorage.setItem("fg.order.draft.v1", text), value);
         await page.goto(`/fr/commander${path}`);
         await expect(page).toHaveURL(/\/fr\/commander\/expediteur$/);
+        await ready(page);
         await expect(textbox(page, "Votre nom")).toHaveValue("");
       }
       expect(errors).toEqual([]);
@@ -631,16 +641,25 @@ test.describe("abuse", () => {
     await page.getByRole("button", { name: "Valider la commande" }).click();
     await enterCode(page);
     await expect(page).toHaveURL(CONFIRMED);
-    const prints = await page.evaluate(() =>
-      Object.values(
+    // The request sent no label: the stored order keeps the empty address, and the idempotency row
+    // holds only a digest of the request (R105), never its text.
+    const stored = await page.evaluate(() => ({
+      prints: Object.values(
         JSON.parse(localStorage.getItem("fg.mock.idempotency") ?? "{}") as Record<
           string,
           { fingerprint: string }
         >,
       ).map((row) => row.fingerprint),
-    );
-    expect(prints).toHaveLength(1);
-    expect(prints[0]).toContain('"address":""');
-    expect(prints[0]).not.toMatch(/Repère|علامة|Pin placed/);
+      senders: Object.values(
+        JSON.parse(localStorage.getItem("fg.mock.accountOrders") ?? "{}") as Record<
+          string,
+          { sender: { address: string } }
+        >,
+      ).map((order) => order.sender.address),
+    }));
+    expect(stored.prints).toHaveLength(1);
+    expect(stored.prints[0]).toMatch(/^[0-9a-f]{28}$/);
+    expect(stored.senders).toContain("");
+    expect(JSON.stringify(stored)).not.toMatch(/Repère|علامة|Pin placed/);
   });
 });

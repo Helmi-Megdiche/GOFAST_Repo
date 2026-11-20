@@ -1,17 +1,20 @@
 "use client";
 
 import { useRef, useState } from "react";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { Alert, Button, Dialog } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
-import type { CancelOption } from "@/lib/data/cancel-option";
-import { cancelFeeOf, cancelOrder } from "@/lib/data/cancel";
+import type { DetailCancelOption } from "@/lib/data/account-orders";
+import { signInUrl } from "@/lib/api/unauthorized";
+import { cancelFeeOf } from "@/lib/data/cancel";
+import { ordersPort } from "@/lib/data";
+import { AuthRequiredError, ServerError } from "@/lib/api/errors";
 import { NetworkError } from "@/lib/data/orders";
 import { getSession } from "@/lib/data/session";
-import { CANCEL_FEE_MILLIMES } from "@/lib/order/constants";
+import { CANCEL_FEE_MILLIMES } from "@fastgo/domain";
 
-type Shown = "free" | "withFee" | "mayHaveFee";
+type Shown = "free" | "withFee" | "mayHaveFee" | "freeUnlessArrived";
 type Problem = "claimOnly" | "notCancellable" | "network" | null;
 
 /**
@@ -29,10 +32,11 @@ export function CancelPlacedOrder({
   onChanged,
 }: {
   code: string;
-  option: CancelOption;
+  option: DetailCancelOption;
   onChanged: () => void;
 }) {
   const t = useTranslations("orders.cancel");
+  const locale = useLocale();
   const [open, setOpen] = useState(false);
   const [shown, setShown] = useState<Shown>("free");
   const [changed, setChanged] = useState(false);
@@ -75,19 +79,33 @@ export function CancelPlacedOrder({
     setBusy(true);
     setProblem(null);
     try {
-      const result = await cancelOrder(session, code, { acceptedFee: cancelFeeOf(shown) });
+      const result = await ordersPort().cancelOrder(session, code, {
+        // `freeUnlessArrived` is a "none" the server may refuse once the driver is there.
+        acceptedFee: shown === "freeUnlessArrived" ? "none" : cancelFeeOf(shown),
+      });
       if (result.status === "feeRequired") {
         // The order changed since the page was read: show the fee, ask again.
-        setShown(result.fee === "applies" ? "withFee" : "mayHaveFee");
-        setChanged(true);
+        const was = shown;
+        setShown(
+          result.fee === "none" ? "free" : result.fee === "applies" ? "withFee" : "mayHaveFee",
+        );
+        // The "may apply" dialog already said the fee could come: that is not a change.
+        setChanged(was !== "freeUnlessArrived");
         setOpen(true);
       } else if (result.status === "claimOnly" || result.status === "notCancellable") {
         setProblem(result.status);
       }
       if (result.status !== "feeRequired") onChanged();
     } catch (error) {
-      if (!(error instanceof NetworkError)) throw error;
+      if (error instanceof AuthRequiredError) {
+        // The session is gone: sign in again and come back to this page.
+        window.location.assign(signInUrl(locale, window.location.pathname));
+        return;
+      }
+      if (!(error instanceof NetworkError || error instanceof ServerError)) throw error;
+      // A cut or a server error: the cancel may have gone through, so read the order again.
       setProblem("network");
+      onChanged();
     } finally {
       busyRef.current = false;
       setBusy(false);

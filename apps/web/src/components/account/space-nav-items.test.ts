@@ -2,10 +2,14 @@ import { describe, expect, it } from "vitest";
 import { SPACE_NAV, visibleNav } from "./space-nav-items";
 
 describe("space nav", () => {
-  it("shows only the entries whose page exists (home and orders for a customer): no dead link", () => {
+  it("shows only the entries whose page exists (home, orders, invoices, claims, addresses, profile for a customer): no dead link", () => {
     expect(visibleNav("customer", null).map((e) => e.href)).toEqual([
       "/compte",
       "/compte/commandes",
+      "/compte/factures",
+      "/compte/reclamations",
+      "/compte/adresses",
+      "/compte/profil",
     ]);
     expect(visibleNav("merchant", "admin").map((e) => e.href)).toEqual(["/pro"]);
   });
@@ -42,5 +46,31 @@ describe("space nav", () => {
     } finally {
       SPACE_NAV.merchant = saved;
     }
+  });
+});
+
+describe("space nav under the account flag (20-d, RV-28)", () => {
+  const none = () => false;
+  const all = () => true;
+
+  it("hides invoices, claims and addresses when the api has no route for them; home, orders and profile stay", () => {
+    expect(visibleNav("customer", null, none).map((e) => e.href)).toEqual([
+      "/compte",
+      "/compte/commandes",
+      "/compte/profil",
+    ]);
+  });
+
+  it("shows them all again when every capability is on", () => {
+    expect(visibleNav("customer", null, all)).toEqual(visibleNav("customer", null));
+  });
+
+  it("asks about the right feature per entry", () => {
+    const asked: string[] = [];
+    visibleNav("customer", null, (f) => {
+      asked.push(f);
+      return true;
+    });
+    expect(asked).toEqual(["invoices", "claims", "addressBook"]);
   });
 });

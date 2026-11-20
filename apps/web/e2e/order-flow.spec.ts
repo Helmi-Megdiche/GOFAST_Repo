@@ -1,5 +1,14 @@
 import { expect, test, type Page } from "@playwright/test";
-import { FIRST_CODE, LOCALES, MORNING, VIEWPORTS, checkPage, shot } from "./helpers";
+import {
+  FIRST_CODE,
+  LOCALES,
+  MORNING,
+  VIEWPORTS,
+  checkPage,
+  formHydrated,
+  openForm,
+  shot,
+} from "./helpers";
 import {
   SENDER_PHONE,
   chooseStandard,
@@ -28,7 +37,7 @@ const draft = (page: Page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("fg.order.draft.v1") ?? "null"));
 
 async function signInAs(page: Page, phone: string) {
-  await page.goto("/fr/connexion");
+  await openForm(page, "/fr/connexion");
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(phone);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();
@@ -200,6 +209,36 @@ test("a lost answer, a reload and a retry give one order, and edits wait for the
   expect(await orders(page)).toBe(1);
 });
 
+test("GH-10-D7 a lost answer with a v1 quote lacking a price line still shows the lost state and the other lines", async ({
+  page,
+}) => {
+  await page.clock.install({ time: MORNING });
+  await signInAs(page, KNOWN_PHONE);
+  await page.goto("/fr/commander");
+  await toReview(page, KNOWN_PHONE);
+  await payAndAccept(page);
+  await page.evaluate(() => localStorage.setItem("fg.mock.failNextOrderResponse", "true"));
+  await page.getByRole("button", { name: "Valider la commande" }).click();
+  await expect(page.getByText("La connexion a été coupée.")).toBeVisible();
+
+  // The draft as a v1 build saved it, before a price line existed.
+  await page.evaluate(() => {
+    const saved = JSON.parse(localStorage.getItem("fg.order.draft.v1")!);
+    delete saved.quote.lines.stamp;
+    saved.version = 1;
+    localStorage.setItem("fg.order.draft.v1", JSON.stringify(saved));
+  });
+  await page.reload();
+  await expect(page.getByText("La connexion a été coupée.")).toBeVisible();
+  const detail = page.getByRole("complementary", { name: "Détail du prix" });
+  await expect(detail).toContainText("TVA");
+  await expect(detail).not.toContainText("Timbre");
+  const after = await draft(page);
+  expect(after.version).toBe(2);
+  expect(after.quote).not.toBeNull();
+  expect(after.pendingSubmit).not.toBeNull();
+});
+
 // ── Price (R204, R205, R207) ─────────────────────────────────────────────────────────────────
 test("W14 shows a price on every card, and the chosen card is the quote (R207 surcharge)", async ({
   page,
@@ -230,6 +269,7 @@ test("W15 lists every price line, even at 0,000, and they add up (R204, R207)", 
     ["Distance", "2,500"],
     ["Poids", "0,000"],
     ["Options", "0,000"],
+    ["Emballage GOFAST", "0,000"],
     ["Majoration pluie (plafond : [PLAFOND])", "1,000"],
     ["Remise", "0,000"],
     ["TVA", "1,805"],
@@ -280,6 +320,7 @@ test("'Compte client' appears only for a merchant with a validated contract (R10
   await signInAs(page, "+216 71 000 002"); // merchant, contract pending
   await page.goto("/fr/commander");
   await toReview(page, "+216 71 000 002");
+  await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
   await expect(page.getByRole("radio", { name: /Compte client/ })).toHaveCount(0);
 
   await signInAs(page, "+216 71 000 001"); // merchant, contract validated
@@ -307,7 +348,7 @@ test("a phone that already has an account is asked to sign in after the right co
 
   await page.getByRole("link", { name: "Se connecter" }).click();
   await expect(page).toHaveURL(/\/fr\/connexion\?next=%2Fcommander%2Fverification$/);
-  await page.waitForLoadState("networkidle"); // hydrated: an earlier click would submit the form natively
+  await formHydrated(page); // an earlier click would submit the form natively
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(KNOWN_PHONE);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();
@@ -456,7 +497,8 @@ test("W16: tracking link, sample slip, /suivi finds the order without personal d
 }) => {
   const code = await placeGuestOrder(page);
   await expect(page.getByText("Amel B. a reçu son lien de suivi par SMS")).toBeVisible();
-  await expect(page.getByRole("button", { name: /Annuler/ })).toHaveCount(0); // CMD-08: Prompt 4
+  // CMD-08: the cancel button shows once the order has loaded.
+  await expect(page.getByRole("button", { name: /Annuler la commande/ })).toBeVisible();
   const slip = page.getByRole("link", { name: "Bon de commande (exemple)" });
   const href = await slip.getAttribute("href");
   expect(href).toBe("/examples/bon-de-commande-exemple.pdf");
@@ -637,6 +679,39 @@ test.describe("order logic", () => {
     );
   });
 
+  test("3 parcels with their own weights and GOFAST packaging: unit price and count on every per-parcel line (PR 1b)", async ({
+    page,
+  }) => {
+    await start(page);
+    await toReview(page);
+    await page.goto("/fr/commander/colis");
+    await textbox(page, "Nombre de colis").fill("3");
+    await textbox(page, "Poids du colis 1 (kg)").fill("1");
+    await textbox(page, "Poids du colis 2 (kg)").fill("2,5");
+    await textbox(page, "Poids du colis 3 (kg)").fill("4");
+    await page.getByRole("checkbox", { name: "Emballage GOFAST (par colis)" }).check();
+    await page.goto("/fr/commander/verification");
+    await expect(page).toHaveURL(/\/commander\/service$/);
+    await page.getByRole("button", { name: "Vérifier ma commande" }).click();
+    await expect(page).toHaveURL(/\/commander\/verification$/);
+    const detail = page.getByRole("complementary", { name: "Détail du prix" });
+    // base 3 x 6,000, weight 0 + 500 + 1,000, packaging on its own line (3 x 2,000), distance, rain and VAT once
+    await expect(detail).toContainText("30,805 TND");
+    const row = (term: string) => detail.locator("dl > div").filter({ has: page.getByText(term) });
+    await expect(row("Service et zone")).toContainText("18,000");
+    await expect(row("Service et zone")).toContainText("6,000 TND × 3");
+    await expect(row("Poids")).toContainText("1,500");
+    await expect(row("Poids")).toContainText("Poids différent selon le colis");
+    await expect(row("Options")).toContainText("0,000");
+    await expect(row("Emballage GOFAST")).toContainText("6,000");
+    await expect(row("Emballage GOFAST")).toContainText("2,000 TND × 3");
+    await expect(row("Distance")).toContainText("2,500");
+    await expect(row("Distance")).not.toContainText("×");
+    await expect(row("Majoration pluie")).not.toContainText("×");
+    await expect(row("TVA")).toContainText("1,805");
+    expect((await draft(page)).parcel.weights).toEqual(["1", "2,5", "4"]);
+  });
+
   test("a pending answer goes to W15 from every step, even once the pickup slot has started", async ({
     page,
   }) => {
@@ -696,7 +771,7 @@ test.describe("order logic", () => {
     const after = await draft(page);
     expect(after.pendingSubmit).toEqual(pending.pendingSubmit);
     expect(after.expiresAt).toBe(pending.expiresAt);
-    expect(after.parcel.weightKg).toBe("2");
+    expect(after.parcel.weights).toEqual(["2"]);
   });
 
   test("a signed-in merchant who checks another sender phone keeps the session and pays on account (R104)", async ({
@@ -805,6 +880,7 @@ test.describe("order logic", () => {
     await expect(page.getByRole("radio", { name: /Compte client/ })).toBeChecked();
     await page.evaluate(() => localStorage.removeItem("fg.mock.session"));
     await page.reload();
+    await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
     await expect(page.getByRole("radio", { name: /Compte client/ })).toHaveCount(0);
     await expect.poll(async () => (await draft(page)).payment).toBeNull();
   });

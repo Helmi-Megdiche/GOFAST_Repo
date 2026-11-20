@@ -1,19 +1,27 @@
 import { z } from "zod";
-import type { ParcelTypeCode, ServiceCode } from "../data/services";
-import type { ZoneResult } from "../data/zones";
-import { normalizePhone } from "../phone";
+import {
+  type ParcelTypeCode,
+  type ServiceCode,
+  type ZoneResult,
+  normalizePhone,
+  DRAFT_RETENTION_MS,
+  PRICE_LINES,
+  MAX_PARCELS,
+  type Quote,
+  type Slot,
+  type PaymentCode,
+} from "@fastgo/domain";
 import { readJson, removeKey, writeJson } from "../storage";
 import { now } from "./clock";
-import { DRAFT_RETENTION_MS } from "./constants";
-import { PRICE_LINES, type Quote } from "./pricing";
-import type { Slot } from "./slots";
 
 /**
  * The order draft (CMD-07, decision 3): the only module that touches it, one localStorage key.
  * Addresses and names never go in the URL. Nothing here is a password or a code.
  */
 export const DRAFT_KEY = "fg.order.draft.v1";
-const VERSION = 1;
+// v2 (GH-10): a quote may lack a price line that PRICE_LINES gained later (e.g. "packaging").
+// The storage key keeps its name so a stored v1 draft is found and migrated, never dropped.
+const VERSION = 2;
 
 export type AddressDraft = {
   text: string;
@@ -23,8 +31,6 @@ export type AddressDraft = {
   zone: ZoneResult | null;
   landmark: string;
 };
-
-export type PaymentCode = "cashPickup" | "cashDelivery" | "account";
 
 export type OrderDraft = {
   version: typeof VERSION;
@@ -36,7 +42,8 @@ export type OrderDraft = {
   /** Set when "Valider" was pressed: the key is now in use on the server side. */
   submitAttemptedAt: number | null;
   /** A submit whose answer never came back: only "Réessayer" with the same payload is allowed. */
-  pendingSubmit: { fingerprint: string } | null;
+  /** `body`: the exact bytes sent with the key (api adapter), re-sent unchanged on a retry (R202). */
+  pendingSubmit: { fingerprint: string; body?: string } | null;
   sender: { address: AddressDraft; name: string; phone: string; slot: Slot | null };
   recipient: {
     address: AddressDraft;
@@ -48,8 +55,10 @@ export type OrderDraft = {
   };
   parcel: {
     type: ParcelTypeCode | null;
+    /** Number of parcels as typed: 1 to 10. The weights list has one entry per parcel. */
     count: string;
-    weightKg: string;
+    /** One weight in kg per parcel, as typed ("2,5"). Each parcel has its own (2 kg included each). */
+    weights: string[];
     content: string;
     /** Parsed once, in the language it was typed in (never re-read in another language). */
     declaredValueMillimes: number | null;
@@ -58,7 +67,10 @@ export type OrderDraft = {
      * stays in declaredValueMillimes but is never sent: the guard keeps the order on W13.
      */
     declaredValueInvalid?: boolean;
+    /** Applies to every parcel. */
     fragile: boolean;
+    /** GOFAST packaging, applies to every parcel. */
+    packaging: boolean;
   };
   service: { code: ServiceCode | null; slot: Slot | null };
   quote: Quote | null;
@@ -106,11 +118,12 @@ export function emptyDraft(at: number = now()): OrderDraft {
     parcel: {
       type: null,
       count: "1",
-      weightKg: "",
+      weights: [""],
       content: "",
       declaredValueMillimes: null,
       declaredValueInvalid: false,
       fragile: false,
+      packaging: false,
     },
     service: { code: null, slot: null },
     quote: null,
@@ -148,13 +161,25 @@ const quoteShape = z
     input: z.object({
       service: serviceCode,
       parcelType: z.enum(["document", "small", "medium", "large"]),
-      weightKg: z.number(),
+      parcels: z
+        .array(z.object({ weightG: z.number().int() }))
+        .min(1)
+        .max(MAX_PARCELS),
       fragile: z.boolean(),
+      packaging: z.boolean(),
       zone: z.string(),
       from: z.string(),
       to: z.string(),
     }),
-    lines: z.record(z.enum(PRICE_LINES), millimes),
+    // partialRecord: a key missing from PRICE_LINES is allowed (older quote), an unknown key is not.
+    lines: z.partialRecord(
+      z.enum(PRICE_LINES),
+      z.object({
+        unitMillimes: millimes.nullable(),
+        count: z.number().int(),
+        totalMillimes: millimes,
+      }),
+    ),
     totalMillimes: millimes,
     surcharge: z.object({ code: z.literal("rain"), ceilingMillimes: millimes.nullable() }),
     quotedAt: z.string(),
@@ -168,7 +193,7 @@ const draftShape = z.object({
   expiresAt: z.number(),
   idempotencyKey: z.string().min(1),
   submitAttemptedAt: z.number().nullable(),
-  pendingSubmit: z.object({ fingerprint: z.string() }).nullable(),
+  pendingSubmit: z.object({ fingerprint: z.string(), body: z.string().optional() }).nullable(),
   sender: z.object({
     address: addressShape,
     name: z.string(),
@@ -186,12 +211,13 @@ const draftShape = z.object({
   parcel: z.object({
     type: z.enum(["document", "small", "medium", "large"]).nullable(),
     count: z.string(),
-    weightKg: z.string(),
+    weights: z.array(z.string()).max(MAX_PARCELS),
     content: z.string(),
     declaredValueMillimes: millimes.nonnegative().nullable(),
     // Optional: a draft saved before this field is read as readable (it was checked by Continue).
     declaredValueInvalid: z.boolean().optional(),
     fragile: z.boolean(),
+    packaging: z.boolean(),
   }),
   service: z.object({ code: serviceCode.nullable(), slot: slotShape }),
   quote: quoteShape,
@@ -203,6 +229,50 @@ const draftShape = z.object({
   verifiedPhone: z.string().nullable(),
 });
 
+/**
+ * A draft saved before the parcel count (PR 1b) has one `weightKg`. A one-parcel draft keeps it as
+ * the weight of its parcel; its quote (priced the old way) is dropped, so W14 prices it again.
+ * Any other old draft is not migrated: it fails the shape check and is cleared.
+ */
+function migrateWeights(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  const draft = value as { parcel?: Record<string, unknown> };
+  const parcel = draft.parcel;
+  if (!parcel || typeof parcel.weightKg !== "string" || "weights" in parcel) return value;
+  if (parcel.count !== "1") return value;
+  const { weightKg, ...rest } = parcel;
+  return {
+    ...draft,
+    parcel: { ...rest, weights: [weightKg], packaging: false },
+    quote: null,
+    acceptedQuoteId: null,
+    previousTotalMillimes: null,
+  };
+}
+
+/** v1 to v2: everything the customer typed is kept, only the version number moves. */
+function migrateVersion(value: unknown): unknown {
+  if (typeof value !== "object" || value === null) return value;
+  return (value as { version?: unknown }).version === 1 ? { ...value, version: 2 } : value;
+}
+
+function migrate(value: unknown): unknown {
+  return migrateVersion(migrateWeights(value));
+}
+
+/**
+ * A quote that lacks a price line (saved before the line existed) is dropped so W14 prices the order
+ * again; no value is invented for the missing line. Never while a submit waits for its answer: the
+ * retry (R202, RV-18) must send the same quote, and the order may already exist on the server. The
+ * screens skip a line the quote does not have (presentPriceLines).
+ */
+function dropIncompleteQuote(draft: OrderDraft): OrderDraft {
+  if (draft.pendingSubmit) return draft;
+  const lines = draft.quote?.lines as Record<string, unknown> | undefined;
+  if (!draft.quote || PRICE_LINES.every((line) => lines?.[line] !== undefined)) return draft;
+  return { ...draft, quote: null, acceptedQuoteId: null, previousTotalMillimes: null };
+}
+
 function isDraft(value: unknown): value is OrderDraft {
   return draftShape.safeParse(value).success;
 }
@@ -212,12 +282,15 @@ function isDraft(value: unknown): value is OrderDraft {
  * null, so the flow starts again instead of breaking.
  */
 export function loadDraft(at: number = now()): OrderDraft | null {
-  const value = readJson(DRAFT_KEY);
-  if (value == null) return null;
-  if (!isDraft(value) || at >= value.expiresAt) {
+  const stored = readJson(DRAFT_KEY);
+  if (stored == null) return null;
+  const migrated = migrate(stored);
+  if (!isDraft(migrated) || at >= migrated.expiresAt) {
     removeKey(DRAFT_KEY);
     return null;
   }
+  const value = dropIncompleteQuote(migrated);
+  if (value !== stored) writeJson(DRAFT_KEY, value);
   return value;
 }
 

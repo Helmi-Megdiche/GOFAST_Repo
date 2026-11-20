@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { LOCALES, VIEWPORTS, axe, checkPage } from "./helpers";
+import { LOCALES, VIEWPORTS, axe, checkPage, openForm } from "./helpers";
 import { chooseStandard, fillParcel, fillRecipient, fillSender, start } from "./flow";
 
 const PASSWORD = "fastgo-demo-2026";
@@ -11,8 +11,7 @@ const EMPTY_CUSTOMER = "+216 98 000 003"; // Lina M., no order
 const RETURN_DUE = "+216 98 000 005"; // Hana R., owes 7,000 TND for returned parcels
 
 async function signInAs(page: Page, phone: string, next?: string) {
-  await page.goto(`/fr/connexion${next ? `?next=${encodeURIComponent(next)}` : ""}`);
-  await page.waitForLoadState("networkidle"); // hydrated: a click before it would submit the form natively
+  await openForm(page, `/fr/connexion${next ? `?next=${encodeURIComponent(next)}` : ""}`);
   await page.getByRole("textbox", { name: "Téléphone ou e-mail" }).fill(phone);
   await page.locator('input[name="password"]').fill(PASSWORD);
   await page.getByRole("button", { name: "Se connecter" }).click();
@@ -86,7 +85,7 @@ test("sign-out clears the session and the order draft, and keeps the mock tables
 test("the nav has no dead link: only the entries whose page exists", async ({ page }) => {
   await signInAs(page, CUSTOMER);
   const nav = page.getByRole("navigation", { name: "Mon espace" });
-  await expect(nav.getByRole("link")).toHaveCount(2); // Accueil and Commandes (PR A)
+  await expect(nav.getByRole("link")).toHaveCount(6); // Accueil, Commandes (PR A), Factures, Réclamations (PR C), Adresses, Profil (PR B)
   await expect(nav.getByRole("link", { name: "Commandes" })).toHaveAttribute(
     "href",
     "/fr/compte/commandes",
@@ -155,6 +154,15 @@ test.describe("C01 dashboard", () => {
     ).toHaveAttribute("href", "/fr/compte/commandes/FG-5A1R-0001");
     const last = page.locator('[data-slot="lastDeliveries"]');
     await expect(last.getByRole("row")).toHaveCount(4); // header + 3
+    // The unpaid and the partly paid invoice (ESP-05): the same 29 DT as on C04 (RV-15).
+    await expect(page.locator('[data-slot="toSettle"]')).toContainText("29,000 TND");
+    await expect(page.locator('[data-slot="toSettle"]')).toContainText("Montant restant à régler");
+    await page.goto("/fr/compte/factures");
+    await expect(page.locator("main")).toContainText("29,000 TND");
+  });
+
+  test("a customer with nothing to pay sees 0 and is up to date", async ({ page }) => {
+    await signInAs(page, EMPTY_CUSTOMER);
     await expect(page.locator('[data-slot="toSettle"]')).toContainText("0,000 TND");
     await expect(page.locator('[data-slot="toSettle"]')).toContainText("Vous êtes à jour.");
   });
@@ -162,7 +170,7 @@ test.describe("C01 dashboard", () => {
   test("a customer who owes return fees sees the amount to settle", async ({ page }) => {
     await signInAs(page, RETURN_DUE);
     await expect(page.locator('[data-slot="toSettle"]')).toContainText("7,000 TND");
-    await expect(page.locator('[data-slot="toSettle"]')).toContainText("Frais de retour à régler");
+    await expect(page.locator('[data-slot="toSettle"]')).toContainText("Montant restant à régler");
   });
 
   test("an account with no order has empty states", async ({ page }) => {
@@ -251,8 +259,15 @@ test.describe("C02 my orders", () => {
     await expect(rows(page)).toHaveCount(1);
     await expect(rows(page).first()).toContainText("Annulée");
     // The chips keep the search: the canceled order is in none of the three filters.
-    for (const chip of ["Livrées", "Échecs et retours", /^En cours/]) {
+    for (const [chip, statut] of [
+      ["Livrées", "livrees"],
+      ["Échecs et retours", "echecs"],
+      [/^En cours/, "en-cours"],
+    ] as const) {
       await page.getByRole("link", { name: chip }).click();
+      // The three chips show the same message: wait for this chip's own URL (RV-10, GH-92), or the
+      // message of the previous chip passes and the next click leaves while this navigation runs.
+      await expect(page).toHaveURL(new RegExp(`statut=${statut}`));
       await expect(
         page.getByText("Aucune commande ne correspond à votre recherche."),
       ).toBeVisible();
@@ -380,7 +395,7 @@ test.describe("C03 order detail", () => {
     await page.goto(orderUrl(code));
     await expect(page.getByRole("heading", { level: 3 })).toHaveCount(3);
     await expect(page.getByText("Poids déclaré")).toHaveCount(3);
-    // 2 kg split in grams, the last parcel takes the remainder: 666 + 666 + 668.
+    // Each parcel has its own weight (PR 1b): 3 x 2 kg, no split.
     const grams = await page.evaluate((c) => {
       const parcels = JSON.parse(localStorage.getItem("fg.mock.parcels") ?? "{}") as Record<
         string,
@@ -390,8 +405,8 @@ test.describe("C03 order detail", () => {
         .filter((p) => p.orderCode === c)
         .map((p) => p.weightDeclaredG);
     }, code);
-    expect(grams.reduce((a, b) => a + b, 0)).toBe(2000);
-    await expect(page.getByText("0,668 kg")).toBeVisible();
+    expect(grams.reduce((a, b) => a + b, 0)).toBe(6000);
+    await expect(page.getByText("2 kg").first()).toBeVisible();
   });
 });
 
@@ -433,6 +448,11 @@ test.describe("CMD-08 cancel (R212, T06)", () => {
       "href",
       "/fr/compte/reclamations/nouvelle?commande=FG-5A1P-0006",
     );
+    // The claim link opens C07 pre-filled with that order (ESP-06).
+    await page.getByRole("link", { name: "Ouvrir une réclamation" }).click();
+    await expect(page).toHaveURL(/\/fr\/compte\/reclamations\/nouvelle\?commande=FG-5A1P-0006$/);
+    await expect(page.getByLabel("Votre message")).toBeVisible();
+    await expect(page.locator("main").getByText("FG-5A1P-0006")).toBeVisible();
   });
 
   test("R505: after a failed pickup the dialog says a fee may apply, with the amount", async ({
@@ -573,6 +593,7 @@ test.describe("W15: R504, R605, R607 and R903", () => {
   test("R607: port dû needs the box; the order stores the acceptance", async ({ page }) => {
     await reviewAs(page, CUSTOMER);
     const box = page.getByRole("checkbox", { name: /destinataire refuse le colis/ });
+    await expect(page.getByRole("button", { name: "Valider la commande" })).toBeVisible();
     await expect(box).toHaveCount(0);
     await page.getByRole("radio", { name: /Espèces à la livraison/ }).click();
     await expect(box).toBeVisible();

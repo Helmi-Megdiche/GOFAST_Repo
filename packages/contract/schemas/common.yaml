@@ -1,0 +1,131 @@
+# Values shared by several routes. Names are unique across all schema files (the bundler flattens them).
+Money:
+  type: integer
+  minimum: 0
+  description: An amount in millimes (48500 = 48,500 TND). Never a float.
+  examples: [48500]
+UtcTimestamp:
+  type: string
+  format: date-time
+  description: An instant in UTC. The client shows it in Africa/Tunis.
+  examples: ["2026-11-20T09:30:00Z"]
+ResourceId:
+  type: string
+  format: uuid
+Locale:
+  type: string
+  enum: [fr, ar, en]
+  description: R901. French is the default.
+PhoneE164:
+  type: string
+  pattern: '^\+216[0-9]{8}$'
+  description: Tunisian phone number in E.164 form.
+  examples: ["+21620123456"]
+TrackingNumber:
+  type: string
+  pattern: "^FG-[A-Z0-9]{4}-[A-Z0-9]{4}$"
+  description: >-
+    R203. The cahier gives the FG-XXXX-XXXX shape and no alphabet; letters and digits are an
+    assumption shared with apps/web.
+  examples: ["FG-7K4M-2QXP"]
+ServiceCode:
+  type: string
+  enum: [express, standard, scheduled]
+ParcelTypeCode:
+  type: string
+  enum: [document, small, medium, large]
+PaymentMode:
+  type: string
+  enum: [cashPickup, cashDelivery, account]
+  description: Payment is cash or merchant account (online payment is L3). `account` needs a validated contract (R104).
+FreightPayer:
+  type: string
+  enum: [sender, recipient]
+OrderStatus:
+  type: string
+  description: States of the order (docs/spec/regles.md, "États d'une commande").
+  enum:
+    - received
+    - confirmed
+    - assigned
+    - pickup_failed
+    - picked_up
+    - in_transit
+    - delivered
+    - partially_delivered
+    - returned
+    - lost
+    - canceled
+ParcelStatus:
+  type: string
+  description: States of a parcel (docs/spec/regles.md, "États d'un colis").
+  enum:
+    - to_collect
+    - taken
+    - at_depot
+    - in_transit
+    - delivery_failed
+    - returning
+    - handed_over
+    - returned
+    - lost
+    - canceled
+DiscountMillimes:
+  type: integer
+  maximum: 0
+  description: >-
+    A discount in millimes. It is negative or zero, as in the web mock. It is the only amount that
+    may be negative, and only on a line of kind `discount`.
+  examples: [-1500]
+CancelFee:
+  type: string
+  description: >-
+    R212. `none` before the driver arrived; `applies` after (fee from the settings);
+    `backOfficeDecides` after a failed pickup (R505).
+  enum: [none, applies, backOfficeDecides]
+Pin:
+  type: object
+  description: A point on the map, WGS84. `x` is the longitude and `y` the latitude, as in the web mock.
+  required: [x, y]
+  additionalProperties: false
+  properties:
+    x:
+      type: number
+      minimum: -180
+      maximum: 180
+    y:
+      type: number
+      minimum: -90
+      maximum: 90
+AddressInput:
+  type: object
+  description: >-
+    An address as the customer typed or picked it. The server resolves the zone itself (R201). The
+    client may send the délégation it picked from the list (`zone_id`); if a pin is sent too, the
+    pin decides the zone.
+  required: [text]
+  additionalProperties: false
+  properties:
+    text:
+      type: string
+      minLength: 1
+    landmark:
+      type: string
+      default: ""
+    pin:
+      oneOf:
+        - $ref: "#/Pin"
+        - type: "null"
+    zone_id:
+      description: The délégation picked from the list (`zones` of the catalog). Optional.
+      $ref: "#/ResourceId"
+TimeWindow:
+  type: object
+  description: A pickup window, as two UTC instants (R503 lists the windows GOFAST offers).
+  required: [start_at, end_at]
+  additionalProperties: false
+  properties:
+    start_at:
+      $ref: "#/UtcTimestamp"
+    end_at:
+      $ref: "#/UtcTimestamp"

@@ -1,5 +1,5 @@
 import { homeFor, type Session } from "../data/session";
-import { DEFAULT_AFTER_SIGN_IN, safeNext } from "./safe-next";
+import { DEFAULT_AFTER_SIGN_IN, safeNext } from "@fastgo/domain";
 
 /** Link to an auth page that keeps a safe ?next= (W18, W19, W20, W22). Never keeps an unsafe one. */
 export function withNext(
