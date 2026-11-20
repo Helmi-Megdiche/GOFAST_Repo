@@ -383,7 +383,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in with a phone or an e-mail and a password
-         * @description Sets the session cookie and answers with the signed-in person. A wrong password and an unknown account give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer does not tell whether an account exists (a choice of this contract, not a rule of the cahier). Attempts are limited per account and per IP. A staff account (any role of the back-office) is refused here, whatever its password: it signs in with a second factor on `POST /v1/staff/sessions` and gets the same 401 `invalidCredentials` here (T60).
+         * @description Sets the session cookie and answers with the signed-in person. A wrong password and an unknown account give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer does not tell whether an account exists (a choice of this contract, not a rule of the cahier). Attempts are limited per account and per IP. A staff account (any role of the back-office) is refused here, whatever its password: it signs in with a second factor on `POST /v1/staff/sessions` and gets the same 401 `invalidCredentials` here (T60). A driver is refused here too, and on the staff route as well: the driver sign-in (a recognised phone and a PIN, cahier p.54) does not exist yet; it is ticket #49.
          */
         post: operations["createSession"];
         /** Sign out */
@@ -424,7 +424,7 @@ export interface paths {
         put?: never;
         /**
          * Sign in to the back-office with a second factor
-         * @description T60, cahier p.54: the internal teams sign in with a second factor. Sets the session cookie (12 hours, not sliding) and answers with the signed-in person. A wrong password, an unknown account, a customer or a merchant, an account with no second factor enrolled, a closed account, a wrong code, a code outside the window and a code already used all give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer tells nothing more than a wrong password does. Attempts are limited per account and per IP (429 with `Retry-After`).
+         * @description T60, cahier p.54: the internal teams sign in with a second factor. Sets the session cookie (12 hours, not sliding) and answers with the signed-in person. A wrong password, an unknown account, a customer or a merchant, a driver (ticket #49), an account with no second factor enrolled, a closed account, a wrong code, a code outside the window and a code already used all give the same 401 AUTH_REQUIRED with `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer tells nothing more than a wrong password does. Attempts are limited per account and per IP (429 with `Retry-After`). After several wrong codes in a row (given with the right password), the account is locked until an administrator resets it with the operator command; a locked account gets the same 401 with the right code too.
          */
         post: operations["createStaffSession"];
         delete?: never;
