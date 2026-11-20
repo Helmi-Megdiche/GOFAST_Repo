@@ -1,3 +1,4 @@
+import { Logger } from "@nestjs/common";
 import { drizzle, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import type { Actor } from "../http/session.ts";
@@ -5,6 +6,12 @@ import * as schema from "./schema/core.ts";
 
 /** What a query function receives: a typed handle that lives for one transaction. */
 export type Tx = NodePgDatabase<typeof schema>;
+
+/** What is logged when a connection of the pool fails. Never the connection string. */
+export type PoolErrorEntry = { event: "db_pool_error"; code?: string; severity?: string; message: string };
+
+const logger = new Logger("db");
+const logPoolError = (entry: PoolErrorEntry) => logger.error(JSON.stringify(entry));
 
 /**
  * THE ONE DOOR to the database. Nothing outside `src/db` may import `pg` (lint), and this module
@@ -15,9 +22,41 @@ export type Tx = NodePgDatabase<typeof schema>;
  */
 export class Db {
   private readonly pool: pg.Pool;
+  /** Every client that has connected and not yet emitted `end`: close() waits for them. */
+  private readonly open = new Map<pg.PoolClient, Promise<void>>();
 
-  constructor(url: string, max = 10) {
+  /**
+   * `onPoolError` receives the failures of connections nobody is using (a database restart, a
+   * failover, PgBouncer closing a server connection). Without a listener, Node would treat such an
+   * error as an uncaught exception and the api, ws or worker process would exit. The pool drops the
+   * failed client by itself; the next query opens a new one.
+   */
+  constructor(url: string, max = 10, onPoolError: (entry: PoolErrorEntry) => void = logPoolError) {
     this.pool = new pg.Pool({ connectionString: url, max });
+    // The pool and the client both emit the error of an idle client: log it once.
+    const reported = new WeakSet<Error>();
+    const report = (error: Error & { code?: string; severity?: string }) => {
+      if (reported.has(error)) return;
+      reported.add(error);
+      // The message of a server error names no connection string; the code and severity say what it was.
+      onPoolError({ event: "db_pool_error", code: error.code, severity: error.severity, message: error.message });
+    };
+    // An idle client that fails: the pool emits it here and removes the client.
+    this.pool.on("error", report);
+    this.pool.on("connect", (client) => {
+      // A client that is checked out, or that is ending, has no listener of the pool: give it one,
+      // or its error (57P01 when the server stops, a reset socket) kills the process.
+      client.on("error", report);
+      this.open.set(
+        client,
+        new Promise<void>((resolve) =>
+          client.once("end", () => {
+            this.open.delete(client);
+            resolve();
+          }),
+        ),
+      );
+    });
   }
 
   /** A request of a signed-in person. RLS sees `actor` and nothing else. */
@@ -63,8 +102,11 @@ export class Db {
     }
   }
 
+  /** Resolves when every connection is closed, not only when the pool has asked them to end. */
   async close(): Promise<void> {
+    const ending = [...this.open.values()];
     await this.pool.end();
+    await Promise.all(ending);
   }
 
   private async run<T>(fn: (tx: Tx) => Promise<T>, identity: [string, string, string]): Promise<T> {
