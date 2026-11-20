@@ -26,8 +26,8 @@ export class Db {
   private readonly open = new Map<pg.PoolClient, Promise<void>>();
 
   /**
-   * `onPoolError` receives the failures of connections nobody is using (a database restart, a
-   * failover, PgBouncer closing a server connection). Without a listener, Node would treat such an
+   * `onPoolError` receives the failures of idle connections and of checked-out ones (a database
+   * restart, a failover, PgBouncer closing a server connection). Without a listener, Node would treat such an
    * error as an uncaught exception and the api, ws or worker process would exit. The pool drops the
    * failed client by itself; the next query opens a new one.
    */
