@@ -36,7 +36,8 @@ describe("loadConfig", () => {
     expect(loadConfig({ PUBLIC_WEB_URL: "https://gofast.example" }).publicWebUrl).toBe("https://gofast.example");
     expect(() => loadConfig({ PUBLIC_WEB_URL: "gofast.example" })).toThrow(/PUBLIC_WEB_URL/);
     expect(() => loadConfig({ PUBLIC_WEB_URL: "https://gofast.example/fr" })).toThrow(/PUBLIC_WEB_URL/);
-    expect(() => loadConfig({ NODE_ENV: "production", SMS_PROVIDER: "fake" })).toThrow(/SMS_PROVIDER/);
+    // TOTP_KEY is checked first in production (GH-25), so it is given here: this line is about the fake SMS sender.
+    expect(() => loadConfig({ NODE_ENV: "production", SMS_PROVIDER: "fake", TOTP_KEY: Buffer.alloc(32, 5).toString("base64") })).toThrow(/SMS_PROVIDER/);
   });
   it("refuses a short AUTH_SECRET", () => {
     expect(() => loadConfig({ AUTH_SECRET: "short" })).toThrow(/AUTH_SECRET/);
