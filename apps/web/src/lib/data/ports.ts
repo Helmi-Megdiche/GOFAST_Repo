@@ -1,7 +1,12 @@
 import type { ParcelTypeCode, ServiceCode } from "@fastgo/domain";
 import type { OrderRequest } from "../order/request";
 import type { Locale } from "@fastgo/i18n";
+import type { OrderDetailResult } from "./account-orders";
+import type { CancelResult } from "./cancel";
 import type { CreateOrderResult } from "./orders";
+import type { OrdersPage, OrdersQuery } from "./orders-page";
+import type { TrackingResult } from "./tracking";
+import type { CancelFee } from "./states";
 import type { SendResult as MockSendResult, VerifyResult as MockVerifyResult } from "./otp";
 import type { Session } from "./session";
 
@@ -16,6 +21,18 @@ export interface OrdersPort {
   findOrderByKey(key: string): Promise<string | null>;
   /** How long the server remembers a key; null when it never forgets (mock). */
   readonly keyLifetimeMs: number | null;
+  /** C02. Throws NetworkError, AuthRequiredError or ServerError. */
+  listOrders(session: Session, query: OrdersQuery): Promise<OrdersPage>;
+  /** C03, by tracking number. Another account's order answers like an unknown one. */
+  getOrderDetail(session: Session, code: string): Promise<OrderDetailResult>;
+  /** CMD-08. Replay by state: no Idempotency-Key. `acceptedFee` is the fee the dialog showed. */
+  cancelOrder(
+    session: Session,
+    code: string,
+    input: { acceptedFee: CancelFee },
+  ): Promise<CancelResult>;
+  /** SUI-01, public. Never throws: a failure is `unavailable`. */
+  lookupTracking(code: string): Promise<TrackingResult>;
 }
 
 export interface PricingPort {

@@ -17,7 +17,8 @@ import { CLOSED_ACCOUNT_NAME } from "@/lib/data/order-model";
 import { CancelPlacedOrder, CanceledNotice } from "@/components/order/cancel-placed-order";
 import { DateTime, Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
-import { getOrderDetail, type OrderDetail, type ParcelView } from "@/lib/data/account-orders";
+import type { OrderDetail, ParcelView } from "@/lib/data/account-orders";
+import { ordersPort } from "@/lib/data";
 import { FINAL_ORDER_STATES } from "@/lib/data/states";
 import { type ProofLevel, formatKg, weightToleranceG } from "@fastgo/domain";
 import { OrderStatusBadge } from "./order-status";
@@ -33,7 +34,10 @@ const PROOF_TEXT = {
 /** C03 (ESP-04, SUI-05, CMD-08): one order of the account, from the event log. */
 export function OrderDetailView({ code }: { code: string }) {
   const t = useTranslations("orders.detail");
-  const { state, reload } = useLoader((session) => getOrderDetail(session, code), code);
+  const { state, reload } = useLoader(
+    (session) => ordersPort().getOrderDetail(session, code),
+    code,
+  );
 
   if (state.status === "loading") {
     return (
@@ -175,7 +179,8 @@ function Found({ order, onChanged }: { order: OrderDetail; onChanged: () => void
               items={[
                 ...order.priceLines.map((line) => ({
                   term: t(`priceLines.${line.kind}`),
-                  value: <Money millimes={line.millimes} />,
+                  value:
+                    line.millimes === null ? p("price") : <Money millimes={line.millimes} />,
                 })),
                 { term: <b>{t("total")}</b>, value: <Money millimes={order.totalMillimes} /> },
                 { term: t("payment"), value: review(`payments.${order.paymentMode}.title`) },

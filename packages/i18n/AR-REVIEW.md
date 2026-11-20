@@ -1223,6 +1223,8 @@ native-speaker review before release (CLAUDE.md).
 | `tracking.searching` | جارٍ البحث… | Recherche… | [ ] |
 | `tracking.submit` | تتبع | Suivre | [ ] |
 | `tracking.title` | تتبع طرد | Suivre un colis | [ ] |
+| `tracking.unavailable.text` | تعذّرت قراءة هذا الرقم حاليًا. أعد المحاولة بعد قليل. | Nous n'avons pas pu lire ce numéro pour le moment. Réessayez dans quelques instants. | [ ] |
+| `tracking.unavailable.title` | التتبع غير متاح مؤقتًا | Suivi momentanément indisponible | [ ] |
 | `tracking.yourParcel.text` | يعرض الرابط الذي وصلك برسالة نصية المبلغ المطلوب ورمز التسليم، ويتيح تغيير الموعد. | Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau. | [ ] |
 | `tracking.yourParcel.title` | هل هذا طردك؟ | C'est votre colis ? | [ ] |
 | `zones.addressLabel` | عنوانك | Votre adresse | [ ] |

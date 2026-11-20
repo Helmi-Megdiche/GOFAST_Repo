@@ -212,7 +212,7 @@ describe("getOrderDetail (C03)", () => {
       { kind: "base", unitMillimes: 9000, count: 1, millimes: 9000 },
       { kind: "distance", unitMillimes: 3000, count: 1, millimes: 3000 },
     ]);
-    expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
+    expect(order.priceLines.reduce((sum, line) => sum + (line.millimes ?? 0), 0)).toBe(
       order.totalMillimes,
     );
   });
@@ -228,7 +228,7 @@ describe("getOrderDetail (C03)", () => {
     setClock(() => T0 + 20 * 24 * 3_600_000);
     const order = await detail(created.code);
     expect(order.totalMillimes).toBe(request.quote.totalMillimes);
-    expect(order.priceLines.reduce((sum, line) => sum + line.millimes, 0)).toBe(
+    expect(order.priceLines.reduce((sum, line) => sum + (line.millimes ?? 0), 0)).toBe(
       request.quote.totalMillimes,
     );
   });

@@ -6,7 +6,9 @@ import { Alert, Button, Dialog } from "@fastgo/ui";
 import { Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
 import type { CancelOption } from "@/lib/data/cancel-option";
-import { cancelFeeOf, cancelOrder } from "@/lib/data/cancel";
+import { cancelFeeOf } from "@/lib/data/cancel";
+import { ordersPort } from "@/lib/data";
+import { AuthRequiredError, ServerError } from "@/lib/api/errors";
 import { NetworkError } from "@/lib/data/orders";
 import { getSession } from "@/lib/data/session";
 import { CANCEL_FEE_MILLIMES } from "@fastgo/domain";
@@ -75,7 +77,9 @@ export function CancelPlacedOrder({
     setBusy(true);
     setProblem(null);
     try {
-      const result = await cancelOrder(session, code, { acceptedFee: cancelFeeOf(shown) });
+      const result = await ordersPort().cancelOrder(session, code, {
+        acceptedFee: cancelFeeOf(shown),
+      });
       if (result.status === "feeRequired") {
         // The order changed since the page was read: show the fee, ask again.
         setShown(result.fee === "applies" ? "withFee" : "mayHaveFee");
@@ -86,7 +90,10 @@ export function CancelPlacedOrder({
       }
       if (result.status !== "feeRequired") onChanged();
     } catch (error) {
-      if (!(error instanceof NetworkError)) throw error;
+      // A cut, a server error or an expired session: nothing is known to have changed.
+      if (!(error instanceof NetworkError || error instanceof ServerError)) {
+        if (!(error instanceof AuthRequiredError)) throw error;
+      }
       setProblem("network");
     } finally {
       busyRef.current = false;

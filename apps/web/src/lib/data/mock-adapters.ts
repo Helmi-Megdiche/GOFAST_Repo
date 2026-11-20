@@ -2,7 +2,10 @@ import { normalizePhone, packagingPriced } from "@fastgo/domain";
 import { createAccount, sessionFor } from "./accounts";
 import { setNewPassword, signIn } from "./auth";
 import { EXAMPLE_PRICE_TABLE } from "./fixtures/pricing";
+import { getOrderDetail, listOrders } from "./account-orders";
+import { cancelOrder } from "./cancel";
 import { createOrder, findOrderByKey } from "./orders";
+import { lookupTracking } from "./tracking";
 import { consumeVerification, isTargetVerified, sendCode, verifyCode } from "./otp";
 import type { AuthPort, OrdersPort, PricingPort } from "./ports";
 import { getSession, setSession, signOut } from "./session";
@@ -14,6 +17,10 @@ export function createMockOrders(): OrdersPort {
     prepare: () => undefined,
     createOrder: (request, key) => createOrder(request, key),
     findOrderByKey,
+    listOrders,
+    getOrderDetail,
+    cancelOrder,
+    lookupTracking,
   };
 }
 

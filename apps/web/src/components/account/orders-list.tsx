@@ -23,12 +23,8 @@ import {
 } from "@fastgo/ui";
 import { DateTime, Money } from "@/components/money";
 import { Link, useRouter } from "@/i18n/navigation";
-import {
-  listOrders,
-  type OrderFilter,
-  type OrdersPage,
-  type OrdersQuery,
-} from "@/lib/data/account-orders";
+import { ordersPort } from "@/lib/data";
+import type { OrderFilter, OrdersPage, OrdersQuery } from "@/lib/data/account-orders";
 import { FINAL_ORDER_STATES } from "@/lib/data/states";
 import { ordersQueryToParams, parseOrdersQuery } from "@/lib/account/orders-query";
 import { OrderStatusBadge } from "./order-status";
@@ -50,7 +46,7 @@ export function OrdersList() {
   const router = useRouter();
   const query = parseOrdersQuery(params);
   const { state, reload } = useLoader(
-    (session) => listOrders(session, query),
+    (session) => ordersPort().listOrders(session, query),
     JSON.stringify(query),
   );
   const searchId = useId();

@@ -21,7 +21,8 @@ import { PageHero } from "@/components/page-hero";
 import { Link, useRouter } from "@/i18n/navigation";
 import { FOUND_TRACKING_CODE } from "@/lib/data/fixtures/tracking";
 import { FINAL_ORDER_STATES, type OrderStatus } from "@/lib/data/states";
-import { lookupTracking, type PublicTracking, type TrackingResult } from "@/lib/data/tracking";
+import { ordersPort } from "@/lib/data";
+import type { PublicTracking, TrackingResult } from "@/lib/data/tracking";
 import { trackingFormSchema, type TrackingFormValues } from "@/lib/forms/schemas";
 import { useErrorMessage } from "@/lib/forms/use-error-message";
 import { normalizeTrackingCode } from "@fastgo/domain";
@@ -73,9 +74,17 @@ export function TrackingView({ code }: { code: string }) {
   useEffect(() => {
     if (!current) return;
     let cancelled = false;
-    void lookupTracking(current).then((result) => {
-      if (!cancelled) setStored({ code: current, result });
-    });
+    ordersPort()
+      .lookupTracking(current)
+      .then(
+        (result) => {
+          if (!cancelled) setStored({ code: current, result });
+        },
+        // The port does not throw; a mock cut still must not leave "searching" forever.
+        () => {
+          if (!cancelled) setStored({ code: current, result: { status: "unavailable" } });
+        },
+      );
     return () => {
       cancelled = true;
     };
@@ -210,6 +219,12 @@ export function TrackingView({ code }: { code: string }) {
                 <b>{t("notFound.title")}</b>
                 <br />
                 {t("notFound.text")}
+              </Alert>
+            ) : shown?.status === "unavailable" ? (
+              <Alert tone="error">
+                <b>{t("unavailable.title")}</b>
+                <br />
+                {t("unavailable.text")}
               </Alert>
             ) : loading && !fieldInvalid ? (
               <Card className="flex items-center gap-3 text-muted">
