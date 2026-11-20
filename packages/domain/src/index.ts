@@ -6,6 +6,7 @@ export * from "./claims/attachments";
 export * from "./digits";
 export * from "./hash";
 export * from "./limits";
+export * from "./order/cancel";
 export * from "./order/constants";
 export * from "./order/money-input";
 export * from "./order/order-model";

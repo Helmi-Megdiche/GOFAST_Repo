@@ -5,7 +5,8 @@ post:
     R209, D8. The system confirms an order by itself only for a verified customer under the amount
     set in the settings; an agent confirms the others. Replay by state: an order that is already
     confirmed answers 200 again with no new event. An order that is not waiting for confirmation (for
-    example canceled) answers 409 STATE_CONFLICT.
+    example canceled) answers 409 STATE_CONFLICT with the field `status` and the reason
+    `notWaitingForConfirmation`.
   tags: [orders]
   x-roles: [agent, operations, admin]
   x-replay: state

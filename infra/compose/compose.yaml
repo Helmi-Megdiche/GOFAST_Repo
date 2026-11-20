@@ -1,7 +1,15 @@
 # GOFAST stack (#14). One file for the laptop and for staging; compose.staging.yaml overrides it.
 # Laptop: docker compose --env-file .env.example up -d      (fake values, db-setup runs by itself)
-# Images are pinned by digest; the tag is in the comment. api, ws, worker, web: see the Dockerfile PR.
+# Images are pinned by digest; the tag is in the comment. api, ws, worker, web are built from infra/docker.
 name: gofast
+
+# Hardening for the five app containers: code is read-only, /tmp is the only writable path, no extra
+# privileges, no capabilities. Merged into each service with `<<: *hardened`.
+x-hardened: &hardened
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: [no-new-privileges:true]
+  cap_drop: [ALL]
 
 services:
   postgres:
@@ -78,7 +86,7 @@ services:
 
   redis:
     image: redis@sha256:7f7d30b7fdd09467bac58198a1f166dd69789d348d4fe859cccb20e0cf287fbe # 7.4-alpine
-    command: ["sh", "-c", "exec redis-server --appendonly yes --requirepass \"$$REDIS_PASSWORD\""]
+    command: ["sh", "-c", 'exec redis-server --appendonly yes --requirepass "$$REDIS_PASSWORD"']
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?set it in the env file}
       REDISCLI_AUTH: ${REDIS_PASSWORD}
@@ -111,7 +119,171 @@ services:
       retries: 20
     restart: unless-stopped
 
+  # One-shot: applies apps/api/migrations straight to postgres as fastgo_migrator (never through
+  # PgBouncer: advisory lock, one transaction per file). api and worker wait for it. On the laptop
+  # it also waits for db-setup (roles must exist); on staging db-setup is run by hand, so not required.
+  migrate:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: &api-build
+      context: ../..
+      dockerfile: infra/docker/api.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      db-setup:
+        condition: service_completed_successfully
+        required: false
+    environment:
+      DATABASE_MIGRATOR_URL: postgres://fastgo_migrator:${FASTGO_MIGRATOR_PASSWORD:?set it in the env file}@postgres:5432/fastgo
+    command: ["node", "src/db/cli.ts"]
+    restart: "no"
+
+  api:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on: &api-deps
+      migrate:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment: &api-env
+      NODE_ENV: ${APP_ENV:-development}
+      TRUST_PROXY: ${TRUST_PROXY:-0} # hops in front of the api; 1 = Caddy. Env files choose it.
+      DATABASE_URL: postgres://fastgo_app:${FASTGO_APP_PASSWORD:?set it in the env file}@pgbouncer:5432/fastgo
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      AUTH_SECRET: ${AUTH_SECRET:?set it in the env file}
+      TOTP_KEY: ${TOTP_KEY:?set it in the env file}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:13000}
+    command: ["node", "dist/main.js"]
+    ports:
+      - "127.0.0.1:${API_PORT:-14000}:4000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4000/v1/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  ws:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      NODE_ENV: ${APP_ENV:-development}
+    command: ["node", "dist/ws.js"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4001/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  worker:
+    <<: *hardened
+    image: ${API_IMAGE:-gofast-api:local}
+    build: *api-build
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      pgbouncer:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${APP_ENV:-development}
+      DATABASE_URL: postgres://fastgo_worker:${FASTGO_WORKER_PASSWORD:?set it in the env file}@pgbouncer:5432/fastgo
+    command: ["node", "dist/worker.js"]
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:4002/health').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  web:
+    <<: *hardened
+    image: ${WEB_IMAGE:-gofast-web:local}
+    build:
+      context: ../..
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        NEXT_PUBLIC_SITE_URL: ${SITE_URL:-http://localhost:13000}
+        NEXT_PUBLIC_API_DOMAINS: ${API_DOMAINS:-}
+    ports:
+      - "127.0.0.1:${WEB_PORT:-13000}:3000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/fr').then(r=>process.exit(r.ok?0:1),()=>process.exit(1))",
+        ]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  # The only service with public ports. Routes in ./Caddyfile. CADDY_BIND is 0.0.0.0 on a server and
+  # 127.0.0.1 on the laptop (.env.example), so the fake-password stack is not reachable from the LAN.
+  caddy:
+    image: caddy@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d # 2.10-alpine
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: [no-new-privileges:true]
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE]
+    depends_on:
+      api:
+        condition: service_healthy
+      ws:
+        condition: service_healthy
+      web:
+        condition: service_healthy
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:-localhost}
+      CADDY_TLS: ${CADDY_TLS:-internal}
+      CADDY_MODE: ${CADDY_MODE:-open}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${CADDY_BIND:-0.0.0.0}:${HTTP_PORT:-80}:80"
+      - "${CADDY_BIND:-0.0.0.0}:${HTTPS_PORT:-443}:443"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:2019/config/"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
 volumes:
   pgdata:
   redisdata:
   s3data:
+  caddy_data:
+  caddy_config:

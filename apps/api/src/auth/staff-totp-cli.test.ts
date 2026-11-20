@@ -8,8 +8,12 @@ const B = "22222222-2222-4222-8222-222222222222";
 
 describe("staff:totp arguments", () => {
   it("enrol <account-id> [--label <text>]", () => {
-    expect(parseArgs(["enrol", A])).toEqual({ cmd: "enrol", id: A, label: undefined });
-    expect(parseArgs(["enrol", A, "--label", "nadia@fastgo.tn"])).toEqual({ cmd: "enrol", id: A, label: "nadia@fastgo.tn" });
+    expect(parseArgs(["enrol", A])).toEqual({ cmd: "enrol", id: A, label: undefined, by: undefined });
+    expect(parseArgs(["enrol", A, "--label", "nadia@fastgo.example"])).toEqual({ cmd: "enrol", id: A, label: "nadia@fastgo.example", by: undefined });
+    // S6: the admin who enrols
+    expect(parseArgs(["enrol", A, "--by", B])).toEqual({ cmd: "enrol", id: A, label: undefined, by: B });
+    expect(() => parseArgs(["enrol", A, "--by", "not-a-uuid"])).toThrow(/uuid/);
+    expect(() => parseArgs(["enrol", A, "--by", A])).toThrow(/second admin/);
   });
   it("reset <account-id> --by <admin-id> --reason <text>", () => {
     expect(parseArgs(["reset", A, "--by", B, "--reason", "Phone lost"])).toEqual({ cmd: "reset", id: A, by: B, reason: "Phone lost" });

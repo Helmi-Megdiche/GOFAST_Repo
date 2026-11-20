@@ -499,6 +499,10 @@
       "title": "Number not found",
       "text": "No parcel matches this number. Check it or contact GOFAST."
     },
+    "unavailable": {
+      "title": "Tracking temporarily unavailable",
+      "text": "We could not read this number right now. Please try again in a moment."
+    },
     "yourParcel": {
       "title": "Is this your parcel?",
       "text": "The link you received by SMS shows the amount to pay and the delivery code, and lets you change the time slot."
@@ -1290,7 +1294,9 @@
         "title": "We could not load this order.",
         "retry": "Try again"
       },
-      "loading": "Loading the order…"
+      "loading": "Loading the order…",
+      "fromNoAddress": "From {name}",
+      "toNoAddress": "To {name}"
     },
     "cancel": {
       "button": "Cancel the order",
@@ -1311,7 +1317,8 @@
         "none": "Cancelled at no cost.",
         "applies": "Cancellation fee: <fee></fee>.",
         "backOfficeDecides": "A fee may apply: GOFAST will confirm it to you."
-      }
+      },
+      "freeUnlessArrived": "Canceling is free unless the driver has already arrived. If they have, a fee of <fee></fee> applies under the terms."
     }
   },
   "parcels": {
@@ -1749,10 +1756,21 @@
     "addressUnconfirmed": "This address could not be placed on the map: pick the délégation from the list.",
     "tooManyParcels": "There are too many parcels for one order.",
     "tooHeavy": "A parcel is over the maximum weight.",
-    "priceUnavailable": "The price of this option is not available yet."
+    "priceUnavailable": "The price of this option is not available yet.",
+    "quoteChanged": "The price has changed: check the new total before you confirm.",
+    "phoneRequired": "Verify your phone number by SMS to place an order.",
+    "contractRequired": "Payment on account needs a validated contract.",
+    "addressMismatch": "The addresses are not the ones of the quote: get a new price.",
+    "freightPayerRequired": "Accept the freight-due terms to pay on delivery.",
+    "slotInvalid": "The chosen time slot is not valid: check the times, or pick a slot that has not passed.",
+    "feeRequired": "The cancellation fee has changed: check it before you confirm.",
+    "claimOnly": "The parcel has already been picked up: open a claim.",
+    "notCancellable": "This order can no longer be canceled.",
+    "notWaitingForConfirmation": "This order is not waiting for confirmation."
   },
   "apiSms": {
-    "code": "GOFAST: your code is {code}. It is valid for {minutes} minutes. Do not share it with anyone."
+    "code": "GOFAST: your code is {code}. It is valid for {minutes} minutes. Do not share it with anyone.",
+    "tracking": "GOFAST: a parcel is on its way to you. Tracking number {tracking_number}. Follow it here: {link}"
   },
   "backoffice": {
     "meta": {

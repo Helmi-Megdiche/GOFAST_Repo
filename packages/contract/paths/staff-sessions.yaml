@@ -4,10 +4,13 @@ post:
   description: >-
     T60, cahier p.54: the internal teams sign in with a second factor. Sets the session cookie (12 hours, not
     sliding) and answers with the signed-in person. A wrong password, an unknown account, a customer or a
-    merchant, an account with no second factor enrolled, a closed account, a wrong code, a code outside the
-    window and a code already used all give the same 401 AUTH_REQUIRED with
+    merchant, a driver (ticket #49), an account with no second factor enrolled, a closed account, a wrong
+    code, a code outside the window and a code already used all give the same 401 AUTH_REQUIRED with
     `fields: [{ name: identifier, reason: invalidCredentials }]`, so the answer tells nothing more than a
-    wrong password does. Attempts are limited per account and per IP (429 with `Retry-After`).
+    wrong password does. Attempts are limited per account and per IP (429 with `Retry-After`). After
+    several wrong codes in a row (given with the right password), the account is locked until an
+    administrator resets it with the operator command; a locked account gets the same 401 with the right
+    code too.
   tags: [auth]
   x-roles: [public]
   x-replay: none

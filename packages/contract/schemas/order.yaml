@@ -144,11 +144,25 @@ Order:
       parcels,
       loss_reported,
       cancel,
+      address_unconfirmed,
+      departure,
+      arrival,
     ]
   additionalProperties: false
   properties:
     id: { $ref: "common.yaml#/ResourceId" }
     tracking_number: { $ref: "common.yaml#/TrackingNumber" }
+    address_unconfirmed:
+      type: boolean
+      description: >-
+        True when an address of the quote had no pin (R201). The order stays `received` until an agent
+        checks it, and is never confirmed automatically.
+    departure:
+      description: The délégation of the pickup address, copied from the quote.
+      $ref: "quote.yaml#/QuoteZone"
+    arrival:
+      description: The délégation of the delivery address, copied from the quote.
+      $ref: "quote.yaml#/QuoteZone"
     status: { $ref: "common.yaml#/OrderStatus" }
     service: { $ref: "common.yaml#/ServiceCode" }
     payment_mode: { $ref: "common.yaml#/PaymentMode" }
@@ -189,7 +203,10 @@ CancelRequest:
     accepted_fee:
       description: >-
         The fee the customer saw before cancelling (RV-05). The server compares it with the fee that
-        applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written.
+        applies now; a different one gives RULE_REFUSED `feeRequired` with nothing written. For staff
+        (agent, operations, logistics, admin) it is the fee they choose to record: `none` (the default,
+        free) or the fee that applies now; any other value gives `feeRequired`. The choice is recorded
+        with the staff member's id.
       $ref: "common.yaml#/CancelFee"
 CancelResult:
   type: object

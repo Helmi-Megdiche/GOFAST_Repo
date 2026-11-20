@@ -231,15 +231,23 @@ describe("definer functions", () => {
     );
     expect(r.rows.map((x) => x.proname)).toEqual([
       "account_for_login",
+      "assert_order_actor",
+      "auto_confirm_order",
       "can_reset_password",
+      "cancel_order",
+      "confirm_order",
       "create_account",
+      "lock_order",
       "login_account",
       "mark_phone_verified",
       "recipient_link",
+      "record_order_created",
       "rehash_password",
       "session_account",
       "set_password",
+      "sms_tracking_payload",
       "staff_totp_enrol",
+      "staff_totp_failed",
       "staff_totp_reset",
       "staff_totp_secret",
       "staff_totp_use",
@@ -247,13 +255,15 @@ describe("definer functions", () => {
     ]);
     for (const f of r.rows) {
       // GH-10 round 2: account_for_login was replaced by login_account (0006); the app may no longer call it.
+      // GH-22: the order definers belong to fastgo_order_writer; the worker (not the app) reads the SMS payload.
       // GH-25: the second-factor definers belong to fastgo_staff_auth; the app calls two of them, the operator (migrator) the other two.
       const second = f.proname.startsWith("staff_totp_");
+      const orderWriter = ["record_order_created", "sms_tracking_payload", "assert_order_actor", "auto_confirm_order", "cancel_order", "confirm_order", "lock_order"].includes(f.proname);
       expect(f, f.proname).toMatchObject({
-        owner: second ? "fastgo_staff_auth" : "fastgo_public_reader",
-        app: f.proname !== "account_for_login" && f.proname !== "staff_totp_enrol" && f.proname !== "staff_totp_reset",
+        owner: second ? "fastgo_staff_auth" : orderWriter ? "fastgo_order_writer" : "fastgo_public_reader",
+        app: !["account_for_login", "sms_tracking_payload", "assert_order_actor", "staff_totp_enrol", "staff_totp_reset"].includes(f.proname),
         ro: false,
-        worker: false,
+        worker: f.proname === "sms_tracking_payload",
       });
       expect(f.cfg, f.proname).toContain("search_path=pg_catalog, core");
     }
@@ -270,13 +280,14 @@ describe("definer functions", () => {
     const zone = randomUUID();
     await q("insert into core.zones (id, name, name_ar, name_en) values ($1, 'Tunis', 'تونس', 'Tunis')", [zone]);
     await q("update core.addresses set zone_id = $1 where id = $2", [zone, ids.addressA]);
-    const res = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-AAAA-0001') as t`));
+    const res = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-AAAA-0001', 'fr') as t`));
     const t = (res.rows[0] as { t: Record<string, unknown> }).t;
-    expect(Object.keys(t).sort()).toEqual(["createdAt", "deliveryZone", "history", "pickupZone", "status", "updatedAt"]);
-    expect(t).toMatchObject({ status: "received", pickupZone: "Tunis", deliveryZone: null });
+    // GH-22: the keys of the contract's PublicTracking (the zones come from the addresses of an order with no quote).
+    expect(Object.keys(t).sort()).toEqual(["eta_at", "from_city", "history", "parcel_count", "parcel_outcomes", "status", "to_city"]);
+    expect(t).toMatchObject({ status: "received", from_city: "Tunis", to_city: null, eta_at: null });
     const text = JSON.stringify(t);
     for (const secret of ["Rue Test A", "Destinataire", "+216", "48500", "POINT"]) expect(text).not.toContain(secret);
-    const none = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-ZZZZ-9999') as t`));
+    const none = await app().withActor(nobody, (tx) => tx.execute(sql`select core.tracking('FG-ZZZZ-9999', 'fr') as t`));
     expect((none.rows[0] as { t: unknown }).t).toBeNull();
   });
 
@@ -435,9 +446,36 @@ describe("RV-21: protected columns", () => {
       ["created_at", "now()", false],
       ["updated_at", "now() + interval '1 day'", false],
       ["ended_at", "now()", false],
-      ["status", "'delivered'", true],
+      ["status", "'delivered'", false], // GH-22 RV-21: no UPDATE grant any more, for any role
       ["pickup_address_id", "null::uuid", true],
       ["recipient_id", "null::uuid", true],
+      // GH-22 (migration 0011): written once at creation, by nobody afterwards.
+      ["quote_id", "gen_random_uuid()", false],
+      ["lines", "'[]'::jsonb", false],
+      ["null_lines", "'{}'::text[]", false],
+      ["price_list_valid_from", "now()", false],
+      ["departure_zone_id", "null::uuid", false],
+      ["arrival_zone_id", "null::uuid", false],
+      ["address_unconfirmed", "true", false],
+      ["sender_name", "'X'", false],
+      ["sender_phone", "'+21620000000'", false],
+      ["pickup_slot_start", "now()", false],
+      ["pickup_slot_end", "now()", false],
+      ["delivery_slot_start", "now()", false],
+      ["delivery_slot_end", "now()", false],
+      ["delivery_instructions", "'X'", false],
+      ["content", "'X'", false],
+      ["fragile", "true", false],
+      ["packaging", "true", false],
+      ["declared_value_millimes", "1", false],
+      ["freight_payer_accepted", "true", false],
+      ["terms_accepted_at", "now()", false],
+      ["idempotency_body_hash", "'x'", false],
+      // GH-22 (0012): written by the definers only.
+      ["canceled_at", "now()", false],
+      ["cancel_fee", "'none'", false],
+      ["cancel_fee_millimes", "1", false],
+      ["canceled_by", "null::uuid", false],
     ];
     it("lists every column of the table, so a new column cannot be forgotten", async () => {
       const r = await q(
@@ -476,13 +514,16 @@ describe("RV-21: protected columns", () => {
       );
       expect(await orderRow(order)).toEqual(before);
     });
-    it("CONTROL: an agent can move the status of the same order", async () => {
+    it("GH-22 RV-21: not even an agent updates the status through the app login any more (the definers move it)", async () => {
       const { order } = await fresh();
-      const r = await app().withActor(staff("agent"), (tx) =>
-        tx.execute(sql`update core.orders set status = 'confirmed' where id = ${order}`),
+      await expectDbError(
+        app().withActor(staff("agent"), (tx) => tx.execute(sql`update core.orders set status = 'confirmed' where id = ${order}`)),
+        /permission denied/,
       );
+      expect((await orderRow(order)).status).toBe("received");
+      // CONTROL: the two keys an agent may correct are still granted
+      const r = await app().withActor(staff("agent"), (tx) => tx.execute(sql`update core.orders set recipient_id = recipient_id where id = ${order}`));
       expect(rowCount(r)).toBe(1);
-      expect((await orderRow(order)).status).toBe("confirmed");
     });
     it("tracking number, owner and creator never change, whoever writes", async () => {
       const { order } = await fresh();
@@ -542,9 +583,8 @@ describe("RV-21: protected columns", () => {
       const { order } = await fresh("confirmed");
       const before = await orderRow(order);
       expect(before.ended_at).toBeNull();
-      await app().withActor(staff("agent"), (tx) =>
-        tx.execute(sql`update core.orders set status = 'delivered' where id = ${order}`),
-      );
+      // The status is moved by the owner of the tables here (the app login cannot, GH-22 RV-21): the trigger is the same.
+      await q("update core.orders set status = 'delivered' where id = $1", [order]);
       const after = await orderRow(order);
       expect(after.ended_at).not.toBeNull();
       expect(after.updated_at.getTime()).toBeGreaterThan(before.updated_at.getTime());
@@ -590,7 +630,8 @@ describe("RV-21: protected columns", () => {
       ["proof_level", "'codeOrPhotoWithPosition'", true],
       ["attempts", "1", true],
       ["updated_at", "now() + interval '1 day'", false],
-      ["status", "'delivered'", true],
+      ["status", "'delivered'", false], // GH-22 RV-01: no longer granted: the definers move it
+      ["position", "9", false], // GH-22: set once, at creation
     ];
     it("lists every column of the table", async () => {
       const r = await q("select column_name from information_schema.columns where table_schema = 'core' and table_name = 'parcels'");
@@ -700,7 +741,7 @@ describe("RV-21: protected columns", () => {
       );
       expect((await q("select count(*)::int as n from core.status_events where order_id = $1", [order])).rows[0].n).toBe(0);
       const t = await app().withActor({ userId: "", accountId: "", role: "individual" }, (tx) =>
-        tx.execute(sql`select core.tracking(${tracking}) as t`),
+        tx.execute(sql`select core.tracking(${tracking}, 'fr') as t`),
       );
       expect((t.rows[0] as { t: { status: string } }).t.status).toBe("received");
     });

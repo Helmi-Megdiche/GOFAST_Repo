@@ -32,7 +32,11 @@ async function account(role: string, over: { status?: string } = {}): Promise<st
   return id;
 }
 const secret = (tag: string) => Buffer.from(`ciphertext-of-${tag}-with-enough-bytes-to-pass-the-length-check`);
-const enrol = (id: string, tag = "x") => operator.query("select core.staff_totp_enrol($1::uuid, $2::bytea)", [id, secret(tag)]);
+// S6: an enrolment names the admin who does it. BOOT is the first admin, enrolled in "the first setup" below; from then on every
+// enrolment of this file passes it as `by`.
+let BOOT: string | null = null;
+const enrol = (id: string, tag = "x", by: string | null | undefined = BOOT) =>
+  operator.query("select core.staff_totp_enrol($1::uuid, $2::bytea, $3::uuid)", [id, secret(tag), by ?? null]);
 const reset = (target: string, by: string, reason: string) => operator.query("select core.staff_totp_reset($1::uuid, $2::uuid, $3)", [target, by, reason]);
 
 beforeAll(async () => {
@@ -45,6 +49,35 @@ afterAll(async () => {
   await Promise.all(opened.map((d) => d.close()));
   await Promise.all(migrator.map((c) => c.end().catch(() => undefined)));
   await db?.stop();
+});
+
+describe("GH-25 S6: an enrolment names the admin who does it; only the first setup may have none", () => {
+  const audit = (id: string) => one("select actor_id, actor_role, details from gestion.audit_events where entity_id = $1 and action = 'staff.totp.enrolled'", [id]);
+
+  it("while no admin is enrolled, an enrolment without --by works and says it is the first setup", async () => {
+    const agent = await account("agent");
+    await enrol(agent, "first", null);
+    expect(await audit(agent)).toMatchObject({ actor_id: null, details: { first_setup: true } });
+    const admin = await account("admin");
+    await enrol(admin, "boot", null); // still no ENROLLED admin before this one
+    BOOT = admin;
+  });
+
+  it("the exception closes once one admin is enrolled: without --by it is refused, and nothing is written", async () => {
+    const target = await account("agent");
+    await expectDbError(enrol(target, "x", null), /enrolled admin/i);
+    expect(await one("select count(*)::int as n from core.staff_totp where account_id = $1", [target])).toEqual({ n: 0 });
+  });
+
+  it("with --by it writes that admin as the actor; the target itself, a non-admin, an admin with no enrolment and a closed admin are refused", async () => {
+    const target = await account("agent");
+    await expectDbError(enrol(target, "x", target), /second admin|itself/i);
+    await expectDbError(enrol(target, "x", await account("operations")), /enrolled admin/i);
+    await expectDbError(enrol(target, "x", await account("admin")), /enrolled admin/i); // an admin that was never enrolled
+    expect(await one("select count(*)::int as n from core.staff_totp where account_id = $1", [target])).toEqual({ n: 0 });
+    await enrol(target, "x", BOOT);
+    expect(await audit(target)).toMatchObject({ actor_id: BOOT, actor_role: "admin", details: { first_setup: false } });
+  });
 });
 
 describe("GH-25 T60 RV-19: core.staff_totp is out of reach of the app login", () => {
@@ -73,7 +106,7 @@ describe("GH-25 T60 RV-19: core.staff_totp is out of reach of the app login", ()
 
 describe("GH-25 T60: core.staff_totp_secret returns the ciphertext of an active staff account, and nothing else", () => {
   const secretOf = async (id: string) =>
-    ((await app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_secret(${id}::uuid) as s`))).rows[0] as { s: Buffer | null }).s;
+    ((await app().withNoActor((tx) => tx.execute(sql`select secret_enc as s from core.staff_totp_secret(${id}::uuid)`))).rows[0] as { s: Buffer | null } | undefined)?.s ?? null;
 
   it("gives the stored bytes for each back-office role, and null for a customer, a merchant, a driver, a closed account, no enrolment", async () => {
     for (const role of ["agent", "operations", "logistics", "customer_service", "accountant", "management", "admin", "cashier"]) {
@@ -117,6 +150,98 @@ describe("GH-25 T60: core.staff_totp_use is a compare-and-set, a code is usable 
   });
 });
 
+describe("GH-25 S1: core.staff_totp_use refuses a step far ahead of the clock, and writes nothing", () => {
+  const use = async (id: string, step: bigint | number) =>
+    ((await app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_use(${id}::uuid, ${String(step)}::bigint) as ok`))).rows[0] as { ok: boolean }).ok;
+
+  // The bound is the FLOOR of the database's step, plus one. A plain cast to bigint rounds, so in the second half of every 30-second
+  // step the bound would be the step plus two: the test therefore waits for the second half, where floor and round differ.
+  const stepNow = async () => BigInt((await one("select floor(extract(epoch from clock_timestamp()) / 30)::bigint as s")).s);
+  const secondHalf = async () => {
+    for (;;) {
+      const r = await one("select mod(extract(epoch from clock_timestamp())::numeric, 30) as t");
+      const t = Number(r.t);
+      if (t >= 16 && t < 27) return; // 3 s before the boundary: the step does not change between the read and the calls
+      await new Promise((ok) => setTimeout(ok, 250));
+    }
+  };
+
+  it("2^40, and two steps ahead, return false and last_step is unchanged; the next step is accepted (in the second half of a step)", async () => {
+    const id = await account("agent");
+    await enrol(id);
+    await secondHalf();
+    const before = await stepNow();
+    expect(await use(id, 2 ** 40)).toBe(false);
+    expect(await use(id, before + 2n)).toBe(false);
+    expect((await one("select last_step from core.staff_totp where account_id = $1", [id])).last_step).toBe("0");
+    expect(await use(id, before + 1n)).toBe(true); // the window's upper edge
+    // the step did not change under the calls (the wait leaves 3 s); if it did, say so instead of passing by luck
+    expect(await stepNow()).toBe(before);
+    expect(await use(id, 5)).toBe(false); // no lower bound beyond "newer than the last": 5 < last_step
+    const other = await account("agent");
+    await enrol(other);
+    expect(await use(other, 5)).toBe(true); // a fixed clock in the past still works (tests, replays)
+  });
+});
+
+describe("GH-25 B1: core.staff_totp_failed counts wrong codes per account and locks at the limit", () => {
+  const failed = async (id: string, limit = 3) =>
+    ((await app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_failed(${id}::uuid, ${limit}::integer) as locked`))).rows[0] as { locked: boolean }).locked;
+  const state = (id: string) => one("select failed_codes, locked_at from core.staff_totp where account_id = $1", [id]);
+  const use = async (id: string, step: number) =>
+    ((await app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_use(${id}::uuid, ${step}::bigint) as ok`))).rows[0] as { ok: boolean }).ok;
+  const lockedOf = async (id: string) =>
+    ((await app().withNoActor((tx) => tx.execute(sql`select locked from core.staff_totp_secret(${id}::uuid)`))).rows[0] as { locked: boolean } | undefined)?.locked;
+
+  it("counts to the limit, locks once (true only for that call), and a locked account counts nothing more", async () => {
+    const id = await account("agent");
+    await enrol(id);
+    expect(await state(id)).toEqual({ failed_codes: 0, locked_at: null }); // RV-23: NULL means "not locked"
+    expect(await lockedOf(id)).toBe(false);
+    expect(await failed(id)).toBe(false);
+    expect(await failed(id)).toBe(false);
+    expect(await failed(id)).toBe(true); // the third: locked now
+    const s = await state(id);
+    expect(s.failed_codes).toBe(3);
+    expect(s.locked_at).not.toBeNull();
+    expect(await lockedOf(id)).toBe(true);
+    expect(await failed(id)).toBe(false); // already locked: not counted, not "newly locked"
+    expect((await state(id)).failed_codes).toBe(3);
+  });
+
+  it("a locked account cannot use a code, even a fresh one; a success on another account resets only that account", async () => {
+    const locked = await account("agent");
+    const other = await account("agent");
+    await enrol(locked);
+    await enrol(other);
+    await failed(locked, 1);
+    await failed(other, 5);
+    await failed(other, 5);
+    expect(await use(locked, 100)).toBe(false);
+    expect((await one("select last_step from core.staff_totp where account_id = $1", [locked])).last_step).toBe("0"); // nothing written
+    expect(await use(other, 100)).toBe(true);
+    expect((await state(other)).failed_codes).toBe(0); // a success resets the count
+    expect((await state(locked)).locked_at).not.toBeNull(); // RV-24: the other account's success touched nothing here
+  });
+
+  it("an unknown account, a missing enrolment and a bad limit change nothing", async () => {
+    expect(await failed(randomUUID())).toBe(false);
+    expect(await failed(await account("agent"))).toBe(false);
+    await expectDbError(failed(await account("agent"), 0), /limit/i);
+  });
+
+  it("the emergency reset clears the lock: the row goes, and a new enrolment starts unlocked", async () => {
+    const target = await account("agent");
+    await enrol(target);
+    await failed(target, 1);
+    expect(await lockedOf(target)).toBe(true);
+    await reset(target, BOOT as string, "Locked after ten wrong codes");
+    await enrol(target, "again");
+    expect(await lockedOf(target)).toBe(false);
+    expect(await state(target)).toEqual({ failed_codes: 0, locked_at: null });
+  });
+});
+
 describe("GH-25 T60: enrolment (migrator login only)", () => {
   it("enrols an active back-office account once, and audits it without the secret", async () => {
     const id = await account("operations");
@@ -124,7 +249,7 @@ describe("GH-25 T60: enrolment (migrator login only)", () => {
     const row = await one("select enrolled_at, last_step from core.staff_totp where account_id = $1", [id]);
     expect(row.last_step).toBe("0");
     const audit = await one("select actor_id, action, entity, entity_id, details from gestion.audit_events where entity_id = $1 and action = 'staff.totp.enrolled'", [id]);
-    expect(audit).toMatchObject({ actor_id: null, entity: "account", entity_id: id });
+    expect(audit).toMatchObject({ actor_id: BOOT, entity: "account", entity_id: id });
     expect(JSON.stringify(audit)).not.toContain("audit-check");
     await expectDbError(enrol(id), /already enrolled/i);
   });
@@ -137,7 +262,7 @@ describe("GH-25 T60: enrolment (migrator login only)", () => {
 
   it("the app login cannot enrol or reset, and neither can the worker", async () => {
     const id = await account("agent");
-    await expectDbError(app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_enrol(${id}::uuid, ${secret("x")}::bytea)`)), /permission denied/);
+    await expectDbError(app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_enrol(${id}::uuid, ${secret("x")}::bytea, null::uuid)`)), /permission denied/);
     await expectDbError(app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_reset(${id}::uuid, ${id}::uuid, 'x')`)), /permission denied/);
   });
 });
@@ -180,6 +305,7 @@ describe("GH-25: the definers belong to fastgo_staff_auth, with exactly the righ
                          from pg_proc p where p.pronamespace = 'core'::regnamespace and p.proname like 'staff\\_totp\\_%' order by 1`);
     expect(r.rows.map((x) => [x.proname, x.owner, x.prosecdef, x.app, x.migrator, x.worker, x.pub])).toEqual([
       ["staff_totp_enrol", "fastgo_staff_auth", true, false, true, false, false],
+      ["staff_totp_failed", "fastgo_staff_auth", true, true, false, false, false],
       ["staff_totp_reset", "fastgo_staff_auth", true, false, true, false, false],
       ["staff_totp_secret", "fastgo_staff_auth", true, true, false, false, false],
       ["staff_totp_use", "fastgo_staff_auth", true, true, false, false, false],

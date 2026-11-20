@@ -1,0 +1,205 @@
+import net from "node:net";
+import { afterAll, beforeAll, describe, expect, it } from "vitest";
+import { Db, type DbLogEntry } from "../db/index.ts";
+import { startTestDb, type TestDb } from "./harness.ts";
+
+/** Every error that reaches the process with nobody to catch it, until `stop()`. */
+function watchUncaught() {
+  const seen: unknown[] = [];
+  const onError = (e: unknown) => seen.push(e);
+  process.on("uncaughtException", onError);
+  process.on("unhandledRejection", onError);
+  return {
+    seen,
+    stop: () => {
+      process.off("uncaughtException", onError);
+      process.off("unhandledRejection", onError);
+    },
+  };
+}
+
+const settle = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const sockets = () => process.getActiveResourcesInfo().filter((r) => r === "TCPSocketWrap").length;
+
+describe("the pool survives the loss of an idle connection (follow-up of #110, part 1)", () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await startTestDb();
+  });
+  afterAll(async () => {
+    await db?.stop();
+  });
+
+  it("an idle client whose backend is killed is logged and dropped; the next query gets a new connection", async () => {
+    const logged: Array<Record<string, unknown>> = [];
+    const d = new Db(db.url("fastgo_app"), 2, (entry) => logged.push(entry));
+    const watch = watchUncaught();
+    try {
+      // One query leaves one idle client in the pool.
+      await d.withNoActor((tx) => tx.execute("select 1"));
+      const killed = await db.superClient.query(
+        `select pg_terminate_backend(pid) from pg_stat_activity
+          where usename = 'fastgo_app' and datname = 'fastgo' and pid <> pg_backend_pid()`,
+      );
+      expect(killed.rowCount).toBeGreaterThan(0);
+      await settle(500);
+
+      expect(watch.seen).toEqual([]);
+      expect(logged).toHaveLength(killed.rowCount ?? 0);
+      expect(logged[0]).toMatchObject({ event: "db_pool_error", code: "57P01" });
+      // No connection string, no password, in what is logged.
+      expect(JSON.stringify(logged)).not.toMatch(/postgres:\/\/|app-test/);
+      await expect(d.withNoActor((tx) => tx.execute("select 1 as one"))).resolves.toBeDefined();
+    } finally {
+      watch.stop();
+      await d.close();
+    }
+  });
+});
+
+describe("closing one Db leaves another Db's clients alone (RV-24, follow-up of #110)", () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await startTestDb();
+  });
+  afterAll(async () => {
+    await db?.stop();
+  });
+
+  it("closes A while B has an idle client: B keeps that client, the server keeps its connection, B still answers", async () => {
+    const a = new Db(db.url("fastgo_app"), 2);
+    const b = new Db(db.url("fastgo_app"), 2);
+    const watch = watchUncaught();
+    const pidOf = async (d: Db) => {
+      const r = await d.withNoActor((tx) => tx.execute("select pg_backend_pid() as pid"));
+      return Number((r.rows[0] as { pid: number | string }).pid);
+    };
+    try {
+      const pidA = await pidOf(a);
+      const pidB = await pidOf(b); // B's client is idle again now
+      expect(pidB).not.toBe(pidA);
+
+      await a.close();
+
+      // A's connection is gone from the server; B's is still there.
+      const live = await db.superClient.query<{ pid: number }>(
+        "select pid from pg_stat_activity where usename = 'fastgo_app' and datname = 'fastgo' and pid <> pg_backend_pid()",
+      );
+      expect(live.rows.map((r) => r.pid)).toEqual([pidB]);
+      // B's next query runs on the very same connection: its client was not ended.
+      expect(await pidOf(b)).toBe(pidB);
+      await settle(300);
+      expect(watch.seen).toEqual([]);
+    } finally {
+      watch.stop();
+      await b.close();
+    }
+  });
+});
+
+describe("close() leaves nothing open and the container stop raises no error (follow-up of #110, part 2)", () => {
+  it("closes a Db with busy and idle clients, stops the database at once, and no error is unhandled", async () => {
+    const own = await startTestDb();
+    const watch = watchUncaught();
+    try {
+      const before = sockets();
+      const d = new Db(own.url("fastgo_app"), 4);
+      // Two clients idle, two busy at the moment of close().
+      await Promise.all([1, 2].map(() => d.withNoActor((tx) => tx.execute("select pg_sleep(0.1)"))));
+      const busy = [1, 2].map(() => d.withNoActor((tx) => tx.execute("select pg_sleep(0.3)")));
+      await settle(50);
+      await d.close();
+      await Promise.allSettled(busy);
+
+      // When close() resolves, no socket of the pool is left on this side (the harness stops the
+      // container next: a socket still closing there is what raised 57P01 on #110).
+      expect(sockets()).toBe(before);
+      // ... and the server has no connection of this login left.
+      const open = await own.superClient.query(
+        "select count(*)::int as n from pg_stat_activity where usename = 'fastgo_app'",
+      );
+      expect(open.rows[0].n).toBe(0);
+    } finally {
+      await own.stop();
+      await settle(1_000);
+      watch.stop();
+    }
+    expect(watch.seen).toEqual([]);
+  });
+});
+
+/**
+ * A TCP relay in front of the database. `hold()` makes it swallow what the client sends and never
+ * close its side, so a client that is told to end never gets its `end` event: the shutdown that hangs.
+ */
+async function startRelay(host: string, port: number) {
+  let held = false;
+  const sockets: net.Socket[] = [];
+  const server = net.createServer({ allowHalfOpen: true }, (client) => {
+    const upstream = net.connect({ host, port, allowHalfOpen: true });
+    sockets.push(client, upstream);
+    client.on("data", (d) => {
+      if (!held) upstream.write(d);
+    });
+    client.on("end", () => {
+      if (!held) upstream.end();
+    });
+    upstream.on("data", (d) => client.write(d));
+    upstream.on("end", () => client.end());
+    client.on("error", () => undefined);
+    upstream.on("error", () => undefined);
+  });
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  const relayPort = (server.address() as net.AddressInfo).port;
+  return {
+    port: relayPort,
+    hold: () => {
+      held = true;
+    },
+    stop: async () => {
+      for (const s of sockets) s.destroy();
+      await new Promise((r) => server.close(r));
+    },
+  };
+}
+
+describe("close() gives up after closeTimeoutMs on a client that never ends (#117, supervisor round 1)", () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await startTestDb();
+  });
+  afterAll(async () => {
+    await db?.stop();
+  });
+
+  // The Vitest timeout is the twin check: without the timeout in close(), this test hangs and fails at 5 s.
+  it("resolves after the timeout and logs exactly one db_close_timeout with the number of clients still open", async () => {
+    const relay = await startRelay(db.host, db.port);
+    const logged: DbLogEntry[] = [];
+    const d = new Db(`postgres://fastgo_app:app-test@127.0.0.1:${relay.port}/fastgo`, 2, (e) => logged.push(e), 50);
+    try {
+      await d.withNoActor((tx) => tx.execute("select 1"));
+      relay.hold();
+      const t0 = Date.now();
+      await d.close();
+      const took = Date.now() - t0;
+      expect(took).toBeGreaterThanOrEqual(40);
+      expect(took).toBeLessThan(2_000);
+      expect(logged).toEqual([{ event: "db_close_timeout", open: 1 }]);
+      expect(JSON.stringify(logged)).not.toMatch(/postgres:\/\/|app-test/);
+    } finally {
+      await relay.stop();
+    }
+  }, 5_000);
+
+  it("a close that finishes in time logs nothing and leaves no timer behind", async () => {
+    const logged: DbLogEntry[] = [];
+    const d = new Db(db.url("fastgo_app"), 2, (e) => logged.push(e), 5_000);
+    await Promise.all([1, 2].map(() => d.withNoActor((tx) => tx.execute("select 1"))));
+    const timers = () => process.getActiveResourcesInfo().filter((r) => r === "Timeout").length;
+    const before = timers();
+    await d.close();
+    expect(logged).toEqual([]);
+    expect(timers()).toBeLessThanOrEqual(before);
+  });
+});

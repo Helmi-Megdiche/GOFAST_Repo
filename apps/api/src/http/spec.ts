@@ -60,12 +60,13 @@ export function loadOperations(path = bundledSpecPath()): Map<string, Operation>
   addFormats.default(ajv);
   ajv.addFormat("password", true);
   ajv.addSchema({ ...spec, $id: "spec" });
-  // Query and path values arrive as strings: parameters are checked with coercion, bodies are not.
+  // Query and path values arrive as strings: parameters are checked with coercion, bodies are not. "array": a repeatable
+  // parameter (`?status=a&status=b`) arrives as a string when it is given once, and that is a list of one (GH-22).
   const paramAjv = new Ajv2020({
     strict: false,
     allErrors: true,
     validateSchema: false,
-    coerceTypes: true,
+    coerceTypes: "array",
   });
   addFormats.default(paramAjv);
   const deref = (p: Json): Json =>

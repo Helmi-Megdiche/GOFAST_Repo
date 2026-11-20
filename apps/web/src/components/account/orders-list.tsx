@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, type FormEvent } from "react";
+import { useId, useRef, type FormEvent } from "react";
 import { useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { formatDate, type Locale } from "@fastgo/i18n";
@@ -23,12 +23,9 @@ import {
 } from "@fastgo/ui";
 import { DateTime, Money } from "@/components/money";
 import { Link, useRouter } from "@/i18n/navigation";
-import {
-  listOrders,
-  type OrderFilter,
-  type OrdersPage,
-  type OrdersQuery,
-} from "@/lib/data/account-orders";
+import { CLOSED_ACCOUNT_NAME } from "@/lib/data/order-model";
+import { ordersPort } from "@/lib/data";
+import type { OrderFilter, OrdersPage, OrdersQuery } from "@/lib/data/account-orders";
 import { FINAL_ORDER_STATES } from "@/lib/data/states";
 import { ordersQueryToParams, parseOrdersQuery } from "@/lib/account/orders-query";
 import { OrderStatusBadge } from "./order-status";
@@ -49,10 +46,17 @@ export function OrdersList() {
   const params = useSearchParams();
   const router = useRouter();
   const query = parseOrdersQuery(params);
-  const { state, reload } = useLoader(
-    (session) => listOrders(session, query),
-    JSON.stringify(query),
-  );
+  // The first read and a "Try again" ask the source; filters and pages reuse the list (S6).
+  const freshRef = useRef(true);
+  const { state, reload: reloadList } = useLoader((session) => {
+    const fresh = freshRef.current;
+    freshRef.current = false;
+    return ordersPort().listOrders(session, query, { fresh });
+  }, JSON.stringify(query));
+  const reload = () => {
+    freshRef.current = true;
+    reloadList();
+  };
   const searchId = useId();
 
   const href: Href = (next) => ({
@@ -191,6 +195,7 @@ function MonthSelect({
 function Results({ page, href }: { page: OrdersPage; href: Href }) {
   const t = useTranslations("orders.list");
   const o = useTranslations("offers");
+  const account = useTranslations("account");
 
   if (page.accountTotal === 0) {
     return (
@@ -229,7 +234,9 @@ function Results({ page, href }: { page: OrdersPage; href: Href }) {
                 <Td label={t("columns.code")}>
                   <Ltr mono>{row.code}</Ltr>
                 </Td>
-                <Td label={t("columns.recipient")}>{row.recipientName}</Td>
+                <Td label={t("columns.recipient")}>
+                  {row.recipientName === CLOSED_ACCOUNT_NAME ? account("closedName") : row.recipientName}
+                </Td>
                 <Td label={t("columns.offer")}>{o(`${row.service}.name`)}</Td>
                 <Td label={t("columns.status")}>
                   <OrderStatusBadge status={row.status} />
