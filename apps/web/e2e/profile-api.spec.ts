@@ -216,7 +216,8 @@ test("RV-18: the answer is lost, the server did save: the box stays checked", as
 test("20-d: a failed notification save puts the toggle back", async ({ page }) => {
   await fakeApi(page, { "PATCH /v1/me": () => ({ status: 500, body: err("INTERNAL_ERROR") }) });
   await openProfile(page);
-  await main(page).getByLabel("Offres GOFAST").check();
+  // click(), not check(): the box goes back at once, and check() throws when the state did not change (RV-29).
+  await main(page).getByLabel("Offres GOFAST").click();
   await expect(page.getByText("L'enregistrement a échoué. Réessayez.")).toBeVisible();
   await expect(main(page).getByLabel("Offres GOFAST")).not.toBeChecked();
 });

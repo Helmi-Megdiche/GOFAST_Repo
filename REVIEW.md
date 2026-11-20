@@ -191,3 +191,7 @@ Source: #20 PR 4a round 1, auth-api.spec.ts would have run in the mock shards.
 **RV-18. A "did it work?" check after a lost answer asks the server and matches the subject.**
 Never fall back to a local copy, and compare the id or phone the request was about. Same for every write: a double submit guard where a second call with a used proof turns success into failure.
 Source: #20 PR 4a round 1, Change A returned the stale copy; the reset form sent two requests.
+
+**RV-29. In e2e, a control that changes back by itself is clicked with `click()`, never `check()` or `uncheck()`.**
+A failed save or an optimistic undo puts the box back before Playwright reads it, and `check()` throws "did not change its state" when it did not change. Click, then assert the error and `not.toBeChecked()`. Plain form boxes (CGV, terms) keep `check()`.
+Source: #127, `profile-api.spec.ts` "20-d: a failed notification save puts the toggle back" failed 2 of 30 runs with 4 workers.
