@@ -158,6 +158,46 @@ describe("GH-118: the api stops taking requests, finishes the one in flight, the
 });
 
 describe("GH-118: the worker finishes the pass in flight, starts no other, then closes the database", () => {
+  // The twin of the next test: Db.close() also waits for a client that is in use, so the process test below cannot tell
+  // whether loops.stop() itself waited. This one asks stop() directly.
+  it("loops.stop() does not resolve while a pass is in flight, and resolves when it has ended", async () => {
+    const workerDb = new Db(testDb.url("fastgo_worker"), 4);
+    await q(
+      `insert into core.idempotency_keys (scope, fingerprint, token, locked_until, expires_at, status, response_status, body)
+       values ('stop-A', 'fp', gen_random_uuid(), now(), now() - interval '2 hours', 'done', 201, '{}')`,
+    );
+    const loops = startWorkerLoops(
+      workerDb,
+      { sender: new FakeSmsSender() },
+      { smsMs: 600_000, quotesMs: 600_000, idempotencyMs: 40 },
+    );
+    await q("begin");
+    await q("select 1 from core.idempotency_keys where scope = 'stop-A' for update");
+    let released = false;
+    try {
+      await until(
+        async () => (await waitingOf("fastgo_worker")) >= 1,
+        "a purge pass to wait on the locked row",
+      );
+      const stopped = loops.stop().then(() => released);
+      const early = await Promise.race([
+        stopped.then(() => "resolved"),
+        settle(300).then(() => "pending"),
+      ]);
+      expect(early, "stop() must wait for the pass in flight").toBe("pending");
+      released = true;
+      await q("rollback");
+      expect(await stopped, "stop() resolved only after the lock was released").toBe(true);
+    } finally {
+      if (!released) await q("rollback");
+    }
+    expect(
+      (await q("select 1 from core.idempotency_keys where scope = 'stop-A'")).rowCount,
+      "the pass that was in flight ended its delete",
+    ).toBe(0);
+    await workerDb.close();
+  });
+
   it("SIGTERM during a blocked purge: no new pass, the pass ends, exit 0, no connection left", async () => {
     const workerDb = new Db(testDb.url("fastgo_worker"), 4);
     const expired = (scope: string, hours: number) =>
@@ -215,29 +255,14 @@ describe("GH-118: the worker finishes the pass in flight, starts no other, then 
 // The real thing: a real `main.ts` bundle gets a real SIGTERM while a request is in flight. On Windows a SIGTERM ends a
 // process at once and cannot be caught, so this test only runs where signals exist (CI). It shares the database and
 // redis of this file, and it builds the bundle only when it runs.
-// The same bundle as production (`node dist/main.js`, see tsup.config.ts). Node's type stripping cannot run Nest's decorators.
-// It goes under node_modules/.cache so the bundle finds the packages it leaves external.
+// The same bundle as production (`node dist/main.js`): it is built from the project's own `tsup.config.ts`, and only the
+// output folder (and `clean`, so a second build does not wipe it) is overridden. Node's type stripping cannot run Nest's
+// decorators. The folder is under node_modules/.cache so the bundle finds the packages the config leaves external.
 const BUNDLE = join(process.cwd(), "node_modules", ".cache", "shutdown-spawn");
 async function buildBundle(): Promise<void> {
   rmSync(BUNDLE, { recursive: true, force: true });
   mkdirSync(BUNDLE, { recursive: true });
-  await build({
-    entry: { main: "src/main.ts" },
-    outDir: BUNDLE,
-    format: ["esm"],
-    target: "node24",
-    platform: "node",
-    clean: false,
-    sourcemap: false,
-    silent: true,
-    noExternal: [/^@fastgo\//],
-    external: [
-      "@nestjs/microservices",
-      "@nestjs/websockets",
-      "class-validator",
-      "class-transformer",
-    ],
-  });
+  await build({ config: join(process.cwd(), "tsup.config.ts"), outDir: BUNDLE, clean: false });
 }
 
 describe("GH-118: a real SIGTERM on the api process", () => {
