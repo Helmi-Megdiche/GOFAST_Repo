@@ -9,9 +9,12 @@ export type Tx = NodePgDatabase<typeof schema>;
 
 /** What is logged when a connection of the pool fails. Never the connection string. */
 export type PoolErrorEntry = { event: "db_pool_error"; code?: string; severity?: string; message: string };
+/** What is logged when close() gives up: how many clients had still not ended. */
+export type CloseTimeoutEntry = { event: "db_close_timeout"; open: number };
+export type DbLogEntry = PoolErrorEntry | CloseTimeoutEntry;
 
 const logger = new Logger("db");
-const logPoolError = (entry: PoolErrorEntry) => logger.error(JSON.stringify(entry));
+const logEntry = (entry: DbLogEntry) => logger.error(JSON.stringify(entry));
 
 /**
  * THE ONE DOOR to the database. Nothing outside `src/db` may import `pg` (lint), and this module
@@ -22,16 +25,27 @@ const logPoolError = (entry: PoolErrorEntry) => logger.error(JSON.stringify(entr
  */
 export class Db {
   private readonly pool: pg.Pool;
-  /** Every client that has connected and not yet emitted `end`: close() waits for them. */
+  /** Every client that has connected and not yet emitted `end`: close() waits for them, at most `closeTimeoutMs`. */
   private readonly open = new Map<pg.PoolClient, Promise<void>>();
+  private readonly onEntry: (entry: DbLogEntry) => void;
+  private readonly closeTimeoutMs: number;
 
   /**
    * `onPoolError` receives the failures of idle connections and of checked-out ones (a database
    * restart, a failover, PgBouncer closing a server connection). Without a listener, Node would treat such an
    * error as an uncaught exception and the api, ws or worker process would exit. The pool drops the
-   * failed client by itself; the next query opens a new one.
+   * failed client by itself; the next query opens a new one. The same callback receives the entry of
+   * a close() that gave up. `closeTimeoutMs` (default 5 s: Docker's stop grace is 10 s, so a longer
+   * wait would end in a SIGKILL anyway) is how long close() waits for the clients to end.
    */
-  constructor(url: string, max = 10, onPoolError: (entry: PoolErrorEntry) => void = logPoolError) {
+  constructor(
+    url: string,
+    max = 10,
+    onPoolError: (entry: DbLogEntry) => void = logEntry,
+    closeTimeoutMs = 5_000,
+  ) {
+    this.onEntry = onPoolError;
+    this.closeTimeoutMs = closeTimeoutMs;
     this.pool = new pg.Pool({ connectionString: url, max });
     // The pool and the client both emit the error of an idle client: log it once.
     const reported = new WeakSet<Error>();
@@ -102,11 +116,27 @@ export class Db {
     }
   }
 
-  /** Resolves when every connection is closed, not only when the pool has asked them to end. */
+  /**
+   * Resolves when every client has emitted `end`, not only when the pool has asked them to end, but
+   * for at most `closeTimeoutMs`: a client that never ends must not hang a shutdown. On timeout it
+   * logs one `db_close_timeout` entry (how many clients were still open) and resolves.
+   */
   async close(): Promise<void> {
     const ending = [...this.open.values()];
-    await this.pool.end();
-    await Promise.all(ending);
+    const ended = Promise.all([this.pool.end(), ...ending]).then(() => "ended" as const);
+    ended.catch(() => undefined); // if the timeout wins, a later failure must not become unhandled
+    let timer: NodeJS.Timeout | undefined;
+    const timedOut = new Promise<"timeout">((resolve) => {
+      timer = setTimeout(() => resolve("timeout"), this.closeTimeoutMs);
+      timer.unref();
+    });
+    try {
+      if ((await Promise.race([ended, timedOut])) === "timeout") {
+        this.onEntry({ event: "db_close_timeout", open: this.open.size });
+      }
+    } finally {
+      clearTimeout(timer);
+    }
   }
 
   private async run<T>(fn: (tx: Tx) => Promise<T>, identity: [string, string, string]): Promise<T> {

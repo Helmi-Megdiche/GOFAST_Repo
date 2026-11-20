@@ -1,5 +1,6 @@
+import net from "node:net";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { Db } from "../db/index.ts";
+import { Db, type DbLogEntry } from "../db/index.ts";
 import { startTestDb, type TestDb } from "./harness.ts";
 
 /** Every error that reaches the process with nobody to catch it, until `stop()`. */
@@ -124,5 +125,81 @@ describe("close() leaves nothing open and the container stop raises no error (fo
       watch.stop();
     }
     expect(watch.seen).toEqual([]);
+  });
+});
+
+/**
+ * A TCP relay in front of the database. `hold()` makes it swallow what the client sends and never
+ * close its side, so a client that is told to end never gets its `end` event: the shutdown that hangs.
+ */
+async function startRelay(host: string, port: number) {
+  let held = false;
+  const sockets: net.Socket[] = [];
+  const server = net.createServer({ allowHalfOpen: true }, (client) => {
+    const upstream = net.connect({ host, port, allowHalfOpen: true });
+    sockets.push(client, upstream);
+    client.on("data", (d) => {
+      if (!held) upstream.write(d);
+    });
+    client.on("end", () => {
+      if (!held) upstream.end();
+    });
+    upstream.on("data", (d) => client.write(d));
+    upstream.on("end", () => client.end());
+    client.on("error", () => undefined);
+    upstream.on("error", () => undefined);
+  });
+  await new Promise<void>((r) => server.listen(0, "127.0.0.1", r));
+  const relayPort = (server.address() as net.AddressInfo).port;
+  return {
+    port: relayPort,
+    hold: () => {
+      held = true;
+    },
+    stop: async () => {
+      for (const s of sockets) s.destroy();
+      await new Promise((r) => server.close(r));
+    },
+  };
+}
+
+describe("close() gives up after closeTimeoutMs on a client that never ends (#117, supervisor round 1)", () => {
+  let db: TestDb;
+  beforeAll(async () => {
+    db = await startTestDb();
+  });
+  afterAll(async () => {
+    await db?.stop();
+  });
+
+  // The Vitest timeout is the twin check: without the timeout in close(), this test hangs and fails at 5 s.
+  it("resolves after the timeout and logs exactly one db_close_timeout with the number of clients still open", async () => {
+    const relay = await startRelay(db.host, db.port);
+    const logged: DbLogEntry[] = [];
+    const d = new Db(`postgres://fastgo_app:app-test@127.0.0.1:${relay.port}/fastgo`, 2, (e) => logged.push(e), 50);
+    try {
+      await d.withNoActor((tx) => tx.execute("select 1"));
+      relay.hold();
+      const t0 = Date.now();
+      await d.close();
+      const took = Date.now() - t0;
+      expect(took).toBeGreaterThanOrEqual(40);
+      expect(took).toBeLessThan(2_000);
+      expect(logged).toEqual([{ event: "db_close_timeout", open: 1 }]);
+      expect(JSON.stringify(logged)).not.toMatch(/postgres:\/\/|app-test/);
+    } finally {
+      await relay.stop();
+    }
+  }, 5_000);
+
+  it("a close that finishes in time logs nothing and leaves no timer behind", async () => {
+    const logged: DbLogEntry[] = [];
+    const d = new Db(db.url("fastgo_app"), 2, (e) => logged.push(e), 5_000);
+    await Promise.all([1, 2].map(() => d.withNoActor((tx) => tx.execute("select 1"))));
+    const timers = () => process.getActiveResourcesInfo().filter((r) => r === "Timeout").length;
+    const before = timers();
+    await d.close();
+    expect(logged).toEqual([]);
+    expect(timers()).toBeLessThanOrEqual(before);
   });
 });
