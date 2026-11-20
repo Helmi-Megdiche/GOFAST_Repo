@@ -1008,6 +1008,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.cancel.claimOnly` | تم استلام طردك: لم يعد الإلغاء ممكنًا. استخدم شكوى بدلًا من ذلك. | Votre colis est pris en charge : l'annulation n'est plus possible. Passez par une réclamation. | [ ] |
 | `orders.cancel.confirm` | نعم، ألغِ | Oui, annuler | [ ] |
 | `orders.cancel.free` | الإلغاء مجاني: لم يصل السائق بعد. | L'annulation est gratuite : le livreur n'est pas encore arrivé. | [ ] |
+| `orders.cancel.freeUnlessArrived` | الإلغاء مجاني ما لم يكن السائق قد وصل. إذا وصل، تُطبَّق رسوم قدرها <fee></fee> وفق الشروط العامة. | L'annulation est gratuite tant que le livreur n'est pas arrivé. S'il est déjà là, des frais de <fee></fee> s'appliquent selon les CGV. | [ ] |
 | `orders.cancel.keep` | الاحتفاظ بالطلب | Garder la commande | [ ] |
 | `orders.cancel.mayHaveFee` | تعذّر الاستلام. قد تُطبَّق رسوم إلغاء حسب الشروط العامة للبيع: <fee></fee>. وتقرّر GOFAST ذلك. | La collecte n'a pas pu se faire. Des frais d'annulation peuvent s'appliquer selon les CGV : <fee></fee>. C'est GOFAST qui décide. | [ ] |
 | `orders.cancel.network` | انقطع الاتصال. أعد المحاولة. | La connexion a été coupée. Réessayez. | [ ] |
@@ -1033,6 +1034,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.detail.eta` | الوصول المتوقع | Arrivée estimée | [ ] |
 | `orders.detail.failureReason` | سبب الإخفاق | Motif de l'échec | [ ] |
 | `orders.detail.from` | من {name}، {address} | De {name}, {address} | [ ] |
+| `orders.detail.fromNoAddress` | من {name} | De {name} | [ ] |
 | `orders.detail.history` | سجل الطلب | Historique de la commande | [ ] |
 | `orders.detail.loading` | جارٍ تحميل الطلب… | Chargement de la commande… | [ ] |
 | `orders.detail.lossReported` | تم التبليغ عن فقدان طرد من هذا الطلب. | Un colis de cette commande a été déclaré perdu. | [ ] |
@@ -1061,6 +1063,7 @@ native-speaker review before release (CLAUDE.md).
 | `orders.detail.timeline.deliveryFailedNoReason` | الطرد <n></n>: فشل التسليم | Colis <n></n> : remise ratée | [ ] |
 | `orders.detail.title` | طلبي | Ma commande | [ ] |
 | `orders.detail.to` | إلى {name}، {address} | À {name}, {address} | [ ] |
+| `orders.detail.toNoAddress` | إلى {name} | À {name} | [ ] |
 | `orders.detail.total` | المجموع مع احتساب الأداءات | Total TTC | [ ] |
 | `orders.detail.weightDeclared` | الوزن المصرَّح به | Poids déclaré | [ ] |
 | `orders.detail.weightKg` | {kg} كغ | {kg} kg | [ ] |
@@ -1223,6 +1226,8 @@ native-speaker review before release (CLAUDE.md).
 | `tracking.searching` | جارٍ البحث… | Recherche… | [ ] |
 | `tracking.submit` | تتبع | Suivre | [ ] |
 | `tracking.title` | تتبع طرد | Suivre un colis | [ ] |
+| `tracking.unavailable.text` | تعذّرت قراءة هذا الرقم حاليًا. أعد المحاولة بعد قليل. | Nous n'avons pas pu lire ce numéro pour le moment. Réessayez dans quelques instants. | [ ] |
+| `tracking.unavailable.title` | التتبع غير متاح مؤقتًا | Suivi momentanément indisponible | [ ] |
 | `tracking.yourParcel.text` | يعرض الرابط الذي وصلك برسالة نصية المبلغ المطلوب ورمز التسليم، ويتيح تغيير الموعد. | Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau. | [ ] |
 | `tracking.yourParcel.title` | هل هذا طردك؟ | C'est votre colis ? | [ ] |
 | `zones.addressLabel` | عنوانك | Votre adresse | [ ] |

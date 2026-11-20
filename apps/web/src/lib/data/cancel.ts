@@ -20,7 +20,7 @@ export function cancelFeeOf(option: Exclude<CancelOption, "claimOnly" | "none">)
 
 export type CancelResult =
   | { status: "canceled"; fee: CancelFee }
-  | { status: "feeRequired"; fee: "applies" | "backOfficeDecides" }
+  | { status: "feeRequired"; fee: CancelFee }
   | { status: "claimOnly" }
   | { status: "notCancellable" }
   | { status: "notFound" };

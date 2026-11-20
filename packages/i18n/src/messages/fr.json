@@ -493,6 +493,10 @@
       "title": "Numéro introuvable",
       "text": "Aucun colis ne correspond à ce numéro. Vérifiez-le ou contactez GOFAST."
     },
+    "unavailable": {
+      "title": "Suivi momentanément indisponible",
+      "text": "Nous n'avons pas pu lire ce numéro pour le moment. Réessayez dans quelques instants."
+    },
     "yourParcel": {
       "title": "C'est votre colis ?",
       "text": "Le lien reçu par SMS affiche le montant à payer, le code de remise et permet de changer de créneau."
@@ -1284,7 +1288,9 @@
         "title": "Impossible de charger cette commande.",
         "retry": "Réessayer"
       },
-      "loading": "Chargement de la commande…"
+      "loading": "Chargement de la commande…",
+      "fromNoAddress": "De {name}",
+      "toNoAddress": "À {name}"
     },
     "cancel": {
       "button": "Annuler la commande",
@@ -1305,7 +1311,8 @@
         "none": "Annulation sans frais.",
         "applies": "Frais d'annulation : <fee></fee>.",
         "backOfficeDecides": "Des frais peuvent s'appliquer : GOFAST vous le confirmera."
-      }
+      },
+      "freeUnlessArrived": "L'annulation est gratuite tant que le livreur n'est pas arrivé. S'il est déjà là, des frais de <fee></fee> s'appliquent selon les CGV."
     }
   },
   "parcels": {

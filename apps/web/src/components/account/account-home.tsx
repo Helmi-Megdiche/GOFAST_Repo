@@ -4,6 +4,7 @@ import { useTranslations } from "next-intl";
 import { Alert, Button, Card, Ltr, Table, TBody, Td, Th, THead, Tr } from "@fastgo/ui";
 import { DateTime, Money } from "@/components/money";
 import { Link } from "@/i18n/navigation";
+import { CLOSED_ACCOUNT_NAME } from "@/lib/data/order-model";
 import { getDashboard, type Dashboard } from "@/lib/data/account-orders";
 import { OrderStatusBadge } from "./order-status";
 import { useLoader } from "./use-loader";
@@ -52,6 +53,7 @@ export function AccountHomeView() {
 function Home({ dashboard }: { dashboard: Dashboard }) {
   const t = useTranslations("account.home");
   const orders = useTranslations("orders.list");
+  const account = useTranslations("account");
   const o = useTranslations("offers");
   const p = useTranslations("placeholders");
 
@@ -141,7 +143,11 @@ function Home({ dashboard }: { dashboard: Dashboard }) {
                         <Ltr mono>{row.code}</Ltr>
                       </Link>
                     </Td>
-                    <Td label={orders("columns.recipient")}>{row.recipientName}</Td>
+                    <Td label={orders("columns.recipient")}>
+                      {row.recipientName === CLOSED_ACCOUNT_NAME
+                        ? account("closedName")
+                        : row.recipientName}
+                    </Td>
                     <Td label={orders("columns.status")}>
                       <OrderStatusBadge status={row.status} />
                     </Td>
