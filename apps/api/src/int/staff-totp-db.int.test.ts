@@ -154,16 +154,29 @@ describe("GH-25 S1: core.staff_totp_use refuses a step far ahead of the clock, a
   const use = async (id: string, step: bigint | number) =>
     ((await app().withNoActor((tx) => tx.execute(sql`select core.staff_totp_use(${id}::uuid, ${String(step)}::bigint) as ok`))).rows[0] as { ok: boolean }).ok;
 
-  it("2^40 (and three steps ahead) return false and last_step is unchanged; the next step is accepted", async () => {
+  // The bound is the FLOOR of the database's step, plus one. A plain cast to bigint rounds, so in the second half of every 30-second
+  // step the bound would be the step plus two: the test therefore waits for the second half, where floor and round differ.
+  const stepNow = async () => BigInt((await one("select floor(extract(epoch from clock_timestamp()) / 30)::bigint as s")).s);
+  const secondHalf = async () => {
+    for (;;) {
+      const r = await one("select mod(extract(epoch from clock_timestamp())::numeric, 30) as t");
+      const t = Number(r.t);
+      if (t >= 16 && t < 27) return; // 3 s before the boundary: the step does not change between the read and the calls
+      await new Promise((ok) => setTimeout(ok, 250));
+    }
+  };
+
+  it("2^40, and two steps ahead, return false and last_step is unchanged; the next step is accepted (in the second half of a step)", async () => {
     const id = await account("agent");
     await enrol(id);
-    // The DATABASE's step, not this process's clock: the container's clock can differ, and a 30-second boundary can pass between the
-    // two calls (one step of margin each way: "+1" is always accepted, "+3" always refused).
-    const current = BigInt((await one("select (extract(epoch from now()) / 30)::bigint as s")).s);
+    await secondHalf();
+    const before = await stepNow();
     expect(await use(id, 2 ** 40)).toBe(false);
-    expect(await use(id, current + 3n)).toBe(false);
+    expect(await use(id, before + 2n)).toBe(false);
     expect((await one("select last_step from core.staff_totp where account_id = $1", [id])).last_step).toBe("0");
-    expect(await use(id, current + 1n)).toBe(true); // the window's upper edge
+    expect(await use(id, before + 1n)).toBe(true); // the window's upper edge
+    // the step did not change under the calls (the wait leaves 3 s); if it did, say so instead of passing by luck
+    expect(await stepNow()).toBe(before);
     expect(await use(id, 5)).toBe(false); // no lower bound beyond "newer than the last": 5 < last_step
     const other = await account("agent");
     await enrol(other);

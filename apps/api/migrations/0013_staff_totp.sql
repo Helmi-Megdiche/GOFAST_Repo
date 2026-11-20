@@ -60,7 +60,7 @@ declare v_done boolean;
 begin
   update core.staff_totp set last_step = p_step, failed_codes = 0
    where account_id = p_account and last_step < p_step and locked_at is null
-     and p_step <= (extract(epoch from now()) / 30)::bigint + 1;
+     and p_step <= floor(extract(epoch from now()) / 30)::bigint + 1;
   get diagnostics v_done = row_count;
   return v_done;
 end $$;
