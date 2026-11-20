@@ -117,22 +117,26 @@ read_paths() { # prints every repo-relative path a source file reads that the ol
       lit=${lit:1:${#lit}-2}
       case "$lit" in *" "* | *'${'* | *://* | "") continue ;; esac
       case "$lit" in docs/* | infra/*) res=$(norm "$lit") ;; *..*) res=$(norm "$dir/$lit") ;; *) continue ;; esac
-      case "$res" in docs/* | infra/* | *.md) printf '%s\n' "$res" ;; esac
+      case "$res" in docs/* | infra/* | *.md) printf '%s|%s\n' "$res" "${f#"$ROOT"/}" ;; esac
     done < <(grep -vE '^[[:space:]]*(//|\*|/\*)' "$f" 2> /dev/null | grep -oE "$LIT") # comment lines are not reads
   done < <(find "$ROOT/apps" "$ROOT/packages" \( -name node_modules -o -name dist -o -name .next -o -name test-results \) -prune -o \
     -type f \( -name '*.ts' -o -name '*.tsx' -o -name '*.mjs' -o -name '*.js' \) -print)
 }
 TRIP_PATHS=$(read_paths | sort -u)
 tripwire() {
-  local s="$1" p out
+  local s="$1" p reader out need
   # The tripwire must see the real reads (else it proves nothing): these two are known today.
   case "$TRIP_PATHS" in *docs/spec/technique-api.md*) ;; *) fail=$((fail + 1)); echo "  FAIL tripwire found no docs/spec read" ;; esac
   case "$TRIP_PATHS" in *infra/data/zones*) ;; *) fail=$((fail + 1)); echo "  FAIL tripwire found no infra/data read" ;; esac
-  while IFS= read -r p; do
+  while IFS='|' read -r p reader; do
     [ -n "$p" ] || continue
-    out=$(printf '%s\n' "${p}" | bash "$s" 2> /dev/null | head -n 1)
-    if [ "$out" = "code=true" ]; then pass=$((pass + 1)); [ "${VERBOSE:-0}" = 1 ] && echo "  ok   tripwire: $p"
-    else fail=$((fail + 1)); [ "${VERBOSE:-0}" = 1 ] && echo "  FAIL tripwire: a test reads $p but the filter gives [$out]"; fi
+    # The flag of the job that runs the reader: code for everything, and api for a reader under apps/api (api-int job).
+    need="code=true"; case "$reader" in apps/api/*) need="code=true api=true" ;; esac
+    out=$(printf '%s\n' "$p" | bash "$s" 2> /dev/null | head -n 2 | tr '\n' ' ')
+    out=${out% }
+    case "$reader" in apps/api/*) ;; *) out=${out%% *} ;; esac
+    if [ "$out" = "$need" ]; then pass=$((pass + 1)); [ "${VERBOSE:-0}" = 1 ] && echo "  ok   tripwire: $p (read by $reader)"
+    else fail=$((fail + 1)); [ "${VERBOSE:-0}" = 1 ] && echo "  FAIL tripwire: $reader reads $p, needs [$need], the filter gives [$out]"; fi
   done <<< "$TRIP_PATHS"
 }
 
@@ -188,6 +192,8 @@ twin no-quoted-rule drop quoted
 twin no-docs-spec   drop docsspec
 twin no-claude-md   drop claudemd
 twin no-infra-data  drop infradata
+# S1 (round 2): the tripwire checks the job that runs the reader. infra/data without api would skip api-int.
+twin_sed infra-data-without-api '/# MUT-infradata$/s/; api=true//'
 
 # B1: the diff in ci.yml must list a renamed file under both paths. The checker is run on the real ci.yml and on a copy
 # without the flag, which must fail.
@@ -200,4 +206,4 @@ if ci_has_no_renames "$TMP/ci-twin.yml"; then echo "  FAIL twin ci-without-no-re
 else echo "  ok   twin ci-without-no-renames fails"; fi
 
 if [ "$twins_bad" != 0 ]; then echo "FAIL: $twins_bad twin(s) did not fail"; exit 1; fi
-echo "all good: $real_pass cases, 23 twins failed as required"
+echo "all good: $real_pass cases, 24 twins failed as required"
