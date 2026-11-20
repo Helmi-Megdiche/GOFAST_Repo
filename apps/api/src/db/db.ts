@@ -101,12 +101,13 @@ export class Db {
             where n.nspname in ('core', 'gestion') and c.relowner = r.oid
          ) then 'owns a table of core or gestion' end,
          case when r.rolcreaterole then 'has CREATEROLE' end,
-         -- Membership of these two would let the login SET ROLE to the owner of the tables or of the
-         -- definer functions (and read what RLS hides): no application login may be a member.
+         -- Membership of these would let the login SET ROLE to the owner of the tables or of a definer function (and read
+         -- what RLS hides, such as the ciphertexts of core.staff_totp): no application login may be a member.
          case when exists (
            select 1 from pg_auth_members m join pg_roles g on g.oid = m.roleid
-            where m.member = r.oid and g.rolname in ('fastgo_migrator', 'fastgo_public_reader')
-         ) then 'is a member of fastgo_migrator or fastgo_public_reader' end
+            where m.member = r.oid
+              and g.rolname in ('fastgo_migrator', 'fastgo_public_reader', 'fastgo_staff_auth', 'fastgo_order_writer')
+         ) then 'is a member of fastgo_migrator, fastgo_public_reader, fastgo_staff_auth or fastgo_order_writer' end
        ], null) as problems
        from pg_roles r where r.rolname = current_user`,
     );
