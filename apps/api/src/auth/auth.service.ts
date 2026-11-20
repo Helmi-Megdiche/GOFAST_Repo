@@ -350,16 +350,17 @@ export class AuthService {
                   : "replay";
       // B1: a wrong code after the RIGHT password, of an enrolled and not yet locked account, counts against that account (not
       // against the identifier text, which has two spellings). At the limit the account is locked until an admin resets it.
-      if (reason === "code" && row) {
-        const nowLocked = (
-          (
-            await this.d.db.withNoActor((tx) =>
-              tx.execute(sql`select core.staff_totp_failed(${row.id}::uuid, ${PROVISIONAL.staffCodeFailuresBeforeLock}::integer) as locked`),
-            )
-          ).rows[0] as { locked: boolean }
-        ).locked;
-        if (nowLocked) await this.audit(ctx, "staff.signin.locked", row.id, { after: PROVISIONAL.staffCodeFailuresBeforeLock });
-      }
+      // S5: the call is made on EVERY refusal, once, so a right password does not cost one more round trip than a wrong one; every
+      // refusal but "code" names NO_ACCOUNT, which matches no row (it counts nothing and writes nothing).
+      const counted = reason === "code" && row ? row.id : NO_ACCOUNT;
+      const nowLocked = (
+        (
+          await this.d.db.withNoActor((tx) =>
+            tx.execute(sql`select core.staff_totp_failed(${counted}::uuid, ${PROVISIONAL.staffCodeFailuresBeforeLock}::integer) as locked`),
+          )
+        ).rows[0] as { locked: boolean }
+      ).locked;
+      if (nowLocked && row) await this.audit(ctx, "staff.signin.locked", row.id, { after: PROVISIONAL.staffCodeFailuresBeforeLock });
       await this.audit(ctx, "staff.signin.refused", staff && row ? row.id : null, { reason, step: totpStep(nowMs) });
       throw new ApiError("AUTH_REQUIRED", [{ name: "identifier", reason: "invalidCredentials" }]);
     }

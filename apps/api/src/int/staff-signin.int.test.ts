@@ -319,6 +319,7 @@ describe("GH-25 S5: every refusal does the same work (one password check, one se
   }
   class CountingDb extends Db {
     secretLookups = 0;
+    failedCalls = 0;
     override withNoActor<T>(fn: (tx: Tx) => Promise<T>): Promise<T> {
       return super.withNoActor((tx) =>
         fn(
@@ -326,7 +327,9 @@ describe("GH-25 S5: every refusal does the same work (one password check, one se
             get: (target, prop, receiver) => {
               if (prop !== "execute") return Reflect.get(target, prop, receiver);
               return (query: Parameters<Tx["execute"]>[0]) => {
-                if (new PgDialect().sqlToQuery(query as never).sql.includes("staff_totp_secret")) this.secretLookups += 1;
+                const text = new PgDialect().sqlToQuery(query as never).sql;
+                if (text.includes("staff_totp_secret")) this.secretLookups += 1;
+                if (text.includes("staff_totp_failed")) this.failedCalls += 1;
                 return target.execute(query);
               };
             },
@@ -353,18 +356,19 @@ describe("GH-25 S5: every refusal does the same work (one password check, one se
   const attempt = async (identifier: string, password: string, code: string) => {
     counting.checks = 0;
     countingDb.secretLookups = 0;
+    countingDb.failedCalls = 0;
     const res = await app2.inject({ method: "POST", url: "/v1/staff/sessions", remoteAddress: ip, payload: { identifier, password, code } });
-    return { status: res.statusCode, checks: counting.checks, lookups: countingDb.secretLookups };
+    return { status: res.statusCode, checks: counting.checks, lookups: countingDb.secretLookups, failedCalls: countingDb.failedCalls };
   };
 
-  it("unknown account, customer, wrong password, no enrolment, wrong code and locked: one password check and one lookup each", async () => {
+  it("unknown account, customer, wrong password, no enrolment, wrong code and locked: one password check, one secret lookup and one failed-code call each (the call only differs in its account: a wrong password must cost the same as a wrong code)", async () => {
     ip = "10.32.0.1";
     const staff = await make("agent");
     const noEnrolment = await make("agent", { enrol: false });
     const customer = await make("individual");
     const locked = await make("agent");
     await q("update core.staff_totp set locked_at = now(), failed_codes = $2 where account_id = $1", [locked.id, PROVISIONAL.staffCodeFailuresBeforeLock]);
-    const kinds: Array<[string, () => Promise<{ status: number; checks: number; lookups: number }>]> = [
+    const kinds: Array<[string, () => Promise<{ status: number; checks: number; lookups: number; failedCalls: number }>]> = [
       ["unknown account", () => attempt("ghost@fastgo.example", PASSWORD, "123456")],
       ["customer", () => attempt(customer.email, PASSWORD, codeAt(customer))],
       ["wrong password", () => attempt(staff.email, "not the password", codeAt(staff))],
@@ -374,7 +378,7 @@ describe("GH-25 S5: every refusal does the same work (one password check, one se
     ];
     for (const [kind, run] of kinds) {
       ip = `10.32.0.${kinds.findIndex((k) => k[0] === kind) + 2}`;
-      expect([kind, await run()]).toEqual([kind, { status: 401, checks: 1, lookups: 1 }]);
+      expect([kind, await run()]).toEqual([kind, { status: 401, checks: 1, lookups: 1, failedCalls: 1 }]);
     }
   });
 });
