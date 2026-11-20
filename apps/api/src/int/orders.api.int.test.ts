@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import type { NestFastifyApplication } from "@nestjs/platform-fastify";
 import { Logger } from "@nestjs/common";
+import pg from "pg";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createApp } from "../app.ts";
 import { runSmsOutbox } from "../auth/outbox-worker.ts";
@@ -181,7 +182,8 @@ describe("GH-22 R202 R203 R204: POST /v1/orders creates the order from the quote
     expect(res.statusCode).toBe(201);
     const order = res.json();
     expect(order).toMatchObject({
-      status: "received",
+      // GH-22 R209: a verified customer, both addresses pinned, 22 DT under the 100 DT cap: the system confirms at once.
+      status: "confirmed",
       service: "standard",
       payment_mode: "cashPickup",
       freight_payer: "sender",
@@ -203,8 +205,9 @@ describe("GH-22 R202 R203 R204: POST /v1/orders creates the order from the quote
     ]);
     // The history: the order and each parcel, written by the definer, with the person who ordered.
     const events = (await q("select subject_type, from_status, to_status, actor_id from core.status_events where order_id = $1 order by seq", [order.id])).rows;
-    expect(events.map((e) => [e.subject_type, e.from_status, e.to_status])).toEqual([["order", null, "received"], ["parcel", null, "to_collect"], ["parcel", null, "to_collect"]]);
-    expect(new Set(events.map((e) => e.actor_id))).toEqual(new Set([who.id]));
+    expect(events.map((e) => [e.subject_type, e.from_status, e.to_status])).toEqual([["order", null, "received"], ["parcel", null, "to_collect"], ["parcel", null, "to_collect"], ["order", "received", "confirmed"]]);
+    // every event has the person who ordered, except the automatic confirmation: the system has no actor
+    expect(events.map((e) => e.actor_id)).toEqual([who.id, who.id, who.id, null]);
     // R903, R105: the outbox row holds the template, the order and the language, never the phone, the number or a text.
     const rows = (await q("select topic, payload from core.outbox where topic = 'sms.tracking' and payload->>'order_id' = $1", [order.id])).rows;
     expect(rows).toEqual([{ topic: "sms.tracking", payload: { template: "tracking", order_id: order.id, locale: "ar" } }]);
@@ -301,7 +304,7 @@ describe("GH-22 R202 R203 R204: POST /v1/orders creates the order from the quote
     expect(quote.departure_pinned).toBe(false);
     const res = await place(who, orderBody(quote, who, { sender: { ...orderBody(quote, who).sender, address: { text: "Rue sans repère", zone_id: ZONES.alpha } } }));
     expect(res.statusCode).toBe(201);
-    expect(res.json()).toMatchObject({ status: "received", address_unconfirmed: true });
+    expect(res.json()).toMatchObject({ status: "received", address_unconfirmed: true }); // never confirmed by the system
   });
 });
 
@@ -600,8 +603,9 @@ describe("GH-22 T55: GET /v1/orders and GET /v1/orders/{id}", () => {
     expect((await call("GET", `/v1/orders/${other.id}`, { cookie: a.cookie })).statusCode).toBe(404);
     const filtered = (await call("GET", `/v1/orders?tracking=${page1.items[0].tracking_number}`, { cookie: a.cookie })).json();
     expect(filtered.items).toHaveLength(1);
-    const none = await call("GET", "/v1/orders?status=confirmed", { cookie: a.cookie });
+    const none = await call("GET", "/v1/orders?status=canceled", { cookie: a.cookie }); // one value: a list of one (coerceTypes array)
     expect(none.json().items, JSON.stringify(none.json())).toEqual([]);
+    expect((await call("GET", "/v1/orders?status=confirmed&status=received", { cookie: a.cookie })).json().items).toHaveLength(3);
     expect((await call("GET", "/v1/orders?limit=2&cursor=not-a-cursor", { cookie: a.cookie })).statusCode).toBe(400);
     expect((await call("GET", "/v1/orders")).statusCode).toBe(401);
   });
@@ -624,8 +628,8 @@ describe("GH-22 R405 T11 R903: GET /v1/tracking/{number}", () => {
     const get = (lang?: string) => call("GET", `/v1/tracking/${order.tracking_number}`, { headers: lang ? { "accept-language": lang } : {} });
     const fr = await get();
     expect(fr.statusCode).toBe(200);
-    expect(fr.json()).toMatchObject({ status: "received", eta_at: null, from_city: "Alpha", to_city: "Bravo", parcel_count: 2, parcel_outcomes: ["to_collect", "to_collect"] });
-    expect(fr.json().history).toEqual([{ status: "received", at: expect.any(String) }]);
+    expect(fr.json()).toMatchObject({ status: "confirmed", eta_at: null, from_city: "Alpha", to_city: "Bravo", parcel_count: 2, parcel_outcomes: ["to_collect", "to_collect"] });
+    expect(fr.json().history).toEqual([{ status: "received", at: expect.any(String) }, { status: "confirmed", at: expect.any(String) }]);
     expect((await get("ar")).json()).toMatchObject({ from_city: "ألفا", to_city: "برافو" });
     expect((await get("en-GB,en;q=0.8")).json()).toMatchObject({ from_city: "Alpha town", to_city: "Bravo town" });
     const text = JSON.stringify([fr.json(), (await get("ar")).json()]);
@@ -721,11 +725,16 @@ describe("GH-22 RV-08: create, get, list and tracking with every clock of the AP
     const res = await place(who, orderBody(quote, who));
     expect(res.statusCode).toBe(201);
     const order = res.json();
-    expect(order).toMatchObject({ status: "received", total_millimes: quote.total_millimes });
+    expect(order).toMatchObject({ status: "confirmed", total_millimes: quote.total_millimes });
     expect((await call("GET", `/v1/orders/${order.id}`, { cookie: who.cookie })).json().id).toBe(order.id);
     expect((await call("GET", "/v1/orders", { cookie: who.cookie })).json().items.map((o: { id: string }) => o.id)).toContain(order.id);
     const tracking = await call("GET", `/v1/tracking/${order.tracking_number}`);
-    expect(tracking.json()).toMatchObject({ status: "received", from_city: "Alpha", parcel_count: 2 });
+    expect(tracking.json()).toMatchObject({ status: "confirmed", from_city: "Alpha", parcel_count: 2 });
+    // GH-22 R406: a cancel on that date stamps the API clock (canceled_at, ended_at, updated_at), not the database's.
+    const canceled = await call("POST", `/v1/orders/${order.id}/cancel`, { body: { accepted_fee: "none" }, cookie: who.cookie });
+    expect(canceled.json()).toEqual({ status: "canceled", fee: "none" });
+    const row = (await q("select canceled_at, ended_at, updated_at from core.orders where id = $1", [order.id])).rows[0];
+    for (const k of ["canceled_at", "ended_at", "updated_at"]) expect(Math.abs((row[k] as Date).getTime() - (Date.now() + SHIFT_MS)), k).toBeLessThan(120_000);
     // R205 on that date: the same quote, expired one hour before the shifted now.
     const old = await newQuote();
     await q("update core.quotes set quoted_at = $2, expires_at = $3 where id = $1", [
@@ -734,5 +743,271 @@ describe("GH-22 RV-08: create, get, list and tracking with every clock of the AP
       new Date(Date.now() + SHIFT_MS - 3_600_000).toISOString(),
     ]);
     expect((await place(who, orderBody(old, who))).statusCode).toBe(410);
+  });
+});
+
+// ---- GH-22 PR 4b-2b: auto-confirm, cancel, confirm ------------------------------------------------------------------------------
+
+async function staffSession(role: "agent" | "customer_service" = "agent"): Promise<string> {
+  const id = (await q(`insert into core.accounts (kind, role, full_name) values ('staff', $1, 'Staff Test') returning id`, [role])).rows[0].id as string;
+  const validFrom = (await q("select extract(epoch from sessions_valid_from)::text as v from core.accounts where id = $1", [id])).rows[0].v as string;
+  const { SessionStore } = await import("../auth/sessions.ts");
+  return new SessionStore(redis).create(id, true, validFrom);
+}
+const cancelCall = (who: { cookie: string }, id: string, accepted_fee: string) => call("POST", `/v1/orders/${id}/cancel`, { body: { accepted_fee }, cookie: who.cookie });
+const statusOf = async (id: string) => (await q("select status from core.orders where id = $1", [id])).rows[0].status as string;
+const eventCount = async (id: string) => Number((await q("select count(*) as n from core.status_events where order_id = $1", [id])).rows[0].n);
+/** An order whose pickup address has no pin: the system never confirms it, so it stays received. */
+async function unpinnedOrder(who: { cookie: string; phone: string }) {
+  const quote = await newQuote({ departure: { text: "Rue sans repère", zone_id: ZONES.alpha } });
+  const res = await place(who, orderBody(quote, who, { sender: { ...orderBody(quote, who).sender, address: { text: "Rue sans repère", zone_id: ZONES.alpha } } }));
+  expect(res.statusCode).toBe(201);
+  return res.json();
+}
+
+describe("GH-22 R209: the phone that counts is the account's own phone_verified_at, read before this order", () => {
+  it("an account not verified, placing an order with a valid proof for its own phone: the order waits (received), the account becomes verified, and the next order is confirmed by the system", async () => {
+    ip = "10.20.12.1";
+    const who = await customer(false);
+    const check = await proof(who.phone, "order");
+    const first = await place(who, orderBody(await newQuote(), who, { phone_check_id: check }));
+    expect(first.statusCode).toBe(201);
+    expect(first.json().status).toBe("received");
+    expect((await q("select phone_verified_at from core.accounts where id = $1", [who.id])).rows[0].phone_verified_at).not.toBeNull();
+    const events = (await q("select to_status from core.status_events where order_id = $1 and subject_type = 'order' order by seq", [first.json().id])).rows;
+    expect(events.map((e) => e.to_status)).toEqual(["received"]);
+    const next = await place(who, orderBody(await newQuote(), who));
+    expect(next.json().status).toBe("confirmed");
+  });
+});
+
+describe("GH-22 R209 D8: the system confirms an order by itself, on the four checks", () => {
+  it("at the cap exactly it confirms; one millime over it does not; an unverified phone, or an unpinned address, does not", async () => {
+    ip = "10.20.7.1";
+    const who = await customer();
+    const quote = await newQuote();
+    try {
+      await q("update core.pricing_settings set auto_confirm_max_millimes = $1", [quote.total_millimes]);
+      expect((await place(who, orderBody(quote, who))).json().status).toBe("confirmed");
+      await q("update core.pricing_settings set auto_confirm_max_millimes = $1", [quote.total_millimes - 1]);
+      expect((await place(who, orderBody(await newQuote(), who))).json().status).toBe("received");
+    } finally {
+      await q("update core.pricing_settings set auto_confirm_max_millimes = 100000");
+    }
+    expect((await unpinnedOrder(who)).status).toBe("received");
+    const other = await customer(false); // the proof is for another phone: the account stays unverified, so the system does not confirm
+    const otherPhone = "+21620555777";
+    const res = await place(other, orderBody(await newQuote(), { phone: otherPhone }, { phone_check_id: await proof(otherPhone, "order") }));
+    expect(res.json().status).toBe("received");
+  });
+});
+
+describe("GH-22 R212 RV-05 R202: POST /v1/orders/{id}/cancel", () => {
+  it("cancels for free as the owner: the order, its parcels, the events with the person, and the order answers its cancel", async () => {
+    ip = "10.20.8.1";
+    const who = await customer();
+    const order = (await place(who, orderBody(await newQuote(), who))).json();
+    const res = await cancelCall(who, order.id, "none");
+    expect(res.statusCode).toBe(200);
+    expect(res.json()).toEqual({ status: "canceled", fee: "none" });
+    const got = (await call("GET", `/v1/orders/${order.id}`, { cookie: who.cookie })).json();
+    expect(got).toMatchObject({ status: "canceled", cancel: { fee: "none", at: expect.any(String) } });
+    expect(got.parcels.map((p: { status: string }) => p.status)).toEqual(["canceled", "canceled"]);
+    const events = (await q("select subject_type, to_status, actor_id from core.status_events where order_id = $1 and to_status = 'canceled'", [order.id])).rows;
+    expect(events).toHaveLength(3);
+    expect(new Set(events.map((e) => e.actor_id))).toEqual(new Set([who.id]));
+    const tracking = (await call("GET", `/v1/tracking/${order.tracking_number}`)).json();
+    expect(tracking.history.map((h: { status: string }) => h.status)).toEqual(["received", "confirmed", "canceled"]);
+    expect(tracking).toMatchObject({ status: "canceled", parcel_count: 0 });
+  });
+
+  it("R202 replay by state: a second cancel answers 200 with the STORED fee whatever accepted_fee says, with no new event", async () => {
+    ip = "10.20.8.2";
+    const who = await customer();
+    const order = (await place(who, orderBody(await newQuote(), who))).json();
+    await cancelCall(who, order.id, "none");
+    const n = await eventCount(order.id);
+    for (const again of ["none", "applies", "backOfficeDecides"]) {
+      const res = await cancelCall(who, order.id, again);
+      expect([res.statusCode, res.json()]).toEqual([200, { status: "canceled", fee: "none" }]);
+    }
+    expect(await eventCount(order.id)).toBe(n);
+  });
+
+  it("after the driver arrived the fee is 5 DT: accepting none is feeRequired and writes nothing, accepting applies stores the amount and ends the mission", async () => {
+    ip = "10.20.8.3";
+    const who = await customer();
+    const order = (await place(who, orderBody(await newQuote(), who))).json();
+    await q("update core.orders set status = 'assigned' where id = $1", [order.id]);
+    await q("insert into core.missions (order_id, kind, status, arrived_at) values ($1, 'pickup', 'arrived', now())", [order.id]);
+    const before = { status: await statusOf(order.id), events: await eventCount(order.id) };
+    const refused = await cancelCall(who, order.id, "none");
+    expect(refused.statusCode).toBe(422);
+    expect(refused.json().error.fields).toEqual([{ name: "accepted_fee", reason: "feeRequired" }]);
+    expect({ status: await statusOf(order.id), events: await eventCount(order.id) }).toEqual(before);
+    const ok = await cancelCall(who, order.id, "applies");
+    expect(ok.json()).toEqual({ status: "canceled", fee: "applies" });
+    expect((await q("select cancel_fee, cancel_fee_millimes from core.orders where id = $1", [order.id])).rows[0]).toEqual({ cancel_fee: "applies", cancel_fee_millimes: "5000" });
+    expect((await q("select status, end_reason from core.missions where order_id = $1", [order.id])).rows[0]).toEqual({ status: "finished", end_reason: "orderCanceled" });
+  });
+
+  it("a failed pickup: the back office decides (no amount); the pickup on: claimOnly; a final state: notCancellable (409, field status)", async () => {
+    ip = "10.20.8.4";
+    const who = await customer();
+    const make = async () => (await place(who, orderBody(await newQuote(), who))).json();
+    const failed = await make();
+    await q("update core.orders set status = 'pickup_failed' where id = $1", [failed.id]);
+    expect((await cancelCall(who, failed.id, "backOfficeDecides")).json()).toEqual({ status: "canceled", fee: "backOfficeDecides" });
+    expect((await q("select cancel_fee_millimes from core.orders where id = $1", [failed.id])).rows[0].cancel_fee_millimes).toBeNull();
+    for (const [status, reason] of [["picked_up", "claimOnly"], ["in_transit", "claimOnly"], ["delivered", "notCancellable"]] as const) {
+      const o = await make();
+      await q("update core.orders set status = $2 where id = $1", [o.id, status]);
+      const res = await cancelCall(who, o.id, "none");
+      expect([res.statusCode, res.json().error.fields]).toEqual([409, [{ name: "status", reason }]]);
+      expect(await statusOf(o.id)).toBe(status);
+    }
+  });
+
+  it("RV-19: another customer's order is 404, whatever the fee; a company member cancels the company's order; staff cancel free by default or record the fee on purpose (Q10)", async () => {
+    ip = "10.20.8.5";
+    const a = await customer();
+    const b = await customer();
+    const order = (await place(a, orderBody(await newQuote(), a))).json();
+    expect((await cancelCall(b, order.id, "none")).statusCode).toBe(404);
+    expect(await statusOf(order.id)).toBe("confirmed");
+    const agent = { cookie: await staffSession("agent") };
+    await q("update core.orders set status = 'assigned' where id = $1", [order.id]);
+    await q("insert into core.missions (order_id, kind, status, arrived_at) values ($1, 'pickup', 'arrived', now())", [order.id]);
+    expect((await cancelCall(agent, order.id, "backOfficeDecides")).statusCode).toBe(422); // not the fee that applies, not none
+    const done = await cancelCall(agent, order.id, "none"); // the default: free
+    expect(done.json()).toEqual({ status: "canceled", fee: "none" });
+    expect((await q("select canceled_by, cancel_fee from core.orders where id = $1", [order.id])).rows[0].cancel_fee).toBe("none");
+    const chosen = (await place(a, orderBody(await newQuote(), a))).json();
+    await q("update core.orders set status = 'assigned' where id = $1", [chosen.id]);
+    await q("insert into core.missions (order_id, kind, status, arrived_at) values ($1, 'pickup', 'arrived', now())", [chosen.id]);
+    expect((await cancelCall(agent, chosen.id, "applies")).json()).toEqual({ status: "canceled", fee: "applies" });
+    const row = (await q("select canceled_by, cancel_fee_millimes from core.orders where id = $1", [chosen.id])).rows[0];
+    expect(row.cancel_fee_millimes).toBe("5000");
+    expect(row.canceled_by).not.toBe(a.id); // recorded with the staff member's id
+  });
+
+  it("no session is 401; a role the contract does not list for it is 403", async () => {
+    ip = "10.20.8.6";
+    expect((await call("POST", `/v1/orders/${randomUUID()}/cancel`, { body: { accepted_fee: "none" } })).statusCode).toBe(401);
+    const service = { cookie: await staffSession("customer_service") };
+    expect((await cancelCall(service, randomUUID(), "none")).statusCode).toBe(403);
+  });
+});
+
+describe("GH-22 RV-22: cancel and confirm answer every input the database could not take, first", () => {
+  it("the smallest breaking input of cancel and confirm is a 400 or 404, and the order, its parcels and its history are unchanged", async () => {
+    ip = "10.32.0.1";
+    const who = await customer();
+    const agent = { cookie: await staffSession("agent") };
+    const order = (await place(who, orderBody(await newQuote(), who))).json();
+    const snapshot = async () => JSON.stringify([(await q("select status, canceled_at, cancel_fee, cancel_fee_millimes, canceled_by, updated_at from core.orders where id = $1", [order.id])).rows, (await q("select status from core.parcels where order_id = $1 order by position", [order.id])).rows, await eventCount(order.id)]);
+    const before = await snapshot();
+    const post = (url: string, cookie: string, body?: unknown) => call("POST", url, { cookie, ...(body === undefined ? {} : { body }) });
+    const cancelUrl = `/v1/orders/${order.id}/cancel`;
+    const cases: Array<[string, Promise<Res>, number]> = [
+      ["cancel: an id that is not a uuid", post("/v1/orders/not-a-uuid/cancel", who.cookie, { accepted_fee: "none" }), 400],
+      ["cancel: no body", post(cancelUrl, who.cookie), 400],
+      ["cancel: an empty body", post(cancelUrl, who.cookie, {}), 400],
+      ["cancel: a fee that does not exist", post(cancelUrl, who.cookie, { accepted_fee: "free" }), 400],
+      ["cancel: a fee of the wrong type", post(cancelUrl, who.cookie, { accepted_fee: null }), 400],
+      ["cancel: a field the contract does not know", post(cancelUrl, who.cookie, { accepted_fee: "none", status: "delivered" }), 400],
+      ["cancel: an unknown order", post(`/v1/orders/${randomUUID()}/cancel`, who.cookie, { accepted_fee: "none" }), 404],
+      ["confirm: an id that is not a uuid", post("/v1/orders/not-a-uuid/confirm", agent.cookie), 400],
+      ["confirm: an unknown order", post(`/v1/orders/${randomUUID()}/confirm`, agent.cookie), 404],
+    ];
+    for (const [name, response, status] of cases) {
+      const res = await response;
+      expect(res.statusCode, `${name}: ${JSON.stringify(res.json())}`).toBe(status);
+      expect(JSON.stringify(res.json()), name).not.toMatch(/constraint|core\.|orders_|violates/i);
+    }
+    expect(await snapshot()).toBe(before);
+    expect(await statusOf(order.id)).toBe("confirmed");
+  });
+});
+
+describe("GH-22 R209 R202: POST /v1/orders/{id}/confirm", () => {
+  it("an agent confirms an order the system left received; again is 200 with no new event; a customer is 403; a canceled order is 409", async () => {
+    ip = "10.20.9.1";
+    const who = await customer();
+    const order = await unpinnedOrder(who);
+    expect(order.status).toBe("received");
+    const agent = { cookie: await staffSession("agent") };
+    const confirm = (cookie: string, id: string) => call("POST", `/v1/orders/${id}/confirm`, { cookie });
+    expect((await confirm(who.cookie, order.id)).statusCode).toBe(403);
+    const res = await confirm(agent.cookie, order.id);
+    expect([res.statusCode, res.json().status]).toEqual([200, "confirmed"]);
+    const n = await eventCount(order.id);
+    expect((await confirm(agent.cookie, order.id)).json().status).toBe("confirmed");
+    expect(await eventCount(order.id)).toBe(n);
+    const actor = (await q("select actor_id from core.status_events where order_id = $1 and to_status = 'confirmed'", [order.id])).rows[0].actor_id;
+    expect(actor).not.toBeNull();
+    const second = await unpinnedOrder(who);
+    await cancelCall(who, second.id, "none");
+    const refused = await confirm(agent.cookie, second.id);
+    expect([refused.statusCode, refused.json().error.fields]).toEqual([409, [{ name: "status", reason: "notWaitingForConfirmation" }]]);
+    expect((await confirm(agent.cookie, randomUUID())).statusCode).toBe(404);
+  });
+
+  it("a customer's cancel and an agent's confirm racing on one received order: the order ends canceled, no event after the cancel", async () => {
+    ip = "10.20.9.2";
+    const who = await customer();
+    const agent = { cookie: await staffSession("agent") };
+    for (let round = 0; round < 3; round += 1) {
+      const order = await unpinnedOrder(who);
+      const [c, f] = await Promise.all([cancelCall(who, order.id, "none"), call("POST", `/v1/orders/${order.id}/confirm`, { cookie: agent.cookie })]);
+      expect(c.statusCode, "the cancel is free whether or not the confirm came first").toBe(200);
+      expect([200, 409]).toContain(f.statusCode);
+      expect(await statusOf(order.id)).toBe("canceled");
+      const orderEvents = (await q("select to_status from core.status_events where order_id = $1 and subject_type = 'order' order by seq", [order.id])).rows.map((e) => e.to_status);
+      expect(orderEvents).toEqual(f.statusCode === 200 ? ["received", "confirmed", "canceled"] : ["received", "canceled"]);
+      // the history reads in the order the operations committed: the time never goes back along `seq`
+      const times = (await q("select occurred_at from core.status_events where order_id = $1 order by seq", [order.id])).rows.map((e) => (e.occurred_at as Date).getTime());
+      expect(times, "occurred_at follows seq").toEqual([...times].sort((x, y) => x - y));
+    }
+  });
+
+  it("the clock of a cancel is read AFTER the lock: a confirm that commits while the cancel waits is never stamped after it (t0 < t1 in the old order)", async () => {
+    ip = "10.20.9.3";
+    const who = await customer();
+    const order = await unpinnedOrder(who);
+    const clock = { offset: 0 };
+    const lagging = await buildApp(() => new Date(Date.now() + clock.offset));
+    const holder = new pg.Client({ connectionString: testDb.url("postgres") });
+    await holder.connect();
+    try {
+      // an agent's confirm in progress: it holds the order row
+      await holder.query("begin");
+      await holder.query("select 1 from core.orders where id = $1 for update", [order.id]);
+      const pending = lagging.inject({
+        method: "POST",
+        url: `/v1/orders/${order.id}/cancel`,
+        remoteAddress: ip,
+        payload: { accepted_fee: "none" },
+        headers: { cookie: `session=${who.cookie}`, origin: ORIGIN },
+      });
+      await new Promise((r) => setTimeout(r, 700)); // the cancel is now waiting for the lock
+      clock.offset = 60_000; // a minute passes while it waits
+      const confirmedAt = new Date(Date.now() + clock.offset).toISOString();
+      await holder.query("update core.orders set status = 'confirmed' where id = $1", [order.id]);
+      await holder.query(
+        "insert into core.status_events (order_id, subject_type, subject_id, from_status, to_status, occurred_at) values ($1, 'order', $1, 'received', 'confirmed', $2)",
+        [order.id, confirmedAt],
+      );
+      await holder.query("commit");
+      const res = await pending;
+      expect(res.statusCode, res.body).toBe(200);
+      const events = (await q("select to_status, occurred_at from core.status_events where order_id = $1 and subject_type = 'order' order by seq", [order.id])).rows;
+      expect(events.map((e) => e.to_status)).toEqual(["received", "confirmed", "canceled"]);
+      const times = events.map((e) => (e.occurred_at as Date).getTime());
+      expect(times, "occurred_at follows seq").toEqual([...times].sort((x, y) => x - y));
+    } finally {
+      await holder.end().catch(() => undefined);
+      await lagging.close();
+    }
   });
 });

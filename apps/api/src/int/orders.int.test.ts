@@ -231,8 +231,13 @@ describe("definer functions", () => {
     );
     expect(r.rows.map((x) => x.proname)).toEqual([
       "account_for_login",
+      "assert_order_actor",
+      "auto_confirm_order",
       "can_reset_password",
+      "cancel_order",
+      "confirm_order",
       "create_account",
+      "lock_order",
       "login_account",
       "mark_phone_verified",
       "recipient_link",
@@ -246,10 +251,10 @@ describe("definer functions", () => {
     for (const f of r.rows) {
       // GH-10 round 2: account_for_login was replaced by login_account (0006); the app may no longer call it.
       // GH-22: the two order definers belong to fastgo_order_writer; the worker (not the app) reads the SMS payload.
-      const orderWriter = f.proname === "record_order_created" || f.proname === "sms_tracking_payload";
+      const orderWriter = ["record_order_created", "sms_tracking_payload", "assert_order_actor", "auto_confirm_order", "cancel_order", "confirm_order", "lock_order"].includes(f.proname);
       expect(f, f.proname).toMatchObject({
         owner: orderWriter ? "fastgo_order_writer" : "fastgo_public_reader",
-        app: f.proname !== "account_for_login" && f.proname !== "sms_tracking_payload",
+        app: !["account_for_login", "sms_tracking_payload", "assert_order_actor"].includes(f.proname),
         ro: false,
         worker: f.proname === "sms_tracking_payload",
       });
@@ -434,7 +439,7 @@ describe("RV-21: protected columns", () => {
       ["created_at", "now()", false],
       ["updated_at", "now() + interval '1 day'", false],
       ["ended_at", "now()", false],
-      ["status", "'delivered'", true],
+      ["status", "'delivered'", false], // GH-22 RV-21: no UPDATE grant any more, for any role
       ["pickup_address_id", "null::uuid", true],
       ["recipient_id", "null::uuid", true],
       // GH-22 (migration 0011): written once at creation, by nobody afterwards.
@@ -459,6 +464,11 @@ describe("RV-21: protected columns", () => {
       ["freight_payer_accepted", "true", false],
       ["terms_accepted_at", "now()", false],
       ["idempotency_body_hash", "'x'", false],
+      // GH-22 (0012): written by the definers only.
+      ["canceled_at", "now()", false],
+      ["cancel_fee", "'none'", false],
+      ["cancel_fee_millimes", "1", false],
+      ["canceled_by", "null::uuid", false],
     ];
     it("lists every column of the table, so a new column cannot be forgotten", async () => {
       const r = await q(
@@ -497,13 +507,16 @@ describe("RV-21: protected columns", () => {
       );
       expect(await orderRow(order)).toEqual(before);
     });
-    it("CONTROL: an agent can move the status of the same order", async () => {
+    it("GH-22 RV-21: not even an agent updates the status through the app login any more (the definers move it)", async () => {
       const { order } = await fresh();
-      const r = await app().withActor(staff("agent"), (tx) =>
-        tx.execute(sql`update core.orders set status = 'confirmed' where id = ${order}`),
+      await expectDbError(
+        app().withActor(staff("agent"), (tx) => tx.execute(sql`update core.orders set status = 'confirmed' where id = ${order}`)),
+        /permission denied/,
       );
+      expect((await orderRow(order)).status).toBe("received");
+      // CONTROL: the two keys an agent may correct are still granted
+      const r = await app().withActor(staff("agent"), (tx) => tx.execute(sql`update core.orders set recipient_id = recipient_id where id = ${order}`));
       expect(rowCount(r)).toBe(1);
-      expect((await orderRow(order)).status).toBe("confirmed");
     });
     it("tracking number, owner and creator never change, whoever writes", async () => {
       const { order } = await fresh();
@@ -563,9 +576,8 @@ describe("RV-21: protected columns", () => {
       const { order } = await fresh("confirmed");
       const before = await orderRow(order);
       expect(before.ended_at).toBeNull();
-      await app().withActor(staff("agent"), (tx) =>
-        tx.execute(sql`update core.orders set status = 'delivered' where id = ${order}`),
-      );
+      // The status is moved by the owner of the tables here (the app login cannot, GH-22 RV-21): the trigger is the same.
+      await q("update core.orders set status = 'delivered' where id = $1", [order]);
       const after = await orderRow(order);
       expect(after.ended_at).not.toBeNull();
       expect(after.updated_at.getTime()).toBeGreaterThan(before.updated_at.getTime());
@@ -611,7 +623,7 @@ describe("RV-21: protected columns", () => {
       ["proof_level", "'codeOrPhotoWithPosition'", true],
       ["attempts", "1", true],
       ["updated_at", "now() + interval '1 day'", false],
-      ["status", "'delivered'", true],
+      ["status", "'delivered'", false], // GH-22 RV-01: no longer granted: the definers move it
       ["position", "9", false], // GH-22: set once, at creation
     ];
     it("lists every column of the table", async () => {

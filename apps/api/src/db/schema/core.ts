@@ -79,6 +79,10 @@ export const pricingSettings = core.table("pricing_settings", {
   rainActive: boolean("rain_active").notNull().default(false),
   rainSurchargeMillimes: millimes("rain_surcharge_millimes"),
   rainCeilingMillimes: millimes("rain_ceiling_millimes"),
+  /** D7: the fee after the driver arrived (5 DT), PROVISIONAL (0012). */
+  cancelFeeMillimes: millimes("cancel_fee_millimes").notNull().default(5000),
+  /** D8: automatic confirmation up to this total (100 DT), PROVISIONAL (0012). */
+  autoConfirmMaxMillimes: millimes("auto_confirm_max_millimes").notNull().default(100000),
 });
 
 /** A public quote: no owner, a keyed hash of each address and no address text. */
@@ -237,6 +241,11 @@ export const orders = core.table("orders", {
   termsAcceptedAt: tstz("terms_accepted_at"),
   /** R202: a keyed MAC of the request body, set with the idempotency scope (0011). */
   idempotencyBodyHash: text("idempotency_body_hash"),
+  // GH-22 (0012): set by the cancel definer only.
+  canceledAt: tstz("canceled_at"),
+  cancelFee: text("cancel_fee"),
+  cancelFeeMillimes: bigint("cancel_fee_millimes", { mode: "number" }),
+  canceledBy: uuid("canceled_by").references(() => accounts.id),
 });
 
 export const parcels = core.table("parcels", {

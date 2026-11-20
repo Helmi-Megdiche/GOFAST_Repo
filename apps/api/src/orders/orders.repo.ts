@@ -8,7 +8,10 @@ import { PricingRepo } from "../pricing/pricing.repo.ts";
 import type { ReadQuote, Settings } from "../pricing/pricing.service.ts";
 import {
   type AccountRow,
+  type CancelDecision,
+  type CancelResultOut,
   type ListQuery,
+  type LockedOrder,
   type OrderListOut,
   type OrderOut,
   type OrderPlan,
@@ -37,9 +40,21 @@ const checkViolationOf = (error: unknown): string | undefined => {
   return (e.cause?.code ?? e.code) === "23514" ? (e.cause?.constraint ?? e.constraint ?? "") : undefined;
 };
 
+/** What a definer raises, as the API's own error: not found, not allowed, a lost race or a deadlock the database broke (a retry would do). */
+export const definerErrorOf = (error: unknown): ApiError | undefined => {
+  const e = error as { code?: string; cause?: { code?: string } };
+  const code = e.cause?.code ?? e.code;
+  if (code === "P0002") return new ApiError("NOT_FOUND");
+  if (code === "42501") return new ApiError("ACCESS_DENIED");
+  if (code === "40001" || code === "40P01") return new ApiError("STATE_CONFLICT");
+  // cancel_order refuses a final state (a second cancel never overwrites the first): the same answer as the service's own check
+  if (code === "55000") return new ApiError("STATE_CONFLICT", [{ name: "status", reason: "notCancellable" }]);
+  return undefined;
+};
+
 const ORDER_COLUMNS = sql`
   o.id, o.tracking_number, o.status, o.service, o.payment_mode, o.freight_payer, o.total_millimes, o.lines,
-  o.created_at, to_char(o.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_cursor,
+  o.created_at, o.canceled_at, o.cancel_fee, to_char(o.created_at at time zone 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"') as created_cursor,
   o.sender_name, o.sender_phone, o.address_unconfirmed,
   coalesce(o.departure_zone_id, pa.zone_id) as departure_zone_id, coalesce(o.arrival_zone_id, ra.zone_id) as arrival_zone_id,
   dz.name as departure_zone_name, az.name as arrival_zone_name,
@@ -139,6 +154,10 @@ export class OrdersRepo implements OrdersPort {
       // The SMS is written as a template key, the order and the language: no phone, no number, no text (R105, R903).
       const payload = { template: "tracking", order_id: orderId, locale: body.recipient.sms_locale ?? "fr" };
       await tx.execute(sql`insert into core.outbox (topic, payload) values ('sms.tracking', ${JSON.stringify(payload)}::jsonb)`);
+      // R209: the API decides under the lock (the domain rule), the definer only compares and sets (the system, no actor).
+      if (plan.autoConfirm(await this.lock(tx, orderId, "creator"))) {
+        await tx.execute(sql`select core.auto_confirm_order(${orderId}::uuid, ${at.toISOString()}::timestamptz)`);
+      }
       return (await this.read(tx, sql`o.id = ${orderId}::uuid`))[0]!;
     });
   }
@@ -249,6 +268,59 @@ export class OrdersRepo implements OrdersPort {
     });
   }
 
+  // ---- cancel and confirm (4b-2b) ---------------------------------------------------------------------------------------
+
+  /** `core.lock_order`: the checks of who asks, the lock (order, then missions), and the facts. Plus the two settings. */
+  private async lock(tx: Tx, id: string, mode: "cancel" | "confirm" | "creator"): Promise<LockedOrder> {
+    const r = await tx.execute(sql`select core.lock_order(${id}::uuid, ${mode}) as f`);
+    const f = (r.rows as Raw[])[0]!.f as Raw;
+    const s = ((await tx.execute(sql`select cancel_fee_millimes, auto_confirm_max_millimes from core.pricing_settings`)).rows as Raw[])[0]!;
+    return {
+      status: f.status as LockedOrder["status"],
+      totalMillimes: int(f.total_millimes),
+      addressUnconfirmed: Boolean(f.address_unconfirmed),
+      lines: f.lines as LockedOrder["lines"],
+      pickupArrivedAt: (f.pickup_arrived_at as string | null) ?? null,
+      cancelFee: (f.cancel_fee as LockedOrder["cancelFee"]) ?? null,
+      cancelFeeMillimes: f.cancel_fee_millimes == null ? null : int(f.cancel_fee_millimes),
+      canceledAt: (f.canceled_at as string | null) ?? null,
+      settings: { cancelFeeMillimes: int(s.cancel_fee_millimes), autoConfirmMaxMillimes: int(s.auto_confirm_max_millimes) },
+    };
+  }
+
+  async cancel(actor: Actor, id: string, decide: (f: LockedOrder) => CancelDecision, now: () => Date): Promise<CancelResultOut> {
+    return this.definer(() =>
+      this.run(actor, async (tx) => {
+        const decision = decide(await this.lock(tx, id, "cancel"));
+        if (decision.kind === "replay") return { status: "canceled" as const, fee: decision.fee };
+        await tx.execute(
+          sql`select core.cancel_order(${id}::uuid, ${decision.expectedStatus}, ${decision.fee}, ${decision.feeMillimes}::bigint, ${now().toISOString()}::timestamptz)`, // the clock is read after the lock (R406)
+        );
+        return { status: "canceled" as const, fee: decision.fee };
+      }),
+    );
+  }
+
+  async confirm(actor: Actor, id: string, decide: (f: LockedOrder) => "replay" | "confirm", now: () => Date): Promise<OrderOut> {
+    return this.definer(() =>
+      this.run(actor, async (tx) => {
+        if (decide(await this.lock(tx, id, "confirm")) === "confirm") {
+          await tx.execute(sql`select core.confirm_order(${id}::uuid, ${now().toISOString()}::timestamptz)`);
+        }
+        return stripCursor((await this.read(tx, sql`o.id = ${id}::uuid`))[0]!);
+      }),
+    );
+  }
+
+  /** The refusals of the definers, as the API's own: not found, not allowed, a lost race (the state moved). */
+  private async definer<T>(work: () => Promise<T>): Promise<T> {
+    try {
+      return await work();
+    } catch (error) {
+      throw definerErrorOf(error) ?? error;
+    }
+  }
+
   async tracking(number: string, locale: "fr" | "ar" | "en"): Promise<TrackingOut | null> {
     return this.run(null, async (tx) => {
       const r = await tx.execute(sql`select core.tracking(${number}, ${locale}) as t`);
@@ -298,6 +370,6 @@ function toOrder(r: Raw, parcels: Raw[]): OrderOut {
       attempts: int(p.attempts),
     })),
     loss_reported: parcels.some((p) => p.status === "lost"),
-    cancel: null,
+    cancel: r.canceled_at ? { at: iso(r.canceled_at), fee: r.cancel_fee as NonNullable<OrderOut["cancel"]>["fee"] } : null,
   };
 }

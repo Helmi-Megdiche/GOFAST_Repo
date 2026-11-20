@@ -1749,7 +1749,11 @@
     "contractRequired": "Payment on account needs a validated contract.",
     "addressMismatch": "The addresses are not the ones of the quote: get a new price.",
     "freightPayerRequired": "Accept the freight-due terms to pay on delivery.",
-    "slotInvalid": "The chosen time slot is not valid: check the times, or pick a slot that has not passed."
+    "slotInvalid": "The chosen time slot is not valid: check the times, or pick a slot that has not passed.",
+    "feeRequired": "The cancellation fee has changed: check it before you confirm.",
+    "claimOnly": "The parcel has already been picked up: open a claim.",
+    "notCancellable": "This order can no longer be canceled.",
+    "notWaitingForConfirmation": "This order is not waiting for confirmation."
   },
   "apiSms": {
     "code": "GOFAST: your code is {code}. It is valid for {minutes} minutes. Do not share it with anyone.",

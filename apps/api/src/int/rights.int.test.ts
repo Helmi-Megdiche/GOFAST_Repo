@@ -83,7 +83,7 @@ const EXPECTED: Record<string, Expect> = {
         "total_millimes",
         "tracking_number",
       ],
-      UPDATE: ["pickup_address_id", "recipient_id", "status"],
+      UPDATE: ["pickup_address_id", "recipient_id"], // GH-22 RV-21: no `status`, the definers move it
     },
     ro: "no-hash",
     rls: true,
@@ -99,15 +99,14 @@ const EXPECTED: Record<string, Expect> = {
         "declared_value_millimes",
         "proof_level",
         "size",
-        "status",
         "weight_declared_g",
         "weight_measured_g",
-      ],
+      ], // GH-22 RV-01: no `status`, the definers move it
     },
     ro: "no-hash",
     rls: true,
   },
-  "core.missions": OWNED,
+  "core.missions": { app: ["INSERT", "SELECT"], ro: "no-hash", rls: true }, // GH-22 RV-01: no UPDATE, the definers move a mission
   // GH-96: no table-level SELECT, so the driver's position and the actor stay hidden from the app.
   "core.status_events": {
     app: ["INSERT"],
@@ -184,15 +183,38 @@ const PUBLIC_READER: Record<string, Rights> = {
 const ORDER_WRITER: Record<string, Rights> = {
   "core.orders": {
     c: {
-      SELECT: ["created_at", "created_by", "id", "owner_account_id", "owner_company_id", "recipient_id", "recipient_locale", "status", "tracking_number"],
+      SELECT: [
+        "address_unconfirmed",
+        "cancel_fee",
+        "cancel_fee_millimes",
+        "canceled_at",
+        "created_at",
+        "created_by",
+        "id",
+        "lines",
+        "owner_account_id",
+        "owner_company_id",
+        "recipient_id",
+        "recipient_locale",
+        "status",
+        "total_millimes",
+        "tracking_number",
+      ],
+      UPDATE: ["cancel_fee", "cancel_fee_millimes", "canceled_at", "canceled_by", "status"],
     },
   },
-  "core.parcels": { c: { SELECT: ["id", "order_id", "status"] } },
-  "core.accounts": { c: { SELECT: ["id", "status"] } },
+  "core.parcels": { c: { SELECT: ["id", "order_id", "status"], UPDATE: ["status"] } },
+  "core.missions": {
+    c: {
+      SELECT: ["arrived_at", "created_at", "end_reason", "id", "kind", "offered_at", "order_id", "status"],
+      UPDATE: ["end_reason", "finished_at", "status"],
+    },
+  },
+  "core.accounts": { c: { SELECT: ["id", "role", "status"] } },
   "core.recipients": { c: { SELECT: ["id", "phone_e164"] } },
   "core.status_events": {
     c: {
-      SELECT: ["id", "order_id", "subject_type"],
+      SELECT: ["id", "occurred_at", "order_id", "subject_type"], // occurred_at: core.history_time (the time of a change is never before the last event)
       INSERT: ["actor_id", "from_status", "occurred_at", "order_id", "subject_id", "subject_type", "to_status"],
     },
   },

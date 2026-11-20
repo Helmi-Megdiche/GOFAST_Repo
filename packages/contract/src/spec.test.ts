@@ -438,6 +438,13 @@ describe("GH-10 pricing contract (Plan PR 4b-1)", () => {
       expect(String(op.description), reason).toContain(reason);
   });
 
+  it("GH-22 R209 R212: confirmOrder names its 409 reason, and CancelRequest says what accepted_fee means for staff", () => {
+    const confirm = operations.find((o) => o.id === "confirmOrder")?.op as Json;
+    expect(String(confirm.description)).toContain("notWaitingForConfirmation");
+    const fee = (schemas.CancelRequest?.properties as Record<string, Json>).accepted_fee as Json;
+    expect(String(fee.description)).toMatch(/staff/i);
+  });
+
   it("GH-22 R405 R903: the public tracking says that the city names follow Accept-Language", () => {
     const op = operations.find((o) => o.id === "getTracking")?.op as Json;
     expect(String(op.description)).toContain("Accept-Language");

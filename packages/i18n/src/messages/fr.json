@@ -1749,7 +1749,11 @@
     "contractRequired": "Le paiement sur compte demande un contrat validé.",
     "addressMismatch": "Les adresses ne sont pas celles du prix calculé : calculez le prix à nouveau.",
     "freightPayerRequired": "Acceptez les conditions du port dû pour payer à la livraison.",
-    "slotInvalid": "Le créneau choisi n'est pas valable : vérifiez les heures, ou choisissez un créneau à venir."
+    "slotInvalid": "Le créneau choisi n'est pas valable : vérifiez les heures, ou choisissez un créneau à venir.",
+    "feeRequired": "Les frais d'annulation ont changé : vérifiez-les avant de confirmer.",
+    "claimOnly": "Le colis est déjà pris en charge : faites une réclamation.",
+    "notCancellable": "Cette commande ne peut plus être annulée.",
+    "notWaitingForConfirmation": "Cette commande n'attend pas de confirmation."
   },
   "apiSms": {
     "code": "GOFAST : votre code est {code}. Il est valable {minutes} minutes. Ne le communiquez à personne.",

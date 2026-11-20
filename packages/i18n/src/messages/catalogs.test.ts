@@ -56,6 +56,14 @@ describe("apiErrors", () => {
   });
 });
 
+describe("apiErrors of cancel and confirm", () => {
+  it("GH-22 R212 R209: every refusal reason of cancelOrder and confirmOrder has a message in fr, en and ar", () => {
+    for (const reason of ["feeRequired", "claimOnly", "notCancellable", "notWaitingForConfirmation"])
+      for (const [locale, entries] of Object.entries(flat))
+        expect(entries[`apiErrors.${reason}`], `${locale} ${reason}`).toBeTruthy();
+  });
+});
+
 describe("apiSms", () => {
   it("GH-22 R903 R904: the tracking SMS exists in fr, en and ar with the same two placeholders", () => {
     for (const [locale, entries] of Object.entries(flat)) {

@@ -4,7 +4,7 @@ import { Operation } from "../http/operation.ts";
 import { pickLocale } from "../http/messages.ts";
 import { scopeOf } from "../http/idempotency.ts";
 import { PROVISIONAL } from "../provisional.ts";
-import { type OrderCreate, type OrderListOut, type OrderOut, OrdersService, type TrackingOut } from "./orders.service.ts";
+import { type CancelRequestIn, type CancelResultOut, type OrderCreate, type OrderListOut, type OrderOut, OrdersService, type TrackingOut } from "./orders.service.ts";
 
 type ListParams = { status?: string | string[]; from?: string; to?: string; tracking?: string; cursor?: string; limit?: number | string };
 
@@ -40,6 +40,20 @@ export class OrdersController {
   @Operation("getOrder")
   getOrder(@Param("id") id: string, @Req() req: FastifyRequest): Promise<OrderOut> {
     return this.orders.get(req.actor!, id);
+  }
+
+  @Post("orders/:id/cancel")
+  @HttpCode(200)
+  @Operation("cancelOrder")
+  cancelOrder(@Param("id") id: string, @Body() body: CancelRequestIn, @Req() req: FastifyRequest): Promise<CancelResultOut> {
+    return this.orders.cancel(req.actor!, id, body);
+  }
+
+  @Post("orders/:id/confirm")
+  @HttpCode(200)
+  @Operation("confirmOrder")
+  confirmOrder(@Param("id") id: string, @Req() req: FastifyRequest): Promise<OrderOut> {
+    return this.orders.confirm(req.actor!, id);
   }
 
   @Get("tracking/:number")
