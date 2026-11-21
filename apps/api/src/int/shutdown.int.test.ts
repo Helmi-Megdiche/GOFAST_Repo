@@ -103,7 +103,8 @@ describe("GH-118: the api stops taking requests, finishes the one in flight, the
     db = new Db(testDb.url("fastgo_app"), 4);
     redis = createRedis(redisUrl);
     // The same parts as main.ts: auth, pricing and orders over one Db and one Redis.
-    const deps = { db, redis, authSecret: "s".repeat(40) };
+    // totpKey: the staff sign-in route is always wired (GH-25), so the deps carry the second-factor key like main.ts does.
+    const deps = { db, redis, authSecret: "s".repeat(40), totpKey: Buffer.alloc(32, 6) };
     const auth = authOptions({ nodeEnv: "test", allowedOrigins: [] }, deps);
     const merged = mergeOptions(
       auth,
@@ -281,6 +282,7 @@ describe("GH-118: a real SIGTERM on the api process", () => {
           DATABASE_URL: testDb.url("fastgo_app"),
           REDIS_URL: redisUrl,
           AUTH_SECRET: "s".repeat(40),
+          TOTP_KEY: Buffer.alloc(32, 6).toString("base64"), // required at boot since GH-25 (RV-27: every place that starts the process)
         },
         stdio: ["ignore", "pipe", "pipe"],
       });
