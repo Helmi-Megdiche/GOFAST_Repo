@@ -132,7 +132,7 @@ List renames as both paths (`git diff --no-renames`), treat a quoted or unreadab
 Source: #114 round 1, moving `apps/api/a.ts` to `docs/` listed only `docs/a.ts`, and a PR touching only `docs/spec/*`, `infra/data/*` or `AR-REVIEW.md` skipped tests that read those files.
 
 **RV-27. A new required setting reaches every place that starts the process.**
-Search for an existing required variable (for example `AUTH_SECRET`) in compose files, env examples, deploy scripts and the server README, and add the new one next to it in each place. Boot the process from each env file; a green CI does not prove this.
+Search for an existing required variable (for example `AUTH_SECRET`) in compose files, env examples, deploy scripts and the server README, and add the new one next to it in each place. Boot the process from each env file; a green CI does not prove this. An example value of a secret is the one fake value the code refuses in production, in every example file.
 Source: #25 round 1, `TOTP_KEY` was required at boot but missing from the compose `api` service, and the new database role was missing from the staging setup steps.
 
 **RV-28. A real adapter must not show a mock default as a fact.**
