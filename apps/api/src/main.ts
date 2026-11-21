@@ -8,6 +8,8 @@ import { mergeOptions, pricingOptions } from "./pricing/wiring.ts";
 import { loadConfig, requireBackends } from "./config.ts";
 import { Db } from "./db/index.ts";
 import { DbIdempotencyStore } from "./http/idempotency-db.ts";
+import { apiShutdownSteps } from "./lifecycle.ts";
+import { onShutdown } from "./shutdown.ts";
 
 const config = loadConfig();
 const { databaseUrl, redisUrl, authSecret, totpKey } = requireBackends(config);
@@ -20,5 +22,7 @@ const merged = mergeOptions(auth, pricing, orders);
 // R202: the answer of a keyed request is kept in the database, shared by every API process, and purged by the worker after 24 h.
 const idempotency = new DbIdempotencyStore(db);
 const app = await createApp(config, { ...auth, controllers: merged.controllers, providers: merged.providers, idempotency });
+// SIGTERM and SIGINT: stop listening, let the requests in flight finish, then redis and the database (one owner of the signals).
+onShutdown("api", apiShutdownSteps({ app, redis, db }));
 await app.listen(config.port, config.host);
 new Logger("api").log(`listening on ${config.host}:${config.port}`);

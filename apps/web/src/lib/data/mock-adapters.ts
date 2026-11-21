@@ -1,5 +1,5 @@
 import { normalizePhone, packagingPriced } from "@fastgo/domain";
-import { createAccount, sessionFor } from "./accounts";
+import { createAccount, findById, sessionFor } from "./accounts";
 import { setNewPassword, signIn } from "./auth";
 import { EXAMPLE_PRICE_TABLE } from "./fixtures/pricing";
 import { getOrderDetail, listOrders } from "./account-orders";
@@ -7,7 +7,14 @@ import { cancelOrder } from "./cancel";
 import { createOrder, findOrderByKey } from "./orders";
 import { lookupTracking } from "./tracking";
 import { consumeVerification, isTargetVerified, sendCode, verifyCode } from "./otp";
-import type { AuthPort, OrdersPort, PricingPort } from "./ports";
+import type { AuthPort, OrdersPort, PricingPort, ProfilePort } from "./ports";
+import {
+  getProfile,
+  saveLocaleIfSignedIn,
+  setAccountLocale,
+  setNotifications,
+  updateName,
+} from "./profile";
 import { getSession, setSession, signOut } from "./session";
 
 export function createMockOrders(): OrdersPort {
@@ -69,5 +76,27 @@ export function createMockAuth(): AuthPort {
     async refreshSession() {
       return getSession();
     },
+  };
+}
+
+/** The mock profile: everything is offered, the data is the fixture accounts (mock only). */
+export function createMockProfile(): ProfilePort {
+  return {
+    kind: "mock",
+    emailAvailable: true,
+    googleAvailable: true,
+    closeAvailable: true,
+    addressBookAvailable: true,
+    invoicesAvailable: true,
+    claimsAvailable: true,
+    homeAvailable: true,
+    get: async (session) => ({
+      ...(await getProfile(session)),
+      phoneVerified: findById(session.accountId)?.phoneVerified ?? false,
+    }),
+    updateName,
+    setNotifications: (session, prefs) => setNotifications(session, prefs),
+    setLocale: setAccountLocale,
+    saveLocaleIfSignedIn,
   };
 }

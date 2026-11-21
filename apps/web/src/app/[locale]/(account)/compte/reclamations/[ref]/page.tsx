@@ -1,5 +1,6 @@
 import { useTranslations } from "next-intl";
 import { ClaimDetailView } from "@/components/account/claim-detail";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale } from "@/lib/page";
 
@@ -25,7 +26,9 @@ function Claim({ reference }: { reference: string }) {
     <>
       <h1 className="text-d2">{t("title")}</h1>
       <RequireSession kind="customer">
-        <ClaimDetailView reference={decodeURIComponent(reference)} />
+        <FeatureGate feature="claims">
+          <ClaimDetailView reference={decodeURIComponent(reference)} />
+        </FeatureGate>
       </RequireSession>
     </>
   );

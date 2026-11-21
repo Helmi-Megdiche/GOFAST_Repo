@@ -173,6 +173,7 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+    stop_grace_period: 10s # shutdown.ts hardLimitMs (8 s) must stay below this
 
   ws:
     <<: *hardened
@@ -196,6 +197,7 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+    stop_grace_period: 10s # shutdown.ts hardLimitMs (8 s) must stay below this
 
   worker:
     <<: *hardened
@@ -222,6 +224,7 @@ services:
       timeout: 3s
       retries: 20
     restart: unless-stopped
+    stop_grace_period: 10s # shutdown.ts hardLimitMs (8 s) must stay below this
 
   web:
     <<: *hardened

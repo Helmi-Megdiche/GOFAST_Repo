@@ -311,6 +311,7 @@ native-speaker review before release (CLAUDE.md).
 | `common.from` | ابتداءً من | À partir de | [ ] |
 | `common.home` | الرئيسية | Accueil | [ ] |
 | `common.loading` | جارٍ التحميل… | Chargement… | [ ] |
+| `common.notAvailableYet` | هذا القسم غير متاح بعد. | Cette section n’est pas encore disponible. | [ ] |
 | `common.skipToContent` | انتقل إلى المحتوى | Aller au contenu | [ ] |
 | `contact.eyebrow` | اتصل بنا | Contact | [ ] |
 | `contact.form.attach` | إضافة مرفق (5 ميغابايت) | Ajouter une pièce jointe (5 Mo) | [ ] |
@@ -1190,6 +1191,7 @@ native-speaker review before release (CLAUDE.md).
 | `profile.saveFailed` | فشل الحفظ. أعد المحاولة. | L'enregistrement a échoué. Réessayez. | [ ] |
 | `profile.saved` | تم الحفظ. | Enregistré. | [ ] |
 | `profile.title` | الملف الشخصي والتفضيلات | Profil et préférences | [ ] |
+| `profile.unavailable` | تسجيل الدخول عبر Google وإغلاق الحساب غير متاحين بعد. | Google et la fermeture du compte ne sont pas encore disponibles. | [ ] |
 | `services.extras.declaredValue` | القيمة المصرّح بها | Valeur déclarée | [ ] |
 | `services.extras.fragile` | طرد هش | Colis fragile | [ ] |
 | `services.extras.retry` | محاولة جديدة | Nouvelle tentative | [ ] |

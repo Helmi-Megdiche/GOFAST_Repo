@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { ordersPort, pricingPort } from "./index";
+import { ordersPort, pricingPort, profilePort } from "./index";
 import { createMockOrders, createMockPricing } from "./mock-adapters";
 import { createApiOrders } from "../api/orders";
 import { createApiPricing } from "../api/pricing";
@@ -30,6 +30,31 @@ describe("adapter selection and the shared interface (#20)", () => {
     const pricing: PricingPort[] = [createMockPricing(), createApiPricing()];
     expect(orders).toHaveLength(2);
     expect(pricing).toHaveLength(2);
+  });
+});
+
+describe("profilePort and the account flag (20-d)", () => {
+  it("is the mock unless account is on the flag", () => {
+    expect(profilePort("").kind).toBe("mock");
+    expect(profilePort("auth,orders").kind).toBe("mock");
+    expect(profilePort("auth,account").kind).toBe("api");
+  });
+
+  it("the api adapter offers nothing it has no route for; the mock offers everything", () => {
+    const api = profilePort("auth,account");
+    for (const flag of [
+      api.emailAvailable,
+      api.googleAvailable,
+      api.closeAvailable,
+      api.addressBookAvailable,
+      api.invoicesAvailable,
+      api.claimsAvailable,
+      api.homeAvailable,
+    ]) {
+      expect(flag).toBe(false);
+    }
+    const mock = profilePort("");
+    expect(mock.addressBookAvailable && mock.invoicesAvailable && mock.claimsAvailable).toBe(true);
   });
 });
 

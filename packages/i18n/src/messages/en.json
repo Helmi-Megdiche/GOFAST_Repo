@@ -165,7 +165,8 @@
     "skipToContent": "Skip to content",
     "home": "Home",
     "loading": "Loading…",
-    "from": "From"
+    "from": "From",
+    "notAvailableYet": "This section is not available yet."
   },
   "languageSwitcher": {
     "label": "Language"
@@ -1716,7 +1717,8 @@
         "seeInvoices": "See my invoices",
         "dismiss": "Close"
       }
-    }
+    },
+    "unavailable": "Google sign-in and closing the account are not available yet."
   },
   "emailScreen": {
     "title": "E-mail address",

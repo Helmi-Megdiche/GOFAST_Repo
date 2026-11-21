@@ -1,5 +1,8 @@
 import { useTranslations } from "next-intl";
+import { Button } from "@fastgo/ui";
+import { Link } from "@/i18n/navigation";
 import { AccountHomeView } from "@/components/account/account-home";
+import { FeatureGate } from "@/components/account/feature-gate";
 import { RequireSession } from "@/components/account/require-session";
 import { localizedMetadata, resolveLocale, type PageParams } from "@/lib/page";
 
@@ -20,8 +23,14 @@ function AccountHome() {
   return (
     <>
       <h1 className="text-d2">{t("title")}</h1>
+      {/* No data in it, so it stays when the gate hides the rest (S8). */}
+      <Button as={Link} href="/commander" size="lg" className="self-start">
+        {t("newDelivery")}
+      </Button>
       <RequireSession kind="customer">
-        <AccountHomeView />
+        <FeatureGate feature="home">
+          <AccountHomeView />
+        </FeatureGate>
       </RequireSession>
     </>
   );
