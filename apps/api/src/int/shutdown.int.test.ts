@@ -104,7 +104,7 @@ describe("GH-118: the api stops taking requests, finishes the one in flight, the
     redis = createRedis(redisUrl);
     // The same parts as main.ts: auth, pricing and orders over one Db and one Redis.
     const deps = { db, redis, authSecret: "s".repeat(40) };
-    const auth = authOptions({ nodeEnv: "test", allowedOrigins: [], staffSignIn: false }, deps);
+    const auth = authOptions({ nodeEnv: "test", allowedOrigins: [] }, deps);
     const merged = mergeOptions(
       auth,
       pricingOptions(deps),
