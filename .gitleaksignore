@@ -1,2 +1,9 @@
 # Test idempotency key (a UUID), not a secret. #88
 8afada3b5a0da5134cabff5cb54b1e429ce4017c:apps/api/src/api.test.ts:generic-api-key:12
+# GH-25: TOTP_KEY example values. AAECAw…Hh8= is the public fake key (bytes 0..31) that production refuses (config.ts, RV-27). The two keys of 009d1ea were random example values that were never on main or on any server; 713f755 replaced them.
+009d1ea1d37d59c441c536c27d064bb6b95302de:infra/compose/.env.example:generic-api-key:24
+713f75570d68c03be5e33b34ee942cbd91a05885:infra/compose/.env.staging.example:generic-api-key:16
+713f75570d68c03be5e33b34ee942cbd91a05885:infra/compose/.env.example:generic-api-key:25
+009d1ea1d37d59c441c536c27d064bb6b95302de:infra/compose/.env.staging.example:generic-api-key:15
+159392e7a5ff65b4e7a31e1416dd00e90937eb27:apps/api/.env.example:generic-api-key:19
+713f75570d68c03be5e33b34ee942cbd91a05885:apps/api/src/env-examples.test.ts:generic-api-key:8
