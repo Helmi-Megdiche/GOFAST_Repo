@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { loadConfig } from "./config.ts";
+import { loadConfig, requireBackends } from "./config.ts";
 
 describe("loadConfig", () => {
   it("has defaults", () => {
@@ -36,19 +36,39 @@ describe("loadConfig", () => {
     expect(loadConfig({ PUBLIC_WEB_URL: "https://gofast.example" }).publicWebUrl).toBe("https://gofast.example");
     expect(() => loadConfig({ PUBLIC_WEB_URL: "gofast.example" })).toThrow(/PUBLIC_WEB_URL/);
     expect(() => loadConfig({ PUBLIC_WEB_URL: "https://gofast.example/fr" })).toThrow(/PUBLIC_WEB_URL/);
-    expect(() => loadConfig({ NODE_ENV: "production", SMS_PROVIDER: "fake" })).toThrow(/SMS_PROVIDER/);
+    // TOTP_KEY is checked first in production (GH-25), so it is given here: this line is about the fake SMS sender.
+    expect(() => loadConfig({ NODE_ENV: "production", SMS_PROVIDER: "fake", TOTP_KEY: Buffer.alloc(32, 5).toString("base64") })).toThrow(/SMS_PROVIDER/);
   });
   it("refuses a short AUTH_SECRET", () => {
     expect(() => loadConfig({ AUTH_SECRET: "short" })).toThrow(/AUTH_SECRET/);
   });
-  it("staff sign-in is off by default, allowed in dev and refused in production (T60)", () => {
-    expect(loadConfig({}).staffSignIn).toBe(false);
-    expect(loadConfig({ STAFF_SIGNIN: "true" }).staffSignIn).toBe(true);
-    expect(() => loadConfig({ NODE_ENV: "production", STAFF_SIGNIN: "true" })).toThrow(
-      /STAFF_SIGNIN/,
-    );
+  it("GH-25 T60: the STAFF_SIGNIN switch is gone: staff sign in on their own route, with a second factor", () => {
+    expect("staffSignIn" in loadConfig({ STAFF_SIGNIN: "true" })).toBe(false);
+  });
+  it("GH-25 T60: TOTP_KEY is 32 bytes in base64, wherever it is given", () => {
+    const key = Buffer.alloc(32, 5).toString("base64");
+    expect(loadConfig({ TOTP_KEY: key }).totpKey?.equals(Buffer.alloc(32, 5))).toBe(true);
+    expect(loadConfig({}).totpKey).toBeUndefined();
+    expect(() => loadConfig({ TOTP_KEY: Buffer.alloc(31, 5).toString("base64") })).toThrow(/TOTP_KEY/);
+    expect(() => loadConfig({ TOTP_KEY: "nope" })).toThrow(/TOTP_KEY/);
+  });
+  it("GH-25 T60: production without TOTP_KEY throws, before anything else is checked", () => {
+    expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/TOTP_KEY is required in production/);
+  });
+  it("GH-25 M3: production refuses the example TOTP_KEY of .env.example (the bytes 0 to 31), and development accepts it", () => {
+    const example = Buffer.from(Array.from({ length: 32 }, (_, i) => i)).toString("base64");
+    const prod = { NODE_ENV: "production", SMS_PROVIDER: "fake", PUBLIC_WEB_URL: "https://gofast.example" } as const;
+    expect(() => loadConfig({ ...prod, TOTP_KEY: example })).toThrow(/TOTP_KEY.*example/i);
+    // CONTROL: any other 32-byte key passes that check (the next refusal is the fake SMS sender, which is not about the key).
+    expect(() => loadConfig({ ...prod, TOTP_KEY: Buffer.alloc(32, 5).toString("base64") })).toThrow(/SMS_PROVIDER/);
+    expect(loadConfig({ TOTP_KEY: example }).totpKey?.equals(Buffer.from(Array.from({ length: 32 }, (_, i) => i)))).toBe(true);
+  });
+  it("GH-25: the api cannot start without TOTP_KEY", () => {
+    const base = loadConfig({ DATABASE_URL: "postgres://x", REDIS_URL: "redis://x", AUTH_SECRET: "s".repeat(40) });
+    expect(() => requireBackends(base)).toThrow(/TOTP_KEY/);
+    expect(requireBackends({ ...base, totpKey: Buffer.alloc(32, 1) }).totpKey).toHaveLength(32);
   });
   it("refuses the fake SMS sender in production", () => {
-    expect(() => loadConfig({ NODE_ENV: "production" })).toThrow(/SMS_PROVIDER/);
+    expect(() => loadConfig({ NODE_ENV: "production", TOTP_KEY: Buffer.alloc(32, 5).toString("base64") })).toThrow(/SMS_PROVIDER/);
   });
 });

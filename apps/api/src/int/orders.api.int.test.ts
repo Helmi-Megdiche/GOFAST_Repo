@@ -65,8 +65,8 @@ beforeAll(async () => {
 }, 240_000);
 /** The API with every clock it has (sessions, proofs, prices, orders) given by `now`; the real one when omitted. */
 async function buildApp(now?: () => Date): Promise<NestFastifyApplication> {
-  const deps = { db: appDb, redis, authSecret: "s".repeat(40), now };
-  const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: false }, deps);
+  const deps = { db: appDb, redis, authSecret: "s".repeat(40), totpKey: Buffer.alloc(32, 6), now };
+  const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN] }, deps);
   const merged = mergeOptions(auth, pricingOptions(deps), ordersOptions({ ...deps, webUrl: WEB }));
   // The shared store of the real API (main.ts): the replay of an order lives in core.idempotency_keys, as in production.
   const idempotency = new DbIdempotencyStore(appDb, now ? () => now().getTime() : Date.now);
@@ -266,8 +266,8 @@ describe("GH-22 R202 R203 R204: POST /v1/orders creates the order from the quote
       draws.push(n);
       return n;
     };
-    const deps = { db: appDb, redis, authSecret: "s".repeat(40) };
-    const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: false }, deps);
+    const deps = { db: appDb, redis, authSecret: "s".repeat(40), totpKey: Buffer.alloc(32, 6) };
+    const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN] }, deps);
     const merged = mergeOptions(auth, pricingOptions(deps), ordersOptions({ ...deps, newTrackingNumber: generator }));
     const forced = await createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers });
     try {

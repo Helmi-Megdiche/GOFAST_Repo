@@ -79,17 +79,40 @@ It ends with a check list and stops with an error if one item fails. It can be r
 
 ## Database setup (once per database, before the first migration)
 
-The migrations create no role and no password. On a new database, the PostgreSQL superuser runs `db-setup.sql` from a terminal (roles, PostGIS, and the `fastgo_public_reader` grant that migration 0005 needs):
+The migrations create no role and no password. On a new database, the PostgreSQL superuser runs `db-setup.sql` from a terminal (roles, PostGIS, the `fastgo_public_reader` grant that migration 0005 needs, and the `fastgo_staff_auth` role that migration 0013 needs):
 
 ```
 psql "postgres://postgres@127.0.0.1:5432/fastgo" -f infra/servers/db-setup.sql
 ```
 
-The script asks for 5 passwords (migrator, app, readonly, worker, `pgbouncer_auth`) with psql `\password`: hidden prompt, typed twice, hashed on the client with SCRAM-SHA-256, so the plain password never reaches the server, its log or the process list. It stops with an error when it is not run in a terminal or when `password_encryption` is not `scram-sha-256`. It can be run again (it asks again). It mirrors `apps/api/src/int/harness.ts`; change both together. Then run the migrations as `fastgo_migrator`, direct to PostgreSQL, never through PgBouncer.
+The script asks for 5 passwords (migrator, app, readonly, worker, `pgbouncer_auth`) with psql `\password`: hidden prompt, typed twice, hashed on the client with SCRAM-SHA-256, so the plain password never reaches the server, its log or the process list. It stops with an error when it is not run in a terminal or when `password_encryption` is not `scram-sha-256`. It can be run again (it asks again). It mirrors `apps/api/src/int/harness.ts`; change both together. Before the migration step, the script has created, in the same style as `fastgo_public_reader` and `fastgo_order_writer`:
+
+```
+create role fastgo_staff_auth nologin;
+grant fastgo_staff_auth to fastgo_migrator with inherit false, set true;
+```
+
+The grant is SET-only: `fastgo_migrator` can `SET ROLE fastgo_staff_auth` but does not inherit its rights. Migration 0013 (GH-25) hands the `staff_totp_*` definers to that role and stops if the grant is missing. Staging does not run db-setup (the `setup` profile is off, see `infra/compose/README.md`), so on an existing staging database these two statements are run once by hand, as the superuser, before the deploy that carries 0013. Then run the migrations as `fastgo_migrator`, direct to PostgreSQL, never through PgBouncer.
 
 `pgbouncer_auth` is the login PgBouncer uses to look up the app logins (`auth_query` on `pgbouncer.get_auth`, created by the script). It sees the hash of `fastgo_app`, `fastgo_readonly` and `fastgo_worker` only. No password or hash is written in a PgBouncer file.
 
 On a laptop or in CI there is no terminal: pass the 5 passwords as psql variables (`-v pw_migrator=x ... -v pw_pgbouncer=x`, fake values only). `infra/compose` does this for you. A real host never uses this mode.
+
+## Back-office second factor: enrol and reset (GH-25)
+
+`TOTP_KEY` (32 bytes, base64) encrypts the TOTP secrets of the back-office accounts. It is required in production and is set in the server env file next to `AUTH_SECRET`; generate it on the host (`openssl rand -base64 32`), never reuse the fake value of the example files, never send it by chat or e-mail.
+
+The enrol and reset commands have no screen. An engineer from the ops team runs them on the staging host, in the repo checkout, with the operator login and the same `TOTP_KEY` as the running api:
+
+```
+DATABASE_MIGRATOR_URL=postgres://fastgo_migrator:<password>@127.0.0.1:15432/fastgo TOTP_KEY=<the server value> pnpm --filter @fastgo/api staff:totp enrol <account-id> --by <admin-id> [--label <text>]
+
+pnpm --filter @fastgo/api staff:totp reset <account-id> --by <admin-id> --reason "<text>"
+```
+
+- `<account-id>`, `<admin-id>` are uuids. `enrol` names the admin who does it (`--by`, an active admin who is already enrolled and is not the account itself); it is written to the audit as the actor. `--by` may be left out only for the very first admin, while no admin is enrolled yet; that exception closes once one is. `enrol` prints one `otpauth://` address, once; it is not stored. The engineer gives it to the person in person or over a channel the person controls (not in a ticket, a chat history or a log), and the person types or scans it into an authenticator app. `reset` clears the enrolment (lost phone); the account then enrols again with `enrol`. It needs `--by` (another admin than the account) and a `--reason`; both are audited.
+- When `TOTP_KEY` changes, the stored secrets cannot be decrypted. Every enrolled account must be reset (`reset`) and enrolled again (`enrol`) with the new key. Plan this before rotating the key.
+- The migrator login can `SET ROLE fastgo_staff_auth`, so the "second admin" check on `reset` is a trace, not a control against the operator: whoever holds that login can reach the definers' data without a second person. Only the audit row and the access to the login protect it.
 
 ## Secrets and backups on the host
 

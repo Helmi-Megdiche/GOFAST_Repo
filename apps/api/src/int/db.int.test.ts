@@ -49,16 +49,22 @@ describe("boot check (RLS cannot be skipped by the login)", () => {
     await make("rv_createrole", "createrole");
     await make("rv_in_migrator", "", "grant fastgo_migrator to rv_in_migrator");
     await make("rv_in_reader", "", "grant fastgo_public_reader to rv_in_reader");
+    // S3 (GH-25): the owners of the newer definers count too: a login in either could read every ciphertext of core.staff_totp
+    // (fastgo_staff_auth) or write the order history (fastgo_order_writer).
+    await make("rv_in_staff_auth", "", "grant fastgo_staff_auth to rv_in_staff_auth");
+    await make("rv_in_order_writer", "", "grant fastgo_order_writer to rv_in_order_writer");
     try {
       const url = (user: string) => db.url("fastgo_app").replace(/\/\/[^:]+:[^@]+@/, `//${user}:pw@`);
       await expect(open(url("rv_createrole")).assertSafeRole()).rejects.toThrow(/CREATEROLE/);
       await expect(open(url("rv_in_migrator")).assertSafeRole()).rejects.toThrow(/member of fastgo_migrator/);
-      await expect(open(url("rv_in_reader")).assertSafeRole()).rejects.toThrow(/member of fastgo_migrator or fastgo_public_reader/);
+      await expect(open(url("rv_in_reader")).assertSafeRole()).rejects.toThrow(/member of fastgo_migrator, fastgo_public_reader/);
+      await expect(open(url("rv_in_staff_auth")).assertSafeRole()).rejects.toThrow(/fastgo_staff_auth/);
+      await expect(open(url("rv_in_order_writer")).assertSafeRole()).rejects.toThrow(/fastgo_order_writer/);
       // CONTROL: the same helper builds a url the check accepts for a clean login.
       await db.superClient.query("create role rv_clean login password 'pw'");
       await expect(open(url("rv_clean")).assertSafeRole()).resolves.toBeUndefined();
     } finally {
-      for (const r of ["rv_createrole", "rv_in_migrator", "rv_in_reader", "rv_clean"]) {
+      for (const r of ["rv_createrole", "rv_in_migrator", "rv_in_reader", "rv_in_staff_auth", "rv_in_order_writer", "rv_clean"]) {
         await db.superClient.query(`drop role if exists ${r}`);
       }
     }

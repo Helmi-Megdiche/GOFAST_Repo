@@ -44,6 +44,20 @@ export class AuthController {
     return s.me;
   }
 
+  @Post("staff/sessions")
+  @HttpCode(201)
+  @Operation("createStaffSession")
+  async createStaffSession(
+    @Body() body: Schemas["StaffSignInRequest"],
+    @Req() req: FastifyRequest,
+    @Res({ passthrough: true }) reply: FastifyReply,
+  ): Promise<Schemas["Me"]> {
+    const previousSession = (req.cookies ?? {})[this.cookie.cookieName];
+    const s = await this.auth.staffSignIn(body, { ...ctxOf(req), previousSession });
+    this.setSession(reply, s);
+    return s.me;
+  }
+
   @Delete("sessions")
   @HttpCode(204)
   @Operation("deleteSession")

@@ -56,8 +56,9 @@ beforeAll(async () => {
   )).rows[0].id as string;
   await q(`insert into core.parcels (order_id, size, weight_declared_g, proof_level, position, barcode) values ($1, 'small', 800, 'codeOrPhotoWithPosition', 1, $2)`, [order, `${EXAMPLE_TRACKING}-1`]);
   await q(`insert into core.status_events (order_id, subject_type, subject_id, to_status, actor_id) values ($1, 'order', $1, 'received', $2)`, [order, account]);
-  const deps = { db, redis, authSecret: "s".repeat(40) };
-  const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN], staffSignIn: false }, deps);
+  // GH-25: the second-factor key too, and the back-office origin, for the staff sign-in route.
+  const deps = { db, redis, authSecret: "s".repeat(40), totpKey: Buffer.alloc(32, 6) };
+  const auth = authOptions({ nodeEnv: "test", allowedOrigins: [ORIGIN, "https://backoffice.gofast.example"] }, deps);
   const merged = mergeOptions(auth, pricingOptions(deps), ordersOptions(deps));
   app = await createApp({ trustProxy: false }, { ...auth, controllers: merged.controllers, providers: merged.providers });
   const validFrom = (await q("select extract(epoch from sessions_valid_from)::text as v from core.accounts where id = $1", [account])).rows[0].v as string;
@@ -121,6 +122,12 @@ describe("Schemathesis against the contract", () => {
   // invalid body is rejected.
   it("finds no difference on createQuote, which may answer 422 for a valid body", async () => {
     await schemathesis(["createQuote"], ["unsupported_method", "positive_data_acceptance"]);
+  });
+
+  // GH-25 T60: the staff sign-in answers 401 to a schema-valid body that is not a staff member with the right code, which Schemathesis
+  // reads as "rejected" (`positive_data_acceptance`); the contract documents that 401, and 429 after the limits. Every other check runs.
+  it("finds no difference on createStaffSession, which answers 401 for a valid body", async () => {
+    await schemathesis(["createStaffSession"], ["unsupported_method", "positive_data_acceptance"]);
   });
 
   // GH-22: the order routes, signed in as a customer who owns an order. createOrder refuses a schema-valid body in many ways

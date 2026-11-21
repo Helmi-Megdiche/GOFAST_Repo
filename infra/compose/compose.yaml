@@ -156,6 +156,7 @@ services:
       DATABASE_URL: postgres://fastgo_app:${FASTGO_APP_PASSWORD:?set it in the env file}@pgbouncer:5432/fastgo
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       AUTH_SECRET: ${AUTH_SECRET:?set it in the env file}
+      TOTP_KEY: ${TOTP_KEY:?set it in the env file}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS:-http://localhost:13000}
     command: ["node", "dist/main.js"]
     ports:

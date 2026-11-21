@@ -246,15 +246,22 @@ describe("definer functions", () => {
       "session_account",
       "set_password",
       "sms_tracking_payload",
+      "staff_totp_enrol",
+      "staff_totp_failed",
+      "staff_totp_reset",
+      "staff_totp_secret",
+      "staff_totp_use",
       "tracking",
     ]);
     for (const f of r.rows) {
       // GH-10 round 2: account_for_login was replaced by login_account (0006); the app may no longer call it.
-      // GH-22: the two order definers belong to fastgo_order_writer; the worker (not the app) reads the SMS payload.
+      // GH-22: the order definers belong to fastgo_order_writer; the worker (not the app) reads the SMS payload.
+      // GH-25: the second-factor definers belong to fastgo_staff_auth; the app calls two of them, the operator (migrator) the other two.
+      const second = f.proname.startsWith("staff_totp_");
       const orderWriter = ["record_order_created", "sms_tracking_payload", "assert_order_actor", "auto_confirm_order", "cancel_order", "confirm_order", "lock_order"].includes(f.proname);
       expect(f, f.proname).toMatchObject({
-        owner: orderWriter ? "fastgo_order_writer" : "fastgo_public_reader",
-        app: !["account_for_login", "sms_tracking_payload", "assert_order_actor"].includes(f.proname),
+        owner: second ? "fastgo_staff_auth" : orderWriter ? "fastgo_order_writer" : "fastgo_public_reader",
+        app: !["account_for_login", "sms_tracking_payload", "assert_order_actor", "staff_totp_enrol", "staff_totp_reset"].includes(f.proname),
         ro: false,
         worker: f.proname === "sms_tracking_payload",
       });

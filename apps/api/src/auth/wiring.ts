@@ -27,8 +27,8 @@ export async function bootAuth(
 
 /** Everything PR 4a adds to the HTTP app: the controller, the Redis session, the CSRF check. */
 export function authOptions(
-  config: Pick<Config, "nodeEnv" | "allowedOrigins" | "staffSignIn">,
-  deps: { db: Db; redis: Redis; authSecret: string; now?: () => Date; passwords?: Passwords },
+  config: Pick<Config, "nodeEnv" | "allowedOrigins">,
+  deps: { db: Db; redis: Redis; authSecret: string; totpKey: Buffer; now?: () => Date; passwords?: Passwords },
 ): Pick<AppOptions, "controllers" | "providers" | "sessions" | "owners" | "csrf"> {
   const cookieName = cookieNameFor(config.nodeEnv);
   const keys = new Keys(deps.authSecret);
@@ -41,7 +41,7 @@ export function authOptions(
     sessions: store,
     checks: new PhoneChecks(deps.redis, keys),
     limiter: new RateLimiter(deps.redis),
-    staffSignIn: config.staffSignIn,
+    totpKey: deps.totpKey,
     now: deps.now,
   });
   return {

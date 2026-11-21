@@ -124,6 +124,8 @@ const EXPECTED: Record<string, Expect> = {
   "core.tickets": { app: ["INSERT", "SELECT", "UPDATE"], ro: "none", rls: true },
   "core.ticket_messages": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
   "core.idempotency_keys": { app: ["DELETE", "INSERT", "SELECT", "UPDATE"], ro: "none", rls: false },
+  // GH-25 T60: the encrypted second-factor secrets. No right for the app, the worker or the read-only login: two definers answer.
+  "core.staff_totp": { app: [], ro: "none", rls: true },
   "gestion.audit_events": { app: ["INSERT", "SELECT"], ro: "none", rls: true },
 };
 
@@ -176,6 +178,13 @@ const PUBLIC_READER: Record<string, Rights> = {
   },
   "core.companies": { t: ["INSERT"] },
   "core.company_members": { t: ["INSERT", "SELECT"] },
+};
+
+// GH-25: the owner of the second-factor definers (staff_totp_*). It reads and writes the secrets table and nothing else, and audits.
+const STAFF_AUTH: Record<string, Rights> = {
+  "core.staff_totp": { t: ["DELETE", "INSERT", "SELECT"], c: { UPDATE: ["failed_codes", "last_step", "locked_at"] } },
+  "core.accounts": { c: { SELECT: ["id", "role", "status"] } },
+  "gestion.audit_events": { t: ["INSERT"] },
 };
 
 // GH-22: the owner of record_order_created and sms_tracking_payload. It writes the history of a new order and reads
@@ -344,6 +353,15 @@ describe("grant test: every table, as it is in the database", () => {
     expect(Object.keys(PUBLIC_READER).filter((t) => !(t in got))).toEqual([]);
   });
 
+  it("GH-25: fastgo_staff_auth (owner of the second-factor definers) has exactly the rights of the map", async () => {
+    const got = await rightsOf("fastgo_staff_auth");
+    for (const [table, r] of Object.entries(got)) {
+      const want = STAFF_AUTH[table] ?? {};
+      expect({ t: r.t, c: r.c }, `${table} for fastgo_staff_auth`).toEqual({ t: want.t ?? [], c: want.c ?? {} });
+    }
+    expect(Object.keys(STAFF_AUTH).filter((t) => !(t in got))).toEqual([]);
+  });
+
   it("GH-22: fastgo_order_writer (owner of the history and SMS definers) has exactly the rights of the map", async () => {
     const got = await rightsOf("fastgo_order_writer");
     for (const [table, r] of Object.entries(got)) {
@@ -373,6 +391,7 @@ describe("grant test: every table, as it is in the database", () => {
       { rolname: "fastgo_order_writer", rolcanlogin: false, ...safe },
       { rolname: "fastgo_public_reader", rolcanlogin: false, ...safe },
       { rolname: "fastgo_readonly", rolcanlogin: true, ...safe },
+      { rolname: "fastgo_staff_auth", rolcanlogin: false, ...safe },
       { rolname: "fastgo_worker", rolcanlogin: true, ...safe },
     ]);
   });
@@ -381,6 +400,14 @@ describe("grant test: every table, as it is in the database", () => {
     const r = await db.superClient.query(
       `select pg_has_role('fastgo_migrator', 'fastgo_public_reader', 'SET') as can_set,
               pg_has_role('fastgo_migrator', 'fastgo_public_reader', 'USAGE') as inherits`,
+    );
+    expect(r.rows[0]).toEqual({ can_set: true, inherits: false });
+  });
+
+  it("GH-25: the migrator may SET ROLE to the second-factor owner but does not inherit its rights", async () => {
+    const r = await db.superClient.query(
+      `select pg_has_role('fastgo_migrator', 'fastgo_staff_auth', 'SET') as can_set,
+              pg_has_role('fastgo_migrator', 'fastgo_staff_auth', 'USAGE') as inherits`,
     );
     expect(r.rows[0]).toEqual({ can_set: true, inherits: false });
   });
